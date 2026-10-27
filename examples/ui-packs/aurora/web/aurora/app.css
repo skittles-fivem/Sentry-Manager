@@ -102,6 +102,8 @@ body::after {
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .stack { display: grid; gap: 18px; }
+/* grid items may shrink below their content, so a wide row wraps instead of widening the page */
+.stack > * { min-width: 0; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .row.end { justify-content: flex-end; }
 .spacer { flex: 1; }
@@ -109,6 +111,8 @@ body::after {
 .form .full { grid-column: 1 / -1; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-top: 18px; }
 .actions.start { justify-content: flex-start; }
+/* a long vehicle name wraps inside its button instead of pushing it off a phone screen */
+.actions .btn { max-width: 100%; white-space: normal; text-align: center; height: auto; }
 hr.soft { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
 
 .chip {
