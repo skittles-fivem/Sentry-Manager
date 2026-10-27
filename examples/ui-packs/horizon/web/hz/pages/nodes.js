@@ -67,7 +67,7 @@ export default {
           <section class="panel hud" aria-label="Let another server use this one">
             ${panelHead(`${ico('wifi')}Let another server use this one`, worker.enabled ? pill('node mode on', 'grn') : pill('off', ''))}
             ${worker.available ? `
-              <p class="small dim">A main server paired here sends this one clips to convert and takes the results back. It can do nothing else here.</p>
+              <p class="small dim">Pair a main server here and it sends this server clips to convert, then takes the converted files back. It can’t do anything else here.</p>
               <div class="grid2" style="margin-top:12px">
                 <label class="chk span-all"><input type="checkbox" id="w-on"${worker.enabled ? ' checked' : ''}> Convert for paired main servers</label>
               </div>

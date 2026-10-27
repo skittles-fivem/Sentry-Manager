@@ -69,7 +69,7 @@ export default {
             <div class="section-h"><h2>Let another server use this one</h2>${worker.enabled ? chip('node mode on', 'green') : chip('off', '')}</div>
             <div class="card">
               ${worker.available ? `
-              <p class="small muted">A main server paired here sends this one clips to encode and takes the results back. It can do nothing else here.</p>
+              <p class="small muted">Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here.</p>
               <div class="grid2" style="margin-top:12px">
                 <label class="check span2"><input type="checkbox" id="w-on"${worker.enabled ? ' checked' : ''}> Encode for paired main servers</label>
               </div>

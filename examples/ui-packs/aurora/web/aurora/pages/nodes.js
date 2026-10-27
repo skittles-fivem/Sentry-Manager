@@ -59,11 +59,11 @@ export default {
       if (!w.available) return '<p class="muted">This server runs without its own HTTPS (TLS_MODE=off), so it can’t be a node: a main server must be able to check its certificate.</p>';
       const p = w.pairing;
       const mins = p ? Math.max(1, Math.round((p.expiresAt - Date.now()) / 60000)) : 0;
-      return `<p class="lead">A main server paired here sends this one clips to encode and takes the results back. It can do nothing else: no footage, settings or passwords.</p>
+      return `<p class="lead">Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.</p>
         <div class="form" style="margin-top:14px">
           <label class="check full"><input type="checkbox" id="w-on"${w.enabled ? ' checked' : ''}> Encode for paired main servers${w.busy ? ` <span class="chip teal">${w.busy} busy</span>` : ''}</label>
         </div>
-        <p class="muted small" style="margin-top:10px">The main server chooses, in its own Encoder, which of this server’s GPUs (and its CPU) encode and how many clips each takes at once.</p>
+        <p class="muted small" style="margin-top:10px">The main server picks which of this server’s GPUs (and its CPU) to use, and how many clips each one encodes at once, in its own Encoder.</p>
         ${p ? `<div class="note ok" style="margin-top:14px"><p class="small">Pairing code · one use · ${plural(mins, 'minute')} left</p><p class="pair-code">${esc(p.code)}</p>
             <p class="small">On the main server: Nodes → Pair a node, with this server’s address <b class="mono">${esc(location.host)}</b> and this code.</p><div class="actions start"><button class="btn sm" type="button" id="pair-cancel">Cancel code</button></div></div>`
           : `<div class="actions start"><button class="btn" type="button" id="pair-start">${icon('key')} Show a pairing code</button></div>`}

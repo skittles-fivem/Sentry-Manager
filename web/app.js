@@ -1735,7 +1735,7 @@
 
       <div class="card" style="margin-top:20px"><h2>Let another server use this one</h2>
         ${worker.available ? `
-        <p class="muted" style="margin-top:6px">A main server you pair here sends this one clips to encode and takes the encoded files back. It can do nothing else here: no footage, settings or passwords.</p>
+        <p class="muted" style="margin-top:6px">Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.</p>
         <div class="form" style="margin-top:14px">
           <label class="check"><input type="checkbox" id="worker-on"${worker.enabled ? ' checked' : ''}> Encode for paired main servers</label>
         </div>
