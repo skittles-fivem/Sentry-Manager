@@ -13,14 +13,16 @@ import jobs from './pages/jobs.js';
 import bin from './pages/bin.js';
 import alerts from './pages/alerts.js';
 import settings from './pages/settings.js';
+import vehicles from './pages/vehicles.js';
 
-const PAGES = { sky, footage, viewer, encoder, nodes, policies, jobs, bin, alerts, settings };
+const PAGES = { sky, footage, viewer, encoder, vehicles, nodes, policies, jobs, bin, alerts, settings };
 // [route, label, icon, key (g + key), primary on phones]
 const DOCK = [
   ['sky', 'Sky', 'sky', 's', true],
   ['footage', 'Footage', 'film', 'f', true],
   ['viewer', 'Viewer', 'cockpit', 'v', true],
   ['encoder', 'Encoder', 'orbit', 'e', true],
+  ['vehicles', 'Per car', 'orbit', 'c', false],
   '|',
   ['nodes', 'Nodes', 'nodes', 'n', false],
   ['policies', 'Policies', 'shield', 'p', false],
@@ -30,7 +32,7 @@ const DOCK = [
   '|',
   ['settings', 'Settings', 'gear', ',', false]
 ];
-const LONG = { bin: 'Recycle Bin', alerts: 'Notifications', sky: 'Sky (home)' };
+const LONG = { vehicles: 'Encoding per vehicle', bin: 'Recycle Bin', alerts: 'Notifications', sky: 'Sky (home)' };
 
 // ---------- the sky ----------
 export const skyFx = createSky({ canvas: $('#sky'), stars: $('#stars'), shoot: $('#shoot') });

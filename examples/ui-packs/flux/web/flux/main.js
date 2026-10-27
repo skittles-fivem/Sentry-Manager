@@ -10,12 +10,14 @@ import jobs from './pages/jobs.js';
 import bin from './pages/bin.js';
 import notifications from './pages/notifications.js';
 import settings from './pages/settings.js';
+import vehicles from './pages/vehicles.js';
 
 const PAGES = [
   { id: 'overview', label: 'Overview', icon: 'overview', key: 'o', mod: overview, group: 'Monitor' },
   { id: 'footage', label: 'Footage', icon: 'footage', key: 'f', mod: footage, group: 'Monitor' },
   { id: 'viewer', label: 'Viewer', icon: 'viewer', key: 'v', mod: viewer, group: 'Monitor' },
   { id: 'encoder', label: 'Encoder', icon: 'encoder', key: 'e', mod: encoder, group: 'Process' },
+  { id: 'vehicles', label: 'Encoding per vehicle', icon: 'encoder', key: 'c', mod: vehicles, group: 'Process' },
   { id: 'nodes', label: 'Nodes', icon: 'nodes', key: 'n', mod: nodes, group: 'Process' },
   { id: 'policies', label: 'Policies', icon: 'policies', key: 'p', mod: policies, group: 'Process' },
   { id: 'jobs', label: 'Jobs', icon: 'jobs', key: 'j', mod: jobs, group: 'Process' },

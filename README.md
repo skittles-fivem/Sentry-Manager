@@ -206,6 +206,19 @@ and a vehicle whose share is down doesn't hold up the others. Settings are
 changed while nothing is converting (the vehicle picker is locked during a
 conversion).
 
+**Encoding per vehicle** (Encoder → *Encoding per vehicle*; in the example
+interfaces, its own page next to the Encoder) shows one card per vehicle with
+what it converts with, in plain words: codec, size (profile and about how much
+smaller, quality level or custom bitrate), whether clips that miss the target
+are kept, output (replace originals or a separate folder), verification, clip
+groups and their order, devices, and automatic conversion with its schedule.
+*Edit* (or *Set up* for a vehicle with nothing saved) changes them with the
+same checks as a run you start, including the confirmation for replacing
+originals; settings can be saved with automatic conversion off, and turning
+it off keeps them. In the Encoder, the picked vehicle's saved settings show
+in one line ("Model 3 saved settings: H.265 · Balanced · Replace · Quick")
+with *Load these*, which fills the form only when you click it.
+
 - **Telemetry is always kept.** Tesla stores speed, GPS, gear, Autopilot and
   more in every video frame. The converter copies that into the H.265 or AV1
   file and checks it before it saves anything. Verification cannot be turned

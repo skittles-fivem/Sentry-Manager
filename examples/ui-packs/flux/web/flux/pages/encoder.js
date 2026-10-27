@@ -1,5 +1,6 @@
 // Encoder: start, watch and steer conversions through /api/converter/invoke/* and
 // the /api/converter/events stream. Per-lane throughput comes from /api/stats.
+import '/web/vehicleEncoding.js';
 import { esc, api, invoke, state, current, sourceOf, bytes, rate, pct, num, dur, energy, watts, money, icon, toast, confirmDialog, busy, store, fin, plural, isoish, debounce, bus, CLIENT_ID, liveDraw } from '../core.js';
 import { split, seg, wireSeg, meter, chip, empty } from '../ui.js';
 import { spark, C, PALETTE } from '../charts.js';
@@ -325,6 +326,7 @@ export default {
         ${state.vehicles.length ? '' : '<p class="muted">Add a vehicle in Settings first.</p>'}
         <fieldset ${state.vehicles.length ? '' : 'disabled'}>
           <label class="field">Vehicle<select class="input" name="vehicle">${vehicleOpts(veh?.id)}</select><span class="faint small mono ell" title="${esc(sourceOf(veh) || '')}">${esc(sourceOf(veh) || '')}</span></label>
+          <div id="enc-saved" class="small"></div>
           <div class="field">Codec${seg('codec', [['h265', 'H.265'], ['av1', 'AV1']], form.codec, 'Codec')}</div>
           <label class="field">Size profile<select class="input" name="profileId">
             ${[['conservative', 'Conservative · about 5% smaller'], ['balanced', 'Balanced · about 20% smaller'], ['aggressive', 'Aggressive · about 50% smaller'], ['quality', 'Constant quality'], ['custom', 'Custom bitrate']].map(([x, l]) => `<option value="${x}"${form.profileId === x ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
@@ -371,6 +373,22 @@ export default {
       });
       f.oninput = () => { readForm(); save(); groupTotals(f); };
       wireGroups(f, groupMem);
+      showSaved(veh);
+    }
+    // the vehicle's saved settings (Encoding per vehicle) in one line;
+    // "Load these" fills the form, nothing changes by itself
+    function showSaved(veh) {
+      const host = $('#enc-saved');
+      if (!host || !veh || !window.SentryVehicleEncoding) return;
+      window.SentryVehicleEncoding.encoderLine(host, {
+        folder: sourceOf(veh), name: veh.name, href: '#/vehicles', classes: { btn: 'btn sm' },
+        onLoad: (c) => {
+          Object.assign(form, window.SentryVehicleEncoding.formFields(c, form));
+          save();
+          drawForm();
+          toast(`${veh.name}'s saved settings loaded.`);
+        }
+      }).catch(() => {});
     }
     // a vehicle update (sent often while a job runs) redrew the form under the
     // user's hands: an open picker closed and focus jumped away. Wait for focus to leave.

@@ -2,6 +2,7 @@
 // What is converting now, a guided "save space" flow, how many clips at
 // once (per GPU / node), automatic conversion, and a speed test.
 
+import '/web/vehicleEncoding.js';
 import { api, esc, enc, icon, bytes, plural, pct, duration, meter, chip, emptyState, details, kv, confirmDialog, modal, toast, fail, busy, invoke, store, ago, fin, liveDraw } from '../core.js';
 import { state, vehicle, setVehicle, vehiclePicker, vehicleById } from '../state.js';
 import { go } from '../app.js';
@@ -286,12 +287,14 @@ async function overview(ctx) {
     view.innerHTML = `<div class="page">
       <div class="page-head"><div><h1>Encoder</h1><p class="lede">Make your footage smaller without losing any of it. Every converted clip is checked before an original is touched.</p></div>
         <div class="head-actions">${vehiclePicker()}</div></div>
+      <div id="enc-saved" style="margin-bottom:16px"></div>
       ${state.vehicles.length ? '' : `<div style="margin-bottom:18px">${emptyState({ art: 'car', title: 'Add a vehicle first', text: 'The Encoder converts a vehicle’s footage. Add your car and come back.', action: '<a class="btn btn-primary" href="#/settings/add-vehicle">Add my vehicle</a>' })}</div>`}
       <div id="job-slot">${jobCard()}</div>
       <div class="grid grid-2 section">${nextParallel()}${autoCard()}</div>
     </div>`;
     drawn = true;
     wire();
+    showSaved();
     if (focusId) document.getElementById(focusId)?.focus({ preventScroll: true });
   };
 
@@ -469,6 +472,25 @@ async function overview(ctx) {
   });
   ctx.on('vehicle', draw);
   ctx.on('vehicles', () => { if (!view.contains(document.activeElement)) liveDraw(view.firstElementChild || view, () => ctx.alive() && draw(), 'dl:encoder'); });
+}
+
+// The picked vehicle's saved settings (Encoding per vehicle) in one line;
+// "Load these" makes them the guided flow's choices and opens it.
+function showSaved() {
+  const host = document.getElementById('enc-saved');
+  const v = vehicle();
+  if (!host || !v || !window.SentryVehicleEncoding) return;
+  window.SentryVehicleEncoding.encoderLine(host, {
+    folder: footageOf(v), name: v.name, href: '#/vehicles', classes: { btn: 'btn btn-sm' },
+    onLoad: (c) => {
+      store.set('choices', {
+        ...store.get('choices', {}), vehicleId: v.id, mode: c.outputMode, codec: c.codec, profile: c.profileId, quality: c.qualityLevel || 'balanced',
+        keepOffTarget: c.keepOffTarget === true, groups: c.includedGroups, verify: c.verifyMode, destination: c.destinationRoot || ''
+      });
+      toast(`${v.name}’s saved settings are ready in the guided flow.`, { kind: 'good' });
+      location.hash = '#/encoder/new';
+    }
+  }).catch(() => {});
 }
 
 // ---------- the guided flow ----------

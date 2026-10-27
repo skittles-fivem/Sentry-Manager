@@ -2135,6 +2135,17 @@ function createFootageConverterController(options = {}) {
     }
 
     function bind() {
+        // "Load these" next to the vehicle (Encoding per vehicle): its saved
+        // settings fill the form, only when the owner asks for them
+        globalThis.addEventListener?.('sentry:converter-load', (event) => {
+            const config = event?.detail?.config;
+            if (!config || typeof config !== 'object') return;
+            syncConfig(config);
+            syncLanes(config, { force: true });
+            renderGroupOrder();
+            updateVerifyOptions();
+            render();
+        });
         elements.sourceButton?.addEventListener('click', () => chooseFolder('source'));
         elements.destinationButton?.addEventListener('click', () => chooseFolder('destination'));
         for (const option of elements.outputOptions) option.addEventListener?.('change', updateOutputMode);

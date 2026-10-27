@@ -1,6 +1,7 @@
 // Encoder: the garage and its dyno. Throughput is a tachometer, each device's
 // conversion lanes are cylinders, and the job's progress is a lap counter.
 // Everything goes through /api/converter/invoke/* and /api/converter/events.
+import '/web/vehicleEncoding.js';
 import { h, ico, api, conv, app, car, carRoot, size, perSec, pc, fixed, count, span, stampFull, watt, wh, cash, ok, toast, ask, act, local, segs, onSegs, pill, bar, panelHead, bus, debounce, CLIENT, liveDraw } from '../core.js';
 import { dial, setDial, ring, setRing } from '../gauges.js';
 import { splitDevices, deviceLabel, laneValue, jobLanes, groupMemory, groupBodyId, wireGroups } from '../nodelanes.js';
@@ -352,6 +353,7 @@ export default {
         <fieldset class="form plain"${app.vehicles.length ? '' : ' disabled'}>
           <legend class="sr-only">New conversion</legend>
           <label class="fld">Vehicle<select class="in" name="vehicle">${app.vehicles.map((x) => `<option value="${h(x.id)}"${x.id === veh?.id ? ' selected' : ''}>${h(x.name)}</option>`).join('')}</select><span class="hint mono wrap-any">${h(carRoot(veh) || '')}</span></label>
+          <div id="e-saved" class="small"></div>
           <div class="fld">Codec${segs('codec', [['h265', 'H.265'], ['av1', 'AV1']], form.codec, 'Codec')}</div>
           <label class="fld">Size profile<select class="in" name="profileId">${[['conservative', 'Conservative · about 5% smaller'], ['balanced', 'Balanced · about 20% smaller'], ['aggressive', 'Aggressive · about 50% smaller'], ['quality', 'Constant quality'], ['custom', 'Custom bitrate']].map(([x, l]) => `<option value="${x}"${form.profileId === x ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
           <label class="fld" data-show="custom"${form.profileId === 'custom' ? '' : ' hidden'}>Bitrate (kbit/s)<input class="in num" type="number" inputmode="numeric" name="bitrateKbps" min="250" max="100000" step="50" value="${h(form.bitrateKbps)}"></label>
@@ -390,6 +392,17 @@ export default {
       });
       f.oninput = () => { read(); save(); groupTotals(f); };
       wireGroups(f, groupMem);
+      showSaved(veh);
+    }
+    // the vehicle's saved settings (Encoding per vehicle) in one line;
+    // "Load these" fills the sheet, nothing changes by itself
+    function showSaved(veh) {
+      const host = $('#e-saved');
+      if (!host || !veh || !window.SentryVehicleEncoding) return;
+      window.SentryVehicleEncoding.encoderLine(host, {
+        folder: carRoot(veh), name: veh.name, href: '#/vehicles', classes: { btn: 'btn' },
+        onLoad: (c) => { Object.assign(form, window.SentryVehicleEncoding.formFields(c, form)); save(); drawForm(); toast(`${veh.name}'s saved settings loaded.`); }
+      }).catch(() => {});
     }
     // the next run's number for a device (a node's devices other than its default start at 0)
     const laneNext = (d) => laneValue(form.lanes, d, d.kind === 'cpu' ? 2 : 1);

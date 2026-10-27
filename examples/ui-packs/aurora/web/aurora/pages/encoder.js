@@ -2,6 +2,7 @@
 // converted (coloured by device), the live numbers beside it, the controls,
 // and below: the clips, a new conversion, automatic conversion and a benchmark.
 
+import '/web/vehicleEncoding.js';
 import {
   $, $$, esc, icon, api, invoke, state, current, footageRoot, bytes, plural, pct, num, dur, when, ago, fin, ring, meter, toast,
   confirmDialog, openDialog, store, empty, liveDraw
@@ -265,6 +266,7 @@ export default {
             <label class="field">Vehicle<select class="input" id="f-veh">${state.vehicles.map((x) => `<option value="${esc(x.id)}"${x.id === v.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>
             <div class="field">Codec<div class="seg big" role="group" aria-label="Codec">${['h265', 'av1'].map((k) => `<button type="button" data-f="codec" data-v="${k}" aria-pressed="${form.codec === k}">${CODEC[k]}</button>`).join('')}</div></div>
           </div>
+          <div id="f-saved" class="small"></div>
           <div class="field">Size<div class="choice-grid">${PROFILES.map(([k, label, hint]) => `<label class="choice"><input type="radio" name="profile" value="${k}"${form.profileId === k ? ' checked' : ''}><b>${label}</b><span>${hint}</span></label>`).join('')}</div></div>
           ${form.profileId === 'quality' ? `<div class="field">Quality level<div class="seg big" role="group" aria-label="Quality level">${QUALITY.map(([k, l]) => `<button type="button" data-f="qualityLevel" data-v="${k}" aria-pressed="${form.qualityLevel === k}">${l}</button>`).join('')}</div></div>` : ''}
           ${['custom', 'quality'].includes(form.profileId) ? '' : `<label class="check" style="padding:2px 4px"><input type="checkbox" id="f-offtarget"${form.keepOffTarget ? ' checked' : ''}> Keep a clip that can’t quite reach this size — only if it’s still smaller than the original and passed every other check</label>`}
@@ -286,6 +288,28 @@ export default {
           ${busy ? `<p class="muted small" id="f-busy" role="status">A conversion is running${runVeh ? ` (${esc(runVeh.name)})` : ''}. Start this one when it finishes, or turn on Automatic conversion for this vehicle below.</p>` : ''}
         </form>`;
       wireGroups(panel, groupMem);
+      showSaved(v);
+    }
+    // the vehicle's saved settings (Encoding per vehicle) in one line;
+    // "Load these" fills the form, nothing changes by itself
+    function showSaved(v) {
+      const host = $('#f-saved', body);
+      if (!host || !window.SentryVehicleEncoding) return;
+      window.SentryVehicleEncoding.encoderLine(host, {
+        folder: footageRoot(v), name: v.name, href: '#/vehicles', classes: { btn: 'btn' },
+        onLoad: (c) => {
+          const f = window.SentryVehicleEncoding.formFields(c, form);
+          Object.assign(form, {
+            codec: f.codec, profileId: f.profileId, outputMode: f.outputMode, verifyMode: f.verifyMode, keepOffTarget: f.keepOffTarget,
+            included: f.groups, ...(f.groupOrder ? { groups: f.groupOrder } : {}), ...(f.bitrateKbps ? { bitrateKbps: f.bitrateKbps } : {}),
+            ...(f.qualityLevel ? { qualityLevel: f.qualityLevel } : {}), ...(f.lanes ? { lanes: f.lanes } : { concurrency: f.concurrency })
+          });
+          if (f.dest) form.dest[v.id] = f.dest;
+          saveForm();
+          drawStart();
+          toast(`${v.name}'s saved settings loaded.`);
+        }
+      }).catch(() => {});
     }
 
     // ---------- automatic conversion ----------

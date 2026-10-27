@@ -498,6 +498,36 @@
       document.querySelector('[data-converter-output]:checked')?.dispatchEvent(new Event('change', { bubbles: true }));
       const v = vehicles.find((x) => footageOf(x) === folder);
       if (picker && v) picker.value = v.id;
+      showSaved(folder);
+    };
+    // the picked vehicle's saved settings in one line (vehicleEncoding.js),
+    // with "Load these": nothing typed here is replaced unless asked
+    let savedLib = null;
+    const showSaved = async (folder) => {
+      try {
+        savedLib ||= new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = '/web/vehicleEncoding.js';
+          script.onload = () => resolve(window.SentryVehicleEncoding);
+          script.onerror = reject;
+          document.head.append(script);
+        });
+        const lib = await savedLib;
+        const input = sourceInput();
+        const field = input?.closest('.converter-field, label, div') || input?.parentElement;
+        if (!lib || !field) return;
+        let host = document.getElementById('sm-vehicle-saved');
+        if (!host) {
+          host = document.createElement('div');
+          host.id = 'sm-vehicle-saved';
+          field.after(host);
+        }
+        const v = vehicles.find((x) => footageOf(x) === folder);
+        await lib.encoderLine(host, {
+          folder, name: v?.name, href: '/#/encoder/vehicles', target: '_top', classes: { btn: 'converter-button' },
+          onLoad: (config) => window.dispatchEvent(new CustomEvent('sentry:converter-load', { detail: { config: { ...config, sourceRoot: folder } } }))
+        });
+      } catch (_) { /* the line is extra */ }
     };
     const useSource = async (folder) => {
       if (!ready) {
@@ -542,6 +572,7 @@
         if (!input.value && current) setSource(footageOf(current));
         preferReplace();
       }
+      showSaved(input.value);
     }
     window.addEventListener('sentry:converter-ready', (e) => {
       if (typeof e.detail?.jobState === 'function') jobState = async () => e.detail.jobState();

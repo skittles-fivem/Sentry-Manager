@@ -22,6 +22,10 @@ const SETTINGS_FILE = 'settings.json';
 // Which job this feature paused for the time window (survives restarts, so a
 // job the user paused themselves is never resumed automatically).
 const STATE_FILE = 'state.json';
+// Each vehicle's encoding settings saved without automatic conversion (the
+// "Encoding per vehicle" page): one per source folder. A vehicle with
+// automatic conversion on keeps its settings in SETTINGS_FILE instead.
+const SAVED_FILE = 'vehicles.json';
 const MAX_FAILED_SWEEPS = 3;
 // Clips the automatic job gave up on (failed MAX_FAILED_SWEEPS times, or kept
 // as the original because the encode was not smaller) are remembered with this
@@ -219,6 +223,7 @@ function createAutoConverter(options = {}) {
   }
 
   let settings = { ...DEFAULT_SETTINGS };
+  let saved = [];
   const status = {
     lastCheckAt: null, nextCheckAt: null, lastNewFiles: null, lastJobId: null,
     activeJobId: null, pausedForWindow: false, checking: false, error: null,
@@ -649,16 +654,27 @@ function createAutoConverter(options = {}) {
   }
 
   function getState() {
-    return { settings: JSON.parse(JSON.stringify(settings)), status: JSON.parse(JSON.stringify(status)) };
+    return { settings: JSON.parse(JSON.stringify(settings)), status: JSON.parse(JSON.stringify(status)), saved: JSON.parse(JSON.stringify(saved)) };
   }
 
-  return Object.freeze({
+  // the saved-only list without the folders that convert automatically
+  async function writeSaved(list) {
+    const automatic = new Set(settings.configs.map((config) => config.sourceRoot));
+    const next = normalizeConfigs({ configs: list }).filter((config) => !automatic.has(config.sourceRoot));
+    if (JSON.stringify(next) === JSON.stringify(saved)) return;
+    saved = next;
+    await writeJson(SAVED_FILE, saved);
+  }
+
+  const self = Object.freeze({
     isKnown,
     getState,
     tick,
     async start() {
       const stored = await readJson(SETTINGS_FILE);
       try { if (stored) settings = normalizeSettings(stored); } catch (_) { settings = { ...DEFAULT_SETTINGS }; }
+      const storedSaved = await readJson(SAVED_FILE);
+      try { saved = Array.isArray(storedSaved) ? normalizeConfigs({ configs: storedSaved }) : []; } catch (_) { saved = []; }
       for (const config of settings.configs) await loadIndex(config);
       // Adopt the automatic jobs still running when the app closed.
       try {
@@ -701,6 +717,7 @@ function createAutoConverter(options = {}) {
      */
     async configure(next) {
       let configs = settings.configs;
+      let keep = null; // a folder turned off keeps its settings (saved only)
       if (Array.isArray(next?.configs)) configs = next.configs;
       else if (next?.enabled === true && isConfig(next.config)) {
         const { nodesOff: _sent, ...sent } = next.config;
@@ -708,6 +725,7 @@ function createAutoConverter(options = {}) {
           ?? (settings.configs.find((config) => config.sourceRoot === sent.sourceRoot)?.nodesOff || []);
         configs = [...configs.filter((config) => config.sourceRoot !== next.config.sourceRoot), { ...sent, ...(off.length ? { nodesOff: off } : {}) }];
       } else if (typeof next?.removeSource === 'string') {
+        keep = configs.find((config) => config.sourceRoot === next.removeSource) || null;
         configs = configs.filter((config) => config.sourceRoot !== next.removeSource);
       }
       if (configs.length > MAX_SOURCES) throw autoError('TOO_MANY_AUTO_SOURCES');
@@ -717,6 +735,7 @@ function createAutoConverter(options = {}) {
       const added = normalized.configs.filter((config) => before.get(config.sourceRoot) !== JSON.stringify(config)).map((config) => config.sourceRoot);
       settings = normalized;
       await writeJson(SETTINGS_FILE, settings);
+      await writeSaved(keep ? [...saved.filter((config) => config.sourceRoot !== keep.sourceRoot), keep] : saved);
       // a folder turned on (or with new settings) is checked soon
       for (const sourceRoot of added) if (!status.round.includes(sourceRoot)) status.round.push(sourceRoot);
       if (!settings.enabled) { status.round = []; status.nextCheckAt = null; }
@@ -758,6 +777,29 @@ function createAutoConverter(options = {}) {
       changed();
       return getState();
     },
+    /**
+     * One vehicle's encoding settings saved without turning automatic
+     * conversion on (validated like a start by the caller). A vehicle that
+     * converts automatically gets them as its automatic settings instead.
+     */
+    async saveVehicle(config) {
+      if (!isConfig(config)) throw autoError('INVALID_AUTO_SETTINGS');
+      if (settings.configs.some((entry) => entry.sourceRoot === config.sourceRoot)) {
+        const { configs: _all, ...schedule } = settings;
+        return self.configure({ ...schedule, enabled: true, config });
+      }
+      if (!saved.some((entry) => entry.sourceRoot === config.sourceRoot) && saved.length >= MAX_SOURCES) throw autoError('TOO_MANY_AUTO_SOURCES');
+      const { nodesOff: _sent, ...sent } = config;
+      await writeSaved([...saved.filter((entry) => entry.sourceRoot !== config.sourceRoot), sent]);
+      changed();
+      return getState();
+    },
+    // forget a vehicle's saved-only settings (automatic ones stay)
+    async forgetVehicle(sourceRoot) {
+      await writeSaved(saved.filter((entry) => entry.sourceRoot !== sourceRoot));
+      changed();
+      return getState();
+    },
     async checkNow() {
       status.nextCheckAt = null;
       status.round = [];
@@ -770,6 +812,7 @@ function createAutoConverter(options = {}) {
       sweepAbort?.abort();
     }
   });
+  return self;
 }
 
 module.exports = { createAutoConverter, planLanes, INTERVAL_MINUTES, inWindow, CONVERTER_REVISION };

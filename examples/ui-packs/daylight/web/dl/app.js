@@ -9,6 +9,7 @@ const ROUTES = {
   footage: { label: 'Footage', icon: 'film', group: 'main', load: () => import('./pages/footage.js') },
   viewer: { label: 'Viewer', icon: 'playOutline', group: 'main', load: () => import('./pages/viewer.js') },
   encoder: { label: 'Encoder', icon: 'encoder', group: 'main', load: () => import('./pages/encoder.js') },
+  vehicles: { label: 'Encoding per vehicle', icon: 'encoder', group: 'main', desc: 'What each vehicle converts with', load: () => import('./pages/vehicles.js') },
   more: { label: 'More', icon: 'more', group: 'phone', load: () => import('./pages/more.js') },
   bin: { label: 'Recycle Bin', icon: 'trash', group: 'care', desc: 'Restore or delete for good', load: () => import('./pages/bin.js') },
   policies: { label: 'Cleanup rules', icon: 'rules', group: 'care', desc: 'Keep footage for as long as you like', load: () => import('./pages/policies.js') },
@@ -18,7 +19,7 @@ const ROUTES = {
   server: { label: 'Server & logs', icon: 'server', group: 'setup', desc: 'CPU, memory, disks, temperatures, logs', load: () => import('./pages/server.js') },
   settings: { label: 'Settings', icon: 'gear', group: 'setup', desc: 'Vehicles, account, look, security', load: () => import('./pages/settings.js') }
 };
-export const MORE_ROUTES = ['bin', 'policies', 'jobs', 'notifications', 'nodes', 'server', 'settings'];
+export const MORE_ROUTES = ['vehicles', 'bin', 'policies', 'jobs', 'notifications', 'nodes', 'server', 'settings'];
 export const routeInfo = (r) => ROUTES[r];
 
 // ---------- the look ----------

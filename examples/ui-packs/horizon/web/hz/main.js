@@ -7,6 +7,7 @@ export const PAGES = [
   { id: 'footage', label: 'Footage', icon: 'film' },
   { id: 'viewer', label: 'Viewer', icon: 'viewer' },
   { id: 'encoder', label: 'Encoder', icon: 'engine' },
+  { id: 'vehicles', label: 'Encoding per vehicle', short: 'Per car', icon: 'engine' },
   { id: 'nodes', label: 'Nodes', icon: 'nodes' },
   { id: 'policies', label: 'Policies', icon: 'policy' },
   { id: 'jobs', label: 'Jobs', icon: 'jobs' },

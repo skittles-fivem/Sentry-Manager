@@ -1264,6 +1264,8 @@ async function createConverterRuntime(options = {}) {
       get: () => auto.getState(),
       configure: (settings) => auto.configure(settings),
       checkNow: () => auto.checkNow(),
+      saveVehicle: (config) => auto.saveVehicle(config),
+      forgetVehicle: (sourceRoot) => auto.forgetVehicle(sourceRoot),
       // (the vehicle's folder says whose settings change: with several
       // vehicles on automatic, without it the change went to another one)
       setConcurrency: (value, sourceRoot) => auto.setConcurrency(value, sourceRoot),

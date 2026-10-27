@@ -95,7 +95,7 @@ function createConverterBridge({ runtime, resolvePath, log }) {
     const channel = `converter:${name}`;
     const fn = handlers.get(channel);
     if (!channels.has(channel) || !fn) return { ok: false, error: { code: 'UNKNOWN_CHANNEL' } };
-    if (name === 'start' || name === 'setAuto') {
+    if (name === 'start' || name === 'setAuto' || name === 'saveVehicle') {
       clampVerify(payload);
       clampVerify(payload?.config);
     }

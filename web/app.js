@@ -1482,9 +1482,36 @@
     page.innerHTML = '';
     showFrame('viewer');
   };
-  pages.encoder = () => {
-    page.innerHTML = '';
-    showFrame('encoder');
+  let vehicleEncoding = null; // the Encoding per vehicle view (vehicleEncoding.js)
+  pages.encoder = async (sub) => {
+    vehicleEncoding?.destroy();
+    vehicleEncoding = null;
+    if (sub !== 'vehicles') {
+      page.innerHTML = '';
+      showFrame('encoder');
+      return;
+    }
+    // Encoder > Encoding per vehicle: what each vehicle converts with
+    for (const el of Object.values(frames)) hideFrame(el);
+    page.innerHTML = `${head('Encoder', 'Encoding per vehicle')}
+      <div class="pills" role="tablist" style="margin-bottom:16px"><a class="pill" style="text-decoration:none" href="#/encoder">Encoder</a><a class="pill active" style="text-decoration:none" href="#/encoder/vehicles" aria-current="page">Encoding per vehicle</a></div>
+      <div id="vehicle-encoding"></div>`;
+    if (!window.SentryVehicleEncoding) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = '/web/vehicleEncoding.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Can’t load the vehicle settings.'));
+        document.head.append(script);
+      });
+    }
+    const edit = new URLSearchParams(location.hash.split('?')[1] || '').get('edit');
+    vehicleEncoding = window.SentryVehicleEncoding.mount($('vehicle-encoding'), {
+      classes: { card: 'card', btn: 'btn', primary: 'btn solid', input: 'input', field: 'field', check: 'check', muted: 'muted' },
+      toast, encoderHref: '#/encoder', edit,
+      confirm: (text) => confirmDialog({ title: 'Replace originals?', body: `<p>${esc(text)}</p>`, ok: 'Replace originals', danger: true })
+    });
+    await vehicleEncoding.ready;
   };
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin || e.data?.source !== 'sentry-studio') return;
@@ -2414,7 +2441,7 @@
     // the shell's opening state (boot.js, index.html) ends here
     bootFrame?.remove();
     delete document.documentElement.dataset.boot;
-    const [route, ...rest] = (location.hash.replace(/^#\/?/, '') || 'overview').split('/');
+    const [route, ...rest] = (location.hash.replace(/^#\/?/, '').split('?')[0] || 'overview').split('/');
     const before = state.route;
     state.route = pages[route] ? route : 'overview';
     // a new visit to the Overview starts with the tiles' (and the logs') own height and rows
@@ -2428,7 +2455,7 @@
     const label = document.querySelector(`#nav a[data-route="${state.route}"] span`)?.textContent || '';
     $('crumb').textContent = `Sentry Six Manager${label ? ` / ${label}` : ''}`;
     document.title = `${label || 'Overview'} · Sentry Six Manager`;
-    const embedded = state.route === 'viewer' || state.route === 'encoder';
+    const embedded = state.route === 'viewer' || (state.route === 'encoder' && !rest.length);
     $('topbar').hidden = embedded;
     // give Studio the room it needs on smaller windows; the sidebar comes back after
     if (embedded && innerWidth < 1200 && !app.classList.contains('collapsed')) app.classList.add('collapsed', 'auto-collapsed');

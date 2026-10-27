@@ -25,6 +25,8 @@ const CHANNELS = Object.freeze([
   'converter:getAuto',
   'converter:setAuto',
   'converter:checkAutoNow',
+  'converter:saveVehicle',
+  'converter:forgetVehicle',
   'converter:devices',
   'converter:setLanes'
 ]);
@@ -649,6 +651,22 @@ function registerConverterIpc(options = {}) {
         keepRunning: payload.keepRunning, openAtLogin: payload.openAtLogin, config,
         ...(payload.removeSource !== undefined ? { removeSource: payload.removeSource } : {})
       }), MAX_PAYLOAD_BYTES, { finiteNumbers: true });
+    }),
+    // One vehicle's encoding settings saved without automatic conversion
+    // (Encoding per vehicle): the same validation as a manual start.
+    'converter:saveVehicle': wrapped(async (_event, payload) => {
+      if (typeof options.auto?.saveVehicle !== 'function') fail('AUTO_UNAVAILABLE');
+      if (!isPlainObject(payload) || !exactKeys(payload, ['config'])) fail('INVALID_REQUEST');
+      const config = await validateStartConfig(payload.config, dependencies, capabilities);
+      return boundedJsonValue(await options.auto.saveVehicle(config), MAX_PAYLOAD_BYTES, { finiteNumbers: true });
+    }),
+    'converter:forgetVehicle': wrapped(async (_event, payload) => {
+      if (typeof options.auto?.forgetVehicle !== 'function') fail('AUTO_UNAVAILABLE');
+      // (never checked against the shares, like removeSource: an unplugged
+      // drive's settings can always be forgotten)
+      if (!isPlainObject(payload) || !exactKeys(payload, ['forgetSource'])
+          || typeof payload.forgetSource !== 'string' || !payload.forgetSource || payload.forgetSource.length > 4096) fail('INVALID_REQUEST');
+      return boundedJsonValue(await options.auto.forgetVehicle(payload.forgetSource), MAX_PAYLOAD_BYTES, { finiteNumbers: true });
     }),
     'converter:checkAutoNow': wrapped(async (_event, payload) => {
       validateNoPayload(payload);
