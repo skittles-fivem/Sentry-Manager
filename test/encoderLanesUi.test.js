@@ -846,3 +846,27 @@ test('the Encoder styles: node groups have 44 px tap targets on touch screens an
   assert.match(css, /\.converter-lane-group-head \{[^}]*grid-template-columns: minmax\(0, 1fr\) auto auto/, 'the name gives way, never the count');
   assert.match(css, /\.converter-lane-group-body \{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
 });
+
+test('while a job runs the setup stays open: settings are not disabled, a running job\'s updates do not overwrite them, only Start waits', async () => {
+  const job = running({ sourceRoot: '/footage/model3', destinationRoot: '/out', codec: 'h265', profileId: 'balanced', concurrency: 5 });
+  const p = await page({ devices: ONE, job });
+  const { elements } = p;
+  assert.equal(elements.startButton.disabled, true, 'Start waits for the running job');
+  assert.equal(elements.profileSelect.disabled, false);
+  // another vehicle is set up while it runs
+  elements.sourcePath.value = '/footage/modely';
+  elements.profileSelect.value = 'small';
+  p.push({ ...job, revision: 2 });
+  p.push({ ...job, revision: 3, state: 'verifying' });
+  await settle();
+  assert.equal(elements.sourcePath.value, '/footage/modely', 'the folder being set up stays');
+  assert.equal(elements.profileSelect.value, 'small', 'the setting being changed stays');
+  assert.equal(elements.profileSelect.disabled, false);
+  assert.equal(elements.startButton.disabled, true);
+});
+
+test('the Start note while another job runs has its words in the translations', () => {
+  const t = fs.readFileSync(path.join(REPO, 'src/renderer/scripts/data/translations.js'), 'utf8');
+  assert.match(t, /startBusy: "A conversion is running\./);
+  assert.match(t, /startBusyFor: "A conversion is running \(\{vehicle\}\)\./);
+});

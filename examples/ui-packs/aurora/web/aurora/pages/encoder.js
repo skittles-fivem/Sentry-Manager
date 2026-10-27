@@ -247,6 +247,8 @@ export default {
       const panel = $('#start-panel', body);
       const v = veh();
       const busy = snap && ACTIVE.has(snap.state);
+      const runSrc = snap?.config?.sourceRoot;
+      const runVeh = busy && runSrc ? state.vehicles.find((x) => footageRoot(x) === runSrc || x.root === runSrc) : null;
       if (!v) {
         panel.innerHTML = empty('No vehicle yet', 'Add one in Settings to convert its footage.', `<a class="btn primary" href="#/settings/vehicles/new">${icon('plus')} Add a vehicle</a>`);
         return;
@@ -254,7 +256,7 @@ export default {
       const canReplace = caps?.replacement === 'available' && v.share?.writable !== false;
       if (!canReplace && form.outputMode === 'replace') form.outputMode = 'separate';
       const replace = form.outputMode === 'replace';
-      panel.innerHTML = `<div class="panel-head"><h2>New conversion</h2>${busy ? '<span class="chip amber">one at a time: wait for the running job</span>' : ''}</div>
+      panel.innerHTML = `<div class="panel-head"><h2>New conversion</h2>${busy ? '<span class="chip amber">a job is running</span>' : ''}</div>
         <form id="start" class="stack" novalidate>
           <div class="form">
             <label class="field">Vehicle<select class="input" id="f-veh">${state.vehicles.map((x) => `<option value="${esc(x.id)}"${x.id === v.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>
@@ -277,6 +279,7 @@ export default {
           <details class="more-info"><summary>Network</summary><div class="seg big" role="group" aria-label="Network mode" style="margin-top:6px">${[['auto', 'Automatic'], ['staging', 'Copy to the server first'], ['direct', 'Read in place']].map(([k, l]) => `<button type="button" data-f="networkMode" data-v="${k}" aria-pressed="${form.networkMode === k}">${l}</button>`).join('')}</div></details>
           <p class="err" id="start-err" role="alert"></p>
           <div class="actions"><button class="btn primary" type="submit" id="f-start"${busy ? ' disabled' : ''}>${icon('play')} Start converting ${esc(v.name)}</button></div>
+          ${busy ? `<p class="muted small" id="f-busy" role="status">A conversion is running${runVeh ? ` (${esc(runVeh.name)})` : ''}. Start this one when it finishes, or turn on Automatic conversion for this vehicle below.</p>` : ''}
         </form>`;
       wireGroups(panel, groupMem);
     }

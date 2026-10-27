@@ -82,3 +82,13 @@ test('nodelanes: one group per node, defaults, and the whole-node number of befo
   g.set('next|node:abcdefabcdef', false);
   assert.deepEqual(mem.get('groups'), {});
 });
+
+for (const [pack, mod] of Object.entries(PACKS)) {
+  test(`${pack}: the Encoder setup stays usable while a job runs; only Start waits, with a note`, () => {
+    const encoder = fs.readFileSync(path.join(ROOT, pack, 'web', mod, 'pages', 'encoder.js'), 'utf8');
+    // no fieldset (the whole setup) disabled because a job is active
+    assert.doesNotMatch(encoder, /<fieldset[^>]*\$\{[^}]*busy[^}]*\?[^}]*disabled/i);
+    assert.doesNotMatch(encoder, /title: 'Something is converting already'/);
+    assert.match(encoder, /Start this one when it finishes, or turn on Automatic conversion for this vehicle/);
+  });
+}

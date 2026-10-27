@@ -285,7 +285,7 @@ async function overview(ctx) {
         <div class="head-actions">${vehiclePicker()}</div></div>
       ${state.vehicles.length ? '' : `<div style="margin-bottom:18px">${emptyState({ art: 'car', title: 'Add a vehicle first', text: 'The Encoder converts a vehicle’s footage. Add your car and come back.', action: '<a class="btn btn-primary" href="#/settings/add-vehicle">Add my vehicle</a>' })}</div>`}
       <div id="job-slot">${jobCard()}</div>
-      <div class="grid grid-2 section">${snap && ACTIVE.has(snap.state) ? '' : nextParallel()}${autoCard()}</div>
+      <div class="grid grid-2 section">${nextParallel()}${autoCard()}</div>
     </div>`;
     drawn = true;
     wire();
@@ -475,11 +475,13 @@ async function wizard(ctx) {
     view.innerHTML = `<div class="page">${emptyState({ art: 'car', title: 'Add a vehicle first', action: '<a class="btn btn-primary" href="#/settings/add-vehicle">Add my vehicle</a>' })}</div>`;
     return;
   }
-  const current = await invoke('getCurrent').catch(() => null);
-  if (current && ACTIVE.has(current.state)) {
-    view.innerHTML = `<div class="page wizard"><a class="back-link" href="#/encoder">${icon('back')} Encoder</a>${emptyState({ art: 'encoder', title: 'Something is converting already', text: 'One conversion runs at a time. Watch it, pause it or stop it on the Encoder page.', action: '<a class="btn btn-primary" href="#/encoder">See progress</a>' })}</div>`;
-    return;
-  }
+  // the choices stay open while something converts; only the last step's Start waits for it
+  let current = await invoke('getCurrent').catch(() => null);
+  const runningNow = () => Boolean(current && ACTIVE.has(current.state));
+  const busyNote = () => {
+    const car = vehicleForRoot(current?.config?.sourceRoot);
+    return `Something is converting already${car ? ` (${car.name})` : ''}. Start this one when it finishes, or turn on Automatic conversion for this vehicle on the Encoder page.`;
+  };
   const STEPS = ['What to do', 'Which footage', 'How small', 'Ready'];
   const v = () => vehicleById(ch.vehicleId) || vehicle();
 
@@ -520,7 +522,8 @@ async function wizard(ctx) {
         <li>${icon(ch.mode === 'replace' ? 'restore' : 'folder')}<span>${ch.mode === 'replace' ? 'Then it takes the original’s place. Each original is backed up first and put back if anything goes wrong.' : `Copies go to <span class="mono">${esc(ch.destination || defaultDestination(x))}</span>; originals stay as they are.`}</span></li>
         <li>${icon('clock')}<span>It runs in the background. You can pause or stop it any time.</span></li>
       </ul>
-      ${ch.mode === 'replace' ? `<label class="check" style="margin-top:20px"><input type="checkbox" id="confirm-replace"${confirmed ? ' checked' : ''}> <span>I understand that originals are replaced once their smaller copies check out.</span></label>` : ''}`;
+      ${ch.mode === 'replace' ? `<label class="check" style="margin-top:20px"><input type="checkbox" id="confirm-replace"${confirmed ? ' checked' : ''}> <span>I understand that originals are replaced once their smaller copies check out.</span></label>` : ''}
+      ${runningNow() ? `<div class="note note-warn" id="busy-note" role="status" style="margin-top:16px">${icon('alert')}<span>${esc(busyNote())} <a href="#/encoder">See progress</a></span></div>` : ''}`;
   };
 
   const draw = () => {
@@ -529,7 +532,7 @@ async function wizard(ctx) {
       <ol class="steps">${STEPS.map((s, i) => `<li class="${i + 1 === step ? 'on' : i + 1 < step ? 'done' : ''}"${i + 1 === step ? ' aria-current="step"' : ''}><span class="n">${i + 1 < step ? icon('check') : i + 1}</span><span class="${i + 1 === step ? '' : 'hide-phone'}">${s}</span></li>`).join('')}</ol>
       <div class="card">${stepBody()}
         <div class="wiz-foot"><button class="btn" type="button" id="back">${step === 1 ? 'Cancel' : 'Back'}</button>
-          <button class="btn btn-primary" type="button" id="next">${step === 4 ? `${icon('play')} Start converting` : `Next ${icon('next')}`}</button></div></div></div>`;
+          <button class="btn btn-primary" type="button" id="next"${step === 4 && runningNow() ? ' disabled' : ''}>${step === 4 ? `${icon('play')} Start converting` : `Next ${icon('next')}`}</button></div></div></div>`;
     wire();
   };
   const remember = () => store.set('choices', ch);
@@ -549,6 +552,7 @@ async function wizard(ctx) {
     view.querySelector('#confirm-replace')?.addEventListener('change', (e) => { confirmed = e.target.checked; });
     view.querySelector('#back').onclick = () => { if (step === 1) go('#/encoder'); else { step -= 1; draw(); } };
     view.querySelector('#next').onclick = async (e) => {
+      if (step === 4 && runningNow()) return toast(busyNote(), { kind: 'bad' });
       if (step === 2 && !ch.groups.length) return toast('Pick at least one kind of clip.', { kind: 'bad' });
       if (step < 4) { step += 1; draw(); view.querySelector('.card h2')?.focus?.(); return undefined; }
       if (ch.mode === 'replace' && !confirmed) return toast('Tick the box to confirm, then start.', { kind: 'bad' });
@@ -561,11 +565,20 @@ async function wizard(ctx) {
           go('#/encoder');
         } catch (err) {
           toast(describe(err), { kind: 'bad' });
+          if (err?.code === 'JOB_ACTIVE') { current = await invoke('getCurrent').catch(() => current); draw(); }
         }
       });
     };
   };
   draw();
+  // the last step's Start follows the running job without redrawing the choices
+  ctx.every(5000, async () => {
+    if (step !== 4 || !ctx.alive()) return;
+    const was = runningNow();
+    current = await invoke('getCurrent').catch(() => current);
+    if (was !== runningNow() && step === 4 && !view.contains(document.activeElement)) draw();
+    else if (step === 4) { const b = view.querySelector('#next'); if (b) b.disabled = runningNow(); }
+  });
 }
 
 /** A folder picker over the vehicle footage and output folders. */

@@ -830,6 +830,18 @@ select.converter-select {
     background: var(--fd-card);
 }
 
+/* the note above Start while another conversion runs */
+.converter-start-busy {
+    margin: 18px 0 0;
+    padding: 10px 12px;
+    border-left: 3px solid var(--fd-warn);
+    border-radius: 8px;
+    background: var(--fd-inner);
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
 /* (Start, Pause, Resume and Cancel on one line in the settings card beside
    a wide Live run) */
 .converter-actions .converter-button { padding: 0 12px; }

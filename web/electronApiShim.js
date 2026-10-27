@@ -504,7 +504,7 @@
         handedOver = folder;
         return;
       }
-      if (!(await busy())) setSource(folder);
+      setSource(folder);
     };
     // Replace when the share allows it (the converter has its capabilities by
     // now), else Separate stays.
@@ -522,7 +522,7 @@
       const isBusy = await busy();
       // the last job's folders and output, restored by the converter
       const restored = Boolean(input.value);
-      if (handedOver && !isBusy) setSource(handedOver);
+      if (handedOver) setSource(handedOver);
       const current = vehicles.find((v) => footageOf(v) === input.value) || vehicles.find((v) => v.id === params.get('vehicle')) || vehicles[0];
       input.removeAttribute('data-i18n-placeholder'); // Studio's translations would put "Choose a TeslaCam folder" back
       input.placeholder = vehicles.length ? '' : 'Add a vehicle in Settings first';
@@ -534,13 +534,8 @@
           if (v) useSource(footageOf(v));
         });
         document.getElementById('converterChooseSource')?.before(picker);
-        // like the folder it stands for, it stays put while a job runs
-        const startButton = document.getElementById('converterStart');
-        if (startButton) {
-          const lock = () => { picker.disabled = startButton.disabled; };
-          new MutationObserver(lock).observe(startButton, { attributes: true, attributeFilter: ['disabled'] });
-          lock();
-        }
+        // (it stays open while a job runs: another vehicle can be set up,
+        // or given automatic conversion; only Start waits)
       }
       // a restored setup stays as it was
       if (!restored && !isBusy) {

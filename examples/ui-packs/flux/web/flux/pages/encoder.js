@@ -302,6 +302,15 @@ export default {
     $('#enc-ifilter').addEventListener('input', debounce((e) => { tableF.text = e.target.value; drawItems(); }, 120));
 
     // ---------- setup form ----------
+    // the form stays usable while a job runs; only Start waits for it to finish
+    const busyNote = () => `A conversion is running${jobVehicle() ? ` (${jobVehicle().name})` : ''}. Start this one when it finishes, or turn on Automatic conversion for this vehicle.`;
+    function startState() {
+      const on = Boolean(snap && ACTIVE.has(snap.state));
+      const b = $('#enc-start');
+      const n = $('#enc-startnote');
+      if (b) b.disabled = on;
+      if (n) { n.hidden = !on; if (on) n.textContent = busyNote(); }
+    }
     const vehicleOpts = (sel) => state.vehicles.map((x) => `<option value="${esc(x.id)}"${x.id === sel ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
     const defaultDest = (veh) => `${ctx.outputRoots?.[0] || '/data/converted'}/${veh?.id || 'vehicle'}`;
     function drawForm() {
@@ -313,7 +322,7 @@ export default {
       $('#enc-form').innerHTML = `
         <header class="card-h"><h2>New conversion</h2>${busyJob ? chip('a job is running', 'amber') : ''}</header>
         ${state.vehicles.length ? '' : '<p class="muted">Add a vehicle in Settings first.</p>'}
-        <fieldset ${busyJob || !state.vehicles.length ? 'disabled' : ''}>
+        <fieldset ${state.vehicles.length ? '' : 'disabled'}>
           <label class="field">Vehicle<select class="input" name="vehicle">${vehicleOpts(veh?.id)}</select><span class="faint small mono ell" title="${esc(sourceOf(veh) || '')}">${esc(sourceOf(veh) || '')}</span></label>
           <div class="field">Codec${seg('codec', [['h265', 'H.265'], ['av1', 'AV1']], form.codec, 'Codec')}</div>
           <label class="field">Size profile<select class="input" name="profileId">
@@ -328,7 +337,8 @@ export default {
             <ol class="grouplist">${form.groupOrder.map((g, i) => `<li><label class="check"><input type="checkbox" name="g-${g}"${form.groups.includes(g) ? ' checked' : ''}> ${esc(g)}</label><span><button class="btn sm icon" type="button" data-gup="${g}" aria-label="Move ${g} up"${i ? '' : ' disabled'}>${icon('up')}</button><button class="btn sm icon" type="button" data-gdown="${g}" aria-label="Move ${g} down"${i < 2 ? '' : ' disabled'}>${icon('down')}</button></span></li>`).join('')}</ol></div>
           ${lanesMode ? `<div class="field">Conversions at once per device<div class="lanes-in">${laneFields(devices, 'next', laneNext)}</div></div>`
             : `<label class="field">Conversions at once<input class="input num" type="number" name="concurrency" min="1" max="64" value="${esc(form.concurrency)}"></label>`}
-          <div class="row-actions"><button class="btn primary" type="submit" id="enc-start">${icon('play')}Start conversion</button></div>
+          <div class="row-actions"><button class="btn primary" type="submit" id="enc-start"${busyJob ? ' disabled' : ''}>${icon('play')}Start conversion</button></div>
+          <p class="faint small" id="enc-startnote" role="status"${busyJob ? '' : ' hidden'}>${esc(busyNote())}</p>
         </fieldset>`;
       const f = $('#enc-form');
       wireSeg(f, 'codec', (x) => { form.codec = x; save(); });
@@ -582,10 +592,8 @@ export default {
         drawLanes();
         drawTimings();
         drawItems();
-        const f = $('#enc-form');
-        const disabled = f.querySelector('fieldset')?.disabled;
-        const want = Boolean(snap && ACTIVE.has(snap.state)) || !state.vehicles.length;
-        if (disabled !== want) drawForm();
+        if (!$('#enc-form fieldset')) drawForm();
+        else startState();
         if (!bench.running && $('#bench-run')) $('#bench-run').disabled = Boolean(snap && ACTIVE.has(snap.state));
       });
     }

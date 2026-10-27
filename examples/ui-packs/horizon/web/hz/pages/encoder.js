@@ -313,6 +313,15 @@ export default {
     $('#e-iq').addEventListener('input', debounce((e) => { flt.q = e.target.value; drawItems(); }, 120));
 
     // ---------- tune-up sheet ----------
+    // the sheet stays open while a job runs; only Start waits for it to finish
+    const busyNote = () => `A conversion is running${jobCar() ? ` (${jobCar().name})` : ''}. Start this one when it finishes, or turn on Automatic conversion for this vehicle.`;
+    function startState() {
+      const busy = Boolean(snap && ACTIVE.has(snap.state));
+      const b = $('#e-start');
+      const n = $('#e-startnote');
+      if (b && !b.classList.contains('busy')) b.disabled = busy;
+      if (n) { n.hidden = !busy; if (busy) n.textContent = busyNote(); }
+    }
     const defDest = (veh) => `${outRoots[0] || '/data/converted'}/${veh?.id || 'vehicle'}`;
     function drawForm() {
       const busyJob = snap && ACTIVE.has(snap.state);
@@ -323,7 +332,7 @@ export default {
       $('#e-form').innerHTML = `
         ${panelHead(`${ico('gear')}Tune-up sheet`, busyJob ? pill('a job is running', 'org') : '')}
         ${app.vehicles.length ? '' : '<p class="dim">Add a vehicle in Settings first.</p>'}
-        <fieldset class="form plain"${busyJob || !app.vehicles.length ? ' disabled' : ''}>
+        <fieldset class="form plain"${app.vehicles.length ? '' : ' disabled'}>
           <legend class="sr-only">New conversion</legend>
           <label class="fld">Vehicle<select class="in" name="vehicle">${app.vehicles.map((x) => `<option value="${h(x.id)}"${x.id === veh?.id ? ' selected' : ''}>${h(x.name)}</option>`).join('')}</select><span class="hint mono wrap-any">${h(carRoot(veh) || '')}</span></label>
           <div class="fld">Codec${segs('codec', [['h265', 'H.265'], ['av1', 'AV1']], form.codec, 'Codec')}</div>
@@ -337,7 +346,8 @@ export default {
           <div class="fld">Clip groups, in order<ol class="grouplist">${form.groupOrder.map((g, i) => `<li><label class="chk"><input type="checkbox" name="g-${g}"${form.groups.includes(g) ? ' checked' : ''}> ${h(g)}</label><span class="row"><button class="btn icon ghost" type="button" data-up="${g}" aria-label="Move ${g} up"${i ? '' : ' disabled'}>${ico('up')}</button><button class="btn icon ghost" type="button" data-down="${g}" aria-label="Move ${g} down"${i < 2 ? '' : ' disabled'}>${ico('down')}</button></span></li>`).join('')}</ol></div>
           ${multi ? `<div class="fld">Conversions at once per device${laneFields(devices, 'next', laneNext)}</div>`
             : `<label class="fld">Conversions at once<input class="in num" type="number" inputmode="numeric" name="concurrency" min="1" max="64" value="${h(form.concurrency)}"></label>`}
-          <button class="btn go wide" type="submit" id="e-start">${ico('play')}Start the engine</button>
+          <button class="btn go wide" type="submit" id="e-start"${busyJob ? ' disabled' : ''}>${ico('play')}Start the engine</button>
+          <p class="hint" id="e-startnote" role="status"${busyJob ? '' : ' hidden'}>${h(busyNote())}</p>
         </fieldset>`;
       const f = $('#e-form');
       onSegs(f, 'codec', (x) => { form.codec = x; save(); });
@@ -557,9 +567,8 @@ export default {
         drawCyl();
         drawTimes();
         drawItems();
-        const fs = $('#e-form fieldset');
-        const want = Boolean(snap && ACTIVE.has(snap.state)) || !app.vehicles.length;
-        if (!fs || fs.disabled !== want) drawForm();
+        if (!$('#e-form fieldset')) drawForm();
+        else startState();
         if (!bench.running && $('#e-brun')) $('#e-brun').disabled = Boolean(snap && ACTIVE.has(snap.state));
       });
     }

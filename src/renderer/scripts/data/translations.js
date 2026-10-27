@@ -239,6 +239,8 @@ const converterEnglish = Object.freeze({
     laneMore: "More",
     laneStepperLabel: "{device}: conversions at once",
     laneCpuHint: "Uses the server's CPU cores; slower than a GPU",
+    startBusy: "A conversion is running. Start this one when it finishes, or turn on Automatic conversion for this vehicle.",
+    startBusyFor: "A conversion is running ({vehicle}). Start this one when it finishes, or turn on Automatic conversion for this vehicle.",
     laneCantEncode: "Can't encode {codec}",
     lanesTotal: "{count} at once in total. Each GPU takes its next clip when it is free, so a faster one converts more of them.",
     lanesNone: "Nothing is set to convert: turn on a GPU or the CPU.",

@@ -1045,8 +1045,31 @@ function createFootageConverterController(options = {}) {
 
     let syncedConcurrency = null;
 
-    function syncConfig(config) {
+    // The setup shows the job found when the page opens (the last job's
+    // settings) once; after that a running job's updates only follow its
+    // live controls (clips at once, devices), so the owner can set up another
+    // vehicle, or its automatic conversion, while it runs.
+    let settingsShown = false;
+
+    function syncConfig(config, { settings = true } = {}) {
         if (!config) return;
+        if (settings) syncSettings(config);
+        // Only when the job's number changes: snapshots come with every clip,
+        // and rewriting the control wiped a number being typed into it.
+        const concurrency = normalizeConcurrency(config.concurrency);
+        const typing = [elements.concurrency, elements.concurrencyCustom]
+            .some((control) => control && control.ownerDocument?.activeElement === control);
+        if (concurrency !== null && concurrency !== syncedConcurrency && !typing) {
+            syncedConcurrency = concurrency;
+            setConcurrency(concurrency);
+        }
+        syncLanes(config);
+        // (the codec may have changed: which rows can encode it)
+        renderLanes();
+        updateOutputMode();
+    }
+
+    function syncSettings(config) {
         if (elements.sourcePath) elements.sourcePath.value = config.sourceRoot || '';
         if (elements.destinationPath) elements.destinationPath.value = config.destinationRoot || '';
         setChecked(elements.codecOptions, 'converterCodec', config.codec);
@@ -1068,19 +1091,30 @@ function createFootageConverterController(options = {}) {
             ? [...config.groupOrder]
             : [...DEFAULT_GROUP_ORDER];
         if (elements.replacementConfirmation) elements.replacementConfirmation.checked = config.replacementConfirmed === true;
-        // Only when the job's number changes: snapshots come with every clip,
-        // and rewriting the control wiped a number being typed into it.
-        const concurrency = normalizeConcurrency(config.concurrency);
-        const typing = [elements.concurrency, elements.concurrencyCustom]
-            .some((control) => control && control.ownerDocument?.activeElement === control);
-        if (concurrency !== null && concurrency !== syncedConcurrency && !typing) {
-            syncedConcurrency = concurrency;
-            setConcurrency(concurrency);
+    }
+
+    // The note under Start while another conversion runs
+    function renderStartBusy(active) {
+        const button = elements.startButton;
+        const documentRef = button?.ownerDocument;
+        if (!button || typeof documentRef?.createElement !== 'function') return;
+        let note = documentRef.getElementById?.('converterStartBusy');
+        if (!note && active) {
+            note = documentRef.createElement('p');
+            note.id = 'converterStartBusy';
+            note.className = 'converter-hint converter-start-busy';
+            note.setAttribute?.('role', 'status');
+            const actions = button.closest?.('.converter-actions') || button.parentNode;
+            actions?.before?.(note);
         }
-        syncLanes(config);
-        // (the codec may have changed: which rows can encode it)
-        renderLanes();
-        updateOutputMode();
+        if (!note) return;
+        note.hidden = !active;
+        if (active) {
+            const source = snapshot?.config?.sourceRoot;
+            note.textContent = source
+                ? message('startBusyFor', 'A conversion is running ({vehicle}). Start this one when it finishes, or turn on Automatic conversion for this vehicle.', { vehicle: sourceLabel(source) })
+                : message('startBusy', 'A conversion is running. Start this one when it finishes, or turn on Automatic conversion for this vehicle.');
+        }
     }
 
     function renderGroupOrder(disabled = false) {
@@ -1268,19 +1302,22 @@ function createFootageConverterController(options = {}) {
         }
         renderRows(elements.errorRows, failedItems.map((item) => [item.relativePath || item.id, item.failure?.code || 'operation-failed']));
         setHidden(elements.errorRows, failedItems.length === 0);
+        // Only Start waits for a running job: the setup stays open for the
+        // next one (another vehicle, or its automatic conversion)
         setDisabled(elements.startButton, active);
+        renderStartBusy(active);
         // Parallel conversions stays open during a run: changing it applies
         // to the running job (see liveConcurrency)
         setDisabled(elements.concurrency, false);
         setDisabled(elements.concurrencyCustom, false);
         setDisabled(elements.benchmarkButton, active);
-        setDisabled(elements.profileSelect, active);
-        setDisabled(elements.customBitrate, active);
+        setDisabled(elements.profileSelect, false);
+        setDisabled(elements.customBitrate, false);
         setDisabled(elements.pauseButton, !active || paused || snapshot?.state === 'paused_network');
         setDisabled(elements.resumeButton, !paused);
         setDisabled(elements.cancelButton, !active);
         setDisabled(elements.retryButton, failedItems.length === 0 || !['completed', 'failed'].includes(snapshot?.state));
-        renderGroupOrder(active);
+        renderGroupOrder(false);
         renderPipeline();
         renderSummary(items);
         renderAutoStatus();
@@ -1715,7 +1752,8 @@ function createFootageConverterController(options = {}) {
         else {
             snapshot = { ...next };
             if (!Object.prototype.hasOwnProperty.call(next, 'progress')) delete snapshot.progress;
-            syncConfig(snapshot.config);
+            syncConfig(snapshot.config, { settings: !settingsShown });
+            if (snapshot.config) settingsShown = true;
         }
         latestRevision = revision;
         render();
@@ -2113,7 +2151,7 @@ function createFootageConverterController(options = {}) {
                     notify(describeError(error), { type: 'error' });
                     if (requestedConcurrency === value && snapshot?.config) {
                         syncedConcurrency = null;
-                        syncConfig(snapshot.config);
+                        syncConfig(snapshot.config, { settings: false });
                     }
                 } finally {
                     if (requestedConcurrency === value) requestedConcurrency = null;
@@ -2180,7 +2218,8 @@ function createFootageConverterController(options = {}) {
         }
         elements.autoCheckNow?.addEventListener?.('click', () => checkAutoNow());
         // another vehicle chosen: its own automatic setting
-        for (const type of ['input', 'change']) elements.sourcePath?.addEventListener?.(type, () => renderAuto());
+        // (also when the vehicles' names arrive: the Start note names the running one)
+        for (const type of ['input', 'change']) elements.sourcePath?.addEventListener?.(type, () => { renderAuto(); renderStartBusy(ACTIVE_STATES.has(snapshot?.state)); });
     }
 
     async function initialize() {
