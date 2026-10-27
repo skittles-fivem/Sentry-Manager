@@ -1,7 +1,7 @@
 // Encoding per vehicle: each vehicle's saved encoding settings in plain words,
 // with an editor (the shared /web/vehicleEncoding.js, in Horizon's classes).
 import '/web/vehicleEncoding.js';
-import { h, toast, ask } from '../core.js';
+import { h, toast, ask, liveDraw } from '../core.js';
 
 export default {
   async mount(el, { params, status }) {
@@ -15,7 +15,8 @@ export default {
     await view.ready;
     status?.('Saved settings per vehicle');
     return {
-      onTopics(t) { if (t.includes('vehicles') && !el.contains(document.activeElement)) view.refresh().catch(() => {}); },
+      // (held while text in it is highlighted, then caught up)
+      onTopics(t) { if (t.includes('vehicles') && !el.contains(document.activeElement)) liveDraw(el, () => view.refresh().catch(() => {}), 'vehicles'); },
       unmount() { view.destroy(); }
     };
   }
