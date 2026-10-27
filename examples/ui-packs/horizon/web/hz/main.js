@@ -12,7 +12,6 @@ export const PAGES = [
   { id: 'jobs', label: 'Jobs', icon: 'jobs' },
   { id: 'bin', label: 'Recycle Bin', short: 'Bin', icon: 'bin' },
   { id: 'alerts', label: 'Notifications', short: 'Alerts', icon: 'bell' },
-  { id: 'support', label: 'Support', icon: 'chat' },
   { id: 'settings', label: 'Settings', icon: 'gear' }
 ];
 const byId = Object.fromEntries(PAGES.map((p, i) => [p.id, { ...p, n: i + 1 }]));

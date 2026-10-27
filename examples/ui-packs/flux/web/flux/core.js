@@ -206,7 +206,7 @@ export async function api(path, opts = {}, retried = false) {
   return data;
 }
 
-/** A raw-body upload (support media, UI packs), with the password retry. */
+/** A raw-body upload (UI packs), with the password retry. */
 export async function upload(path, body, headers) {
   const send = () => fetch(path, { method: 'POST', credentials: 'same-origin', body, headers: { 'X-Requested-With': 'sentry-six-manager', ...headers } });
   let res = await send();

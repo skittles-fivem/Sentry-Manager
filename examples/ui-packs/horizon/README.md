@@ -64,7 +64,7 @@ loaded, and the pack makes no request to `/studio/`.
   live conversions-at-once / lanes, automatic conversion, a benchmark ("dyno run"),
   the timing sheet, the clips table and the converter log.
 - **Nodes, Policies, Jobs (pit log), Recycle Bin, Notifications (warning lights),
-  Support (chat with attachments), Settings** (vehicles, account, interface packs,
+  Settings** (vehicles, account, interface packs,
   background, updates, security / CA certificate, system, electricity price), with
   the confirmations and password re-checks the server asks for.
 

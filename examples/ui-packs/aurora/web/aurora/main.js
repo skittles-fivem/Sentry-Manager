@@ -12,10 +12,9 @@ import policies from './pages/policies.js';
 import jobs from './pages/jobs.js';
 import bin from './pages/bin.js';
 import alerts from './pages/alerts.js';
-import support from './pages/support.js';
 import settings from './pages/settings.js';
 
-const PAGES = { sky, footage, viewer, encoder, nodes, policies, jobs, bin, alerts, support, settings };
+const PAGES = { sky, footage, viewer, encoder, nodes, policies, jobs, bin, alerts, settings };
 // [route, label, icon, key (g + key), primary on phones]
 const DOCK = [
   ['sky', 'Sky', 'sky', 's', true],
@@ -28,7 +27,6 @@ const DOCK = [
   ['jobs', 'Jobs', 'jobs', 'j', false],
   ['bin', 'Bin', 'trash', 'b', false],
   ['alerts', 'Alerts', 'bell', 'a', true],
-  ['support', 'Support', 'chat', 'h', false],
   '|',
   ['settings', 'Settings', 'gear', ',', false]
 ];

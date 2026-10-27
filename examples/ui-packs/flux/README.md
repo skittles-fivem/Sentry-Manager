@@ -43,7 +43,7 @@ loaded, and the pack makes no request to `/studio/`.
   `/api/stats`, a per-clip state table (discovering, waiting, encoding %, waiting on node,
   verify/save, done, failed…), a timings breakdown per phase, automatic conversion
   settings, a benchmark, and a converter log tail.
-- **Nodes, Policies, Jobs, Recycle Bin, Notifications, Support, Settings** (vehicles,
+- **Nodes, Policies, Jobs, Recycle Bin, Notifications, Settings** (vehicles,
   account, interface packs, updates, security/CA download, system, electricity price,
   appearance), all with the confirmations and password re-checks the server asks for.
 - **Motion.** Small transitions (page fade, drawers, toasts, meters, live pulses). All of
@@ -55,7 +55,7 @@ loaded, and the pack makes no request to `/studio/`.
 | --- | --- | --- |
 | Ctrl/⌘ K | everywhere | command palette |
 | ? | everywhere | shortcut sheet |
-| g o / f / v / e / n / p / j / b / a / h / s | everywhere | Overview, Footage, Viewer, Encoder, Nodes, Policies, Jobs, Bin, Alerts (notifications), Help (support), Settings |
+| g o / f / v / e / n / p / j / b / a / s | everywhere | Overview, Footage, Viewer, Encoder, Nodes, Policies, Jobs, Bin, Alerts (notifications), Settings |
 | [ | everywhere | collapse the sidebar |
 | / | lists | focus the filter |
 | j / k, Shift+j / k | Footage | move, extend the selection |

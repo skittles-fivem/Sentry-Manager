@@ -48,7 +48,7 @@ Install: Settings → Interface → Upload a pack, pick `daylight.zip`
 Everything the built-in interface does is here: Overview (as Today plus
 Server & logs), Footage, Viewer, Encoder, Helper servers (Nodes), Cleanup
 rules (Policies), Activity (Jobs), Recycle Bin, Alerts (Notifications) with a
-live badge, Help & support (chat with attachments), and Settings (vehicles,
+live badge, and Settings (vehicles,
 account, look, interface packs, security and certificates, updates, system
 and the electricity price).
 

@@ -30,8 +30,6 @@ Recycle Bin, retention policies, jobs and notifications.
 - **Secure by default.** HTTPS only, with its own certificate (nothing to
   install on your devices), SMB 3 shares that are always signed and
   encrypted, and a web app that never runs as root.
-- **Support.** Chat with the Sentry Six team from its own tab, with
-  pictures and optional diagnostics.
 - **Phones and tablets.** iPhone 14 and newer, Galaxy S22 and newer, and
   iPads from 2022 on.
 
@@ -465,23 +463,6 @@ interrupted) off the list after you confirm how many, so what shows up next
 is what happened since. Running, waiting and paused jobs stay. Only the list
 is cleared: footage, converted files and what the Encoder needs to resume a
 conversion are not touched.
-
-## Support
-
-![Support](docs/images/support.png)
-
-**Support** in the side bar is a chat with the Sentry Six team. The first
-message opens a ticket, and the team's replies show up on the same tab.
-Pictures, videos and log files (up to 50 MB) can be attached, and the
-team's pictures open in a popup over the chat. *Include diagnostics* adds
-the version, OS, CPU and GPU and the recent warnings, with addresses, share
-names, footage paths and email addresses removed.
-
-This is the one thing Sentry Six Manager talks to outside your network: the
-server relays the chat to `api.sentry-six.com` (and fetches pictures the
-team sends from Discord's file server). The ticket's key stays on the
-server, the browser only ever talks to your own server, and nothing is sent
-until you send a message.
 
 ## Vehicles and SMB shares
 

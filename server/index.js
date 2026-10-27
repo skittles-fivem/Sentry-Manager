@@ -39,7 +39,6 @@ const { Jobs, Notifications } = require('./activity');
 const { ImageUpdates } = require('./imageUpdates');
 const { Thumbnails } = require('./thumbnails');
 const { detectGpus } = require('./gpu');
-const { createSupport, MAX_MEDIA_BYTES } = require('./support');
 const { createConverterHost } = require('./converterHost');
 const { createStats } = require('./stats');
 const { encoderBlock, jobProgress, RUNNING: CONVERTER_RUNNING } = require('./encoderStats');
@@ -579,9 +578,8 @@ async function main() {
   r.add('GET', '/api/logs', (req, res, { query }) => ({
     lines: logger.recent(Math.min(1000, Number(query.limit) || 300), { minLevel: query.level === 'all' ? 'debug' : 'warn' }).reverse()
   }));
-  // Settings > Support: the Sentry Six support chat, relayed (server/support.js)
-  let supportUploading = false;
-  const support = createSupport({ db, log: audit, buildInfo, detectGpus, recentLogs: () => logger.recent(150, { minLevel: 'warn' }) });
+  // The support chat is gone; its ticket and access token are not kept
+  if (db.get('supportTicket', null) !== null) db.set('supportTicket', null);
   // ---- Settings > Interface
   r.add('GET', '/api/ui-packs', (req) => ({ active: uiPacks.active(), packs: uiPacks.list(), original: originalOnly(req) }));
   r.add('PUT', '/api/ui-packs/active', (req, res, { body, user }) => {
@@ -613,12 +611,6 @@ async function main() {
     res.end(originalZip);
   });
 
-  r.add('GET', '/api/support', () => support.status());
-  r.add('GET', '/api/support/messages', (req, res, { query }) => support.messages({ since: query.since }));
-  r.add('POST', '/api/support/message', (req, res, { body }) => support.send({ message: body?.message, includeDiagnostics: body?.includeDiagnostics === true }));
-  r.add('POST', '/api/support/read', () => support.read());
-  r.add('POST', '/api/support/close', () => support.close());
-  r.add('GET', '/api/support/attachment', (req, res, { query }) => support.attachment(res, query.u));
   // Clear: the logs move into logs/archive/ (never deleted); each archive can
   // be downloaded later.
   r.add('POST', '/api/logs/clear', (req, res, { user }) => {
@@ -1209,7 +1201,7 @@ async function main() {
 
       if (isApi) {
         const m = r.match(req.method, rawPath);
-        if (!m && p !== '/api/events' && p !== '/api/converter/events' && p !== '/api/media' && p !== '/api/support/media' && p !== '/api/ui-packs/upload') return sendJson(res, 404, { error: 'Not found' });
+        if (!m && p !== '/api/events' && p !== '/api/converter/events' && p !== '/api/media' && p !== '/api/ui-packs/upload') return sendJson(res, 404, { error: 'Not found' });
         if (!user && !(m && m.route.opts.public)) return sendJson(res, 401, { error: 'Sign in first.' });
         if (req.method !== 'GET' && req.method !== 'HEAD') {
           if (req.headers['x-requested-with'] !== 'sentry-six-manager') return sendJson(res, 403, { error: 'Missing X-Requested-With header.' });
@@ -1253,27 +1245,6 @@ async function main() {
           const real = await studioReadable.resolve(url.searchParams.get('path') || '');
           if (!real || hiddenPath(real)) return sendJson(res, 403, { error: 'Outside the vehicle shares.' });
           return sendMedia(req, res, real, studioReadable.fdInside);
-        }
-        if (p === '/api/support/media') {
-          if (req.method !== 'POST') return sendJson(res, 405, { error: 'Use POST.' });
-          // one upload at a time: each holds up to ~4x the file in memory
-          // (the body, base64 and the JSON sent on)
-          if (supportUploading) return sendJson(res, 429, { error: 'Another file is being sent to support. Try again when it is done.' });
-          supportUploading = true;
-          res.on('close', () => { supportUploading = false; });
-          // the file comes as the raw body (not JSON), its name and the message in headers
-          const bytes = await readRaw(req, MAX_MEDIA_BYTES);
-          const header = (k) => {
-            try {
-              return decodeURIComponent(String(req.headers[k] || ''));
-            } catch {
-              return '';
-            }
-          };
-          return sendJson(res, 200, await support.media({
-            bytes, fileName: header('x-file-name'), fileType: String(req.headers['content-type'] || ''),
-            message: header('x-message'), includeDiagnostics: req.headers['x-diagnostics'] === '1'
-          }));
         }
         if (p === '/api/ui-packs/upload') {
           if (req.method !== 'POST') return sendJson(res, 405, { error: 'Use POST.' });

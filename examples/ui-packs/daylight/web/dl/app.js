@@ -16,10 +16,9 @@ const ROUTES = {
   notifications: { label: 'Alerts', icon: 'bell', group: 'care', desc: 'Things that may need you', load: () => import('./pages/notifications.js') },
   nodes: { label: 'Helper servers', icon: 'nodes', group: 'setup', desc: 'Other computers that convert for you (Nodes)', load: () => import('./pages/nodes.js') },
   server: { label: 'Server & logs', icon: 'server', group: 'setup', desc: 'CPU, memory, disks, temperatures, logs', load: () => import('./pages/server.js') },
-  support: { label: 'Help & support', icon: 'chat', group: 'setup', desc: 'Chat with the Sentry Six team', load: () => import('./pages/support.js') },
   settings: { label: 'Settings', icon: 'gear', group: 'setup', desc: 'Vehicles, account, look, security', load: () => import('./pages/settings.js') }
 };
-export const MORE_ROUTES = ['bin', 'policies', 'jobs', 'notifications', 'nodes', 'server', 'support', 'settings'];
+export const MORE_ROUTES = ['bin', 'policies', 'jobs', 'notifications', 'nodes', 'server', 'settings'];
 export const routeInfo = (r) => ROUTES[r];
 
 // ---------- the look ----------

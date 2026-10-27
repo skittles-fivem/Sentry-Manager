@@ -207,7 +207,7 @@ export async function api(path, opts = {}, isRetry = false) {
   return data;
 }
 
-/** A raw upload (support attachments, interface packs), with the password re-check. */
+/** A raw upload (interface packs), with the password re-check. */
 export async function send(path, body, headers) {
   const go = () => fetch(path, { method: 'POST', credentials: 'same-origin', body, headers: { 'X-Requested-With': 'sentry-six-manager', ...headers } });
   let res = await go();

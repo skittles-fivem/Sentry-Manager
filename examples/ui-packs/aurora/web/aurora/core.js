@@ -221,7 +221,7 @@ export async function api(path, opts = {}, retried = false) {
   return data;
 }
 
-/** A raw-body upload (support files, interface packs), with the password re-check. */
+/** A raw-body upload (interface packs), with the password re-check. */
 export async function upload(path, body, headers = {}) {
   const send = () => fetch(path, { method: 'POST', credentials: 'same-origin', body, headers: { 'X-Requested-With': 'sentry-six-manager', ...headers } });
   let res;

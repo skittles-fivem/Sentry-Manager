@@ -9,7 +9,6 @@ import policies from './pages/policies.js';
 import jobs from './pages/jobs.js';
 import bin from './pages/bin.js';
 import notifications from './pages/notifications.js';
-import support from './pages/support.js';
 import settings from './pages/settings.js';
 
 const PAGES = [
@@ -22,7 +21,6 @@ const PAGES = [
   { id: 'jobs', label: 'Jobs', icon: 'jobs', key: 'j', mod: jobs, group: 'Process' },
   { id: 'bin', label: 'Recycle Bin', icon: 'bin', key: 'b', mod: bin, group: 'Process' },
   { id: 'notifications', label: 'Notifications', icon: 'bell', key: 'a', mod: notifications, group: 'System' },
-  { id: 'support', label: 'Support', icon: 'support', key: 'h', mod: support, group: 'System' },
   { id: 'settings', label: 'Settings', icon: 'settings', key: 's', mod: settings, group: 'System' }
 ];
 const byId = Object.fromEntries(PAGES.map((p) => [p.id, p]));

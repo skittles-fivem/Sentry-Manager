@@ -77,7 +77,7 @@ same place, or open `/original` in a browser.
   mode); automatic conversion; a benchmark.
 - **Nodes**, **Policies**, **Jobs** (a timeline), **Recycle Bin**,
   **Notifications** (mark read, dismiss; the dock badge counts unread),
-  **Support** (chat, attachment, diagnostics, close), **Settings** (vehicles
+  **Settings** (vehicles
   SMB/folder, account, interface incl. packs and the background effect,
   updates, security and certificates, system, electricity price).
 
@@ -85,7 +85,7 @@ same place, or open `/original` in a browser.
 
 | Keys | Where | Does |
 | --- | --- | --- |
-| `g` then `s` `f` `v` `e` `n` `p` `j` `b` `a` `h` `,` | everywhere | Sky, Footage, Viewer, Encoder, Nodes, Policies, Jobs, Bin, Alerts, Support (help), Settings |
+| `g` then `s` `f` `v` `e` `n` `p` `j` `b` `a` `,` | everywhere | Sky, Footage, Viewer, Encoder, Nodes, Policies, Jobs, Bin, Alerts, Settings |
 | `?` | everywhere | the list of shortcuts |
 | `Space` or `k` | Viewer | play / pause |
 | `←` `→` (Shift: 1 s) | Viewer | back / forward 5 s |
