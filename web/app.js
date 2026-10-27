@@ -82,7 +82,9 @@
         await api('/api/auth/confirm', { body: { password } }, true);
         return;
       } catch (err) {
-        if (/Too many/.test(err.message)) throw err;
+        // only a wrong password asks again; anything else (too many tries,
+        // the server unreachable) says what it is
+        if (!/not right/.test(err.message)) throw err;
       }
     }
     throw new Error('Not changed: the password was not confirmed.');
@@ -95,6 +97,9 @@
         <label class="field" style="margin-top:14px">Password<input class="input" type="password" name="confirm-password" autocomplete="current-password"></label>
         <div class="form-actions"><button class="btn" value="cancel">Cancel</button><button class="btn solid" value="ok">Confirm</button></div>`;
       const input = $('dialog-form').querySelector('[name=confirm-password]');
+      // Enter confirms: on its own the form's first button (Cancel) took it,
+      // so a right password typed and sent with Enter was "not confirmed"
+      input.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); dlg.close('ok'); } };
       dlg.onclose = () => resolve(dlg.returnValue === 'ok' && input.value ? input.value : null);
       dlg.returnValue = '';
       dlg.showModal();
