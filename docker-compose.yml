@@ -1,48 +1,42 @@
 # Sentry Six Manager: web UI on https://<docker-host>:9000
 #
 #   docker compose up -d
-#   docker logs sentry-six-manager     # the setup code and the HTTPS fingerprint
+#   docker logs sentry-six-manager     (the setup code and the HTTPS fingerprint)
 #
 # Update:  docker compose pull && docker compose up -d
 #
 # Create the account with the setup code from the log, then add vehicles (one
 # SMB share each) under Settings. Optional defaults go in .env (.env.example).
+#
+# OPTIONAL lines start with # in the first column. To turn one on, delete only
+# that # (nothing else): the rest of the line is already lined up.
+
 services:
   sentry-six-manager:
-    # SENTRY_TAG picks what you follow: latest, or a branch's own image.
-    # To use your own build instead, from a clone of the repository:
-    #   docker build -t ghcr.io/skittles-fivem/sentry-manager:latest .
+    # latest, or set SENTRY_TAG in .env to follow another image tag
     image: ghcr.io/skittles-fivem/sentry-manager:${SENTRY_TAG:-latest}
     container_name: sentry-six-manager
     restart: unless-stopped
-    # Room to stop cleanly when updating mid-conversion: the converter stops
-    # ffmpeg and saves where it was, then carries on after the update.
+    # time to stop cleanly mid-conversion (it carries on after an update)
     stop_grace_period: 1m
     ports:
       - "9000:9000"
     env_file:
       - path: .env
         required: false
+
     volumes:
-      # Accounts, settings, job journals, thumbnails, converter staging and
-      # the default output folder. Keep it on local disk, not on a share.
+      # accounts, settings, journals, thumbnails and converter staging
+      # (keep it on a local disk, not on a share)
       - ./data:/data
-      # Optional, CPU power in watts and kWh (Overview > Server, the
-      # Encoder's energy and cost): remove the # from the next line on a
-      # server whose CPU has energy counters (most Intel and AMD PCs and
-      # NAS boxes; check with: ls /sys/devices/virtual/powercap). Docker
-      # hides them otherwise; this shows them, read-only, to the root
-      # supervisor only (the app gets a total every 2 s, never the raw
-      # counters). Left on where the folder does not exist (a Raspberry Pi,
-      # some mini PCs and VMs, Windows/WSL), Docker refuses to start the
-      # container, so it is off by default. Overview > Server says when it
-      # is worth turning on.
-      # - /sys/devices/virtual/powercap:/host/powercap:ro
-    # Only the small root supervisor keeps these; the web app and ffmpeg run
-    # as PUID:PGID with no capabilities at all.
-    #   SYS_ADMIN, DAC_READ_SEARCH, DAC_OVERRIDE  mount.cifs (SMB shares)
-    #   SETUID, SETGID, SETPCAP                   start the app unprivileged
-    #   CHOWN, KILL                               own /data, stop the app
+
+      # OPTIONAL: CPU watts and kWh. Only if this folder exists on the server
+      # (ls /sys/devices/virtual/powercap); otherwise Docker won't start.
+#      - /sys/devices/virtual/powercap:/host/powercap:ro
+
+    # The root supervisor keeps only these; the web app and ffmpeg run as
+    # PUID:PGID with none. Mounting SMB shares needs SYS_ADMIN,
+    # DAC_READ_SEARCH and DAC_OVERRIDE; the rest start and stop the app.
     cap_drop:
       - ALL
     cap_add:
@@ -56,28 +50,26 @@ services:
       - KILL
     security_opt:
       - no-new-privileges:true
-      - apparmor:unconfined      # Docker's default AppArmor profile forbids mount
-      # - label=disable          # SELinux hosts (Fedora/RHEL)
+      # Docker's default AppArmor profile forbids mounting shares
+      - apparmor:unconfined
+      # OPTIONAL: SELinux hosts (Fedora, RHEL)
+#      - label=disable
 
-    # ---- Optional, Overview > Server: the whole server (every process and
-    # the host's network), not only this container. It also lets this
-    # container see and signal the server's processes: use it only with a
-    # PUID/PGID of its own (not your login user or another container's).
-    # pid: host
+    # OPTIONAL: Overview > Server shows the whole server, not only this
+    # container. It can also see the server's processes: use it only with a
+    # PUID/PGID of its own.
+#    pid: host
 
-    # ---- AMD (dGPU or APU) / Intel GPU: uncomment
-    # devices:
-    #   - /dev/dri:/dev/dri
-    # Pass all of /dev/dri. With several GPUs, Encoder > Parallel conversions
-    # shows one row per GPU (how many at once on each). Mapping one GPU to
-    # /dev/dri/renderD128 (- /dev/dri/renderD129:/dev/dri/renderD128) still
-    # works but is no longer needed.
+    # OPTIONAL: AMD or Intel GPU (one or several; each gets its own row in
+    # Encoder > Parallel conversions)
+#    devices:
+#      - /dev/dri:/dev/dri
 
-    # ---- NVIDIA GPU (needs the NVIDIA Container Toolkit): uncomment
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
+    # OPTIONAL: NVIDIA GPU (needs the NVIDIA Container Toolkit on the server)
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: all
+#              capabilities: [gpu]

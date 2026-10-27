@@ -285,7 +285,9 @@ The converter uses the first GPU encoder that passes a real test encode,
 in this order: NVIDIA (NVENC), Intel (QSV), AMD (AMF), then VA-API. Without
 a working GPU encoder it encodes on the CPU (libx265 for H.265, SVT-AV1 for
 AV1), and a clip the GPU fails on is redone on the CPU. With a GPU, the
-original is decoded on the GPU too. In `docker-compose.yml`, uncomment:
+original is decoded on the GPU too. In `docker-compose.yml`, turn on the
+GPU's block: every optional line starts with `#` in the first column, and
+deleting just that `#` turns it on, already lined up.
 
 | GPU | Encoders | What to uncomment |
 | --- | --- | --- |
