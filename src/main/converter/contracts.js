@@ -156,7 +156,10 @@ function isWithinProfile(sourceBytes, outputBytes, profileName) {
   const selected = profile(profileName);
   const target = targetOutputBytes(sourceBytes, profileName);
   const tolerance = sourceBytes * selected.tolerance;
-  return outputBytes >= target - tolerance && outputBytes <= target + tolerance;
+  // Only too big fails: a clip that came out smaller than the profile's
+  // target (a still Sentry scene, say) saves more and is kept, as long as
+  // every other check passes.
+  return outputBytes <= target + tolerance;
 }
 
 function emptyGroup() {
