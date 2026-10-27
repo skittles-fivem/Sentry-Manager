@@ -21,10 +21,11 @@ function parseStat(text) {
   const ppid = Number(rest[1]);
   const utime = Number(rest[11]);
   const stime = Number(rest[12]);
+  const childTicks = Number(rest[13]) + Number(rest[14]); // cutime + cstime: reaped children
   const start = Number(rest[19]);
   const rssPages = Number(rest[21]);
   if (![ppid, utime, stime, start].every(Number.isFinite)) return null;
-  return { pid, comm: text.slice(open + 1, close), state: rest[0], ppid, ticks: utime + stime, start, rssPages: Number.isFinite(rssPages) ? rssPages : 0 };
+  return { pid, comm: text.slice(open + 1, close), state: rest[0], ppid, ticks: utime + stime, childTicks: Number.isFinite(childTicks) ? childTicks : 0, start, rssPages: Number.isFinite(rssPages) ? rssPages : 0 };
 }
 
 /** First number of /proc/uptime, in seconds. */
@@ -46,6 +47,9 @@ class ProcessTable {
     this.list = [];
     this.byPid = new Map();
     this.app = new Set();
+    this.reaped = { ticks: 0, ffmpegTicks: 0, cpu: null, ffmpegCpu: null };
+    this.prevKids = null; // the app's direct children last pass: key -> { ticks, childTicks, ffmpeg }
+    this.prevAppChildTicks = null;
   }
 
   probe() {
@@ -117,12 +121,50 @@ class ProcessTable {
       }
     }
     this.app = app;
+    this.countReaped(totalTicks);
     // status has the exact resident size in kB, whatever the page size
     for (const pid of app) {
       const kb = parseKeyValues(readText(join(this.procRoot, String(pid), 'status'))).VmRSS;
       if (Number.isFinite(kb)) this.byPid.get(pid).memB = kb * 1024;
     }
     return this;
+  }
+
+  /**
+   * A child that ended since the last pass is gone from /proc, and its last
+   * ticks with it; the kernel adds its whole time to the app's cutime/cstime
+   * when it is reaped. Without this, each finished ffmpeg showed as a drop to
+   * ~0% in the app's and ffmpeg's CPU for one sample (a spike on the graphs).
+   */
+  countReaped(totalTicks) {
+    const appP = this.byPid.get(this.appPid);
+    const kids = new Map();
+    for (const p of this.list) {
+      if (p.ppid === this.appPid) kids.set(`${p.pid}:${p.start}`, { ticks: p.ticks, childTicks: p.childTicks, ffmpeg: /^ffmpeg/.test(p.comm) });
+    }
+    let ticks = 0;
+    let ffmpegTicks = 0;
+    if (appP && this.prevKids && this.prevAppChildTicks !== null) {
+      const added = appP.childTicks - this.prevAppChildTicks;
+      let seen = 0;
+      let goneFf = 0;
+      let gone = 0;
+      for (const [key, k] of this.prevKids) {
+        if (kids.has(key)) continue;
+        gone++;
+        seen += k.ticks + k.childTicks;
+        if (k.ffmpeg) goneFf++;
+      }
+      if (gone && added > seen) {
+        ticks = added - seen;
+        ffmpegTicks = gone === goneFf ? ticks : 0;
+        if (goneFf && gone !== goneFf) ffmpegTicks = Math.round((ticks * goneFf) / gone);
+      }
+    }
+    this.prevKids = kids;
+    this.prevAppChildTicks = appP ? appP.childTicks : null;
+    const pct = (t) => (totalTicks > 0 ? (t / totalTicks) * 100 : null);
+    this.reaped = { ticks, ffmpegTicks, cpu: pct(ticks), ffmpegCpu: pct(ffmpegTicks) };
   }
 
   /** The app's descendants (not the app itself): the processes that may hold a GPU. */

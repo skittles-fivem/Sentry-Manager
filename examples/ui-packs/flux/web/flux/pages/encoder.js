@@ -368,6 +368,22 @@ export default {
       f.oninput = () => { readForm(); save(); groupTotals(f); };
       wireGroups(f, groupMem);
     }
+    // a vehicle update (sent often while a job runs) redrew the form under the
+    // user's hands: an open picker closed and focus jumped away. Wait for focus to leave.
+    let formPending = false;
+    function drawFormWhenIdle() {
+      const f = $('#enc-form');
+      if (!f || !f.contains(document.activeElement)) { drawForm(); return; }
+      if (formPending) return;
+      formPending = true;
+      const later = () => setTimeout(() => {
+        if (!alive) return;
+        if ($('#enc-form')?.contains(document.activeElement)) { $('#enc-form').addEventListener('focusout', later, { once: true }); return; }
+        formPending = false;
+        drawForm();
+      }, 0);
+      f.addEventListener('focusout', later, { once: true });
+    }
     // the next run's number for a device (a node's devices other than its default start at 0)
     const laneNext = (d) => laneValue(form.lanes, d, d.kind === 'cpu' ? 2 : 1);
     // this server's devices as rows; each node that lists its GPUs as a group that opens
@@ -685,7 +701,7 @@ export default {
         es?.close();
         invoke('unsubscribeProgress');
       },
-      onTopics(t) { if (t.includes('vehicles')) drawForm(); },
+      onTopics(t) { if (t.includes('vehicles')) drawFormWhenIdle(); },
       onVehicle() { form.vehicle = current()?.id; save(); drawForm(); drawAuto(); },
       onKey(e) {
         if (e.ctrlKey || e.metaKey || e.altKey) return false;

@@ -323,6 +323,22 @@ export default {
       if (n) { n.hidden = !busy; if (busy) n.textContent = busyNote(); }
     }
     const defDest = (veh) => `${outRoots[0] || '/data/converted'}/${veh?.id || 'vehicle'}`;
+    // a vehicle update (sent often while a job runs) redrew the form under the
+    // user's hands: an open picker closed and focus jumped away. Wait for focus to leave.
+    let formPending = false;
+    function drawFormWhenIdle() {
+      const f = $('#e-form');
+      if (!f || !f.contains(document.activeElement)) { drawForm(); return; }
+      if (formPending) return;
+      formPending = true;
+      const later = () => setTimeout(() => {
+        if (!alive) return;
+        if ($('#e-form')?.contains(document.activeElement)) { $('#e-form').addEventListener('focusout', later, { once: true }); return; }
+        formPending = false;
+        drawForm();
+      }, 0);
+      f.addEventListener('focusout', later, { once: true });
+    }
     function drawForm() {
       const busyJob = snap && ACTIVE.has(snap.state);
       const veh = formCar();
@@ -654,7 +670,7 @@ export default {
         es?.close();
         call('unsubscribeProgress');
       },
-      onTopics(t) { if (t.includes('vehicles')) drawForm(); },
+      onTopics(t) { if (t.includes('vehicles')) drawFormWhenIdle(); },
       onCar() { form.vehicle = car()?.id; save(); drawForm(); drawAuto(); },
       keys: [['+ / −', 'More / fewer conversions at once (running job)'], ['Space', 'Pause / resume the running job']],
       onKey(e) {

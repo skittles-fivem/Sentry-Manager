@@ -75,5 +75,12 @@ export async function render(ctx) {
     });
   };
   draw();
-  ctx.on('topics', (t) => { if (t.includes('bin') && !document.querySelector('dialog[open]')) refresh(); });
+  // (a refresh while the vehicle picker is open closed it: wait until it is left)
+  let held = false;
+  const picking = () => Boolean(document.activeElement?.matches('select, input, textarea') && view.contains(document.activeElement));
+  view.addEventListener('focusout', () => setTimeout(() => { if (held && ctx.alive() && !picking()) { held = false; refresh(); } }, 0));
+  ctx.on('topics', (t) => {
+    if (!t.includes('bin') || document.querySelector('dialog[open]')) return;
+    if (picking()) held = true; else refresh();
+  });
 }

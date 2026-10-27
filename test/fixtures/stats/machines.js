@@ -26,8 +26,8 @@ const path = require('path');
 const link = (target) => ({ link: target });
 
 /** /proc/<pid>/stat as the kernel prints it (52 fields). */
-function statLine({ pid, comm, ppid, state = 'S', utime = 0, stime = 0, start = 1000, rss = 1000, threads = 1 }) {
-  const f = [pid, `(${comm})`, state, ppid, pid, pid, 0, -1, 4194560, 100, 0, 0, 0, utime, stime, 0, 0, 20, 0, threads, 0, start, 123456789, rss, '18446744073709551615'];
+function statLine({ pid, comm, ppid, state = 'S', utime = 0, stime = 0, cutime = 0, cstime = 0, start = 1000, rss = 1000, threads = 1 }) {
+  const f = [pid, `(${comm})`, state, ppid, pid, pid, 0, -1, 4194560, 100, 0, 0, 0, utime, stime, cutime, cstime, 20, 0, threads, 0, start, 123456789, rss, '18446744073709551615'];
   while (f.length < 52) f.push(0);
   return `${f.join(' ')}\n`;
 }

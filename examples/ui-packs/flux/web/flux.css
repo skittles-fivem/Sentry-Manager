@@ -227,7 +227,7 @@ a.kpi:hover { border-color: var(--violet); transform: translateY(-1px); }
 .ctile.wide { grid-column: 1 / -1; }
 .ctile header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
 .ctile header h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .1em; font-family: var(--mono); color: var(--text-2); }
-.ctile header .muted { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctile header .muted { flex: 1 1 9em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .big { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin-left: auto; color: var(--text); }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .gpu-row { padding: 8px 0; border-top: 1px dashed var(--line-soft); }

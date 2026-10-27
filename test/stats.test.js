@@ -8,7 +8,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const { createStats } = require('../server/stats');
-const { parseStat } = require('../server/stats/procs');
+const { parseStat, ProcessTable } = require('../server/stats/procs');
 const { parseCpuinfo, cleanModel } = require('../server/stats/cpu');
 const { osFromKernel } = require('../server/stats/host');
 const M = require('./fixtures/stats/machines');
@@ -316,7 +316,7 @@ test('this machine: a sample of the real /proc and /sys (no GPU here)', async ()
 
 test('small parsers: stat names with ")" and spaces, CPU names, the host OS', () => {
   const p = parseStat(M.statLine({ pid: 7, comm: 'weird ) name', ppid: 1, utime: 5, stime: 6, start: 99, rss: 12 }));
-  assert.deepEqual(p, { pid: 7, comm: 'weird ) name', state: 'S', ppid: 1, ticks: 11, start: 99, rssPages: 12 });
+  assert.deepEqual(p, { pid: 7, comm: 'weird ) name', state: 'S', ppid: 1, ticks: 11, childTicks: 0, start: 99, rssPages: 12 });
   assert.equal(parseStat('garbage'), null);
   assert.equal(parseStat('12 (x) S 1'), null);
   assert.equal(cleanModel('Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz'), 'Intel Xeon E5-2680 v4');
@@ -329,6 +329,33 @@ test('small parsers: stat names with ")" and spaces, CPU names, the host OS', ()
   assert.equal(osFromKernel('6.11.4-301.fc41.x86_64', ''), 'Fedora');
   assert.equal(osFromKernel('5.10.0', 'Linux version 5.10.0'), 'Linux');
   assert.equal(osFromKernel(null, null), null);
+});
+
+test('an ffmpeg that ended between two samples still counts: its last ticks come from the app\'s cutime', () => {
+  const root = fs.mkdtempSync(path.join(require('os').tmpdir(), 'reaped-'));
+  const put = (procs) => {
+    for (const e of fs.readdirSync(root)) fs.rmSync(path.join(root, e), { recursive: true });
+    fs.writeFileSync(path.join(root, 'uptime'), '500.00 100.00\n');
+    for (const p of procs) {
+      fs.mkdirSync(path.join(root, String(p.pid)));
+      fs.writeFileSync(path.join(root, String(p.pid), 'stat'), M.statLine(p));
+    }
+  };
+  const table = new ProcessTable({ procRoot: root, appPid: 10 });
+  const app = { pid: 10, comm: 'node', ppid: 1, utime: 100, start: 50 };
+  put([app, { pid: 11, comm: 'ffmpeg', ppid: 10, utime: 1000, start: 60 }]);
+  table.sample(200);
+  // ffmpeg 11 ran 150 more ticks, ended and was reaped: 1150 ticks into the app's cutime
+  put([{ ...app, cutime: 1150 }, { pid: 12, comm: 'ffmpeg', ppid: 10, utime: 30, start: 49990 }]);
+  table.sample(200);
+  assert.equal(table.reaped.ticks, 150);
+  assert.equal(table.reaped.ffmpegTicks, 150);
+  assert.equal(Math.round(table.reaped.ffmpegCpu), 75);
+  // nothing ended: nothing added
+  put([{ ...app, cutime: 1150 }, { pid: 12, comm: 'ffmpeg', ppid: 10, utime: 60, start: 49990 }]);
+  table.sample(200);
+  assert.equal(table.reaped.ticks, 0);
+  fs.rmSync(root, { recursive: true });
 });
 
 test('a bridge, its bond and its port carry the same bytes: counted once', async () => {

@@ -457,7 +457,7 @@ text.tk-hot { fill: #ffb3c2; }
 }
 @media (max-width: 1023px) {
   .ft-body { grid-template-columns: 1fr; }
-  .albums { position: static; max-height: none; padding: 10px; }
+  .albums { position: relative; top: auto; max-height: none; padding: 10px; }
   .album-list { display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity; gap: 8px; padding-bottom: 4px; }
   .album { flex: none; width: 230px; scroll-snap-align: start; }
 }
@@ -782,13 +782,15 @@ fieldset:disabled { opacity: 0.6; }
 .day input:focus-visible + span { outline: 2px solid var(--cyan); outline-offset: 2px; }
 @media (max-width: 1023px) {
   .settings { grid-template-columns: minmax(0, 1fr); }
-  .stabs { position: static; display: flex; overflow-x: auto; scrollbar-width: none; padding: 6px; }
+  .stabs { position: relative; top: auto; display: flex; overflow-x: auto; scrollbar-width: none; padding: 6px; }
   .stab { flex: none; }
   .stab.on { box-shadow: inset 0 -3px 0 var(--mag); }
 }
 .radio-seek { flex: none; }
 .radio-face { min-width: 0; }
-@media (max-width: 400px) { .radio-band { letter-spacing: 0.08em; } .radio-name { letter-spacing: 0.08em; font-size: 15px; } .dash-brand .brand-mark { width: 34px; height: 34px; } .dash { gap: 4px; padding-left: calc(8px + var(--safe-l)); padding-right: calc(8px + var(--safe-r)); } }
+/* phones: the display got ~55 px ("CH 01" wrapped, LIVE and the page name cut off); the vehicle picker gives some up */
+.radio-band { white-space: nowrap; }
+@media (max-width: 400px) { .radio-band { letter-spacing: 0.08em; gap: 6px; } .radio-name { letter-spacing: 0.01em; font-size: 13px; } .radio-face { padding: 4px 4px; } .car-pick .in { width: 104px; padding-left: 8px; padding-right: 26px; text-overflow: ellipsis; } .radio-seek { width: 38px; } .dash-brand .brand-mark { width: 34px; height: 34px; } .dash { gap: 4px; padding-left: calc(8px + var(--safe-l)); padding-right: calc(8px + var(--safe-r)); } }
 .dash-brand { min-width: 44px; justify-content: center; }
 @media (max-width: 1023px) and (max-height: 500px) {
   .fab { width: 52px; min-height: 52px; padding: 0; justify-content: center; }

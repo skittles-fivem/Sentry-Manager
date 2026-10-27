@@ -101,8 +101,10 @@ export default {
         for (const k of Object.keys(buf)) buf[k].splice(0, first);
       } catch { /* live samples only */ }
     }
+    let liveFrom = null; // time of the first live sample: disks and per-core have no history
     function ingest(s) {
       const t = s.at || Date.now();
+      if (liveFrom === null) liveFrom = t;
       if (buf.t.length && t <= buf.t[buf.t.length - 1]) return;
       buf.t.push(t);
       if (buf.t.length > MAX_POINTS) buf.t.shift();
@@ -152,12 +154,18 @@ export default {
       charts.mem.set(...series({ mem: 'memory' }));
       charts.net.set(...series({ rx: 'rxBps', tx: 'txBps' }));
       charts.temp.set(...series({ temp: 'tempMax' }));
-      // per-core and disks are live only
-      charts.disk.set(buf.t, { diskR: buf.diskR, diskW: buf.diskW });
-      charts.diskBusy.set(buf.t, { diskBusy: buf.diskBusy });
-      const ncore = Math.max(0, ...buf.cores.map((c) => (c ? c.length : 0)));
-      const rows = Array.from({ length: ncore }, (_, r) => buf.cores.map((c) => (c ? c[r] : null)));
-      charts.heat.set(buf.t, rows);
+      // per-core and disks are live only: drawn over the live samples, not
+      // squeezed into the right edge of the 15 min history axis
+      let i0 = liveFrom === null ? buf.t.length : buf.t.findIndex((t) => t >= liveFrom);
+      if (i0 < 0) i0 = buf.t.length;
+      const lt = buf.t.slice(i0);
+      const live = (k) => buf[k].slice(i0);
+      charts.disk.set(lt, { diskR: live('diskR'), diskW: live('diskW') });
+      charts.diskBusy.set(lt, { diskBusy: live('diskBusy') });
+      const cores = live('cores');
+      const ncore = Math.max(0, ...cores.map((c) => (c ? c.length : 0)));
+      const rows = Array.from({ length: ncore }, (_, r) => cores.map((c) => (c ? c[r] : null)));
+      charts.heat.set(lt, rows);
       $('#cpu-heat-note').textContent = ncore ? `${ncore} threads × ${buf.cores.filter(Boolean).length} samples` : 'no per-core numbers from this server';
     }
 

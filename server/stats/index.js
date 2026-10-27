@@ -198,9 +198,11 @@ function createStats(options = {}) {
     const members = [...procs.app].map((pid) => procs.byPid.get(pid)).filter(Boolean);
     const ffmpeg = members.filter((p) => /^ffmpeg/.test(p.comm));
     const known = members.some((p) => p.cpu !== null);
+    // children that ended since the last sample (see ProcessTable.countReaped)
+    const reaped = procs.reaped || {};
     return {
-      usage: known ? round(sumOf(members.map((p) => p.cpu)) || 0, 1) : null,
-      ffmpegUsage: known ? round(sumOf(ffmpeg.map((p) => p.cpu)) || 0, 1) : null,
+      usage: known ? round((sumOf(members.map((p) => p.cpu)) || 0) + (reaped.cpu || 0), 1) : null,
+      ffmpegUsage: known ? round((sumOf(ffmpeg.map((p) => p.cpu)) || 0) + (reaped.ffmpegCpu || 0), 1) : null,
       ffmpegCount: ffmpeg.length
     };
   }
@@ -339,8 +341,12 @@ function createStats(options = {}) {
       goIdle();
       return;
     }
+    // keep a steady cadence: the time a sample takes comes off the wait, or
+    // samples drifted past the history's 2 s slots and left holes in the graphs
+    const began = now();
     guard('sample', sampleOnce);
-    schedule(intervalMs);
+    const took = now() - began;
+    schedule(Number.isFinite(took) && took > 0 ? Math.max(Math.round(intervalMs / 2), intervalMs - took) : intervalMs);
   }
 
   function askFfmpeg() {

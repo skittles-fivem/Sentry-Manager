@@ -201,7 +201,9 @@ export default {
       const t = snap.timings?.totalMs;
       if (t && snap.timings.files) {
         const all = Object.values(t).reduce((a, b) => a + b, 0) || 1;
-        $('#timings', body).innerHTML = `<details class="more-info"><summary>Where the time goes (${plural(snap.timings.files, 'clip')})</summary><div class="stack" style="gap:8px;margin-top:6px">${PHASES.filter(([k]) => t[k]).map(([k, label]) => `<div><div class="stat-label"><span>${label}</span><span>${dur(t[k] / snap.timings.files)} per clip</span></div>${meter((t[k] / all) * 100, 'violet')}</div>`).join('')}</div></details>`;
+        // (kept open across updates: it closed on every progress event while read)
+        const wasOpen = $('#timings details', body)?.open === true;
+        $('#timings', body).innerHTML = `<details class="more-info"${wasOpen ? ' open' : ''}><summary>Where the time goes (${plural(snap.timings.files, 'clip')})</summary><div class="stack" style="gap:8px;margin-top:6px">${PHASES.filter(([k]) => t[k]).map(([k, label]) => `<div><div class="stat-label"><span>${label}</span><span>${dur(t[k] / snap.timings.files)} per clip</span></div>${meter((t[k] / all) * 100, 'violet')}</div>`).join('')}</div></details>`;
       } else $('#timings', body).innerHTML = '';
     }
 

@@ -7,6 +7,8 @@ export const C = {
 };
 export const PALETTE = [C.violet, C.cyan, C.green, C.amber, C.pink, C.blue, C.orange, C.teal, C.lime, C.red];
 
+const MAX_BRIDGE = 3; // missing samples in a row still drawn as one line
+
 function niceMax(v) {
   if (!(v > 0)) return 1;
   const p = 10 ** Math.floor(Math.log10(v));
@@ -90,12 +92,6 @@ export class TimeChart {
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    const padL = 44;
-    const padR = 8;
-    const padT = 8;
-    const padB = 18;
-    const pw = Math.max(10, w - padL - padR);
-    const ph = h - padT - padB;
     const series = (opts.series || []).filter((s) => !this.hidden.has(s.key));
     const n = this.times.length;
     // y scale
@@ -114,6 +110,14 @@ export class TimeChart {
       top = niceMax(Math.max(m * 1.1, opts.floor || 0));
     }
     const bottom = opts.min || 0;
+    // y labels: as wide as the widest one (rates like "9.5 MB/s" were cut off)
+    ctx.font = '10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+    const padL = Math.max(44, ...[0, 2, 4].map((g) => Math.ceil(ctx.measureText(opts.format(bottom + ((top - bottom) * g) / 4, true)).width) + 10));
+    const padR = 8;
+    const padT = 8;
+    const padB = 18;
+    const pw = Math.max(10, w - padL - padR);
+    const ph = h - padT - padB;
     const y = (v) => padT + ph - ((v - bottom) / (top - bottom || 1)) * ph;
     const x = (i) => padL + (n <= 1 ? pw : (i / (n - 1)) * pw);
     // grid
@@ -160,11 +164,17 @@ export class TimeChart {
         if (opts.stacked) base[i] = hi;
         pts.push([x(i), y(Math.min(top, hi)), y(Math.max(bottom, lo))]);
       }
-      // segments split at gaps
+      // segments split at gaps; a gap of a few samples (the history's 2 s
+      // slots miss one now and then when sampling runs a little slow) is
+      // bridged, or the line broke into short filled teeth: "spikes"
       const segs = [];
       let cur = [];
+      let miss = 0;
       for (const p of pts) {
-        if (!p) { if (cur.length) segs.push(cur); cur = []; } else cur.push(p);
+        if (!p) { miss++; continue; }
+        if (miss > MAX_BRIDGE && cur.length) { segs.push(cur); cur = []; }
+        miss = 0;
+        cur.push(p);
       }
       if (cur.length) segs.push(cur);
       for (const seg of segs) {
