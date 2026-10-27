@@ -1,6 +1,6 @@
 // Jobs: the pit log. Scans, conversions, Recycle Bin moves and policy runs, each
 // with a status lamp, newest first.
-import { h, ico, api, app, car, span, stampFull, wh, watt, cash, count, toast, ask, act, segs, onSegs, ok, debounce, blank, paint } from '../core.js';
+import { h, ico, api, app, car, span, stampFull, wh, watt, cash, count, toast, ask, act, segs, onSegs, ok, debounce, blank, paint, liveDraw } from '../core.js';
 
 const LAMP = { done: 'grn', failed: 'red', running: 'cyan', cancelled: '', interrupted: 'org' };
 
@@ -22,7 +22,7 @@ export default {
     async function load() {
       const v = car();
       ({ jobs: list } = await api(`/api/jobs${scope === 'car' && v ? `?vehicle=${encodeURIComponent(v.id)}` : ''}`));
-      draw();
+      liveDraw(el, draw);
     }
     function draw() {
       const v = car();
@@ -58,7 +58,7 @@ export default {
     $('#j-q').addEventListener('input', debounce((e) => { q = e.target.value.toLowerCase(); draw(); }, 120));
     $('#j-clear').onclick = clear;
     await load();
-    const tick = setInterval(() => { if (list.some((j) => j.status === 'running')) draw(); }, 1000);
+    const tick = setInterval(() => { if (list.some((j) => j.status === 'running')) liveDraw(el, draw); }, 1000);
     if (params.get('clear')) setTimeout(clear, 50);
     return {
       unmount() { clearInterval(tick); },

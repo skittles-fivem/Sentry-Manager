@@ -1,5 +1,5 @@
 // Jobs: scans, conversions, Recycle Bin moves and policy runs.
-import { esc, api, state, current, dur, isoish, energy, watts, money, plural, icon, toast, confirmDialog, busy, fin, debounce } from '../core.js';
+import { esc, api, state, current, dur, isoish, energy, watts, money, plural, icon, toast, confirmDialog, busy, fin, debounce, liveDraw } from '../core.js';
 import { seg, wireSeg, chip, empty } from '../ui.js';
 
 const TONE = { done: 'green', failed: 'red', running: 'cyan', cancelled: '', interrupted: 'amber' };
@@ -21,7 +21,7 @@ export default {
       const v = current();
       const q = scope === 'vehicle' && v ? `?vehicle=${encodeURIComponent(v.id)}` : '';
       ({ jobs: list } = await api(`/api/jobs${q}`));
-      draw();
+      liveDraw(el, draw);
     }
     function draw() {
       const v = current();
@@ -57,7 +57,7 @@ export default {
     $('#jobs-text').addEventListener('input', debounce((e) => { text = e.target.value.toLowerCase(); draw(); }, 100));
     $('#jobs-clear').onclick = clearJobs;
     await load();
-    const tick = setInterval(() => { if (list.some((j) => j.status === 'running')) draw(); }, 1000);
+    const tick = setInterval(() => { if (list.some((j) => j.status === 'running')) liveDraw(el, draw); }, 1000);
     if (params.get('clear')) setTimeout(clearJobs, 50);
     return {
       unmount() { clearInterval(tick); },

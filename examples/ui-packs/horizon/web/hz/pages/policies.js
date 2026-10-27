@@ -1,6 +1,6 @@
 // Policies: each vehicle's service schedule. Recordings older than the days you
 // set move to the Recycle Bin once a day; protected ones are always skipped.
-import { h, ico, api, app, car, size, count, stamp, toast, ask, act, pill, panelHead, blank } from '../core.js';
+import { h, ico, api, app, car, size, count, stamp, toast, ask, act, pill, panelHead, blank, liveDraw } from '../core.js';
 
 const CATS = [['Recent', 'cyan'], ['Sentry', 'org'], ['Saved', 'grn'], ['Other', '']];
 
@@ -56,7 +56,7 @@ export default {
     }
     await draw();
     return {
-      onTopics(t) { if ((t.includes('inventory') || t.includes('vehicles')) && !el.contains(document.activeElement)) draw().catch(() => {}); },
+      onTopics(t) { if ((t.includes('inventory') || t.includes('vehicles')) && !el.contains(document.activeElement)) liveDraw(el, draw); },
       onCar() { el.querySelector(`form.pol[data-v="${CSS.escape(car()?.id || '')}"]`)?.scrollIntoView({ block: 'start' }); }
     };
   }

@@ -1,7 +1,7 @@
 // Aurora shell: the sky, the floating dock, glass windows (one per page),
 // live updates from /api/events, badges and keyboard shortcuts.
 
-import { $, $$, esc, icon, api, state, loadVehicles, loadNotes, setVehicle, on, emit, toast, store, infoDialog, motionOK } from './core.js';
+import { $, $$, esc, icon, api, state, loadVehicles, loadNotes, setVehicle, on, emit, toast, store, infoDialog, motionOK, selecting, liveDraw } from './core.js';
 import { createSky } from './sky.js';
 import sky from './pages/sky.js';
 import footage from './pages/footage.js';
@@ -244,11 +244,23 @@ function deliver(topics) {
     hit.forEach((t) => pending.add(t));
     return;
   }
+  // text highlighted in the window: the update waits for the highlight to go
+  if (selecting(active.win)) {
+    hit.forEach((t) => pending.add(t));
+    liveDraw(active.win, flushPending, 'aurora:topics');
+    return;
+  }
   active.ctl.refresh(hit);
+}
+function flushPending() {
+  if (!pending.size || busy() || !active?.ctl?.refresh) return;
+  const list = [...pending];
+  pending.clear();
+  active.ctl.refresh(list);
 }
 document.addEventListener('focusout', () => {
   setTimeout(() => {
-    if (pending.size && !busy() && active?.ctl?.refresh) {
+    if (pending.size && !busy() && active?.ctl?.refresh && !selecting(active.win)) {
       const list = [...pending];
       pending.clear();
       active.ctl.refresh(list);

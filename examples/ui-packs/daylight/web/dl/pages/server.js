@@ -1,7 +1,7 @@
 // Server & logs: what the server is doing (CPU, GPU, power, memory, disks,
 // network, temperatures, programs) and its log, newest first.
 
-import { api, esc, icon, bytes, pct, fin, meter, when, chip, details, confirmDialog, toast, fail, busy, store, plural } from '../core.js';
+import { api, esc, icon, bytes, pct, fin, meter, when, chip, details, confirmDialog, toast, fail, busy, store, plural, liveDraw } from '../core.js';
 import { state } from '../state.js';
 
 const rate = (bps) => (fin(bps) ? `${bytes(bps)}/s` : '—');
@@ -145,9 +145,6 @@ export async function render(ctx) {
   const drawRange = () => view.querySelectorAll('[data-range]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.range === range)));
   const drawStats = () => {
     if (!ctx.alive()) return;
-    // a highlight the owner is making waits
-    const sel = document.getSelection();
-    if (sel && !sel.isCollapsed && $('#tiles').contains(sel.anchorNode)) return;
     const h = snap?.host;
     $('#host-line').innerHTML = error && !snap ? `<span style="color:var(--bad)">Can’t get the numbers: ${esc(error)}</span>`
       : h ? esc([h.hostname, h.os, h.kernel && `kernel ${h.kernel}`, fin(h.uptimeS) && `on for ${span(h.uptimeS)}`, fin(h.appUptimeS) && `Sentry Six up ${span(h.appUptimeS)}`, h.version && `version ${h.version}`].filter(Boolean).join(' · ')) + (error ? ' · <span style="color:var(--warn)">not updating right now</span>' : '') : 'Asking the server…';
@@ -166,7 +163,8 @@ export async function render(ctx) {
       if (hh) { hist = hh; histAt = Date.now(); }
       error = null;
     } catch (err) { error = err.message; }
-    drawStats();
+    // (waits while text in the numbers is highlighted, then catches up)
+    liveDraw([$('#host-line'), $('#alerts'), $('#tiles'), $('#unlock')], drawStats);
   };
   view.querySelectorAll('[data-range]').forEach((b) => { b.onclick = () => { range = b.dataset.range; store.set('statsRange', range); drawRange(); histAt = 0; poll(); }; });
   drawRange();

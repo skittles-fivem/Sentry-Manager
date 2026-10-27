@@ -1,6 +1,6 @@
 // Footage: days on the left, a dense sortable/filterable recordings table on the right,
 // keyboard bulk selection and a raw-JSON inspector drawer.
-import { esc, api, state, current, bytes, plural, dayTitle, ago, icon, toast, confirmDialog, busy, jsonHtml, debounce, store, CAMERAS, CAMERA_LABEL, CAMERA_SHORT, humanize } from '../core.js';
+import { esc, api, state, current, bytes, plural, dayTitle, ago, icon, toast, confirmDialog, busy, jsonHtml, debounce, store, CAMERAS, CAMERA_LABEL, CAMERA_SHORT, humanize, liveDraw } from '../core.js';
 import { split, seg, wireSeg, drawer, empty, chip } from '../ui.js';
 
 const CODEC = { h264: 'H.264', h265: 'H.265', av1: 'AV1', hevc: 'H.265' };
@@ -58,16 +58,16 @@ export default {
     const $ = (s) => el.querySelector(s);
 
     // ---------- loading ----------
-    async function loadDays() {
+    async function loadDays(live = false) {
       const q = new URLSearchParams({ category: f.category, limit: '100' });
       try {
         days = await api(`/api/vehicles/${encodeURIComponent(v.id)}/days?${q}`);
       } catch (err) {
         days = { days: [], total: 0, recordings: 0, error: err.message };
       }
-      if (alive) drawDays();
+      if (alive) { if (live) liveDraw($('#fo-days'), drawDays); else drawDays(); }
     }
-    async function loadRecs() {
+    async function loadRecs(live = false) {
       const q = new URLSearchParams({ category: f.category, limit: '500' });
       if (f.date) q.set('date', f.date);
       if (f.prot) q.set('protected', '1');
@@ -88,12 +88,17 @@ export default {
       } catch (err) {
         recs = [];
         total = 0;
-        $('#fo-table').innerHTML = `<tbody><tr><td>${esc(err.message)}</td></tr></tbody>`;
+        const fail = () => { $('#fo-table').innerHTML = `<tbody><tr><td>${esc(err.message)}</td></tr></tbody>`; };
+        if (live) liveDraw([$('#fo-sum'), $('#fo-table')], fail, 'flux:fo-recs'); else fail();
         return;
       }
       for (const id of [...f.selected]) if (!recs.some((r) => r.id === id)) f.selected.delete(id);
-      $('#fo-sum').textContent = `${plural(out.total, 'recording')}${f.date ? ` on ${dayTitle(f.date)}` : ''} · inventory ${ago(out.scannedAt)}${out.scanning ? ' · scanning…' : ''} · times are the vehicle's (${v.timezone || 'local'})`;
-      if (alive) drawTable();
+      const show = () => {
+        $('#fo-sum').textContent = `${plural(out.total, 'recording')}${f.date ? ` on ${dayTitle(f.date)}` : ''} · inventory ${ago(out.scannedAt)}${out.scanning ? ' · scanning…' : ''} · times are the vehicle's (${v.timezone || 'local'})`;
+        if (alive) drawTable();
+      };
+      // (an inventory update waits while text in the list is highlighted)
+      if (live) liveDraw([$('#fo-sum'), $('#fo-table')], show, 'flux:fo-recs'); else show();
     }
 
     // ---------- days ----------
@@ -403,7 +408,7 @@ export default {
     return {
       unmount() { alive = false; },
       onTopics(topics) {
-        if (topics.includes('inventory') || topics.includes('bin')) { loadDays(); loadRecs(); }
+        if (topics.includes('inventory') || topics.includes('bin')) { loadDays(true); loadRecs(true); }
       },
       onKey(e) {
         const r = shown[f.cursor];

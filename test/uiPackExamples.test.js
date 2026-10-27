@@ -92,3 +92,35 @@ for (const [pack, mod] of Object.entries(PACKS)) {
     assert.match(encoder, /Start this one when it finishes, or turn on Automatic conversion for this vehicle/);
   });
 }
+
+// Live redraws (stats polls, server events, timers) wait while the reader is
+// highlighting text in what they would redraw, then catch up: the packs had
+// the bug the built-in interface fixed, a highlight wiped within seconds.
+const LIVE_PAGES = {
+  flux: ['pages/overview.js', 'pages/encoder.js', 'pages/jobs.js', 'pages/nodes.js', 'pages/footage.js', 'pages/bin.js', 'pages/notifications.js', 'pages/policies.js', 'pages/settings.js'],
+  horizon: ['pages/dashboard.js', 'pages/encoder.js', 'pages/jobs.js', 'pages/nodes.js', 'pages/footage.js', 'pages/bin.js', 'pages/alerts.js', 'pages/policies.js', 'pages/settings.js'],
+  aurora: ['main.js', 'pages/sky.js', 'pages/encoder.js', 'pages/nodes.js'],
+  daylight: ['pages/home.js', 'pages/server.js', 'pages/encoder.js', 'pages/jobs.js', 'pages/nodes.js', 'pages/footage.js', 'pages/bin.js', 'pages/notifications.js', 'pages/more.js', 'pages/settings.js']
+};
+for (const [pack, mod] of Object.entries(PACKS)) {
+  test(`${pack}: live redraws hold while text is highlighted, then catch up`, () => {
+    const dir = path.join(ROOT, pack, 'web', mod);
+    const core = fs.readFileSync(path.join(dir, 'core.js'), 'utf8');
+    assert.match(core, /export function selecting\(region\)/);
+    assert.match(core, /export function liveDraw\(region, draw, key = draw\)/);
+    assert.match(core, /sel\.isCollapsed/);
+    for (const ev of ['pointerdown', 'pointerup', 'pointercancel', 'selectionchange']) assert.match(core, new RegExp(`addEventListener\\('${ev}'`), `${pack}: core listens to ${ev}`);
+    for (const file of LIVE_PAGES[pack]) {
+      const src = fs.readFileSync(path.join(dir, file), 'utf8');
+      assert.match(src, /\bliveDraw\(/, `${pack}/${file} holds its live redraws`);
+      assert.match(src, /import \{[^}]*\bliveDraw\b[^}]*\} from '\.\.?\/core\.js'/, `${pack}/${file} imports liveDraw`);
+    }
+    // every page with a timer, a poll or a server event uses it
+    for (const file of filesOf(path.join(dir, 'pages'))) {
+      const src = fs.readFileSync(path.join(dir, 'pages', file), 'utf8');
+      const live = /setInterval\(|ctx\.every\(|onTopics|ctx\.on\('(topics|vehicles|notes)'|follow\(|onBenchmark\(|converter:progress/.test(src);
+      // (the Viewer's readout follows the video being played, not a timer)
+      if (live && file !== 'viewer.js') assert.match(src, /\bliveDraw\(/, `${pack}/pages/${file} updates live but never holds`);
+    }
+  });
+}

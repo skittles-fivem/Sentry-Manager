@@ -2,7 +2,7 @@
 // rename, trust, vehicles first, benchmark, remove), and this server as a node
 // for another ("let another server use this one").
 
-import { $, $$, esc, icon, api, state, plural, when, toast, confirmDialog, promptDialog, empty, store } from '../core.js';
+import { $, $$, esc, icon, api, state, plural, when, toast, confirmDialog, promptDialog, empty, store, liveDraw } from '../core.js';
 
 export default {
   title: 'Nodes',
@@ -108,7 +108,8 @@ export default {
         timer = setTimeout(follow, 3000);
         return;
       }
-      draw();
+      // text highlighted in the window: the redraw waits for it to go
+      liveDraw(body, draw, 'aurora:nodes');
     };
     const once = (fn) => async (...args) => {
       if (saving) return;

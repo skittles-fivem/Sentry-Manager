@@ -1,6 +1,6 @@
 // Footage as a music library: days are albums, recordings are the tracks of a
 // playlist, each with a play button and a duration.
-import { h, ico, api, car, size, count, since, dayName, words, toast, ask, sheet, act, local, segs, onSegs, pill, debounce, CAMS, CAM_NAME, CAM_TAG, CODEC_NAME, paint } from '../core.js';
+import { h, ico, api, car, size, count, since, dayName, words, toast, ask, sheet, act, local, segs, onSegs, pill, debounce, CAMS, CAM_NAME, CAM_TAG, CODEC_NAME, paint, liveDraw } from '../core.js';
 
 const CAT_TONE = { Recent: 'cyan', Sentry: 'org', Saved: 'grn', Other: '' };
 const thumbUrl = (vid, rid) => `/api/vehicles/${encodeURIComponent(vid)}/recordings/${encodeURIComponent(rid)}/thumbnail`;
@@ -46,15 +46,15 @@ export default {
     const $ = (s) => el.querySelector(s);
 
     // ---------- data ----------
-    async function loadDays() {
+    async function loadDays(live = false) {
       try {
         days = await api(`/api/vehicles/${encodeURIComponent(v.id)}/days?${new URLSearchParams({ category: f.cat, limit: '100' })}`);
       } catch (err) {
         days = { days: [], total: 0, error: err.message };
       }
-      if (alive) drawDays();
+      if (alive) { if (live) liveDraw(el, drawDays); else drawDays(); }
     }
-    async function loadRecs() {
+    async function loadRecs(live = false) {
       const q = new URLSearchParams({ category: f.cat, limit: '500' });
       if (f.day) q.set('date', f.day);
       if (f.prot) q.set('protected', '1');
@@ -77,7 +77,9 @@ export default {
         meta = { error: err.message };
       }
       for (const id of [...f.sel]) if (!recs.some((r) => r.id === id)) f.sel.delete(id);
-      if (alive) { drawHead(); drawTracks(); }
+      const show = () => { drawHead(); drawTracks(); };
+      // (an inventory update waits while text on the page is highlighted)
+      if (alive) { if (live) liveDraw(el, show, 'hz:ft-recs'); else show(); }
     }
 
     // ---------- days (albums) ----------
@@ -310,7 +312,7 @@ export default {
     }
     return {
       unmount() { alive = false; },
-      onTopics(t) { if (t.includes('inventory') || t.includes('bin')) { loadDays(); loadRecs(); } },
+      onTopics(t) { if (t.includes('inventory') || t.includes('bin')) { loadDays(true); loadRecs(true); } },
       keys: [['j / k', 'Next / previous track'], ['Enter', 'Play the track'], ['x', 'Select the track'], ['p', 'Protect / unprotect'], ['Delete', 'Move to the Recycle Bin'], ['i', 'Track details'], ['/', 'Search']],
       onKey(e) {
         const r = shown[f.cur];

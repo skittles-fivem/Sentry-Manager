@@ -1,6 +1,6 @@
 // Dashboard: the instrument cluster. A storage speedometer, a fuel gauge for free
 // space, trip counters, warning lights, server telemetry and the black-box log.
-import { h, ico, api, app, car, size, perSec, pc, fixed, count, span, since, stampFull, watt, wh, cash, ok, toast, ask, act, local, segs, onSegs, pill, bar, panelHead, debounce } from '../core.js';
+import { h, ico, api, app, car, size, perSec, pc, fixed, count, span, since, stampFull, watt, wh, cash, ok, toast, ask, act, local, segs, onSegs, pill, bar, panelHead, debounce, liveDraw } from '../core.js';
 import { dial, setDial, fuel, setFuel, spark } from '../gauges.js';
 
 const KEEP = 180; // samples kept for the sparklines (6 min at 2 s)
@@ -166,6 +166,8 @@ export default {
       }
       return `<div class="meter"><div class="m-top"><span class="m-l">${h(label)}</span><b class="m-v num">${h(value)}</b></div>${opts.rate ? '' : bar(p, opts.tone || '')}${graph}${opts.sub ? `<span class="m-s small faint">${opts.subHtml ? opts.sub : h(opts.sub)}</span>` : ''}</div>`;
     }
+    // what a poll redraws (a highlight in the vehicles, attention or the log holds none of it)
+    const STATS = () => [el.querySelector('.cluster'), $('#d-host')?.closest('section'), $('#d-enc'), $('#d-fs'), $('#d-gpu'), $('#d-procs')];
     function drawStats() {
       const s = stats;
       if (!s) return;
@@ -268,7 +270,7 @@ export default {
       } catch (err) {
         log.lines = [{ at: Date.now(), level: 'error', scope: 'horizon', message: `The log could not load: ${err.message}` }];
       }
-      if (alive) drawLog();
+      if (alive) liveDraw($('#d-log'), drawLog);
     }
     async function loadArch() {
       try {
@@ -302,7 +304,7 @@ export default {
         } catch (err) {
           statErr = err.message;
         }
-        drawStats();
+        liveDraw(STATS(), drawStats);
       }
       timer = setTimeout(poll, 2000);
     }
@@ -319,8 +321,8 @@ export default {
     return {
       unmount() { alive = false; clearTimeout(timer); clearInterval(logTimer); },
       async onTopics(t) {
-        if (t.some((x) => ['vehicles', 'inventory', 'bin'].includes(x))) { await loadDays(); drawCluster(); drawCars(); }
-        if (t.includes('notifications')) { drawAttn(); drawLamps(); }
+        if (t.some((x) => ['vehicles', 'inventory', 'bin'].includes(x))) { await loadDays(); liveDraw(el.querySelector('.cluster'), drawCluster); liveDraw($('#d-cars'), drawCars); }
+        if (t.includes('notifications')) { liveDraw($('#d-attn'), drawAttn); liveDraw($('#d-lamps'), drawLamps); }
       },
       async onCar() { await loadDays(); drawCluster(); },
       keys: [['l', 'Focus the log filter']],

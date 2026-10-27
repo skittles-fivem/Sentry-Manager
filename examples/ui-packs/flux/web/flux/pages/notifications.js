@@ -1,5 +1,5 @@
 // Notifications: list, mark read, dismiss. The unread badge lives in the shell.
-import { esc, api, state, loadNotes, ago, isoish, icon, toast, busy, plural } from '../core.js';
+import { esc, api, state, loadNotes, ago, isoish, icon, toast, busy, plural, liveDraw } from '../core.js';
 import { seg, wireSeg, empty, chip } from '../ui.js';
 
 const TONE = { critical: 'red', warning: 'amber', info: 'cyan' };
@@ -45,6 +45,6 @@ export default {
     wireSeg(el, 'nshow', (x) => { show = x; draw(); });
     await loadNotes().catch(() => {});
     draw();
-    return { onTopics(t) { if (t.includes('notifications')) draw(); } };
+    return { onTopics(t) { if (t.includes('notifications')) liveDraw(el, draw); } };
   }
 };

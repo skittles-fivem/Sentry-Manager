@@ -1,7 +1,7 @@
 // Footage: a calendar of days with pictures. Tap a day to see what the car
 // recorded, play it, keep it safe (protect) or move it to the Recycle Bin.
 
-import { api, esc, enc, icon, bytes, plural, dayTitle, dayShort, niceTime, CATEGORY, CODEC, humanize, chip, emptyState, confirmDialog, toast, fail, busy, ago, store } from '../core.js';
+import { api, esc, enc, icon, bytes, plural, dayTitle, dayShort, niceTime, CATEGORY, CODEC, humanize, chip, emptyState, confirmDialog, toast, fail, busy, ago, store, liveDraw } from '../core.js';
 import { state, vehicle, setVehicle, vehiclePicker, loadVehicles } from '../state.js';
 import { go } from '../app.js';
 
@@ -212,7 +212,7 @@ async function renderDays(ctx, v) {
     view.querySelectorAll('.cal [data-day]').forEach((b) => { b.onclick = () => go(`#/footage/${b.dataset.day}?vehicle=${enc(v.id)}`); });
   };
   draw();
-  ctx.on('topics', (t) => { if (t.includes('inventory') && !typing()) refresh(); });
+  ctx.on('topics', (t) => { if (t.includes('inventory') && !typing()) liveDraw(view.firstElementChild || view, () => ctx.alive() && refresh(), 'dl:footage'); });
   ctx.on('vehicle', () => ctx.rerender());
 }
 
@@ -317,7 +317,7 @@ async function renderDay(ctx, v, day) {
     }));
   };
   draw();
-  ctx.on('topics', (t) => { if (t.includes('inventory') && !document.querySelector('dialog[open]') && !typing()) refresh(); });
+  ctx.on('topics', (t) => { if (t.includes('inventory') && !document.querySelector('dialog[open]') && !typing()) liveDraw(view.firstElementChild || view, () => ctx.alive() && refresh(), 'dl:footage-day'); });
   ctx.on('vehicle', () => go(`#/footage?vehicle=${enc(vehicle().id)}`));
   store.set('lastDay', day);
 }

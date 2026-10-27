@@ -4,7 +4,7 @@
 
 import {
   $, $$, esc, icon, api, state, current, setVehicle, bytes, rate, pct, plural, ago, when, whenFull, watts, energy, money, num, fin,
-  ring, meter, toast, confirmDialog, loadNotes, dayParts, empty
+  ring, meter, toast, confirmDialog, loadNotes, dayParts, empty, liveDraw
 } from '../core.js';
 import { follow, counts, STATE_TEXT, ACTIVE, CODEC } from '../conv.js';
 
@@ -262,9 +262,10 @@ export default {
             }
           }
           if (!dead) {
-            drawServer();
-            drawAttention();
-            drawEncoder();
+            // (each part waits while text in it is highlighted)
+            liveDraw($('#w-server', body), drawServer);
+            liveDraw($('#w-attention', body), drawAttention);
+            liveDraw($('#w-encoder', body), drawEncoder);
           }
         } catch { /* next poll */ }
       }
@@ -276,10 +277,10 @@ export default {
     drawEncoder();
     drawKeep();
     loadDays();
-    api('/api/stats/history?range=15m', { timeoutMs: 15000 }).then((h) => { hist = h.series || {}; if (!dead) drawServer(); }).catch(() => { hist = {}; });
+    api('/api/stats/history?range=15m', { timeoutMs: 15000 }).then((h) => { hist = h.series || {}; if (!dead) liveDraw($('#w-server', body), drawServer); }).catch(() => { hist = {}; });
     poll();
     setTimeout(loadLogs, 50);
-    const stopConv = follow((s) => { snap = s; if (!dead) drawEncoder(); });
+    const stopConv = follow((s) => { snap = s; if (!dead) liveDraw($('#w-encoder', body), drawEncoder); });
 
     body.addEventListener('click', async (e) => {
       const car = e.target.closest('[data-car]');

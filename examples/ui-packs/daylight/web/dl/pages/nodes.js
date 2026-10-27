@@ -1,7 +1,7 @@
 // Helper servers (Nodes): other servers running Sentry Six Manager that
 // convert clips for this one, and letting another server use this one.
 
-import { api, esc, enc, icon, plural, when, chip, emptyState, details, confirmDialog, promptDialog, toast, fail, busy } from '../core.js';
+import { api, esc, enc, icon, plural, when, chip, emptyState, details, confirmDialog, promptDialog, toast, fail, busy, liveDraw } from '../core.js';
 import { state } from '../state.js';
 
 let saving = false;
@@ -195,6 +195,7 @@ export async function render(ctx) {
     if (!data.nodes.length && !data.worker.pairing) return;
     const typing = document.activeElement?.matches?.('input:not([type=checkbox]), select, textarea') || [...view.querySelectorAll('#add-node input')].some((i) => i.value);
     if (typing || document.querySelector('dialog[open]')) return;
-    await refresh();
+    // (waits while text on the page is highlighted)
+    liveDraw(view.firstElementChild || view, () => ctx.alive() && refresh(), 'dl:nodes');
   });
 }

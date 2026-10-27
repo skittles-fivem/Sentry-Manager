@@ -1,6 +1,6 @@
 // Settings: the garage (vehicles), account, interface packs, the background
 // effect, updates, security, system and the electricity price.
-import { h, ico, api, send, app, pickCar, loadCars, size, stampFull, toast, ask, act, ok, local, segs, onSegs, pill, panelHead } from '../core.js';
+import { h, ico, api, send, app, pickCar, loadCars, size, stampFull, toast, ask, act, ok, local, segs, onSegs, pill, panelHead, liveDraw } from '../core.js';
 
 const TABS = [['vehicles', 'Vehicles', 'car'], ['account', 'Account', 'lock'], ['interface', 'Interface', 'horizon'], ['display', 'Background', 'hud'], ['updates', 'Updates', 'download'], ['security', 'Security', 'shield'], ['system', 'System', 'info'], ['power', 'Electricity', 'bolt']];
 const WEEK = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']];
@@ -21,7 +21,7 @@ export default {
     await parts[tab](box, { params, go });
     return {
       onTopics(t) {
-        if (tab === 'vehicles' && t.includes('vehicles') && !box.querySelector('#v-form')) vehicles(box, { params: new URLSearchParams(), go });
+        if (tab === 'vehicles' && t.includes('vehicles') && !box.querySelector('#v-form')) liveDraw(box, () => vehicles(box, { params: new URLSearchParams(), go }), 'hz:settings-vehicles');
       }
     };
   }

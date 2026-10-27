@@ -1,6 +1,6 @@
 // Recycle Bin: footage moved out of the way. Restore it, or delete it for good.
 
-import { api, esc, enc, icon, bytes, plural, when, emptyState, confirmDialog, toast, fail, busy, chip, CATEGORY } from '../core.js';
+import { api, esc, enc, icon, bytes, plural, when, emptyState, confirmDialog, toast, fail, busy, chip, CATEGORY, liveDraw } from '../core.js';
 import { state, vehiclePicker, vehicleById, loadVehicles } from '../state.js';
 
 let filter = null; // a vehicle id, or null for all
@@ -81,6 +81,6 @@ export async function render(ctx) {
   view.addEventListener('focusout', () => setTimeout(() => { if (held && ctx.alive() && !picking()) { held = false; refresh(); } }, 0));
   ctx.on('topics', (t) => {
     if (!t.includes('bin') || document.querySelector('dialog[open]')) return;
-    if (picking()) held = true; else refresh();
+    if (picking()) held = true; else liveDraw(view.firstElementChild || view, () => ctx.alive() && refresh(), 'dl:bin');
   });
 }

@@ -1,7 +1,7 @@
 // Today: the owner's questions first. Is the footage safe? How much space is
 // left? Is anything converting? Does anything need me?
 
-import { api, esc, icon, bytes, plural, ago, pct, meter, emptyState, dayShort, fail, toast, busy, fin } from '../core.js';
+import { api, esc, icon, bytes, plural, ago, pct, meter, emptyState, dayShort, fail, toast, busy, fin, liveDraw } from '../core.js';
 import { state, vehicle, shareHealth, unreadCount, loadVehicles } from '../state.js';
 import { follow, counts, STATE_WORDS, ACTIVE, PAUSED, Pace } from '../convert.js';
 import { thumbUrl } from './footage.js';
@@ -201,7 +201,7 @@ export async function render(ctx) {
   const loadHealth = () => api('/api/stats', { timeoutMs: 8000 }).then((s) => {
     health = s;
     const el = view.querySelector('#health');
-    if (el) el.innerHTML = healthBody(s);
+    if (el) liveDraw(el, () => { el.innerHTML = healthBody(health); }, 'dl:health');
   }, () => {});
   setTimeout(loadHealth, 1500); // the second sample has real CPU numbers
   ctx.every(10000, loadHealth);
@@ -212,14 +212,15 @@ export async function render(ctx) {
     lastState = s?.state || null;
     snap = s;
     const cc = view.querySelector('#convert-card');
-    if (cc && !changedState) cc.outerHTML = convertCard(snap);
-    else redraw();
+    // (a part with highlighted text waits for the highlight to go)
+    if (cc && !changedState) liveDraw(cc, () => { const c = view.querySelector('#convert-card'); if (c) c.outerHTML = convertCard(snap); }, 'dl:convert-card');
+    else liveDraw(view.firstElementChild || view, () => ctx.alive() && redraw(), 'dl:home');
   });
   ctx.cleanup(stop);
   ctx.on('topics', (topics) => {
     if (topics.some((t) => ['vehicles', 'inventory', 'notifications', 'bin'].includes(t))) {
-      if (topics.includes('inventory') && vehicle()) api(`/api/vehicles/${encodeURIComponent(vehicle().id)}/days?limit=4`).then((d) => { days = d.days; redraw(); }, () => {});
-      else redraw();
+      if (topics.includes('inventory') && vehicle()) api(`/api/vehicles/${encodeURIComponent(vehicle().id)}/days?limit=4`).then((d) => { days = d.days; liveDraw(view.firstElementChild || view, () => ctx.alive() && redraw(), 'dl:home'); }, () => {});
+      else liveDraw(view.firstElementChild || view, () => ctx.alive() && redraw(), 'dl:home');
     }
   });
 }

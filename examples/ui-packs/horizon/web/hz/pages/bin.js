@@ -1,5 +1,5 @@
 // Recycle Bin: restore, delete forever or empty, per vehicle or for all of them.
-import { h, ico, api, app, car, size, count, stampFull, toast, ask, act, segs, onSegs, pill, loadCars, debounce, blank, paint } from '../core.js';
+import { h, ico, api, app, car, size, count, stampFull, toast, ask, act, segs, onSegs, pill, loadCars, debounce, blank, paint, liveDraw } from '../core.js';
 
 export default {
   async mount(el, { status }) {
@@ -17,11 +17,11 @@ export default {
         <ul class="binlist" id="b-list"></ul>
       </section>`;
     const $ = (s) => el.querySelector(s);
-    async function load() {
+    async function load(live = false) {
       const v = car();
       ({ items } = await api(`/api/bin${scope === 'car' && v ? `?vehicle=${encodeURIComponent(v.id)}` : ''}`));
       for (const id of [...sel]) if (!items.some((i) => i.id === id)) sel.delete(id);
-      draw();
+      if (live) liveDraw(el, draw); else draw();
     }
     function draw() {
       const v = car();
@@ -85,6 +85,6 @@ export default {
     onSegs(el, 'bs', (x) => { scope = x; load(); });
     $('#b-q').addEventListener('input', debounce((e) => { q = e.target.value.toLowerCase(); draw(); }, 120));
     await load();
-    return { onTopics(t) { if (t.includes('bin')) load().catch(() => {}); }, onCar() { load().catch(() => {}); } };
+    return { onTopics(t) { if (t.includes('bin')) load(true).catch(() => {}); }, onCar() { load().catch(() => {}); } };
   }
 };

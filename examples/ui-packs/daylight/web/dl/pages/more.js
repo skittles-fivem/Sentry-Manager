@@ -1,6 +1,6 @@
 // More (phones): everything that isn't on the tab bar.
 
-import { esc, icon } from '../core.js';
+import { esc, icon, liveDraw } from '../core.js';
 import { unreadCount, binCount, state } from '../state.js';
 import { MORE_ROUTES, routeInfo, signOut, setTheme, currentTheme } from '../app.js';
 
@@ -26,7 +26,7 @@ export async function render(ctx) {
     view.querySelector('#signout').onclick = signOut;
   };
   draw();
-  ctx.on('notes', draw);
-  ctx.on('vehicles', draw);
+  ctx.on('notes', () => liveDraw(view.firstElementChild || view, () => ctx.alive() && draw(), 'dl:more'));
+  ctx.on('vehicles', () => liveDraw(view.firstElementChild || view, () => ctx.alive() && draw(), 'dl:more'));
   ctx.on('theme', draw);
 }

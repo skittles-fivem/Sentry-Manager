@@ -1,7 +1,7 @@
 // Encoder: the garage and its dyno. Throughput is a tachometer, each device's
 // conversion lanes are cylinders, and the job's progress is a lap counter.
 // Everything goes through /api/converter/invoke/* and /api/converter/events.
-import { h, ico, api, conv, app, car, carRoot, size, perSec, pc, fixed, count, span, stampFull, watt, wh, cash, ok, toast, ask, act, local, segs, onSegs, pill, bar, panelHead, bus, debounce, CLIENT } from '../core.js';
+import { h, ico, api, conv, app, car, carRoot, size, perSec, pc, fixed, count, span, stampFull, watt, wh, cash, ok, toast, ask, act, local, segs, onSegs, pill, bar, panelHead, bus, debounce, CLIENT, liveDraw } from '../core.js';
 import { dial, setDial, ring, setRing } from '../gauges.js';
 import { splitDevices, deviceLabel, laneValue, jobLanes, groupMemory, groupBodyId, wireGroups } from '../nodelanes.js';
 
@@ -560,9 +560,11 @@ export default {
         const out = await api('/api/logs?level=all&limit=400', { timeout: 15000 });
         const q = $('#e-logq').value.toLowerCase();
         const lines = (out.lines || []).filter((l) => (all || /converter|nodes|stats/.test(l.scope)) && (!q || `${l.scope} ${l.message}`.toLowerCase().includes(q)));
-        $('#e-logn').textContent = `${lines.length} lines`;
-        $('#e-log').innerHTML = lines.length ? lines.slice(0, 200).map((l) => `<div class="ll ${h(l.level)}"><span class="ll-t num">${h(stampFull(l.at))}</span><span class="ll-l">${h(l.level)}</span><span class="ll-s">${h(l.scope)}</span><span class="ll-m">${h(l.message)}</span></div>`).join('') : '<p class="small dim ll-empty">Nothing from the converter yet.</p>';
-      } catch (err) { $('#e-log').textContent = err.message; }
+        liveDraw($('#e-log'), () => {
+          $('#e-logn').textContent = `${lines.length} lines`;
+          $('#e-log').innerHTML = lines.length ? lines.slice(0, 200).map((l) => `<div class="ll ${h(l.level)}"><span class="ll-t num">${h(stampFull(l.at))}</span><span class="ll-l">${h(l.level)}</span><span class="ll-s">${h(l.scope)}</span><span class="ll-m">${h(l.message)}</span></div>`).join('') : '<p class="small dim ll-empty">Nothing from the converter yet.</p>';
+        }, 'hz:e-log');
+      } catch (err) { liveDraw($('#e-log'), () => { $('#e-log').textContent = err.message; }, 'hz:e-log'); }
     }
     $('#e-logref').onclick = loadLog;
     $('#e-logall').onchange = loadLog;
@@ -583,11 +585,13 @@ export default {
       requestAnimationFrame(() => {
         queued = false;
         if (!alive) return;
-        drawHead();
-        drawDyno();
-        drawCyl();
-        drawTimes();
-        drawItems();
+        // (each part waits while text in it is highlighted)
+        const box = (id) => $(id)?.closest('section') || $(id);
+        liveDraw([$('#e-state'), $('#e-sub'), $('#e-acts')], drawHead);
+        liveDraw([$('#e-tach'), $('#e-read')], drawDyno);
+        liveDraw(box('#e-cyl'), drawCyl);
+        liveDraw(box('#e-time'), drawTimes);
+        liveDraw(box('#e-items'), drawItems);
         if (!$('#e-form fieldset')) drawForm();
         else startState();
         if (!bench.running && $('#e-brun')) $('#e-brun').disabled = Boolean(snap && ACTIVE.has(snap.state));
@@ -624,7 +628,7 @@ export default {
       es.addEventListener('converter:benchmarkProgress', (e) => {
         try { bench.progress = JSON.parse(e.data); } catch { return; }
         bench.running = true;
-        drawBench();
+        liveDraw($('#e-bench'), drawBench);
       });
       es.addEventListener('error', () => {
         if (es.readyState === EventSource.CLOSED && alive) setTimeout(() => { if (alive) connect(); }, 3000);
@@ -675,7 +679,7 @@ export default {
         es?.close();
         call('unsubscribeProgress');
       },
-      onTopics(t) { if (t.includes('vehicles')) drawFormWhenIdle(); },
+      onTopics(t) { if (t.includes('vehicles')) liveDraw($('#e-form'), drawFormWhenIdle); },
       onCar() { form.vehicle = car()?.id; save(); drawForm(); drawAuto(); },
       keys: [['+ / −', 'More / fewer conversions at once (running job)'], ['Space', 'Pause / resume the running job']],
       onKey(e) {

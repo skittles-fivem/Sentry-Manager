@@ -324,3 +324,58 @@ export function ring(value, { size = 120, stroke = 10, cls = '', label = '' } = 
 export const meter = (v, cls = '') => `<span class="meter ${cls}" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, fin(v) ? v : 0)).toFixed(1)}%"></i></span>`;
 
 export const empty = (title, text = '', extra = '') => `<div class="empty"><div class="empty-orb">${icon('sparkle')}</div><h3>${esc(title)}</h3>${text ? `<p class="muted">${text}</p>` : ''}${extra}</div>`;
+
+// ---------- live redraws and a highlight ----------
+// Text the reader is highlighting (or about to, with the button down) inside
+// a region: redrawing that region would take the highlight away before it
+// can be copied. Live updates of it wait until the highlight is gone (mouse,
+// Shift + arrows or Ctrl A alike), then catch up at once with the newest draw.
+// A region is an element, a selector, a function returning one, or a list.
+let pressing = null;
+const heldDraws = new Map();
+const regionNodes = (region) => (Array.isArray(region) ? region : [region])
+  .map((x) => (typeof x === 'function' ? x() : typeof x === 'string' ? document.querySelector(x) : x))
+  .filter(Boolean);
+/** True while the reader is highlighting text inside `region` (or pressing to start). */
+export function selecting(region) {
+  const nodes = regionNodes(region);
+  if (!nodes.length) return false;
+  if (pressing && nodes.some((n) => n.contains(pressing))) return true;
+  const sel = document.getSelection?.();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return false;
+  const range = sel.getRangeAt(0);
+  return nodes.some((n) => n.contains(range.commonAncestorContainer) || range.intersectsNode?.(n) === true);
+}
+function runDraw(draw) {
+  try {
+    const out = draw();
+    if (out && typeof out.catch === 'function') out.catch((err) => console.warn(err));
+  } catch (err) { console.warn(err); }
+}
+/**
+ * A live (timer, poll or server event) redraw of `region`: drawn now, or held
+ * while the reader highlights text in it and drawn once the highlight is gone.
+ * Held draws of the same `key` (the draw itself unless given) keep the newest.
+ */
+export function liveDraw(region, draw, key = draw) {
+  if (selecting(region)) {
+    heldDraws.set(key, { region, draw });
+    return false;
+  }
+  heldDraws.delete(key);
+  runDraw(draw);
+  return true;
+}
+function catchUp() {
+  for (const [key, h] of [...heldDraws]) {
+    const nodes = regionNodes(h.region);
+    if (!nodes.some((n) => n.isConnected)) { heldDraws.delete(key); continue; }
+    if (selecting(h.region)) continue;
+    heldDraws.delete(key);
+    runDraw(h.draw);
+  }
+}
+document.addEventListener('pointerdown', (e) => { pressing = e.button === 0 ? e.target : null; }, true);
+document.addEventListener('pointerup', () => { pressing = null; setTimeout(catchUp, 0); }, true);
+document.addEventListener('pointercancel', () => { pressing = null; setTimeout(catchUp, 0); }, true);
+document.addEventListener('selectionchange', () => { if (!pressing) catchUp(); });

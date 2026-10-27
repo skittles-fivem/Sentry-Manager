@@ -1,5 +1,5 @@
 // Policies: per-vehicle retention (keep N days per category), preview and run now.
-import { esc, api, state, current, bytes, plural, when, icon, toast, confirmDialog, busy } from '../core.js';
+import { esc, api, state, current, bytes, plural, when, icon, toast, confirmDialog, busy, liveDraw } from '../core.js';
 import { empty, chip } from '../ui.js';
 
 const CATS = ['Recent', 'Sentry', 'Saved', 'Other'];
@@ -56,7 +56,7 @@ export default {
     await draw();
     return {
       onTopics(t) {
-        if ((t.includes('inventory') || t.includes('vehicles')) && !el.contains(document.activeElement)) draw().catch(() => {});
+        if ((t.includes('inventory') || t.includes('vehicles')) && !el.contains(document.activeElement)) liveDraw(el, draw);
       },
       onVehicle() { el.querySelector(`form.pol[data-v="${CSS.escape(current()?.id || '')}"]`)?.scrollIntoView({ block: 'start' }); }
     };

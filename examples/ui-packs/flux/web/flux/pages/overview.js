@@ -1,5 +1,5 @@
 // Overview: live telemetry console from /api/stats and /api/stats/history.
-import { esc, api, state, current, bytes, rate, pct, num, watts, energy, money, dur, ago, when, isoish, fin, store, toast, confirmDialog, busy, plural, icon, debounce } from '../core.js';
+import { esc, api, state, current, bytes, rate, pct, num, watts, energy, money, dur, ago, when, isoish, fin, store, toast, confirmDialog, busy, plural, icon, debounce, liveDraw } from '../core.js';
 import { TimeChart, HeatStrip, C, PALETTE, coreBars } from '../charts.js';
 import { split, seg, wireSeg, meter, chip } from '../ui.js';
 
@@ -173,6 +173,8 @@ export default {
       return rows.filter((r) => r && r[1] !== undefined && r[1] !== null && r[1] !== '').map(([k, v, tone]) => `<dt>${esc(k)}</dt><dd class="num${tone ? ` ${tone}` : ''}">${esc(v)}</dd>`).join('');
     }
 
+    // what a poll redraws (a highlight in the vehicles, attention or the log holds none of it)
+    const TILES = [$('#ov-host'), $('#ov-kpis'), $('#ov-alerts'), el.querySelector('.cgrid'), $('#ov-enc'), $('#ov-fs')];
     function drawTiles() {
       const s = snap;
       if (!s) return;
@@ -348,7 +350,7 @@ export default {
       } catch (err) {
         logs.lines = [{ at: Date.now(), level: 'error', scope: 'flux', message: `Could not load the log: ${err.message}` }];
       }
-      if (alive) drawLogs();
+      if (alive) liveDraw($('#log-box'), drawLogs);
     }
     async function loadArchives() {
       try {
@@ -383,11 +385,11 @@ export default {
           error = null;
           if (h) { hist24 = h; hist24At = Date.now(); }
           ingest(s);
-          drawTiles();
+          liveDraw(TILES, drawTiles);
           drawCharts();
         } catch (err) {
           error = err.message;
-          if (snap) drawTiles();
+          if (snap) liveDraw(TILES, drawTiles);
           else $('#ov-host').innerHTML = `<span class="bad-text">Can't read the server's numbers: ${esc(err.message)}</span>`;
         }
       }
@@ -415,8 +417,8 @@ export default {
         Object.values(charts).forEach((c) => c.destroy());
       },
       onTopics(topics) {
-        if (topics.some((t) => ['vehicles', 'inventory', 'bin'].includes(t))) { drawVehicles(); drawKpis(); }
-        if (topics.includes('notifications')) { drawAttention(); drawKpis(); }
+        if (topics.some((t) => ['vehicles', 'inventory', 'bin'].includes(t))) { liveDraw($('#ov-vehicles'), drawVehicles); liveDraw($('#ov-kpis'), drawKpis); }
+        if (topics.includes('notifications')) { liveDraw($('#ov-attn'), drawAttention); liveDraw($('#ov-kpis'), drawKpis); }
       },
       onVehicle() { drawKpis(); },
       onKey(e) {

@@ -1,7 +1,7 @@
 // Alerts (notifications): what may need the owner. Opening the page marks
 // them read; Dismiss puts one away.
 
-import { api, esc, icon, when, emptyState, toast, fail, busy } from '../core.js';
+import { api, esc, icon, when, emptyState, toast, fail, busy, liveDraw } from '../core.js';
 import { loadNotes, vehicleById, state } from '../state.js';
 
 const TONE = { critical: ['bad', 'alert'], warning: ['warn', 'alert'], info: ['info', 'info'] };
@@ -56,5 +56,5 @@ export async function render(ctx) {
   const refresh = async () => { try { await load(); } catch (err) { return fail(err); } if (ctx.alive()) draw(); return undefined; };
   draw();
   markRead();
-  ctx.on('topics', async (t) => { if (t.includes('notifications')) { await refresh(); markRead(); } });
+  ctx.on('topics', (t) => { if (t.includes('notifications')) liveDraw(view.firstElementChild || view, async () => { if (!ctx.alive()) return; await refresh(); markRead(); }, 'dl:notifications'); });
 }

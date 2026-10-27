@@ -1,5 +1,5 @@
 // Recycle Bin: restore, delete forever, empty — per vehicle or all.
-import { esc, api, state, current, bytes, plural, isoish, icon, toast, confirmDialog, busy, loadVehicles, debounce } from '../core.js';
+import { esc, api, state, current, bytes, plural, isoish, icon, toast, confirmDialog, busy, loadVehicles, debounce, liveDraw } from '../core.js';
 import { seg, wireSeg, empty, chip } from '../ui.js';
 
 export default {
@@ -16,11 +16,11 @@ export default {
         <button class="btn" type="button" id="bin-restore-sel" disabled>${icon('refresh')}Restore selected</button></div>
       <div class="card flush"><div class="tscroll"><table class="dtable stack" id="bin-table"></table></div></div>`;
     const $ = (s) => el.querySelector(s);
-    async function load() {
+    async function load(live = false) {
       const v = current();
       ({ items } = await api(`/api/bin${scope === 'vehicle' && v ? `?vehicle=${encodeURIComponent(v.id)}` : ''}`));
       for (const id of [...sel]) if (!items.some((i) => i.id === id)) sel.delete(id);
-      draw();
+      if (live) liveDraw(el, draw); else draw();
     }
     function draw() {
       const v = current();
@@ -89,7 +89,7 @@ export default {
     $('#bin-text').addEventListener('input', debounce((e) => { text = e.target.value.toLowerCase(); draw(); }, 100));
     await load();
     return {
-      onTopics(t) { if (t.includes('bin')) load().catch(() => {}); },
+      onTopics(t) { if (t.includes('bin')) load(true).catch(() => {}); },
       onVehicle() { load().catch(() => {}); },
       commands: () => [{ group: 'Recycle Bin', label: 'Restore every item shown', icon: 'refresh', run: () => restore(items.map((i) => i.id)) }]
     };

@@ -1,7 +1,7 @@
 // Settings: vehicles (with a guided "add my vehicle"), account, look,
 // interface packs, security, updates, system and the electricity price.
 
-import { api, upload, esc, enc, icon, bytes, plural, when, ago, chip, kv, details, emptyState, confirmDialog, modal, toast, fail, busy, store, fin } from '../core.js';
+import { api, upload, esc, enc, icon, bytes, plural, when, ago, chip, kv, details, emptyState, confirmDialog, modal, toast, fail, busy, store, fin, liveDraw } from '../core.js';
 import { state, loadVehicles, shareHealth, setVehicle, vehicleById } from '../state.js';
 import { go, setTheme, currentTheme, signOut } from '../app.js';
 
@@ -62,7 +62,7 @@ async function vehicles({ el, ctx }) {
     });
   };
   draw();
-  ctx.on('vehicles', () => { if (!el.contains(document.activeElement)) draw(); });
+  ctx.on('vehicles', () => { if (!el.contains(document.activeElement)) liveDraw(el, () => ctx.alive() && draw(), 'dl:settings-vehicles'); });
 }
 
 function timezoneField(value) {

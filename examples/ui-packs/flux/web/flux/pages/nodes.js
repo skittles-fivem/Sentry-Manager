@@ -1,5 +1,5 @@
 // Nodes: other servers that encode for this one, and this one working for another.
-import { esc, api, state, icon, toast, confirmDialog, promptDialog, busy, when, ago, plural, store } from '../core.js';
+import { esc, api, state, icon, toast, confirmDialog, promptDialog, busy, when, ago, plural, store, selecting, liveDraw } from '../core.js';
 import { chip, empty } from '../ui.js';
 
 export default {
@@ -18,6 +18,8 @@ export default {
         schedule(benchRunning || nodes.length ? 4000 : 0);
         return;
       }
+      // text highlighted on the page: the timed redraw waits for it to go
+      if (!force && selecting(el)) { liveDraw(el, () => draw(false), 'flux:nodes'); return; }
       const carName = (id) => cars.find((x) => x.id === id)?.name || id;
       const enc = (e) => [['H.265', e?.h265], ['AV1', e?.av1]].filter(([, x]) => x).map(([k, x]) => `${k}: <span class="mono">${esc(x)}</span>`).join(' · ') || '—';
       // a node that lists its GPUs and CPU: each with its encoders

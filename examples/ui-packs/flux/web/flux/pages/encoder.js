@@ -1,6 +1,6 @@
 // Encoder: start, watch and steer conversions through /api/converter/invoke/* and
 // the /api/converter/events stream. Per-lane throughput comes from /api/stats.
-import { esc, api, invoke, state, current, sourceOf, bytes, rate, pct, num, dur, energy, watts, money, icon, toast, confirmDialog, busy, store, fin, plural, isoish, debounce, bus, CLIENT_ID } from '../core.js';
+import { esc, api, invoke, state, current, sourceOf, bytes, rate, pct, num, dur, energy, watts, money, icon, toast, confirmDialog, busy, store, fin, plural, isoish, debounce, bus, CLIENT_ID, liveDraw } from '../core.js';
 import { split, seg, wireSeg, meter, chip, empty } from '../ui.js';
 import { spark, C, PALETTE } from '../charts.js';
 import { splitDevices, deviceLabel, laneValue, jobLanes, groupMemory, groupBodyId, wireGroups } from '../nodelanes.js';
@@ -584,10 +584,12 @@ export default {
         const out = await api('/api/logs?level=all&limit=400', { timeoutMs: 15000 });
         const q = $('#enc-log-filter').value.toLowerCase();
         const lines = (out.lines || []).filter((l) => (all || /converter|nodes|stats/.test(l.scope)) && (!q || `${l.scope} ${l.message}`.toLowerCase().includes(q)));
-        $('#enc-log-n').textContent = `${lines.length} lines`;
-        $('#enc-log').innerHTML = lines.length ? lines.slice(0, 200).map((l) => `<div class="ll ${esc(l.level)}"><span class="ll-t">${esc(isoish(l.at).slice(11))}</span><span class="ll-l">${esc(l.level)}</span><span class="ll-s">${esc(l.scope)}</span><span class="ll-m">${esc(l.message)}</span></div>`).join('') : '<p class="muted small" style="padding:10px">Nothing from the converter yet.</p>';
+        liveDraw($('#enc-log'), () => {
+          $('#enc-log-n').textContent = `${lines.length} lines`;
+          $('#enc-log').innerHTML = lines.length ? lines.slice(0, 200).map((l) => `<div class="ll ${esc(l.level)}"><span class="ll-t">${esc(isoish(l.at).slice(11))}</span><span class="ll-l">${esc(l.level)}</span><span class="ll-s">${esc(l.scope)}</span><span class="ll-m">${esc(l.message)}</span></div>`).join('') : '<p class="muted small" style="padding:10px">Nothing from the converter yet.</p>';
+        }, 'flux:enc-log');
       } catch (err) {
-        $('#enc-log').textContent = err.message;
+        liveDraw($('#enc-log'), () => { $('#enc-log').textContent = err.message; }, 'flux:enc-log');
       }
     }
     $('#enc-log-refresh').onclick = loadLog;
@@ -609,11 +611,12 @@ export default {
       requestAnimationFrame(() => {
         drawQueued = false;
         if (!alive) return;
-        drawHead();
-        drawKpis();
-        drawLanes();
-        drawTimings();
-        drawItems();
+        // (each part waits while text in it is highlighted)
+        liveDraw([$('#enc-state'), $('#enc-sub'), $('#enc-actions')], drawHead);
+        liveDraw($('#enc-kpis'), drawKpis);
+        liveDraw($('#enc-lanes'), drawLanes);
+        liveDraw($('#enc-timing'), drawTimings);
+        liveDraw($('#enc-items-card'), drawItems);
         if (!$('#enc-form fieldset')) drawForm();
         else startState();
         if (!bench.running && $('#bench-run')) $('#bench-run').disabled = Boolean(snap && ACTIVE.has(snap.state));
@@ -655,7 +658,7 @@ export default {
       es.addEventListener('converter:benchmarkProgress', (e) => {
         try { bench.progress = JSON.parse(e.data); } catch { return; }
         bench.running = true;
-        drawBench();
+        liveDraw($('#enc-bench'), drawBench);
       });
       es.addEventListener('error', () => {
         if (es.readyState === EventSource.CLOSED && alive) setTimeout(() => { if (alive) connect(); }, 3000);
@@ -707,7 +710,7 @@ export default {
         es?.close();
         invoke('unsubscribeProgress');
       },
-      onTopics(t) { if (t.includes('vehicles')) drawFormWhenIdle(); },
+      onTopics(t) { if (t.includes('vehicles')) liveDraw($('#enc-form'), drawFormWhenIdle); },
       onVehicle() { form.vehicle = current()?.id; save(); drawForm(); drawAuto(); },
       onKey(e) {
         if (e.ctrlKey || e.metaKey || e.altKey) return false;

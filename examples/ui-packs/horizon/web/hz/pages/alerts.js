@@ -1,5 +1,5 @@
 // Notifications as warning lights: open, unread, resolved; mark read or dismiss.
-import { h, ico, api, app, loadNotes, since, stampFull, toast, act, count, segs, onSegs, pill, blank, paint } from '../core.js';
+import { h, ico, api, app, loadNotes, since, stampFull, toast, act, count, segs, onSegs, pill, blank, paint, liveDraw } from '../core.js';
 
 const TONE = { critical: 'red', warning: 'org', info: 'cyan' };
 
@@ -45,6 +45,6 @@ export default {
     onSegs(el, 'as', (x) => { show = x; draw(); });
     await loadNotes().catch(() => {});
     draw();
-    return { onTopics(t) { if (t.includes('notifications')) draw(); } };
+    return { onTopics(t) { if (t.includes('notifications')) liveDraw(el, draw); } };
   }
 };

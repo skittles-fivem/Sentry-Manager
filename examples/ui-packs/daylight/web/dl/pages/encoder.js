@@ -2,7 +2,7 @@
 // What is converting now, a guided "save space" flow, how many clips at
 // once (per GPU / node), automatic conversion, and a speed test.
 
-import { api, esc, enc, icon, bytes, plural, pct, duration, meter, chip, emptyState, details, kv, confirmDialog, modal, toast, fail, busy, invoke, store, ago, fin } from '../core.js';
+import { api, esc, enc, icon, bytes, plural, pct, duration, meter, chip, emptyState, details, kv, confirmDialog, modal, toast, fail, busy, invoke, store, ago, fin, liveDraw } from '../core.js';
 import { state, vehicle, setVehicle, vehiclePicker, vehicleById } from '../state.js';
 import { go } from '../app.js';
 import { splitDevices, deviceLabel, savedLane, jobLanes, groupMemory, groupBodyId, wireGroups } from '../nodelanes.js';
@@ -444,26 +444,31 @@ async function overview(ctx) {
     lastState = phase;
     if (!slot) return;
     // keep the page still: only the job card follows the numbers
-    if (stateChanged && !(view.contains(document.activeElement) && document.activeElement.matches('select, input:not([type=checkbox])'))) draw();
-    else {
-      const focused = slot.contains(document.activeElement) ? document.activeElement : null;
-      const key = focused && (focused.dataset.cmd ? `[data-cmd="${focused.dataset.cmd}"]` : focused.dataset.step ? `[data-step="${focused.dataset.step}"][data-d="${focused.dataset.d}"]` : focused.dataset.lane ? `[data-lane="${CSS.escape(focused.dataset.lane)}"][data-d="${focused.dataset.d}"]` : focused.dataset.nodeGroup ? `[data-node-group="${CSS.escape(focused.dataset.nodeGroup)}"]` : null);
-      const openDetails = slot.querySelector('details')?.open;
-      slot.innerHTML = jobCard();
-      if (openDetails) slot.querySelector('details').open = true;
-      wireJob();
-      if (key) slot.querySelector(key)?.focus({ preventScroll: true });
-    }
+    if (stateChanged && !(view.contains(document.activeElement) && document.activeElement.matches('select, input:not([type=checkbox])'))) liveDraw(view.firstElementChild || view, () => ctx.alive() && draw(), 'dl:encoder');
+    else liveDraw(slot, updateSlot, 'dl:job-slot');
   });
+  // the job card again, the focus and an open details kept
+  // (a live redraw: it waits while text in the card is highlighted)
+  function updateSlot() {
+    const slot = view.querySelector('#job-slot');
+    if (!slot) return;
+    const focused = slot.contains(document.activeElement) ? document.activeElement : null;
+    const key = focused && (focused.dataset.cmd ? `[data-cmd="${focused.dataset.cmd}"]` : focused.dataset.step ? `[data-step="${focused.dataset.step}"][data-d="${focused.dataset.d}"]` : focused.dataset.lane ? `[data-lane="${CSS.escape(focused.dataset.lane)}"][data-d="${focused.dataset.d}"]` : focused.dataset.nodeGroup ? `[data-node-group="${CSS.escape(focused.dataset.nodeGroup)}"]` : null);
+    const openDetails = slot.querySelector('details')?.open;
+    slot.innerHTML = jobCard();
+    if (openDetails) slot.querySelector('details').open = true;
+    wireJob();
+    if (key) slot.querySelector(key)?.focus({ preventScroll: true });
+  }
   ctx.cleanup(stop);
   ctx.every(5000, async () => {
     // the times (working for, time left) move on between updates
     const slot = view.querySelector('#job-slot');
-    if (slot && snap && ACTIVE.has(snap.state) && !slot.contains(document.activeElement)) { const o = slot.querySelector('details')?.open; slot.innerHTML = jobCard(); if (o) slot.querySelector('details').open = true; wireJob(); }
-    if (auto && auto.settings?.enabled) { const a = await invoke('getAuto').catch(() => null); if (a && JSON.stringify(a.status) !== JSON.stringify(auto.status)) { auto = a; const card = view.querySelector('#auto'); if (card && !card.contains(document.activeElement)) draw(); } }
+    if (slot && snap && ACTIVE.has(snap.state) && !slot.contains(document.activeElement)) liveDraw(slot, () => { const o = slot.querySelector('details')?.open; slot.innerHTML = jobCard(); if (o) slot.querySelector('details').open = true; wireJob(); }, 'dl:job-slot');
+    if (auto && auto.settings?.enabled) { const a = await invoke('getAuto').catch(() => null); if (a && JSON.stringify(a.status) !== JSON.stringify(auto.status)) { auto = a; const card = view.querySelector('#auto'); if (card && !card.contains(document.activeElement)) liveDraw(view.firstElementChild || view, () => ctx.alive() && draw(), 'dl:encoder'); } }
   });
   ctx.on('vehicle', draw);
-  ctx.on('vehicles', () => { if (!view.contains(document.activeElement)) draw(); });
+  ctx.on('vehicles', () => { if (!view.contains(document.activeElement)) liveDraw(view.firstElementChild || view, () => ctx.alive() && draw(), 'dl:encoder'); });
 }
 
 // ---------- the guided flow ----------
@@ -581,7 +586,7 @@ async function wizard(ctx) {
     if (step !== 4 || !ctx.alive()) return;
     const was = runningNow();
     current = await invoke('getCurrent').catch(() => current);
-    if (was !== runningNow() && step === 4 && !view.contains(document.activeElement)) draw();
+    if (was !== runningNow() && step === 4 && !view.contains(document.activeElement)) liveDraw(view.firstElementChild || view, () => ctx.alive() && draw(), 'dl:wizard');
     else if (step === 4) { const b = view.querySelector('#next'); if (b) b.disabled = runningNow(); }
   });
 }
@@ -664,7 +669,7 @@ async function speedTest(ctx) {
       if (!codecs.length) return toast('Pick at least one format.', { kind: 'bad' });
       running = true; error = null; result = null; progress = null;
       draw();
-      const stop = onBenchmark((p) => { progress = p; if (ctx.alive()) draw(); });
+      const stop = onBenchmark((p) => { progress = p; if (ctx.alive()) liveDraw(view.firstElementChild || view, () => ctx.alive() && draw(), 'dl:bench'); });
       ctx.cleanup(stop);
       try {
         await streamReady();

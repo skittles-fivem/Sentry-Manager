@@ -1,6 +1,6 @@
 // Nodes: other servers that convert clips for this one (each one is an extra
 // engine on the Encoder page), and this server working as a node for another.
-import { h, ico, api, app, toast, ask, askText, act, stamp, since, count, pill, panelHead, blank, local } from '../core.js';
+import { h, ico, api, app, toast, ask, askText, act, stamp, since, count, pill, panelHead, blank, local, selecting, liveDraw } from '../core.js';
 
 export default {
   async mount(el, { alive, status }) {
@@ -15,6 +15,8 @@ export default {
       const running = Object.values(benches).some((b) => b?.state === 'running');
       const typing = [...el.querySelectorAll('#n-pair input')].some((i) => i.value) || (el.contains(document.activeElement) && document.activeElement.matches('input, select'));
       if (!force && typing) { later(4000); return; }
+      // text highlighted on the page: the timed redraw waits for it to go
+      if (!force && selecting(el)) { liveDraw(el, () => draw(false), 'hz:nodes'); return; }
       const carName = (id) => app.vehicles.find((x) => x.id === id)?.name || id;
       const encs = (e) => [['H.265', e?.h265], ['AV1', e?.av1]].filter(([, x]) => x).map(([k, x]) => `${k} <span class="mono small">${h(x)}</span>`).join(' · ') || '—';
       // a node that lists its GPUs and CPU: each with its encoders

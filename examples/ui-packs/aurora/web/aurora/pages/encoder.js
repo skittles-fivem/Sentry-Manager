@@ -4,7 +4,7 @@
 
 import {
   $, $$, esc, icon, api, invoke, state, current, footageRoot, bytes, plural, pct, num, dur, when, ago, fin, ring, meter, toast,
-  confirmDialog, openDialog, store, empty
+  confirmDialog, openDialog, store, empty, liveDraw
 } from '../core.js';
 import { splitDevices, deviceLabel, laneValue, jobLanes, groupMemory, groupBodyId, wireGroups } from '../nodelanes.js';
 import { follow, onBenchmark, streamReady, counts, Pace, ACTIVE, PAUSED, STATE_TEXT, CODEC, PROFILES, GROUPS, explain, apply, refreshCurrent } from '../conv.js';
@@ -362,6 +362,7 @@ export default {
     }
 
     // ---------- data ----------
+    const ORBIT = () => $('.orbit-wrap', body);
     const pollStats = async () => {
       clearTimeout(statsTimer);
       if (dead) return;
@@ -369,7 +370,7 @@ export default {
         try {
           const s = await api('/api/stats', { timeoutMs: 8000 });
           enc = s.encoder;
-          if (!dead) { drawOrbit(); drawLanes(); drawLive(); }
+          if (!dead) { liveDraw(ORBIT(), drawOrbit); liveDraw($('#lanes-panel', body), drawLanes); liveDraw(ORBIT(), drawLive); }
         } catch { /* next time */ }
       }
       statsTimer = setTimeout(pollStats, snap && ACTIVE.has(snap.state) ? 2000 : 6000);
@@ -379,23 +380,24 @@ export default {
     const stop = follow((s) => {
       snap = s;
       if (dead) return;
-      drawOrbit();
-      drawLive();
-      drawLanes();
-      drawClips();
+      // (each part waits while text in it is highlighted)
+      liveDraw(ORBIT(), drawOrbit);
+      liveDraw(ORBIT(), drawLive);
+      liveDraw($('#lanes-panel', body), drawLanes);
+      liveDraw($('#clips-panel', body), drawClips);
       const st = s?.state || null;
       if (st && ACTIVE.has(st) && !(lastState && ACTIVE.has(lastState))) pollStats();
       if (st !== lastState) {
         const wasActive = lastState && ACTIVE.has(lastState);
         lastState = st;
-        drawStart();
-        drawBench();
+        liveDraw($('#start-panel', body), drawStart);
+        liveDraw($('#bench-panel', body), drawBench);
         if (wasActive && !ACTIVE.has(st)) toast(st === 'completed' ? 'Conversion finished.' : `Conversion ${STATE_TEXT[st] || st}.`, st === 'failed' ? 'bad' : 'ok');
       }
     });
     const stopBench = onBenchmark((p) => {
       bench.progress = p;
-      if (!dead && bench.running) drawBench();
+      if (!dead && bench.running) liveDraw($('#bench-panel', body), drawBench);
     });
 
     const [capR, devR, autoR, info] = await Promise.all([

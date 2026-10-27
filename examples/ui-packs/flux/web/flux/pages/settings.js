@@ -1,5 +1,5 @@
 // Settings: vehicles, account, interface (UI packs), updates, security, system, power, appearance.
-import { esc, api, upload, state, current, setVehicle, loadVehicles, bytes, isoish, icon, toast, confirmDialog, busy, fin, store } from '../core.js';
+import { esc, api, upload, state, current, setVehicle, loadVehicles, bytes, isoish, icon, toast, confirmDialog, busy, fin, store, liveDraw } from '../core.js';
 import { seg, wireSeg, chip } from '../ui.js';
 
 const TABS = [['vehicles', 'Vehicles'], ['account', 'Account'], ['interface', 'Interface'], ['updates', 'Updates'], ['security', 'Security'], ['system', 'System'], ['power', 'Electricity'], ['appearance', 'Appearance']];
@@ -18,7 +18,7 @@ export default {
     await sections[tab](box, { params, go });
     return {
       onTopics(t) {
-        if (tab === 'vehicles' && t.includes('vehicles') && !box.querySelector('#veh-form')) vehicles(box, { params: new URLSearchParams(), go });
+        if (tab === 'vehicles' && t.includes('vehicles') && !box.querySelector('#veh-form')) liveDraw(box, () => vehicles(box, { params: new URLSearchParams(), go }), 'flux:settings-vehicles');
       }
     };
   }
