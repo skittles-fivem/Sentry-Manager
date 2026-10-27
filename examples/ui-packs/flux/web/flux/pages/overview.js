@@ -241,7 +241,11 @@ export default {
       // alerts / unlock hints
       const alerts = (s.alerts || []).map((a) => `<div class="alert ${a.level === 'error' ? 'bad' : 'warn'}">${icon('alert')}<span>${esc(a.message)}</span></div>`).join('');
       const unlock = (s.unlock || []).length ? `<details class="unlock"><summary>${plural(s.unlock.length, 'more number')} available with one line in docker-compose.yml</summary>${s.unlock.map((u) => `<div class="small"><b>${esc(u.adds)}</b> <code>${esc(u.compose || '')}</code></div>`).join('')}</details>` : '';
-      $('#ov-alerts').innerHTML = alerts + unlock;
+      // (kept open across redraws: it closed every few seconds as it was read)
+      const box = $('#ov-alerts');
+      const open = box.querySelector('details.unlock')?.open === true;
+      box.innerHTML = alerts + unlock;
+      if (open) box.querySelector('details.unlock')?.setAttribute('open', '');
       // encoder
       const e = s.encoder;
       $('#ov-enc-card').hidden = !e;

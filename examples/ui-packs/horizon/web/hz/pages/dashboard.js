@@ -153,8 +153,18 @@ export default {
       push('temp', temps.length ? Math.max(...temps) : null);
     }
     const last = (k) => hist[k][hist[k].length - 1];
+    let unlockOpen = false;
+    let drawnAlerts = null;
+    // a rate (network, disk) has no 100%: no bar, and its two directions
+    // drawn on one graph against the same scale (opts.pair: the second one)
     function meter(label, value, p, sparkKey, opts = {}) {
-      return `<div class="meter"><div class="m-top"><span class="m-l">${h(label)}</span><b class="m-v num">${h(value)}</b></div>${bar(p, opts.tone || '')}${spark(hist[sparkKey], { max: opts.max ?? null, tone: opts.tone === 'org' ? 'org' : 'cyan', w: 240, h: 30 })}${opts.sub ? `<span class="m-s small faint">${h(opts.sub)}</span>` : ''}</div>`;
+      const tone = opts.tone === 'org' ? 'org' : 'cyan';
+      let graph = spark(hist[sparkKey], { max: opts.max ?? null, tone, w: 240, h: 30 });
+      if (opts.pair) {
+        const top = Math.max(0, ...hist[sparkKey].filter(ok), ...hist[opts.pair].filter(ok)) * 1.1 || 1;
+        graph = `<div class="spark-pair">${spark(hist[sparkKey], { max: top, tone: 'cyan', w: 240, h: 30 })}${spark(hist[opts.pair], { max: top, tone: 'org', w: 240, h: 30 })}</div>`;
+      }
+      return `<div class="meter"><div class="m-top"><span class="m-l">${h(label)}</span><b class="m-v num">${h(value)}</b></div>${opts.rate ? '' : bar(p, opts.tone || '')}${graph}${opts.sub ? `<span class="m-s small faint">${opts.subHtml ? opts.sub : h(opts.sub)}</span>` : ''}</div>`;
     }
     function drawStats() {
       const s = stats;
@@ -177,13 +187,19 @@ export default {
         meter('Memory', pc(memP), memP, 'mem', { max: 100, sub: `${size(m.usedB)} of ${size(m.totalB)} · app ${size(m.appB)} · cache ${size(m.cacheB)}${m.swapTotalB ? ` · swap ${size(m.swapUsedB)}/${size(m.swapTotalB)}` : ''}` }),
         meter('GPU', g.length ? pc(last('gpu')) : 'none', last('gpu'), 'gpu', { max: 100, sub: g.length ? g.map((x) => x.name).join(', ') : 'No GPU visible: encodes use the CPU' }),
         meter('Power', watt(tot), ok(tot) ? Math.min(100, tot / 3) : null, 'power', { tone: 'org', sub: ok(tot) || p.todayWh ? `today ${wh(p.todayWh)}${ok(p.todayCost) ? ` ${cash(p.todayCost, cur)}` : ''} · week ${wh(p.weekWh)}${ok(p.weekCost) ? ` ${cash(p.weekCost, cur)}` : ''}${perHour !== null ? ` · ≈${cash(perHour, cur)}/h` : ''}${ok(s.price?.now) ? ` · ${cash(s.price.now, cur)}/kWh` : ''}` : 'No power sensor readable' }),
-        meter('Network ↓', perSec(last('rx')), null, 'rx', { sub: `↑ ${perSec(last('tx'))} · ${(s.network?.interfaces || []).map((i) => `${i.name}${ok(i.speedMbps) ? ` ${i.speedMbps} Mb/s` : ''}`).join(', ')} · ${s.network?.scope === 'host' ? 'whole server' : 'this container'}${s.network?.today ? ` · today ↓${size(s.network.today.rxB)} ↑${size(s.network.today.txB)}` : ''}` }),
-        meter('Disk read', perSec(last('dr')), null, 'dr', { sub: `write ${perSec(last('dw'))}` }),
+        meter('Network', `↓ ${perSec(last('rx'))}`, null, 'rx', { rate: true, pair: 'tx', subHtml: true, sub: `<span class="k-cyan">↓ download</span> · <span class="k-org">↑ upload ${h(perSec(last('tx')))}</span> · ${h(`${(s.network?.interfaces || []).map((i) => `${i.name}${ok(i.speedMbps) ? ` ${i.speedMbps} Mb/s` : ''}`).join(', ')} · ${s.network?.scope === 'host' ? 'whole server' : 'this container'}${s.network?.today ? ` · today ↓${size(s.network.today.rxB)} ↑${size(s.network.today.txB)}` : ''}`)}` }),
+        meter('Disks', `R ${perSec(last('dr'))}`, null, 'dr', { rate: true, pair: 'dw', subHtml: true, sub: `<span class="k-cyan">— read</span> · <span class="k-org">— write ${h(perSec(last('dw')))}</span>` }),
         meter('Hottest', ok(t) ? `${Math.round(t)} °C` : '—', ok(t) ? t : null, 'temp', { tone: 'org', max: 100, sub: ok(t) ? 'CPU, GPU, disks and sensors' : 'No temperature sensor readable' })
       ].join('');
       const alerts = (s.alerts || []).map((a) => `<div class="note ${a.level === 'error' ? 'red' : 'org'}">${h(a.message)}</div>`).join('');
-      const unlock = (s.unlock || []).length ? `<details class="arch"><summary>${count(s.unlock.length, 'more reading')} available with one line in docker-compose.yml</summary>${s.unlock.map((u) => `<p class="small"><b>${h(u.adds)}</b> <code>${h(u.compose || '')}</code></p>`).join('')}</details>` : '';
-      $('#d-alerts').innerHTML = alerts + unlock;
+      const unlock = (s.unlock || []).length ? `<details class="arch" id="d-unlock"${unlockOpen ? ' open' : ''}><summary>${count(s.unlock.length, 'more reading')} available with one line in docker-compose.yml</summary>${s.unlock.map((u) => `<p class="small"><b>${h(u.adds)}</b> <code>${h(u.compose || '')}</code></p>`).join('')}</details>` : '';
+      // (only when it changed: a redraw closed the readings box as it was read)
+      const alertsHtml = alerts + unlock;
+      if (alertsHtml !== drawnAlerts) {
+        drawnAlerts = alertsHtml;
+        $('#d-alerts').innerHTML = alertsHtml;
+        $('#d-unlock')?.addEventListener('toggle', (e) => { unlockOpen = e.currentTarget.open; drawnAlerts = null; });
+      }
       // GPUs + sensors
       const sensors = (s.sensors || []).filter((x) => ok(x.value));
       $('#d-gpu').innerHTML = (g.length ? g.map((x) => `<div class="gpu"><div class="row"><b>${h(x.name || x.id)}</b><span class="faint small">${h([x.vendor, x.driver, x.node].filter(Boolean).join(' · '))}</span></div>
