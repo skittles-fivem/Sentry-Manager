@@ -212,7 +212,7 @@ export default {
       const tot = fin(p.totalW) ? p.totalW : [p.cpuW, p.gpuW].filter(fin).reduce((a, b) => a + b, 0) || null;
       // with nodes: all servers together up top, then a row per server
       const all = p.combined && (p.nodes || []).length ? p.combined : null;
-      const split = (w, c, g, na) => [fin(w) ? watts(w) : null, fin(c) ? `cpu ${watts(c)}` : null, fin(g) ? `gpu ${watts(g)}` : null, !fin(c) && CPU_NA_SHORT[na]].filter(Boolean).join(' · ') || 'not measured';
+      const split = (w, c, g, na) => [fin(w) ? watts(w) : null, fin(c) ? `cpu ${watts(c)}` : null, fin(g) ? `gpu ${watts(g)}` : null].filter(Boolean).join(' · ') || 'not measured';
       $('#power-big').textContent = all ? watts(all.totalW) : watts(tot);
       const why = CPU_NA[p.cpuUnavailable] || '';
       $('#power-sub').textContent = all ? `all servers · ${all.reporting}/${all.servers} reporting` : p.cpuSource || p.gpuSource ? `measured · ${[p.cpuSource, p.gpuSource].filter(Boolean).join(' + ')}` : why ? CPU_NA_SHORT[p.cpuUnavailable] : 'no power sensor readable';

@@ -72,7 +72,7 @@ function tiles(s, hist, showAll) {
     const cur = s.price?.currency || state.power?.currency || '$';
     const money = (c) => (fin(c) ? ` · about ${/^[a-z]+$/i.test(cur) ? `${c.toFixed(2)} ${cur}` : `${cur}${c.toFixed(2)}`}` : '');
     if (all) {
-      const split = (w, cpu, gpu, na) => esc([fin(w) && watts(w), fin(cpu) && `processor ${watts(cpu)}`, fin(gpu) && `graphics ${watts(gpu)}`, !fin(cpu) && CPU_NA_SHORT[na]].filter(Boolean).join(' · ') || 'Not measured');
+      const split = (w, cpu, gpu, na) => esc([fin(w) && watts(w), fin(cpu) && `processor ${watts(cpu)}`, fin(gpu) && `graphics ${watts(gpu)}`].filter(Boolean).join(' · ') || 'Not measured');
       out.push(tile('Power, all servers', `${all.reporting} of ${all.servers} reporting`, `<div class="big">${fin(all.totalW) ? watts(all.totalW) : '—'}<small>now</small></div>
       ${rows([['This server', split(p.totalW, p.cpuW, p.gpuW, p.cpuUnavailable)],
         ...p.nodes.map((n) => [n.name, !n.online ? '<span class="muted">Offline</span>' : fin(n.totalW) || CPU_NA_SHORT[n.cpuUnavailable] ? split(n.totalW, n.cpuW, n.gpuW, n.cpuUnavailable) : '<span class="muted">Unknown</span>']),

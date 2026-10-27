@@ -511,7 +511,7 @@
     const c = p?.combined;
     if (!c || !Array.isArray(p.nodes) || !p.nodes.length) return '';
     const split = (cpu, gpu) => [fin(cpu) && `CPU ${Math.round(cpu)}`, fin(gpu) && `GPU ${Math.round(gpu)}`].filter(Boolean).join(' · ');
-    const line = (total, cpu, gpu, na) => esc([fin(total) ? watts(total) : '', split(cpu, gpu), !fin(cpu) && CPU_NA_SHORT[na]].filter(Boolean).join(' · ') || 'not measured');
+    const line = (total, cpu, gpu, na) => esc([fin(total) ? watts(total) : '', split(cpu, gpu)].filter(Boolean).join(' · ') || 'not measured');
     const rows = [['This server', line(p.totalW, p.cpuW, p.gpuW, p.cpuUnavailable)]];
     for (const n of p.nodes) rows.push([n.name, !n.online ? '<span class="muted">offline</span>' : fin(n.totalW) || CPU_NA_SHORT[n.cpuUnavailable] ? line(n.totalW, n.cpuW, n.gpuW, n.cpuUnavailable) : '<span class="muted">unknown</span>']);
     const reporting = fin(c.reporting) && fin(c.servers) && c.reporting < c.servers ? ` (${c.reporting} of ${c.servers} reporting)` : ` (${plural(c.servers || p.nodes.length + 1, 'server')})`;

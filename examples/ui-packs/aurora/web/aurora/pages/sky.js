@@ -93,7 +93,7 @@ const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)' };
 function allServers(p, cur) {
   const c = p.combined;
   if (!c || !p.nodes?.length) return '';
-  const split = (w, cpu, gpu, na) => [fin(w) && watts(w), fin(cpu) && `CPU ${watts(cpu)}`, fin(gpu) && `GPU ${watts(gpu)}`, !fin(cpu) && CPU_NA_SHORT[na]].filter(Boolean).join(' · ') || 'not measured';
+  const split = (w, cpu, gpu, na) => [fin(w) && watts(w), fin(cpu) && `CPU ${watts(cpu)}`, fin(gpu) && `GPU ${watts(gpu)}`].filter(Boolean).join(' · ') || 'not measured';
   const rows = [['This server', split(p.totalW, p.cpuW, p.gpuW, p.cpuUnavailable)], ...p.nodes.map((n) => [n.name, !n.online ? 'offline' : fin(n.totalW) || CPU_NA_SHORT[n.cpuUnavailable] ? split(n.totalW, n.cpuW, n.gpuW, n.cpuUnavailable) : 'unknown'])];
   return `<div class="stat"><span class="stat-label"><span>${icon('bolt', 'ico-sm')} All servers</span><span>${c.reporting}/${c.servers} reporting</span></span>
         <span class="stat-val">${fin(c.totalW) ? watts(c.totalW) : 'not measured'}</span>

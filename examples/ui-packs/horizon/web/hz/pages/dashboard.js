@@ -177,7 +177,7 @@ export default {
       const c = p.combined;
       if (!c || !p.nodes?.length) return '';
       const split = (w, cpu, gpu, na) => {
-        const parts = [ok(cpu) && `CPU ${watt(cpu)}`, ok(gpu) && `GPU ${watt(gpu)}`, !ok(cpu) && CPU_NA_SHORT[na]].filter(Boolean);
+        const parts = [ok(cpu) && `CPU ${watt(cpu)}`, ok(gpu) && `GPU ${watt(gpu)}`].filter(Boolean);
         return `${watt(w)}${parts.length ? ` (${parts.join(' · ')})` : ''}`;
       };
       const rows = [['This server', split(tot, p.cpuW, p.gpuW, p.cpuUnavailable)], ...p.nodes.map((n) => [n.name, !n.online ? 'offline' : ok(n.totalW) || CPU_NA_SHORT[n.cpuUnavailable] ? split(n.totalW, n.cpuW, n.gpuW, n.cpuUnavailable) : 'unknown'])];
