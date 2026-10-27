@@ -36,7 +36,7 @@ const { Inventory } = require('./inventory');
 const { RecycleBin, formatBytes } = require('./recycleBin');
 const { Policies } = require('./policies');
 const { Jobs, Notifications } = require('./activity');
-const { ImageUpdates } = require('./imageUpdates');
+const { ImageUpdates, criticalFromFile } = require('./imageUpdates');
 const { Thumbnails } = require('./thumbnails');
 const { detectGpus } = require('./gpu');
 const { createConverterHost } = require('./converterHost');
@@ -115,6 +115,26 @@ function studioHtml(html) {
   // Runs before any Studio script: marks web mode and installs window.electronAPI.
   const inject = '<meta name="color-scheme" content="dark">\n<script src="/web/webFlag.js"></script>\n<script src="/web/electronApiShim.js"></script>\n<script src="/web/studioTouch.js"></script>\n<link rel="stylesheet" href="/web/studioEmbed.css">';
   return html.replace(/<head([^>]*)>/i, (m) => `${m}\n${inject}`);
+}
+
+// The critical-update bar (web/critical.js) goes into every page the server
+// serves, the built-in ones and every interface pack's, so no interface can
+// leave it out. The login page has no status to show yet.
+const CRITICAL_TAG = '<script src="/web/critical.js" defer></script>';
+function withCriticalBar(html) {
+  if (html.includes(CRITICAL_TAG)) return html;
+  if (/<\/head>/i.test(html)) return html.replace(/<\/head>/i, (m) => `${CRITICAL_TAG}\n${m}`);
+  if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, (m) => `${CRITICAL_TAG}\n${m}`);
+  return `${html}\n${CRITICAL_TAG}\n`;
+}
+
+/** The critical text this image was built with (CRITICAL_UPDATE.txt, if any). */
+function readOwnCritical() {
+  try {
+    return criticalFromFile(fs.readFileSync(path.join(APP_ROOT, 'CRITICAL_UPDATE.txt'), 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 function encoderHtml(html) {
@@ -345,7 +365,7 @@ async function main() {
   let clipThumbs = null;
 
   const updates = new ImageUpdates({
-    db, log: logger.scope('updates'), buildInfo, notes, enabled: !/^(off|false|0|no)$/i.test(process.env.UPDATE_CHECK || '')
+    db, log: logger.scope('updates'), buildInfo, notes, ownCritical: readOwnCritical(), enabled: !/^(off|false|0|no)$/i.test(process.env.UPDATE_CHECK || '')
   });
   updates.announce();
   // left over from the old in-app updater: updates now come with the image
@@ -1289,12 +1309,18 @@ async function main() {
       };
       // the chosen interface's file first, else the built-in one
       const ui = async (kind, root, rel, opts = {}) => {
+        if (/\.html?$/i.test(rel) && rel !== 'login.html') {
+          const inner = opts.transform;
+          opts = { ...opts, transform: (html) => withCriticalBar(inner ? inner(html) : html) };
+        }
         const own = originalOnly(req) ? null : uiPacks.root(kind);
         if (own && await serveFile(req, res, own, rel, { ...opts, cache: 'no-cache' })) return undefined;
         return serve(root, rel, opts);
       };
       if (p === '/' || p === '/index.html') return ui('web', WEB, 'index.html');
       if (p === '/login') return ui('web', WEB, 'login.html');
+      // always the built-in one: an interface pack cannot replace the bar
+      if (p === '/web/critical.js') return serve(WEB, 'critical.js');
       if (p.startsWith('/web/')) return ui('web', WEB, p.slice(5), { cache: p.includes('/fonts/') ? 'public, max-age=604800' : 'no-cache' });
       if (p === '/studio' || p === '/studio/') {
         res.writeHead(302, { Location: `/studio/index.html${url.search}` });

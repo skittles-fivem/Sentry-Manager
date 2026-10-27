@@ -576,6 +576,23 @@ whether a newer image is out. It only tells you and never installs anything
 (`UPDATE_CHECK=off` turns the check off). For automatic updates, use a tool
 such as [Watchtower](https://containrrr.dev/watchtower/).
 
+### Critical updates
+
+[`CRITICAL_UPDATE.txt`](CRITICAL_UPDATE.txt) holds a `level` (0 = no
+critical release yet) and a `reason`. To make the next release critical (a
+security or data-loss fix everyone must install), raise `level` by one, write
+the reason on the `reason:` line (one short line, for example
+`reason: Fixes a bug that can delete footage`) and push to `main`. Every
+server running an older image then shows a red **Critical update: install
+now** bar with that reason and the update command at the top of every page,
+in every interface, and raises a notification.
+
+Leave the file as it is for the releases after it: every image carries the
+last critical level, so a server that skips releases still sees the bar
+until it installs that release or any later one. A server also remembers the
+highest level it has seen, so even an image that lost the labels does not
+hide it. Only change the file for the next critical release.
+
 Images are built by GitHub Actions for amd64 and arm64
 ([`image.yml`](.github/workflows/image.yml)) and published to
 `ghcr.io/skittles-fivem/sentry-manager`. `latest` follows `main`, every

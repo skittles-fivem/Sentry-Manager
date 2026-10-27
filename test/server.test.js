@@ -771,6 +771,7 @@ test('Interface: a pack uploaded in Settings serves its files for everyone, swit
     { name: 'ui.json', data: Buffer.from(JSON.stringify({ name: 'Red' })) },
     { name: 'web/shell.css', data: Buffer.from('body{background:red}') },
     { name: 'web/index.html', data: Buffer.from('<!doctype html><title>Red</title>') },
+    { name: 'web/critical.js', data: Buffer.from('/* no bar */') },
     { name: 'studio/styles/footageConverter.css', data: Buffer.from('/* red encoder */') }
   ]);
   const s = await startServer(dir);
@@ -792,7 +793,13 @@ test('Interface: a pack uploaded in Settings serves its files for everyone, swit
     assert.deepEqual(builtin, ['aurora', 'daylight', 'flux', 'horizon']);
     assert.ok(list.packs.some((x) => x.id === meta.id && !x.builtin));
     assert.equal((await s.call('DELETE', '/api/ui-packs/flux')).status, 400);
+    // the critical-update bar is in every page the server serves, not the sign-in page
+    const BAR = '<script src="/web/critical.js" defer></script>';
+    for (const p of ['/', '/studio/index.html', '/studio/encoder.html']) assert.ok((await text(p)).includes(BAR), p);
+    assert.ok(!(await text('/login', '')).includes(BAR), 'not on the sign-in page');
+    assert.equal(await text('/web/critical.js'), fs.readFileSync(path.join(REPO, 'web', 'critical.js'), 'utf8'));
     assert.equal((await s.call('PUT', '/api/ui-packs/active', { id: 'daylight' })).status, 200);
+    assert.equal((await text('/')).split(BAR).length, 2, 'a built-in pack\'s page has it, once');
     assert.equal(await text('/web/login.js'), fs.readFileSync(path.join(REPO, 'examples', 'ui-packs', 'daylight', 'web', 'login.js'), 'utf8'), 'a built-in pack serves its own files');
     assert.equal((await s.call('PUT', '/api/ui-packs/active', { id: null })).status, 200);
     assert.equal(await text('/web/shell.css'), builtCss, 'installed, not chosen yet');
@@ -804,6 +811,8 @@ test('Interface: a pack uploaded in Settings serves its files for everyone, swit
     assert.equal((await s.call('PUT', '/api/ui-packs/active', { id: meta.id })).status, 200);
     assert.equal(await text('/web/shell.css'), 'body{background:red}');
     assert.match(await text('/'), /<title>Red<\/title>/);
+    assert.ok((await text('/')).includes(BAR), 'an uploaded pack\'s page has it too');
+    assert.equal(await text('/web/critical.js'), fs.readFileSync(path.join(REPO, 'web', 'critical.js'), 'utf8'), 'a pack cannot replace the bar');
     assert.equal(await text('/studio/styles/footageConverter.css'), '/* red encoder */');
     assert.equal(await text('/web/app.js'), fs.readFileSync(path.join(REPO, 'web', 'app.js'), 'utf8'), 'a file the pack leaves out is the built-in one');
     assert.equal(await text('/web/shell.css', ''), 'body{background:red}', 'the sign-in page uses it too');

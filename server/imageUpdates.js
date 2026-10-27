@@ -11,6 +11,13 @@
 // UPDATE_CHECK=off turns it off; images built locally have no tag to check.
 
 const CHECK_MS = 12 * 3600 * 1000;
+// soon after a start too (not only 12 hours after the last check): a critical
+// update shows within minutes of the server coming up
+const STARTUP_CHECK_MS = 10 * 60 * 1000;
+const CRITICAL_LABEL = 'io.sentry-six.critical';
+const CRITICAL_LEVEL_LABEL = 'io.sentry-six.critical-level';
+const MAX_LEVEL = 999999;
+const CRITICAL_MAX = 300;
 const MIN_CHECK_GAP_MS = 60 * 1000;
 const MAX_BODY = 1024 * 1024;
 const ACCEPT = [
@@ -32,8 +39,40 @@ function parseChallenge(header) {
   return out.realm ? out : null;
 }
 
+/** A label's text as plain, single-line, short text (or null when empty). */
+function cleanCritical(value) {
+  if (typeof value !== 'string') return null;
+  const t = value.replace(/[\x00-\x1f\x7f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, CRITICAL_MAX).trim();
+  return t || null;
+}
+
+/** A critical level: a whole number from 0 (none); anything else is 0. */
+function cleanLevel(value) {
+  const t = String(value ?? '').trim();
+  return /^\d{1,6}$/.test(t) ? Math.min(Number(t), MAX_LEVEL) : 0;
+}
+
+/**
+ * CRITICAL_UPDATE.txt as the image build reads it (.github/workflows/image.yml,
+ * the `names` job): `level: N` and `reason: text` lines, lines starting with #
+ * are comments. The reason is made one line without quotes, backslashes or
+ * control characters, commas become semicolons. A level without a reason is 0.
+ */
+function criticalFromFile(text) {
+  let level = 0;
+  let reason = null;
+  for (const line of String(text || '').split(/\r?\n/)) {
+    if (/^\s*#/.test(line)) continue;
+    const m = /^\s*(level|reason):(.*)$/i.exec(line);
+    if (!m) continue;
+    if (m[1].toLowerCase() === 'level') level = cleanLevel(m[2]);
+    else reason = cleanCritical(m[2].replace(/[\x00-\x1f\x7f"'`\\]/g, (c) => (c === '\t' || c === '\r' ? ' ' : '')).replace(/,/g, ';'));
+  }
+  return level > 0 && reason ? { level, reason } : { level: 0, reason: null };
+}
+
 class ImageUpdates {
-  constructor({ db, log, buildInfo = {}, notes = null, enabled = true, fetchImpl = globalThis.fetch }) {
+  constructor({ db, log, buildInfo = {}, notes = null, enabled = true, fetchImpl = globalThis.fetch, ownCritical = null }) {
     this.db = db;
     this.log = log;
     this.notes = notes;
@@ -46,6 +85,10 @@ class ImageUpdates {
     this.enabled = enabled && Boolean(this.registry && this.repo && this.tag);
     this.state = db.get('image-updates', { latest: null, checkedAt: 0, error: null });
     this.lastCheck = 0;
+    this.startedAt = Date.now();
+    // the critical level this image was built with (CRITICAL_UPDATE.txt);
+    // images from before critical levels have none: 0
+    this.ownLevel = cleanLevel(ownCritical?.level);
   }
 
   status() {
@@ -57,8 +100,22 @@ class ImageUpdates {
       latest: this.state.latest,
       checkedAt: this.state.checkedAt || null,
       error: this.state.error,
-      updateAvailable: this.updateAvailable()
+      updateAvailable: this.updateAvailable(),
+      critical: this.critical()
     };
+  }
+
+  /**
+   * `{ level, reason, created }` while an image with a critical fix this one
+   * lacks is out, else null. Sticky: every later image carries the level of
+   * the last critical release, and the highest level seen is remembered, so
+   * a newer ordinary release (or one that lost the labels by mistake) never
+   * hides it. Only running a build with that level or a higher one clears it.
+   */
+  critical() {
+    const c = this.state.critical;
+    if (!this.enabled || !c || cleanLevel(c.level) <= this.ownLevel) return null;
+    return { level: cleanLevel(c.level), reason: cleanCritical(c.reason) || 'A critical fix is out.', created: c.created || null };
   }
 
   updateAvailable() {
@@ -71,7 +128,10 @@ class ImageUpdates {
   }
 
   async tick() {
-    if (this.enabled && Date.now() - (this.state.checkedAt || 0) >= CHECK_MS) await this.check().catch(() => {});
+    if (!this.enabled) return;
+    const since = Date.now() - (this.state.checkedAt || 0);
+    const firstSinceStart = (this.state.checkedAt || 0) < this.startedAt;
+    if (since >= CHECK_MS || (firstSinceStart && since >= STARTUP_CHECK_MS)) await this.check().catch(() => {});
   }
 
   async check() {
@@ -80,7 +140,11 @@ class ImageUpdates {
     this.lastCheck = Date.now();
     try {
       const latest = await this.fetchLatest();
-      this.state = { latest, checkedAt: Date.now(), error: null };
+      const seen = this.state.critical;
+      const critical = latest.criticalLevel > cleanLevel(seen?.level)
+        ? { level: latest.criticalLevel, reason: latest.critical, created: latest.created }
+        : seen || null;
+      this.state = { latest, critical, checkedAt: Date.now(), error: null };
     } catch (err) {
       this.state = { ...this.state, checkedAt: Date.now(), error: err.message };
       this.log?.warn(`Could not check for a newer image: ${err.message}`);
@@ -93,6 +157,16 @@ class ImageUpdates {
   /** Raise the notification while an update is out, clear it once installed. */
   announce() {
     if (!this.notes) return;
+    const critical = this.critical();
+    if (critical) {
+      this.notes.raise({
+        kind: 'update', level: 'critical', dedupeKey: 'image-update-critical',
+        title: 'Critical update: install now',
+        message: `${critical.reason} To install it, run "docker compose pull && docker compose up -d" where you set up Sentry Six Manager (TrueNAS: see Updates in the README).`
+      });
+    } else {
+      this.notes.resolve('image-update-critical');
+    }
     if (!this.updateAvailable()) return this.notes.resolve('image-update');
     const l = this.state.latest;
     this.notes.raise({
@@ -149,9 +223,14 @@ class ImageUpdates {
     return {
       digest: DIGEST_RE.test(digest || '') ? digest : configDigest,
       revision: /^[a-f0-9]{7,64}$/.test(revision || '') ? revision : null,
-      created: labels['org.opencontainers.image.created'] || config.created || null
+      created: labels['org.opencontainers.image.created'] || config.created || null,
+      ...(() => {
+        const reason = cleanCritical(labels[CRITICAL_LABEL]);
+        const level = reason ? cleanLevel(labels[CRITICAL_LEVEL_LABEL]) : 0;
+        return { criticalLevel: level, critical: level ? reason : null };
+      })()
     };
   }
 }
 
-module.exports = { ImageUpdates, parseChallenge };
+module.exports = { ImageUpdates, parseChallenge, cleanCritical, cleanLevel, criticalFromFile, CRITICAL_LABEL, CRITICAL_LEVEL_LABEL };

@@ -1,0 +1,10 @@
+# Critical update flag. Every image carries what is below, so it stays in
+# force for servers that skip releases; do not empty it for normal releases.
+#
+# To mark the next release critical: raise `level` by one (0 = never had a
+# critical release) and write the reason on the `reason` line (one short line
+# of plain text, up to 300 characters), then push to main. Every server
+# running an image built with a lower level shows a red "Critical update:
+# install now" bar on every page until it installs this release or a later one.
+level: 0
+reason:

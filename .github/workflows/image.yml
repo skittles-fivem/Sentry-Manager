@@ -49,6 +49,8 @@ jobs:
       short: ${{ steps.names.outputs.short }}
       created: ${{ steps.names.outputs.created }}
       week: ${{ steps.names.outputs.week }}
+      critical: ${{ steps.critical.outputs.critical }}
+      critical_level: ${{ steps.critical.outputs.critical_level }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -68,6 +70,30 @@ jobs:
             echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             echo "week=$(date -u +%G-W%V)"
           } >> "$GITHUB_OUTPUT"
+      # CRITICAL_UPDATE.txt: `level: N` and `reason: text`. Every image
+      # carries the last critical release's level and reason (sticky, so
+      # servers that skip releases still see it). Only ever data: a whole
+      # number, and one line without quotes, backslashes or control
+      # characters, commas made semicolons (the labels list splits on
+      # them), at most 300 characters.
+      - name: Critical update flag
+        id: critical
+        run: |
+          level=0
+          reason=""
+          if [ -f CRITICAL_UPDATE.txt ]; then
+            level="$({ grep -iE '^[[:space:]]*level:' CRITICAL_UPDATE.txt || true; } | tail -n 1 | sed -E 's/^[^:]*://; s/^[[:space:]]+//; s/[[:space:]]+$//' | tr -d '\r')"
+            reason="$({ grep -iE '^[[:space:]]*reason:' CRITICAL_UPDATE.txt || true; } | tail -n 1 | sed -E 's/^[^:]*://' | tr '\t\r\n' '   ' | tr -d '\000-\037\177"`\\'"'" | tr ',' ';' | tr -s ' ' | sed 's/^ *//; s/ *$//')"
+          fi
+          [[ "$level" =~ ^[0-9]{1,6}$ ]] || level=0
+          level=$((10#$level))
+          reason="${reason:0:300}"
+          reason="${reason% }"
+          if [ -z "$reason" ]; then level=0; fi
+          if [ "$level" -eq 0 ]; then reason=""; fi
+          if [ "$level" -gt 0 ]; then echo "::notice::Images carry critical level $level: $reason"; fi
+          echo "critical_level=$level" >> "$GITHUB_OUTPUT"
+          echo "critical=$reason" >> "$GITHUB_OUTPUT"
 
   tests:
     runs-on: ubuntu-latest
@@ -185,6 +211,8 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ needs.names.outputs.sha }}
             org.opencontainers.image.created=${{ needs.names.outputs.created }}
+            ${{ needs.names.outputs.critical != '' && format('io.sentry-six.critical={0}', needs.names.outputs.critical) || '' }}
+            ${{ needs.names.outputs.critical != '' && format('io.sentry-six.critical-level={0}', needs.names.outputs.critical_level) || '' }}
           build-args: |
             GIT_SHA=${{ needs.names.outputs.sha }}
             GIT_BRANCH=${{ needs.names.outputs.branch }}

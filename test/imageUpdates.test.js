@@ -5,7 +5,10 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { ImageUpdates, parseChallenge } = require('../server/imageUpdates');
+const fs = require('fs');
+const path = require('path');
+const { execFileSync } = require('child_process');
+const { ImageUpdates, parseChallenge, cleanCritical, criticalFromFile } = require('../server/imageUpdates');
 
 const IMAGE = 'ghcr.io/owner/sentry-six-manager';
 const SHA = 'b'.repeat(40);
@@ -23,7 +26,7 @@ function fakeNotes() {
 }
 
 /** A registry that wants a token first and serves one tag for two architectures. */
-function fakeRegistry({ revision = 'c'.repeat(40), created = '2026-10-20T04:00:00Z', tokenStatus = 200, realm = 'https://ghcr.io/token' } = {}) {
+function fakeRegistry({ revision = 'c'.repeat(40), created = '2026-10-20T04:00:00Z', critical, level, tokenStatus = 200, realm = 'https://ghcr.io/token' } = {}) {
   const calls = [];
   const json = (status, body, headers = {}) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...headers } });
   const fetchImpl = async (url, opts = {}) => {
@@ -46,7 +49,7 @@ function fakeRegistry({ revision = 'c'.repeat(40), created = '2026-10-20T04:00:0
       return json(200, { config: { digest: digest('c') } });
     }
     if (u.pathname === `/v2/owner/sentry-six-manager/blobs/${digest('c')}`) {
-      return json(200, { created, config: { Labels: { 'org.opencontainers.image.revision': revision, 'org.opencontainers.image.created': created } } });
+      return json(200, { created, config: { Labels: { 'org.opencontainers.image.revision': revision, 'org.opencontainers.image.created': created, ...(critical !== undefined ? { 'io.sentry-six.critical': critical } : {}), ...(level !== undefined ? { 'io.sentry-six.critical-level': String(level) } : {}) } } });
     }
     return json(404, {});
   };
@@ -125,4 +128,138 @@ test('parseChallenge reads Bearer challenges only', () => {
   assert.deepEqual(parseChallenge('Bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:a/b:pull"'), { realm: 'https://ghcr.io/token', service: 'ghcr.io', scope: 'repository:a/b:pull' });
   assert.equal(parseChallenge('Basic realm="x"'), null);
   assert.equal(parseChallenge(''), null);
+});
+
+// Releases in the critical tests: 0 the running one (before any critical
+// release), A critical (level 1), B a bug fix after A (still carries level 1),
+// C a second critical one (level 2).
+const A = { revision: 'a'.repeat(40), created: '2026-10-20T04:00:00Z', critical: 'Fixes a bug that\ncan delete footage\u0007', level: 1 };
+const B = { revision: 'd'.repeat(40), created: '2026-10-22T04:00:00Z', critical: 'Fixes a bug that can delete footage', level: 1 };
+const C = { revision: 'e'.repeat(40), created: '2026-10-25T04:00:00Z', critical: 'Closes a sign-in hole', level: 2 };
+const onA = build({ sha: A.revision, builtAt: A.created });
+const onB = build({ sha: B.revision, builtAt: B.created });
+const at = (u, release) => { u.fetch = fakeRegistry(release).fetchImpl; u.lastCheck = 0; return u.check(); };
+
+test('critical (1): a server older than critical release A sees it, with a notification of its own', async () => {
+  const notes = fakeNotes();
+  const u = new ImageUpdates({ db: fakeDb(), notes, buildInfo: build(), fetchImpl: null });
+  const st = await at(u, A);
+  assert.deepEqual(st.critical, { level: 1, reason: 'Fixes a bug that can delete footage', created: A.created });
+  const n = notes.open.get('image-update-critical');
+  assert.equal(n.title, 'Critical update: install now');
+  assert.equal(n.level, 'critical');
+  assert.match(n.message, /can delete footage.*docker compose pull && docker compose up -d/);
+  assert.ok(notes.open.has('image-update'), 'the plain notice too');
+});
+
+test('critical (2): a bug fix B after A does not cancel it', async () => {
+  const notes = fakeNotes();
+  const u = new ImageUpdates({ db: fakeDb(), notes, buildInfo: build(), fetchImpl: null });
+  await at(u, A);
+  const st = await at(u, B);
+  assert.equal(st.critical?.level, 1);
+  assert.ok(notes.open.has('image-update-critical'));
+});
+
+test('critical (3): B without the labels (file emptied by mistake) still leaves it critical, also after a restart', async () => {
+  const db = fakeDb();
+  const u = new ImageUpdates({ db, buildInfo: build(), fetchImpl: null });
+  await at(u, A);
+  const st = await at(u, { revision: B.revision, created: B.created });
+  assert.equal(st.updateAvailable, true);
+  assert.equal(st.critical?.level, 1);
+  assert.equal(new ImageUpdates({ db, buildInfo: build() }).status().critical?.level, 1, 'remembered');
+});
+
+test('critical (4): installing A or B clears it and its notification', async () => {
+  for (const [name, info, latest] of [['A', onA, A], ['B', onB, B]]) {
+    const notes = fakeNotes();
+    const db = fakeDb();
+    await at(new ImageUpdates({ db, notes, buildInfo: build(), fetchImpl: null }), A);
+    assert.ok(notes.open.has('image-update-critical'));
+    const after = new ImageUpdates({ db, notes, buildInfo: info, ownCritical: { level: 1, reason: 'x' }, fetchImpl: null });
+    after.announce();
+    assert.equal(after.status().critical, null, name);
+    assert.ok(!notes.open.has('image-update-critical'), name);
+    const st = await at(after, latest);
+    assert.equal(st.critical, null, name);
+    assert.equal(st.updateAvailable, false, name);
+    assert.equal(notes.open.size, 0, name);
+  }
+});
+
+test('critical (5): a second critical release C is critical again for servers on A or B', async () => {
+  for (const info of [onA, onB]) {
+    const notes = fakeNotes();
+    const u = new ImageUpdates({ db: fakeDb(), notes, buildInfo: info, ownCritical: { level: 1, reason: 'x' }, fetchImpl: null });
+    assert.equal((await at(u, B)).critical, null);
+    const st = await at(u, C);
+    assert.deepEqual(st.critical, { level: 2, reason: 'Closes a sign-in hole', created: C.created });
+    assert.ok(notes.open.has('image-update-critical'));
+  }
+});
+
+test('critical (6): a server already past the critical release but older than the latest gets only the normal notice', async () => {
+  const notes = fakeNotes();
+  const u = new ImageUpdates({ db: fakeDb(), notes, buildInfo: onA, ownCritical: { level: 1, reason: 'x' }, fetchImpl: null });
+  const st = await at(u, B);
+  assert.equal(st.updateAvailable, true);
+  assert.equal(st.critical, null);
+  assert.deepEqual([...notes.open.keys()], ['image-update']);
+});
+
+test('critical labels that are empty or strange are not critical', async () => {
+  for (const [critical, level] of [['', 1], ['   ', 1], ['\n\t', 3], ['Fix', undefined], ['Fix', 'x'], ['Fix', '-1'], ['Fix', '1e3'], ['Fix', 0]]) {
+    const u = new ImageUpdates({ db: fakeDb(), buildInfo: build(), fetchImpl: fakeRegistry({ critical, level }).fetchImpl });
+    assert.equal((await u.check()).critical, null, JSON.stringify([critical, level]));
+  }
+  assert.equal(cleanCritical(42), null);
+  assert.equal(cleanCritical({}), null);
+  assert.equal(cleanCritical('x'.repeat(5000)).length, 300);
+  assert.equal(cleanCritical(' a\u202eb\r\nc  '), 'a b c');
+  assert.deepEqual(criticalFromFile('# c\nlevel: 2\nreason: Fix it\n'), { level: 2, reason: 'Fix it' });
+  assert.deepEqual(criticalFromFile('level: 2\nreason:\n'), { level: 0, reason: null }, 'no reason, no level');
+});
+
+test('the first check after a start comes within minutes, then every 12 hours', async () => {
+  const db = fakeDb();
+  db.set('image-updates', { latest: null, checkedAt: Date.now() - 11 * 60 * 1000, error: null });
+  const reg = fakeRegistry();
+  const u = new ImageUpdates({ db, buildInfo: build(), fetchImpl: reg.fetchImpl });
+  await u.tick();
+  assert.ok(reg.calls.length > 0, 'checked soon after the start');
+  const n = reg.calls.length;
+  u.lastCheck = 0;
+  await u.tick();
+  assert.equal(reg.calls.length, n, 'not again until 12 hours later');
+});
+
+test('CRITICAL_UPDATE.txt is read the same way by the build and the server', () => {
+  const repo = path.join(__dirname, '..');
+  const file = fs.readFileSync(path.join(repo, 'CRITICAL_UPDATE.txt'), 'utf8');
+  assert.deepEqual(criticalFromFile(file), { level: 0, reason: null }, 'no critical release yet');
+  assert.match(file, /^level: 0$/m);
+  assert.match(file, /^reason:/m);
+  const workflow = fs.readFileSync(path.join(repo, '.github/workflows/image.yml'), 'utf8');
+  assert.match(workflow, /critical: \$\{\{ steps\.critical\.outputs\.critical \}\}/);
+  assert.match(workflow, /\$\{\{ needs\.names\.outputs\.critical != '' && format\('io\.sentry-six\.critical=\{0\}', needs\.names\.outputs\.critical\) \|\| '' \}\}/);
+  assert.match(workflow, /format\('io\.sentry-six\.critical-level=\{0\}', needs\.names\.outputs\.critical_level\)/);
+  assert.doesNotMatch(workflow.slice(workflow.indexOf('id: critical')), /^\s+run:.*\$\{\{/m, 'the text never goes into a script');
+  const dockerfile = fs.readFileSync(path.join(repo, 'Dockerfile'), 'utf8');
+  assert.match(dockerfile, /COPY .*CRITICAL_UPDATE\.txt/, 'the image knows its own critical text');
+  // the workflow's own shell step, run on hostile text, agrees with the server
+  const step = /id: critical\n\s+run: \|\n((?: {10}.*\n)+)/.exec(workflow)[1].split('\n').map((l) => l.slice(10)).join('\n');
+  const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'sm-crit-'));
+  try {
+    for (const text of ['# only a comment\n', 'level: 3\nreason:  Fix "x" `id` $(id), \\ it\'s\tbad\n# reason: note\n', `level: 0012\r\nreason: ${'y'.repeat(400)}\r\n`, 'level: x\nreason: Fix', 'level: 2\nreason:\n', '  LEVEL: 1\n  Reason: a: b\n']) {
+      fs.writeFileSync(path.join(dir, 'CRITICAL_UPDATE.txt'), text);
+      execFileSync('bash', ['-eo', 'pipefail', '-c', step], { cwd: dir, env: { ...process.env, GITHUB_OUTPUT: path.join(dir, 'out') } });
+      const out = fs.readFileSync(path.join(dir, 'out'), 'utf8');
+      fs.rmSync(path.join(dir, 'out'));
+      const want = criticalFromFile(text);
+      assert.equal(out, `critical_level=${want.level}\ncritical=${want.reason || ''}\n`, JSON.stringify(text));
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

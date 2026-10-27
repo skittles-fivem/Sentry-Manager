@@ -65,7 +65,7 @@ ENV NODE_ENV=production \
     NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
 
 WORKDIR /app
-COPY version.json ./
+COPY version.json CRITICAL_UPDATE.txt ./
 COPY assets ./assets
 COPY src ./src
 COPY server ./server
