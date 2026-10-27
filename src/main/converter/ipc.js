@@ -312,15 +312,20 @@ async function validateStartConfig(payload, dependencies, capabilities) {
   const hasQuality = isPlainObject(payload) && Object.prototype.hasOwnProperty.call(payload, 'qualityLevel');
   const hasVerify = isPlainObject(payload) && Object.prototype.hasOwnProperty.call(payload, 'verifyMode');
   const hasLanes = isPlainObject(payload) && Object.prototype.hasOwnProperty.call(payload, 'lanes');
+  const hasKeepOffTarget = isPlainObject(payload) && Object.prototype.hasOwnProperty.call(payload, 'keepOffTarget');
   const expectedKeys = [...keys, ...(hasGroupOrder ? ['groupOrder'] : []), ...(hasConcurrency ? ['concurrency'] : []),
     ...(hasBitrate ? ['bitrateKbps'] : []), ...(hasQuality ? ['qualityLevel'] : []), ...(hasVerify ? ['verifyMode'] : []),
-    ...(hasLanes ? ['lanes'] : [])];
+    ...(hasLanes ? ['lanes'] : []), ...(hasKeepOffTarget ? ['keepOffTarget'] : [])];
   if (!exactKeys(payload, expectedKeys)) fail('INVALID_REQUEST');
   // Custom profile: an explicit bitrate is required; size profiles take none.
   if (payload.profileId === 'custom' ? !isValidCustomBitrate(payload.bitrateKbps) : hasBitrate) fail('INVALID_BITRATE');
   // Constant quality: a named level is required; other profiles take none.
   if (payload.profileId === 'quality' ? !isValidQualityLevel(payload.qualityLevel) : hasQuality) fail('INVALID_QUALITY');
   if (hasConcurrency && !isValidConcurrency(payload.concurrency)) fail('INVALID_CONCURRENCY');
+  // Keep clips that miss the size target: a boolean; only a size profile
+  // has a target, so custom bitrate and constant quality must not turn it on.
+  if (hasKeepOffTarget && (typeof payload.keepOffTarget !== 'boolean'
+      || (payload.keepOffTarget && (payload.profileId === 'custom' || payload.profileId === 'quality')))) fail('INVALID_KEEP_OFF_TARGET');
   // Conversions at once per GPU. A device id that is not in the container
   // now is kept (a saved automatic setting can outlive a GPU); the job skips
   // that lane and says so in the log.

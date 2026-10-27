@@ -282,6 +282,13 @@ class BoundedQueue {
   }
 }
 
+// The item's note for a clip kept off its size target (option on).
+function offTargetField(verification) {
+  const details = verification?.details;
+  if (details?.offTarget !== true) return {};
+  return { offTarget: { savedPercent: details.offTargetSavedPercent, targetPercent: details.offTargetTargetPercent } };
+}
+
 function createConverterJobService(deps) {
   validateDependencies(deps);
   const store = deps.store;
@@ -1998,6 +2005,9 @@ function createConverterJobService(deps) {
         signal: runtime.abortController.signal,
         // Off / quick / full; replacing originals is never below quick.
         verifyMode: effectiveVerifyMode(runtime.manifest.config),
+        // Opt-in: a size-profile miss that passed every other check comes
+        // back ok with details.offTarget instead of failing profile-size.
+        ...(runtime.manifest.config.keepOffTarget === true ? { keepOffTarget: true } : {}),
         ...(verifyAccel && effectiveVerifyMode(runtime.manifest.config) === 'full' ? {
           decodeAccel: verifyAccel,
           onDecodeAccelFallback: () => verifyDecodeFallbacks.set(verifiedEncoder, (verifyDecodeFallbacks.get(verifiedEncoder) || 0) + 1)
@@ -2006,6 +2016,31 @@ function createConverterJobService(deps) {
       timing.mark('verify');
       check.release?.();
       check.release = null;
+      if (verification?.ok && verification.details?.offTarget === true) {
+        // Missed the size target but passed everything else: the usual size
+        // retry comes first; only the last attempt's file is kept as is.
+        const retry = decideSizeRetry({
+          retryCount: sizeRetryCount,
+          failureReason: 'profile-size',
+          codec,
+          encoder: selected.codec,
+          currentBitrate: bitrate,
+          actualBytes: verification.outputBytes,
+          targetBytes
+        });
+        if (retry.retry) {
+          const cleanup = await cleanupOwnership(runtime, item.id, adopted);
+          if (cleanup.cleaned === false) {
+            setOwnership(runtime, item.id, composeOwnership(ownershipFor(runtime, item.id), adopted));
+            throw Object.assign(new Error('verification failed; cleanup pending'), { code: 'profile-size', retryable: true });
+          }
+          sizeRetryCount += 1;
+          bitrate = retry.bitrate;
+          continue;
+        }
+        console.warn('[CONVERTER] Kept off its size target (option on):', item.relativePath,
+          `${verification.details.offTargetSavedPercent}% smaller, target ${verification.details.offTargetTargetPercent}%`);
+      }
       if (!verification?.ok) {
         const retry = decideSizeRetry({
           retryCount: sizeRetryCount,
@@ -2162,6 +2197,7 @@ function createConverterJobService(deps) {
         attempts,
         encoder: selected.codec,
         resultCode: cleanupPending.length ? 'completed-cleanup-pending' : 'converted',
+        ...offTargetField(verification),
         ownedPaths: residualOwnership.ownedPaths,
         ownedArtifacts: residualOwnership.ownedArtifacts
       };
@@ -2311,6 +2347,7 @@ function createConverterJobService(deps) {
       attempts,
       encoder: selected.codec,
       resultCode: published.cleanupPending?.length ? 'completed-cleanup-pending' : 'converted',
+      ...offTargetField(verification),
       ownedPaths: leftover.ownedPaths,
       ownedArtifacts: leftover.ownedArtifacts
     };

@@ -273,6 +273,10 @@ conversion).
   night, rain) is encoded again at 85% of its original bitrate, then 60%,
   instead of staying H.264. Only if even that is not smaller is the
   original kept.
+- **Size profiles** (5%, 20%, 50% smaller) retry a clip that comes out too
+  big at a lower bitrate; *Keep clips that can't reach the size target*
+  (off by default) then keeps it anyway, if it is smaller than the original
+  and passed every other check, and marks it "kept: 14% smaller (target 20%)".
 - **Gave up is not forever.** The automatic window stops retrying a clip
   after it fails three times, or when converting it would not save space.
   When an update changes the converter, those clips are tried again once.

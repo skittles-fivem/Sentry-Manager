@@ -17,7 +17,7 @@ const PHASES = [['inspect', 'Inspect'], ['source', 'Read source'], ['timeline', 
 
 // (what was saved over the defaults: the Nodes page may have saved only a lane)
 const form = Object.assign({
-  codec: 'h265', profileId: 'balanced', qualityLevel: 'balanced', bitrateKbps: 2500, outputMode: 'replace', verifyMode: 'quick',
+  codec: 'h265', profileId: 'balanced', qualityLevel: 'balanced', bitrateKbps: 2500, keepOffTarget: false, outputMode: 'replace', verifyMode: 'quick',
   groups: ['SavedClips', 'SentryClips', 'RecentClips'], included: ['RecentClips', 'SavedClips', 'SentryClips'], networkMode: 'auto', concurrency: 2, lanes: {}, dest: {}
 }, store.get('enc-form', {}));
 const saveForm = () => store.set('enc-form', form);
@@ -195,7 +195,7 @@ export default {
       const order = { processing: 0, failed: 1, queued: 2, completed: 3, skipped: 4 };
       const shown = [...items].sort((a, b) => (order[a.state] ?? 5) - (order[b.state] ?? 5)).slice(0, 200);
       box.innerHTML = shown.length ? `<table class="tbl stack-sm"><thead><tr><th>Clip</th><th>State</th><th>Size</th></tr></thead><tbody>${shown.map((i) => `<tr><td data-label="Clip">${esc(i.relativePath || i.id)}${i.kind === 'asset' ? ' <span class="muted tiny">(event file)</span>' : ''}</td>
-        <td data-label="State"><span class="chip ${i.state === 'completed' ? 'green' : i.state === 'failed' ? 'red' : i.state === 'processing' ? 'teal' : ''}">${esc(ITEM_TEXT[i.state] || i.state)}</span>${i.resultCode && i.state !== 'completed' ? ` <span class="muted tiny">${esc(String(i.resultCode).replace(/[_-]+/g, ' '))}</span>` : ''}</td>
+        <td data-label="State"><span class="chip ${i.state === 'completed' ? 'green' : i.state === 'failed' ? 'red' : i.state === 'processing' ? 'teal' : ''}">${esc(ITEM_TEXT[i.state] || i.state)}</span>${i.resultCode && i.state !== 'completed' ? ` <span class="muted tiny">${esc(String(i.resultCode).replace(/[_-]+/g, ' '))}</span>` : ''}${i.state === 'completed' && i.offTarget ? ` <span class="muted tiny">kept: ${esc(i.offTarget.savedPercent)}% smaller (target ${esc(i.offTarget.targetPercent)}%)</span>` : ''}</td>
         <td data-label="Size" class="mono small">${bytes(i.sourceBytes)}${fin(i.outputBytes) ? ` → ${bytes(i.outputBytes)}` : ''}</td></tr>`).join('')}</tbody></table>${snap.itemsTruncated ? `<p class="muted tiny" style="padding:8px 12px">Showing ${shown.length} of ${snap.itemCount} clips.</p>` : ''}` : '<p class="muted" style="padding:12px">Finding clips…</p>';
       box.scrollTop = top;
       const t = snap.timings?.totalMs;
@@ -237,6 +237,7 @@ export default {
       if (!replace && !cfg.destinationRoot) throw new Error('Choose a folder for the converted copies.');
       if (form.profileId === 'custom') cfg.bitrateKbps = Math.round(Number(form.bitrateKbps));
       if (form.profileId === 'quality') cfg.qualityLevel = form.qualityLevel;
+      if (form.keepOffTarget && !['custom', 'quality'].includes(form.profileId)) cfg.keepOffTarget = true;
       if (multiDevice()) {
         const lanes = devices.map((d) => ({ device: d.id, concurrency: Number(laneNext(d)) })).filter((l) => l.concurrency > 0);
         if (!lanes.length) throw new Error('Set at least one device to convert.');
@@ -266,6 +267,7 @@ export default {
           </div>
           <div class="field">Size<div class="choice-grid">${PROFILES.map(([k, label, hint]) => `<label class="choice"><input type="radio" name="profile" value="${k}"${form.profileId === k ? ' checked' : ''}><b>${label}</b><span>${hint}</span></label>`).join('')}</div></div>
           ${form.profileId === 'quality' ? `<div class="field">Quality level<div class="seg big" role="group" aria-label="Quality level">${QUALITY.map(([k, l]) => `<button type="button" data-f="qualityLevel" data-v="${k}" aria-pressed="${form.qualityLevel === k}">${l}</button>`).join('')}</div></div>` : ''}
+          ${['custom', 'quality'].includes(form.profileId) ? '' : `<label class="check" style="padding:2px 4px"><input type="checkbox" id="f-offtarget"${form.keepOffTarget ? ' checked' : ''}> Keep a clip that can’t quite reach this size — only if it’s still smaller than the original and passed every other check</label>`}
           ${form.profileId === 'custom' ? '<label class="field" style="max-width:280px">Bitrate (kbit/s)<input class="input" id="f-bitrate" type="number" inputmode="numeric" min="250" max="100000" step="50" value="' + esc(form.bitrateKbps) + '"></label>' : ''}
           <div class="field">Output<div class="choice-grid">
             <label class="choice"><input type="radio" name="out" value="replace"${replace ? ' checked' : ''}${canReplace ? '' : ' disabled'}><b>Replace originals</b><span>${canReplace ? 'after each result is verified; saves the space' : 'not possible on this storage'}</span></label>
@@ -521,6 +523,7 @@ export default {
       if (t.name === 'profile') { form.profileId = t.value; saveForm(); drawStart(); return; }
       if (t.name === 'out') { form.outputMode = t.value; saveForm(); drawStart(); return; }
       if (t.id === 'f-confirm') { confirmed = t.checked; return; }
+      if (t.id === 'f-offtarget') { form.keepOffTarget = t.checked; saveForm(); return; }
       if (t.id === 'f-dest') { form.dest[veh().id] = t.value.trim(); saveForm(); return; }
       if (t.id === 'f-bitrate') { form.bitrateKbps = Number(t.value); saveForm(); return; }
       if (t.matches('[data-group]')) {

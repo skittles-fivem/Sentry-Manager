@@ -85,7 +85,13 @@ const isConfig = (config) => Boolean(config) && typeof config === 'object' && !A
 function normalizeConfigs(value) {
   const list = Array.isArray(value.configs) ? value.configs : value.enabled === true && isConfig(value.config) ? [value.config] : [];
   const bySource = new Map();
-  for (const config of list) if (isConfig(config)) bySource.set(config.sourceRoot, withValidLanes({ ...config }));
+  for (const config of list) {
+    if (!isConfig(config)) continue;
+    const copy = { ...config };
+    // "keep clips that miss the size target": only true is kept
+    if (copy.keepOffTarget !== true) delete copy.keepOffTarget;
+    bySource.set(config.sourceRoot, withValidLanes(copy));
+  }
   return [...bySource.values()].slice(0, MAX_SOURCES);
 }
 

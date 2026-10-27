@@ -108,6 +108,7 @@ function validateOptions(options) {
   if (options.verifyMode !== undefined && !['off', 'quick', 'full'].includes(options.verifyMode)) {
     throw new TypeError('verifyMode must be off, quick or full');
   }
+  if (options.keepOffTarget !== undefined && typeof options.keepOffTarget !== 'boolean') throw new TypeError('keepOffTarget must be a boolean');
   if (options.onDecodeAccelFallback !== undefined && typeof options.onDecodeAccelFallback !== 'function') {
     throw new TypeError('onDecodeAccelFallback must be a function');
   }
@@ -810,6 +811,19 @@ function frameTimingMismatch(sourceSamples, outputSamples) {
 // smaller than its original, and a size profile's window still applies (its
 // retry keeps the promised compression); nothing about the video itself is
 // inspected.
+// Marker for a clip kept although it missed its profile's size target.
+function offTargetDetails(sourceBytes, outputBytes, sizeDetails) {
+  const savedPercent = Math.round(((sourceBytes - outputBytes) / sourceBytes) * 1000) / 10;
+  const targetPercent = Math.round(PROFILES[sizeDetails.profileId].savings * 100);
+  return {
+    offTarget: true,
+    offTargetSavedPercent: savedPercent,
+    offTargetTargetPercent: targetPercent,
+    targetBytes: sizeDetails.targetBytes,
+    toleranceBytes: sizeDetails.toleranceBytes
+  };
+}
+
 async function verifyIntegrityOnly({ options, profileId, sourceBytes, outputBytes, outputSha256, snapshot }) {
   try {
     await readExactSnapshot(snapshot, outputBytes, outputSha256, options.trustedSnapshot === true);
@@ -819,22 +833,25 @@ async function verifyIntegrityOnly({ options, profileId, sourceBytes, outputByte
   if (outputBytes >= sourceBytes) {
     return failure(VERIFICATION_REASONS.NOT_SMALLER, sourceBytes, outputBytes, { savedBytes: sourceBytes - outputBytes });
   }
+  let offTarget = {};
   if (hasSizeTarget(profileId)) {
     // Same short-clip allowance as the full checks, from the duration the
     // converter already measured (no extra read of the original).
     const durationUs = Number.isFinite(options.sourceDurationUs) ? options.sourceDurationUs : null;
     const shortClipWithSavings = sourceBytes >= 500_000 && durationUs !== null && durationUs <= SHORT_CLIP_PROFILE_MAX_US;
     if (!shortClipWithSavings && !isWithinProfile(sourceBytes, outputBytes, profileId)) {
-      return failure(VERIFICATION_REASONS.PROFILE_SIZE, sourceBytes, outputBytes, {
+      const sizeDetails = {
         profileId,
         targetBytes: targetOutputBytes(sourceBytes, profileId),
         toleranceBytes: sourceBytes * PROFILES[profileId].tolerance
-      });
+      };
+      if (options.keepOffTarget !== true) return failure(VERIFICATION_REASONS.PROFILE_SIZE, sourceBytes, outputBytes, sizeDetails);
+      offTarget = offTargetDetails(sourceBytes, outputBytes, sizeDetails);
     }
   }
   return {
     ok: true, reason: null, retryable: false, sourceBytes, outputBytes,
-    details: { codec: EXPECTED_VIDEO[options.codec].codec, tag: EXPECTED_VIDEO[options.codec].tag, profileId, verifyMode: 'off' }
+    details: { codec: EXPECTED_VIDEO[options.codec].codec, tag: EXPECTED_VIDEO[options.codec].tag, profileId, verifyMode: 'off', ...offTarget }
   };
 }
 
@@ -1006,12 +1023,14 @@ async function verifyOwnedSnapshot({ options, profileId, sourceBytes, outputByte
   const shortClipWithSavings = sourceBytes >= 500_000
     && source.sourceTiming.durationUs <= SHORT_CLIP_PROFILE_MAX_US
     && outputBytes < sourceBytes;
+  let offTarget = {};
   if (!customBitrate && !shortClipWithSavings && !isWithinProfile(sourceBytes, outputBytes, profileId)) {
-    return failure(VERIFICATION_REASONS.PROFILE_SIZE, sourceBytes, outputBytes, {
-      profileId,
-      targetBytes,
-      toleranceBytes: sourceBytes * PROFILES[profileId].tolerance
-    });
+    const sizeDetails = { profileId, targetBytes, toleranceBytes: sourceBytes * PROFILES[profileId].tolerance };
+    // Opt-in: a clip that misses its size target but passed every other
+    // check (and is smaller than the original) is reported as ok with a
+    // marker; the job decides whether to retry first or keep it.
+    if (options.keepOffTarget !== true) return failure(VERIFICATION_REASONS.PROFILE_SIZE, sourceBytes, outputBytes, sizeDetails);
+    offTarget = offTargetDetails(sourceBytes, outputBytes, sizeDetails);
   }
 
   const actualGaps = gapRanges(inspected.samples, (sample) => sample.telemetryFingerprints);
@@ -1042,7 +1061,8 @@ async function verifyOwnedSnapshot({ options, profileId, sourceBytes, outputByte
       ...(source.leadInFrames > 0 || source.undecodableFrames > 0 ? { frameTiming: 'exact' } : {}),
       telemetryEvents: mappedEventCount,
       telemetryTransitions: actualTransitions,
-      telemetryGapRanges: actualGaps
+      telemetryGapRanges: actualGaps,
+      ...offTarget
     }
   };
 }

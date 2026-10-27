@@ -60,7 +60,7 @@ export function counts(s) {
   const failed = n('failed');
   const queued = n('queued');
   const inFlight = s?.itemStateCounts?.active ?? items.filter((i) => i.state === 'processing').length;
-  return { total, completed, skipped, failed, queued, inFlight, done: completed + skipped + failed, failedItems: items.filter((i) => i.state === 'failed') };
+  return { total, completed, skipped, failed, queued, inFlight, done: completed + skipped + failed, failedItems: items.filter((i) => i.state === 'failed'), keptItems: items.filter((i) => i.state === 'completed' && i.offTarget) };
 }
 
 export function workingMs(s, at = Date.now()) {

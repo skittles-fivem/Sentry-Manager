@@ -307,6 +307,8 @@ function collectElements(root) {
         customBitrateRow: byId('converterCustomBitrateRow'),
         qualityLevel: byId('converterQualityLevel'),
         qualityRow: byId('converterQualityRow'),
+        keepOffTarget: byId('converterKeepOffTarget'),
+        keepOffTargetRow: byId('converterKeepOffTargetRow'),
         verifyMode: byId('converterVerifyMode'),
         verifyReplaceNote: byId('converterVerifyReplaceNote'),
         benchmarkVerifyTable: byId('converterBenchmarkVerifyTable'),
@@ -377,6 +379,7 @@ function collectElements(root) {
         cleanupBanner: byId('converterCleanupBanner'),
         scanNotice: byId('converterScanNotice'),
         errorRows: byId('converterErrorRows'),
+        offTargetRows: byId('converterOffTargetRows'),
         pipeline: byId('converterPipeline'),
         pipelineStages: all('[data-converter-phase]'),
         summary: byId('converterSummary'),
@@ -525,6 +528,14 @@ function createFootageConverterController(options = {}) {
     function updateCustomBitrateVisibility() {
         setHidden(elements.customBitrateRow, selectedProfile() !== 'custom');
         setHidden(elements.qualityRow, selectedProfile() !== 'quality');
+        // custom bitrate and constant quality have no size target to miss
+        setHidden(elements.keepOffTargetRow, ['custom', 'quality'].includes(selectedProfile()));
+    }
+
+    // "Keep clips that can't reach the size target" (size profiles only)
+    function keepOffTargetSetting(profileId) {
+        if (['custom', 'quality'].includes(profileId)) return {};
+        return elements.keepOffTarget?.checked === true ? { keepOffTarget: true } : {};
     }
 
     function storedVerifyMode() {
@@ -1083,6 +1094,7 @@ function createFootageConverterController(options = {}) {
         }
         // Jobs saved before the setting existed ran full verification.
         if (elements.verifyMode) elements.verifyMode.value = VERIFY_MODES.includes(config.verifyMode) ? config.verifyMode : 'full';
+        if (elements.keepOffTarget) elements.keepOffTarget.checked = config.keepOffTarget === true;
         updateCustomBitrateVisibility();
         setChecked(elements.outputOptions, 'converterOutput', config.outputMode);
         const included = new Set(config.includedGroups || []);
@@ -1302,6 +1314,11 @@ function createFootageConverterController(options = {}) {
         }
         renderRows(elements.errorRows, failedItems.map((item) => [item.relativePath || item.id, item.failure?.code || 'operation-failed']));
         setHidden(elements.errorRows, failedItems.length === 0);
+        // clips kept off their size target (the option under Compression profile)
+        const offTargetItems = items.filter((item) => item.state === 'completed' && item.offTarget);
+        renderRows(elements.offTargetRows, offTargetItems.map((item) => [item.relativePath || item.id,
+            message('itemOffTarget', 'kept: {saved}% smaller (target {target}%)', { saved: item.offTarget.savedPercent, target: item.offTarget.targetPercent })]));
+        setHidden(elements.offTargetRows, offTargetItems.length === 0);
         // Only Start waits for a running job: the setup stays open for the
         // next one (another vehicle, or its automatic conversion)
         setDisabled(elements.startButton, active);
@@ -2008,6 +2025,7 @@ function createFootageConverterController(options = {}) {
             codec: selected(elements.codecOptions, 'converterCodec', 'h265'),
             profileId,
             ...profileSettings(profileId),
+            ...keepOffTargetSetting(profileId),
             networkMode: 'auto',
             outputMode,
             includedGroups,

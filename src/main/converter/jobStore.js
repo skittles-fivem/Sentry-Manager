@@ -2,7 +2,7 @@
 
 const path = require('path');
 const { randomUUID } = require('crypto');
-const { createEmptyCounters, isValidConcurrency, isValidCustomBitrate, isValidQualityLevel, isValidVerifyMode, normalizeLanes, lanesTotal, TIMING_PHASES } = require('./contracts');
+const { createEmptyCounters, isValidConcurrency, isValidCustomBitrate, isValidQualityLevel, isValidVerifyMode, hasSizeTarget, normalizeLanes, lanesTotal, TIMING_PHASES } = require('./contracts');
 
 const MANIFEST_VERSION = 1;
 const MANIFEST_NAME = 'job.json';
@@ -62,15 +62,16 @@ const TOP_FIELDS = new Set([
 const CONFIG_FIELDS = new Set([
   'sourceRoot', 'destinationRoot', 'codec', 'profileId', 'networkMode',
   'outputMode', 'includedGroups', 'groupOrder', 'replacementConfirmed', 'concurrency', 'bitrateKbps', 'qualityLevel', 'autoConvert', 'verifyMode',
-  'lanes'
+  'lanes', 'keepOffTarget'
 ]);
 const ITEM_FIELDS = new Set([
   'id', 'state', 'kind', 'group', 'eventId', 'relativePath', 'sourcePath',
   'sourceBytes', 'mtimeMs', 'timestampKey', 'camera', 'assetType',
   'eligibleVideo', 'outputPath', 'outputBytes', 'attempts', 'encoder',
   'failure', 'resultCode', 'ownedPaths', 'ownedArtifacts', 'publicationArtifact',
-  'replacementPhase', 'expectedSource'
+  'replacementPhase', 'expectedSource', 'offTarget'
 ]);
+const OFF_TARGET_FIELDS = new Set(['savedPercent', 'targetPercent']);
 const COUNTER_FIELDS = new Set([
   'files', 'sourceVideoBytes', 'outputVideoBytes', 'savedBytes',
   'copiedAssetBytes', 'groups'
@@ -530,6 +531,13 @@ function normalizeConfig(value) {
     if (!isValidVerifyMode(value.verifyMode)) throw storeError('INVALID_MANIFEST');
     result.verifyMode = value.verifyMode;
   }
+  // Keep a clip that misses its size target after the size retries (it is
+  // still smaller than the original and passed every other check). Only a
+  // size profile has a target; kept only when on.
+  if (value.keepOffTarget !== undefined) {
+    if (typeof value.keepOffTarget !== 'boolean') throw storeError('INVALID_MANIFEST');
+    if (value.keepOffTarget && hasSizeTarget(result.profileId)) result.keepOffTarget = true;
+  }
   // Started by automatic conversion (only clips it has not handled before).
   if (value.autoConvert !== undefined) {
     if (value.autoConvert !== true) throw storeError('INVALID_MANIFEST');
@@ -589,6 +597,15 @@ function normalizeItem(value) {
     return attempts;
   });
   optional(result, value, 'encoder', (entry) => boundedString(entry));
+  // A clip kept off its size target: { savedPercent, targetPercent }.
+  if (value.offTarget !== undefined) {
+    const note = value.offTarget;
+    if (!note || typeof note !== 'object' || Array.isArray(note)) throw storeError('INVALID_MANIFEST');
+    rejectUnknownFields(note, OFF_TARGET_FIELDS);
+    if (!Number.isFinite(note.savedPercent) || note.savedPercent < 0 || note.savedPercent > 100
+        || !Number.isFinite(note.targetPercent) || note.targetPercent <= 0 || note.targetPercent > 100) throw storeError('INVALID_MANIFEST');
+    result.offTarget = { savedPercent: note.savedPercent, targetPercent: note.targetPercent };
+  }
   optional(result, value, 'resultCode', (entry) => boundedString(entry, 64, /^[a-z0-9][a-z0-9_-]{0,63}$/));
   if (normalizedFailure) result.failure = normalizedFailure;
   optional(result, value, 'ownedPaths', normalizeOwnedPaths);

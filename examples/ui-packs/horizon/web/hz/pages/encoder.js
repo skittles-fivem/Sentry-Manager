@@ -68,7 +68,7 @@ export default {
     const call = (name, payload) => conv(name, payload, me);
     const v0 = car();
     const form = Object.assign({
-      codec: 'h265', profileId: 'balanced', bitrateKbps: 4000, qualityLevel: 'balanced', outputMode: 'replace', verifyMode: 'quick',
+      codec: 'h265', profileId: 'balanced', bitrateKbps: 4000, qualityLevel: 'balanced', keepOffTarget: false, outputMode: 'replace', verifyMode: 'quick',
       groups: [...GROUPS], groupOrder: ['SentryClips', 'SavedClips', 'RecentClips'], concurrency: 2, lanes: {}, dest: '', vehicle: null
     }, local.get('enc.form', {}));
 
@@ -143,6 +143,7 @@ export default {
         return [live?.waitingOnNode ? 'on a node / verify / save' : 'verify / save', 'mag'];
       }
       if (i.state === 'queued') return [snap?.state === 'discovering' ? 'found' : 'waiting', ''];
+      if (i.state === 'completed' && i.offTarget) return [`kept off target · ${i.offTarget.savedPercent}% smaller (aimed for ${i.offTarget.targetPercent}%)`, 'org'];
       if (i.state === 'completed') return [i.kind === 'asset' || i.eligibleVideo === false ? 'copied' : 'done', 'grn'];
       if (i.state === 'failed') return [`failed ${i.resultCode || i.failure?.code || ''}`, 'red'];
       if (i.state === 'skipped') return [`skipped${i.resultCode ? ` ${i.resultCode}` : ''}`, ''];
@@ -355,6 +356,7 @@ export default {
           <label class="fld">Size profile<select class="in" name="profileId">${[['conservative', 'Conservative · about 5% smaller'], ['balanced', 'Balanced · about 20% smaller'], ['aggressive', 'Aggressive · about 50% smaller'], ['quality', 'Constant quality'], ['custom', 'Custom bitrate']].map(([x, l]) => `<option value="${x}"${form.profileId === x ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
           <label class="fld" data-show="custom"${form.profileId === 'custom' ? '' : ' hidden'}>Bitrate (kbit/s)<input class="in num" type="number" inputmode="numeric" name="bitrateKbps" min="250" max="100000" step="50" value="${h(form.bitrateKbps)}"></label>
           <label class="fld" data-show="quality"${form.profileId === 'quality' ? '' : ' hidden'}>Quality<select class="in" name="qualityLevel">${[['high', 'High'], ['balanced', 'Balanced'], ['small', 'Small']].map(([x, l]) => `<option value="${x}"${form.qualityLevel === x ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+          <label class="chk" data-sized${['custom', 'quality'].includes(form.profileId) ? ' hidden' : ''}><input type="checkbox" name="keepOffTarget"${form.keepOffTarget ? ' checked' : ''}> Let clips through that can't hit the size target (each is still smaller than its original and passed every other check)</label>
           <div class="fld">Output${segs('outputMode', [['replace', 'Replace originals'], ['separate', 'Separate folder']], form.outputMode, 'Output')}${canReplace ? '' : '<span class="hint">Replacing is not possible on this share.</span>'}</div>
           <label class="fld" data-out="separate"${form.outputMode === 'separate' ? '' : ' hidden'}>Destination folder<input class="in mono" name="dest" value="${h(form.dest || defDest(veh))}" spellcheck="false" autocapitalize="none"><span class="hint">inside ${h(outRoots.join(', ') || 'the output folders')}</span></label>
           <label class="chk" data-out="replace"${form.outputMode === 'replace' ? '' : ' hidden'}><input type="checkbox" name="confirmReplace"> Replace each original once its copy is verified (a backup is kept until the swap succeeds)</label>
@@ -370,7 +372,8 @@ export default {
       onSegs(f, 'outputMode', (x) => { form.outputMode = x; f.querySelectorAll('[data-out]').forEach((n) => { n.hidden = n.dataset.out !== x; }); save(); });
       onSegs(f, 'verifyMode', (x) => { form.verifyMode = x; save(); });
       if (f.profileId) {
-        f.profileId.onchange = () => { form.profileId = f.profileId.value; f.querySelectorAll('[data-show]').forEach((n) => { n.hidden = n.dataset.show !== form.profileId; }); save(); };
+        f.profileId.onchange = () => { form.profileId = f.profileId.value; f.querySelectorAll('[data-show]').forEach((n) => { n.hidden = n.dataset.show !== form.profileId; }); f.querySelectorAll('[data-sized]').forEach((n) => { n.hidden = ['custom', 'quality'].includes(form.profileId); }); save(); };
+        f.keepOffTarget.onchange = () => { form.keepOffTarget = f.keepOffTarget.checked; save(); };
         f.vehicle.onchange = () => { form.vehicle = f.vehicle.value; form.dest = ''; save(); drawForm(); drawAuto(); };
       }
       f.querySelectorAll('[data-up],[data-down]').forEach((b) => {
@@ -421,6 +424,7 @@ export default {
       form.groups = GROUPS.filter((g) => f[`g-${g}`]?.checked);
       if (f.bitrateKbps) form.bitrateKbps = Number(f.bitrateKbps.value);
       if (f.qualityLevel) form.qualityLevel = f.qualityLevel.value;
+      if (f.keepOffTarget) form.keepOffTarget = f.keepOffTarget.checked;
       if (f.concurrency) form.concurrency = Number(f.concurrency.value);
       if (f.dest) form.dest = f.dest.value.trim();
       f.querySelectorAll('[name^="lane:"]').forEach((i) => { form.lanes[i.name.slice(5)] = Number(i.value) || 0; });
@@ -437,6 +441,7 @@ export default {
         profileId: form.profileId,
         ...(form.profileId === 'custom' ? { bitrateKbps: Math.round(form.bitrateKbps) } : {}),
         ...(form.profileId === 'quality' ? { qualityLevel: form.qualityLevel } : {}),
+        ...(form.keepOffTarget && !['custom', 'quality'].includes(form.profileId) ? { keepOffTarget: true } : {}),
         networkMode: 'auto',
         outputMode: form.outputMode,
         includedGroups: form.groupOrder.filter((g) => form.groups.includes(g)),
