@@ -237,8 +237,11 @@ test('the first check after a start comes within minutes, then every 12 hours', 
 test('CRITICAL_UPDATE.txt is read the same way by the build and the server', () => {
   const repo = path.join(__dirname, '..');
   const file = fs.readFileSync(path.join(repo, 'CRITICAL_UPDATE.txt'), 'utf8');
-  assert.deepEqual(criticalFromFile(file), { level: 0, reason: null }, 'no critical release yet');
-  assert.match(file, /^level: 0$/m);
+  // the committed file is well formed: a level, and a reason when it is above 0
+  const own = criticalFromFile(file);
+  assert.ok(Number.isSafeInteger(own.level) && own.level >= 0, 'a whole-number level');
+  assert.equal(own.level > 0, typeof own.reason === 'string' && own.reason.length > 0, 'a critical level has its reason');
+  assert.match(file, /^level: \d+$/m);
   assert.match(file, /^reason:/m);
   const workflow = fs.readFileSync(path.join(repo, '.github/workflows/image.yml'), 'utf8');
   assert.match(workflow, /critical: \$\{\{ steps\.critical\.outputs\.critical \}\}/);
