@@ -86,7 +86,8 @@ function createStats(options = {}) {
   const network = new NetworkProvider({ procRoot, sysRoot, now });
   const gpu = new GpuProvider({
     procRoot, sysRoot, devRoot, now, reads, sensors, spawn, timers, intervalMs, log,
-    ...(options.pciIdsFiles ? { pciIdsFiles: options.pciIdsFiles } : {})
+    ...(options.pciIdsFiles ? { pciIdsFiles: options.pciIdsFiles } : {}),
+    ...(options.findBin ? { findBin: options.findBin } : {})
   });
   const power = new PowerProvider({ sysRoot, now, intervalMs });
   // (the real file system only: a stand-in fsp in tests has no fragment size)

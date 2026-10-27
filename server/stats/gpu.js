@@ -139,6 +139,12 @@ function currentClock(text) {
   return m ? Number(m[1]) : null;
 }
 
+/** Whether a program is on PATH (or in WSL's driver folder). */
+function onPath(name) {
+  const dirs = [...String(process.env.PATH || '').split(':'), '/usr/lib/wsl/lib'];
+  return dirs.some((d) => d && exists(join(d, name)));
+}
+
 /** One CSV line of the nvidia-smi query; [N/A] and friends become null. */
 function parseNvidiaLine(line) {
   const parts = String(line).split(',').map((s) => s.trim());
@@ -272,7 +278,7 @@ class NvidiaSmi {
 }
 
 class GpuProvider {
-  constructor({ procRoot, sysRoot, devRoot, now, reads, sensors, spawn, timers, intervalMs, log, pciIdsFiles = PCI_IDS }) {
+  constructor({ procRoot, sysRoot, devRoot, now, reads, sensors, spawn, timers, intervalMs, log, pciIdsFiles = PCI_IDS, findBin = onPath }) {
     this.procRoot = procRoot;
     this.sysRoot = sysRoot;
     this.devRoot = devRoot;
@@ -287,12 +293,17 @@ class GpuProvider {
     this.perPid = new Map();
     this.drmOpen = true;
     this.hasNvidia = false;
+    this.findBin = findBin;
     this.nvidia = new NvidiaSmi({ spawn, timers, now, intervalMs, log });
   }
 
   probe() {
     // only spawn nvidia-smi on a machine that has an NVIDIA device
-    this.hasNvidia = exists(join(this.devRoot, 'nvidia0')) || exists(join(this.procRoot, 'driver', 'nvidia', 'version'));
+    // Docker Desktop on Windows (WSL 2): no /dev/nvidia0, the card comes through
+    // /dev/dxg and the NVIDIA runtime mounts nvidia-smi in from Windows
+    const wsl = exists(join(this.devRoot, 'dxg'));
+    this.hasNvidia = exists(join(this.devRoot, 'nvidia0')) || exists(join(this.procRoot, 'driver', 'nvidia', 'version'))
+      || (wsl && this.findBin('nvidia-smi'));
     const drm = join(this.sysRoot, 'class', 'drm');
     const names = listDir(drm);
     const renders = names.filter((n) => /^renderD\d+$/.test(n)).map((r) => ({ r, dev: realPath(join(drm, r, 'device')) }));
@@ -305,6 +316,8 @@ class GpuProvider {
       const link = readLink(join(dir, 'device', 'driver'));
       const driver = (link && path.basename(link)) || uevent.DRIVER || null;
       if (driver === 'nvidia') continue; // reported by nvidia-smi
+      // WSL's stand-in display device (faux_driver, d3d12): not a real GPU
+      if (wsl && (driver === 'faux_driver' || /d3d12/i.test(driver || ''))) continue;
       // display-only devices (server BMC graphics, simpledrm) have no render node
       const render = renders.find((x) => x.dev === dev);
       if (!render) continue;

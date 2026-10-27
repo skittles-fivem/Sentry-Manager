@@ -587,5 +587,5 @@ function isLink(p) {
 
 module.exports = {
   build, intelArc, amd, nvidia, pi, bare, dualXeon, NVIDIA_LINES, DUALXEON_NVIDIA_LINES, PCI_IDS, INTEL_LOADS, DUALXEON_LOADS, RAPL_MAX,
-  statLine, procStat, xeFdinfo, i915Fdinfo, amdFdinfo, netDev, diskLine, processFiles, platformHwmon, cpuinfoSockets, dualXeonSocket, MiB
+  statLine, procStat, pciGpu, xeFdinfo, i915Fdinfo, amdFdinfo, netDev, diskLine, processFiles, platformHwmon, cpuinfoSockets, dualXeonSocket, MiB
 };

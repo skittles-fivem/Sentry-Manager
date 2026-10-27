@@ -183,6 +183,31 @@ test('nvidia-smi is never started on a machine without an NVIDIA device', async 
   }
 });
 
+test('Docker Desktop on Windows: NVIDIA through /dev/dxg is read from nvidia-smi, the faux_driver stand-in is not a GPU', async () => {
+  // the NVIDIA machine as WSL 2 shows it: no /dev/nvidia0 or NVIDIA driver,
+  // /dev/dxg, and a faux_driver display device in place of the card
+  const machine = (phase = 0) => {
+    const m = M.nvidia(phase);
+    for (const k of Object.keys(m)) if (/nvidia|0000:01:00\.0|drm\/(card0|renderD128)$/.test(k)) delete m[k];
+    return { ...m, 'dev/dxg': '', ...M.pciGpu({ bdf: '0000:00:09.0', vendor: '0x1414', device: '0x008e', driver: 'faux_driver', card: 'card0', render: 'renderD128' }) };
+  };
+  for (const [label, found] of [['with nvidia-smi', true], ['without nvidia-smi', false]]) {
+    const spawn = fakeSpawn({ lines: [M.NVIDIA_LINES[0]] });
+    const s = setup(machine, { spawn, options: { findBin: () => found } });
+    try {
+      s.stats.touch();
+      await s.run(2);
+      await new Promise((r) => setImmediate(r));
+      const gpus = s.stats.snapshot().gpus;
+      assert.equal(spawn.calls.some((c) => c.cmd === 'nvidia-smi'), found, label);
+      if (found) assert.equal(gpus.find((g) => g.vendor === 'nvidia')?.powerW, 41.3, label);
+      assert.ok(!gpus.some((g) => /faux/.test(g.driver || g.name || '')), label);
+    } finally {
+      s.done();
+    }
+  }
+});
+
 test('nvidia-smi: restarted with growing backoff, once a minute is healthy, never after stop', async () => {
   const clock = fakeClock();
   const pending = [];
