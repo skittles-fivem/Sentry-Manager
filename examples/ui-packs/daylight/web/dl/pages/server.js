@@ -35,6 +35,9 @@ function spark(points, color = 'var(--accent)', floor = 10, extra = null) {
   return `<svg class="spark" viewBox="0 0 240 44" preserveAspectRatio="none" aria-hidden="true">${paths}</svg>`;
 }
 const tile = (title, sub, body, wide = false) => `<div class="card tile${wide ? ' wide' : ''}"><div class="tile-head"><h3>${esc(title)}</h3>${sub ? `<span title="${esc(sub)}">${esc(sub)}</span>` : ''}</div>${body}</div>`;
+// why a server's CPU watts are missing (/api/stats power.cpuUnavailable)
+const CPU_NA = { windows: 'CPU watts aren\'t available on Docker Desktop for Windows (Windows doesn\'t share them with Docker). NVIDIA GPU watts show when the card reports them.', vm: 'CPU watts aren\'t available inside a virtual machine.' };
+const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)' };
 const rows = (list) => {
   const r = list.filter((x) => x && x[1] !== '' && x[1] !== null && x[1] !== undefined);
   return r.length ? `<dl class="kv">${r.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join('')}</dl>` : '';
@@ -62,13 +65,23 @@ function tiles(s, hist, showAll) {
       ${rows([['Temperature', fin(g.tempC) ? temp(g.tempC) : ''], ['Power', fin(g.powerW) ? watts(g.powerW) : ''], ['Clock', fin(g.clockMHz) ? `${Math.round(g.clockMHz)} MHz` : ''], ['Converting on it', g.clients ? `${g.clients} × ffmpeg` : '']])}`));
   }
   const p = s.power;
-  if (p && (fin(p.totalW) || p.todayWh > 0 || p.weekWh > 0)) {
+  // with helpers (nodes): every server's power together, and a line each
+  const all = p?.combined && p.nodes?.length ? p.combined : null;
+  const why = CPU_NA[p?.cpuUnavailable] || '';
+  if (p && (all || why || fin(p.totalW) || p.todayWh > 0 || p.weekWh > 0)) {
     const cur = s.price?.currency || state.power?.currency || '$';
     const money = (c) => (fin(c) ? ` · about ${/^[a-z]+$/i.test(cur) ? `${c.toFixed(2)} ${cur}` : `${cur}${c.toFixed(2)}`}` : '');
-    out.push(tile('Power', 'measured', `<div class="big">${fin(p.totalW) ? watts(p.totalW) : '—'}<small>now</small></div>
+    if (all) {
+      const split = (w, cpu, gpu, na) => esc([fin(w) && watts(w), fin(cpu) && `processor ${watts(cpu)}`, fin(gpu) && `graphics ${watts(gpu)}`, !fin(cpu) && CPU_NA_SHORT[na]].filter(Boolean).join(' · ') || 'Not measured');
+      out.push(tile('Power, all servers', `${all.reporting} of ${all.servers} reporting`, `<div class="big">${fin(all.totalW) ? watts(all.totalW) : '—'}<small>now</small></div>
+      ${rows([['This server', split(p.totalW, p.cpuW, p.gpuW, p.cpuUnavailable)],
+        ...p.nodes.map((n) => [n.name, !n.online ? '<span class="muted">Offline</span>' : fin(n.totalW) || CPU_NA_SHORT[n.cpuUnavailable] ? split(n.totalW, n.cpuW, n.gpuW, n.cpuUnavailable) : '<span class="muted">Unknown</span>']),
+        ['Today', fin(all.todayWh) ? `${energy(all.todayWh)}${money(all.todayCost)}` : ''], ['This week', fin(all.weekWh) ? `${energy(all.weekWh)}${money(all.weekCost)}` : '']])}`));
+    }
+    out.push(tile(all ? 'Power, this server' : 'Power', 'measured', `<div class="big">${fin(p.totalW) ? watts(p.totalW) : '—'}<small>now</small></div>
       ${rows([['Processor', fin(p.cpuW) ? watts(p.cpuW) : fin(p.chipW) ? `${watts(p.chipW)} (whole chip)` : ''], ['Graphics', fin(p.gpuW) ? watts(p.gpuW) : fin(p.discreteW) ? watts(p.discreteW) : ''],
         ['Today', fin(p.todayWh) ? `${energy(p.todayWh)}${money(p.todayCost)}` : ''], ['This week', fin(p.weekWh) ? `${energy(p.weekWh)}${money(p.weekCost)}` : ''],
-        ['This conversion', s.encoder?.running && fin(s.encoder.run?.wh) ? energy(s.encoder.run.wh) : ''], ['Price now', fin(s.price?.now) ? `${cur}${s.price.now} per kWh${s.price.rate ? ` (${esc(s.price.rate)})` : ''}` : '']])}`));
+        ['This conversion', s.encoder?.running && fin(s.encoder.run?.wh) ? `${energy(s.encoder.run.wh)}${s.encoder.run.nodeWh > 0 ? ` (${energy(s.encoder.run.nodeWh)} on helpers)` : ''}` : ''], ['Price now', fin(s.price?.now) ? `${cur}${s.price.now} per kWh${s.price.rate ? ` (${esc(s.price.rate)})` : ''}` : '']])}${why ? `<p class="muted small">${esc(why)}</p>` : ''}`));
   }
   const m = s.memory;
   if (m && fin(m.totalB) && m.totalB > 0) {

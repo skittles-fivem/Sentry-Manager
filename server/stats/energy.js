@@ -18,6 +18,8 @@
 
 const DAYS_KEPT = 62;
 const JOBS_KEPT = 200;
+// node readings further apart than this are not joined (energy.addNode)
+const NODE_GAP_MS = 90_000;
 
 function dayKey(t) {
   const d = new Date(t);
@@ -118,6 +120,34 @@ class Energy {
     if (now) this.seen[this.job] = { clips: now.clips, savedB: now.savedB };
   }
 
+  /**
+   * A node's total W read at t, and whether it was converting clips of this
+   * server's job then. The job's energy gets the node's share: the area
+   * under the node's readings (the average of two readings times the time
+   * between them) for each stretch that begins or ends with the node
+   * converting for the job. This is an approximation: readings come only as
+   * often as the node is asked (about every 30 s), and the node's whole draw
+   * counts, idle power and any other work of its own included. A stretch
+   * longer than NODE_GAP_MS (an offline node, a missed poll) is not guessed.
+   * The node's energy counts for the job only, never for this server's days
+   * (the node counts its own days).
+   */
+  addNode(nodeId, t, watts, encoding, pricePerKwh = null) {
+    if (!this.nodes) this.nodes = Object.create(null);
+    const w = finite(watts) ? watts : null;
+    const prev = this.nodes[nodeId];
+    this.nodes[nodeId] = w === null ? null : { t, w, encoding, job: this.job };
+    if (!prev || w === null || this.job === null || prev.job !== this.job) return;
+    if (!prev.encoding && !encoding) return;
+    const ms = t - prev.t;
+    if (!(ms > 0 && ms <= NODE_GAP_MS)) return;
+    const wh = ((prev.w + w) / 2) * (ms / 3600000);
+    const j = this.jobs[this.job] || (this.jobs[this.job] = { wh: 0, seconds: 0, at: t, cost: null, base: null });
+    j.wh += wh;
+    j.nodeWh = (j.nodeWh || 0) + wh;
+    if (finite(pricePerKwh)) j.cost = (j.cost || 0) + (wh / 1000) * pricePerKwh;
+  }
+
   markJob(jobId) {
     const job = jobId === null || jobId === undefined ? null : String(jobId);
     if (job !== this.job) this.marked = true;
@@ -143,7 +173,7 @@ class Energy {
     }
     // fromEntries defines own properties, so even a job called "__proto__" is just a key
     const byJob = Object.fromEntries(Object.entries(this.jobs).map(([id, j]) => [id, {
-      wh: r3(j.wh), avgW: j.seconds > 0 ? Math.round((j.wh * 3600 / j.seconds) * 10) / 10 : null, seconds: Math.round(j.seconds), cost: money(j.cost),
+      wh: r3(j.wh), avgW: j.seconds > 0 ? Math.round((j.wh * 3600 / j.seconds) * 10) / 10 : null, seconds: Math.round(j.seconds), cost: money(j.cost), ...(j.nodeWh > 0 ? { nodeWh: r3(j.nodeWh) } : {}),
       base: j.base ? { clips: j.base.clips, savedB: j.base.savedB, wh: r3(j.base.wh) } : null
     }]));
     return {
@@ -178,7 +208,7 @@ class Energy {
     for (const [k, j] of Object.entries(data.jobs && typeof data.jobs === 'object' ? data.jobs : {})) {
       if (k.length <= 200 && j && finite(j.wh) && finite(j.seconds)) {
         // a record saved without a baseline gets one when it is counted next
-        jobs[k] = { wh: j.wh, seconds: j.seconds, at: Number(j.at) || 0, cost: finite(j.cost) ? j.cost : null, base: cleanBase(j.base, j.wh) };
+        jobs[k] = { wh: j.wh, seconds: j.seconds, at: Number(j.at) || 0, cost: finite(j.cost) ? j.cost : null, base: cleanBase(j.base, j.wh), ...(finite(j.nodeWh) && j.nodeWh <= j.wh ? { nodeWh: j.nodeWh } : {}) };
       }
     }
     this.days = perDay(data.days);

@@ -282,6 +282,9 @@ details.more p { margin-top: 10px; color: var(--text-2); max-width: 760px; }
 .nd-kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 12px 0 0; font-size: 13px; }
 .nd-kv dt { color: var(--muted); }
 .nd-kv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+/* Power with nodes: every server's together, above this server's own */
+.nd-servers { padding-bottom: 12px; margin-bottom: 2px; border-bottom: 1px solid var(--border); }
+.nd-kv-servers dt { min-width: 0; max-width: 14em; overflow-wrap: anywhere; }
 .nd-rows { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 12px; font-size: 13px; }
 .nd-rows > div { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
 .nd-rows b { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }

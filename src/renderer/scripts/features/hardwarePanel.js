@@ -178,6 +178,14 @@ export function renderHardware(stats, memo = null) {
         : [fin(power.cpuW) && `CPU ${Math.round(power.cpuW)}`, fin(power.gpuW) && `GPU ${Math.round(power.gpuW)}`].filter(Boolean);
     tile('power', fin(total) && `<div><span>Power</span><b>${watts(total)}</b><small>${parts.length ? parts.join(' · ') : '&nbsp;'}</small></div>`,
         '<div><span>Power</span><b>—</b><small>&nbsp;</small></div>');
+    // with nodes: every server's power together (this one and each node that reports)
+    const combined = power.combined && Array.isArray(power.nodes) && power.nodes.length ? power.combined : null;
+    if (combined) {
+        const servers = [['This server', power.totalW, true], ...power.nodes.map((n) => [n.name, n.online ? n.totalW : null, n.online])];
+        const split = servers.map(([name, w, on]) => `${esc(name)} ${fin(w) ? Math.round(w) : on ? '—' : 'offline'}`).join(' · ');
+        tile('servers', fin(combined.totalW) && `<div><span>All servers</span><b>${watts(combined.totalW)}</b><small title="${esc(split.replace(/&[^;]+;/g, ''))}">${split}</small></div>`,
+            '<div><span>All servers</span><b>—</b><small>&nbsp;</small></div>');
+    }
     // with several GPUs, the hottest of the ones converting
     const gpuTemps = (several ? devices.filter((d) => d.hardware).map((d) => gpuFor(gpus, { node: d.node, gpuName: d.name })) : [gpu])
         .map((g) => g?.tempC).filter(fin);
@@ -197,6 +205,8 @@ export function renderHardware(stats, memo = null) {
         const since = fin(run.sinceWh) ? Math.max(run.sinceWh, FLOOR_WH) : null;
         const perKwh = (n) => (since !== null && fin(n) && n > 0 ? n / (since / 1000) : 0);
         eff.push(['This run', energyText(run.wh)]);
+        // the nodes' share of it, when clips converted on nodes
+        if (fin(run.nodeWh) && run.nodeWh > 0) eff.push(['On nodes', energyText(run.nodeWh)]);
         eff.push(['Clips per kWh', group(perKwh(run.clips))]);
         eff.push(['Space saved per kWh', gb(perKwh(run.savedB))]);
         // the server measures the GPU's power but not the CPU's (as last

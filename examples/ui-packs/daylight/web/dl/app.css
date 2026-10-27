@@ -361,6 +361,7 @@ dialog.dlg[open] { animation: pop 240ms var(--ease) both; }
 .stat { background: var(--surface-2); border-radius: 14px; padding: 12px 14px; }
 .stat span { display: block; font-size: 13.5px; color: var(--muted); font-weight: 600; }
 .stat b { font-size: 21px; font-variant-numeric: tabular-nums; }
+.stat small { display: block; margin-top: 2px; font-size: 12px; overflow-wrap: anywhere; }
 .stepper { display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border-radius: 999px; padding: 4px; }
 .stepper button { width: 44px; height: 44px; border-radius: 999px; border: 0; background: var(--surface); color: var(--text); cursor: pointer; display: grid; place-items: center; box-shadow: var(--shadow-1); }
 .stepper button:disabled { opacity: .4; cursor: not-allowed; }

@@ -169,6 +169,10 @@ export default {
       $('#cpu-heat-note').textContent = ncore ? `${ncore} threads × ${buf.cores.filter(Boolean).length} samples` : 'no per-core numbers from this server';
     }
 
+    // why a server's CPU watts are missing (/api/stats power.cpuUnavailable)
+    const CPU_NA = { windows: 'CPU watts aren\'t available on Docker Desktop for Windows (Windows doesn\'t share them with Docker). NVIDIA GPU watts show when the card reports them.', vm: 'CPU watts aren\'t available inside a virtual machine.' };
+    const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)' };
+
     function kv(rows) {
       return rows.filter((r) => r && r[1] !== undefined && r[1] !== null && r[1] !== '').map(([k, v, tone]) => `<dt>${esc(k)}</dt><dd class="num${tone ? ` ${tone}` : ''}">${esc(v)}</dd>`).join('');
     }
@@ -206,17 +210,26 @@ export default {
       const p = s.power || {};
       const cur = s.price?.currency || state.power?.currency || '$';
       const tot = fin(p.totalW) ? p.totalW : [p.cpuW, p.gpuW].filter(fin).reduce((a, b) => a + b, 0) || null;
-      $('#power-big').textContent = watts(tot);
-      $('#power-sub').textContent = p.cpuSource || p.gpuSource ? `measured · ${[p.cpuSource, p.gpuSource].filter(Boolean).join(' + ')}` : 'no power sensor readable';
+      // with nodes: all servers together up top, then a row per server
+      const all = p.combined && (p.nodes || []).length ? p.combined : null;
+      const split = (w, c, g, na) => [fin(w) ? watts(w) : null, fin(c) ? `cpu ${watts(c)}` : null, fin(g) ? `gpu ${watts(g)}` : null, !fin(c) && CPU_NA_SHORT[na]].filter(Boolean).join(' · ') || 'not measured';
+      $('#power-big').textContent = all ? watts(all.totalW) : watts(tot);
+      const why = CPU_NA[p.cpuUnavailable] || '';
+      $('#power-sub').textContent = all ? `all servers · ${all.reporting}/${all.servers} reporting` : p.cpuSource || p.gpuSource ? `measured · ${[p.cpuSource, p.gpuSource].filter(Boolean).join(' + ')}` : why ? CPU_NA_SHORT[p.cpuUnavailable] : 'no power sensor readable';
       const perHour = fin(tot) && fin(s.price?.now) ? (tot / 1000) * s.price.now : null;
-      $('#power-kv').innerHTML = kv([
+      $('#power-kv').innerHTML = (all ? kv([
+        ['this server', split(tot, p.cpuW, p.gpuW, p.cpuUnavailable)],
+        ...p.nodes.map((n) => [n.name, !n.online ? 'offline' : fin(n.totalW) || CPU_NA_SHORT[n.cpuUnavailable] ? split(n.totalW, n.cpuW, n.gpuW, n.cpuUnavailable) : 'unknown', n.online && fin(n.totalW) ? '' : 'faint']),
+        ['all today', `${energy(all.todayWh)}${fin(all.todayCost) ? ` · ${money(all.todayCost, cur)}` : ''}`],
+        ['all this week', `${energy(all.weekWh)}${fin(all.weekCost) ? ` · ${money(all.weekCost, cur)}` : ''}`]
+      ]) + '<dt class="kv-sep">this server</dt><dd class="kv-sep"></dd>' : '') + kv([
         ['CPU package', fin(p.cpuW) ? watts(p.cpuW) : null], ['GPU', fin(p.gpuW) ? watts(p.gpuW) : null], ['whole chip', fin(p.chipW) ? watts(p.chipW) : null],
         ['today', `${energy(p.todayWh)}${fin(p.todayCost) ? ` · ${money(p.todayCost, cur)}` : ''}`],
         ['this week', `${energy(p.weekWh)}${fin(p.weekCost) ? ` · ${money(p.weekCost, cur)}` : ''}`],
         ['price now', fin(s.price?.now) ? `${money(s.price.now, cur)}/kWh${s.price.rate ? ` · ${s.price.rate}` : ''}` : 'not set'],
         ['cost per hour', perHour !== null ? `≈ ${money(perHour, cur)}/h` : null],
-        ['converting', s.encoder?.run && fin(s.encoder.run.wh) ? `${energy(s.encoder.run.wh)} · avg ${watts(s.encoder.run.avgW)}` : null]
-      ]);
+        ['converting', s.encoder?.run && fin(s.encoder.run.wh) ? `${energy(s.encoder.run.wh)} · avg ${watts(s.encoder.run.avgW)}${s.encoder.run.nodeWh > 0 ? ` · ${energy(s.encoder.run.nodeWh)} on nodes` : ''}` : null]
+      ]) + (why ? `<dd class="kv-note">${esc(why)}</dd>` : '');
       // memory
       const m = s.memory || {};
       const mp = fin(m.usedB) && m.totalB ? (m.usedB / m.totalB) * 100 : null;
@@ -292,7 +305,9 @@ export default {
         k('Recycle Bin', bytes(binB), plural(vs.reduce((n, x) => n + (x.binItems || 0), 0), 'item'), '', '#/bin'),
         k('Attention', String(open.length), open.some((n) => n.level === 'critical') ? 'critical open' : 'open notifications', open.some((n) => n.level === 'critical') ? 'bad' : open.length ? 'warn' : '', '#/notifications'),
         k('CPU', pct(s?.cpu?.usage), s?.cpu?.load ? `load ${s.cpu.load[0]}` : '—'),
-        k('Power', watts(tot), s?.power?.todayWh ? `${energy(s.power.todayWh)} today` : 'no sensor'),
+        s?.power?.combined && s.power.nodes?.length
+          ? k('Power', watts(s.power.combined.totalW), `all servers · this one ${watts(tot)}`)
+          : k('Power', watts(tot), s?.power?.todayWh ? `${energy(s.power.todayWh)} today` : 'no sensor'),
         k('Encoder', s?.encoder ? (s.encoder.running ? 'running' : s.encoder.state || 'idle') : 'idle', s?.encoder ? `${s.encoder.workers.length} lanes busy` : 'no job', s?.encoder?.running ? 'hot' : '', '#/encoder')
       ].join('');
     }

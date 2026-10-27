@@ -55,6 +55,7 @@ const { createSmbTester } = require('./smbTest');
 const { diskSpace } = require('../src/main/converter/fsSpace');
 const { createNodes } = require('./nodes');
 const { createNodeWorker } = require('./nodeWorker');
+const { powerReport, combine: combinePower } = require('./nodePower');
 const { createNodeBenchmark } = require('./nodeBenchmark');
 const { run } = require('./proc');
 const { Telemetry } = require('./telemetry');
@@ -303,7 +304,11 @@ async function main() {
   const policies = new Policies({ db, vehicles, inventory, bin, log: logger.scope('policies') });
 
   // Nodes: other servers that encode for this one (server/nodes.js)
-  const nodes = createNodes({ db, log: logger.scope('nodes'), audit: logger.scope('audit') });
+  const nodes = createNodes({
+    db, log: logger.scope('nodes'), audit: logger.scope('audit'),
+    // each node's power as it reports it: its share of a running job's energy
+    onPower: (nodeId, at, w, encoding) => stats.nodePower(nodeId, at, w, encoding)
+  });
   // Settings > Interface: an interface of the owner's own (server/uiPacks.js)
   // (the packs that come with the app: ui-packs in the image, examples/ui-packs in a checkout)
   const builtinPacks = [path.join(APP_ROOT, 'ui-packs'), path.join(APP_ROOT, 'examples', 'ui-packs')].find((d) => fs.existsSync(d)) || null;
@@ -390,7 +395,14 @@ async function main() {
     db, log: logger.scope('nodes'), audit: logger.scope('audit'),
     authority: () => tlsSource?.caPem() || null,
     workDir: path.join(DATA, 'node-work'), ffmpegPath: FFMPEG,
-    runtime: () => host.runtime
+    runtime: () => host.runtime,
+    // this server's power for the main's "All servers" total: the main asks
+    // about every 30 s, so sampling holds 45 s and the numbers stay live
+    power: () => {
+      statsAskedAt = Date.now();
+      stats.touch(45_000);
+      return powerReport(stats.snapshot());
+    }
   });
 
   // ---- live events to the browser
@@ -1030,8 +1042,12 @@ async function main() {
     const power = db.get('power', null);
     const now = Date.now();
     const priceNow = priceAt(power, now);
+    // every node's power with this server's: "All servers" (nodePower.js);
+    // with no nodes, nothing is added
+    const nodePower = combinePower(snapshot.power, nodes.power(), priceNow);
     return {
       ...snapshot,
+      ...(nodePower.combined ? { power: { ...snapshot.power, nodes: nodePower.nodes, combined: nodePower.combined } } : {}),
       price: priceNow === null ? null : { currency: power.currency, mode: power.mode, now: priceNow, rate: rateNameAt(power, now) },
       // the job's own clips (a running benchmark's are left out)
       encoder: encoderBlock({
@@ -1491,7 +1507,7 @@ async function main() {
     if (terminal && existing?.status === 'running') {
       const measured = stats.energy().byJob?.[s.id] || null;
       // (its baseline stays with the stats engine)
-      const energy = measured ? { wh: measured.wh, avgW: measured.avgW, seconds: measured.seconds, cost: measured.cost } : null;
+      const energy = measured ? { wh: measured.wh, avgW: measured.avgW, seconds: measured.seconds, cost: measured.cost, ...(measured.nodeWh ? { nodeWh: measured.nodeWh } : {}) } : null;
       jobs.finish(jobId, { status: c.failed > 0 || s.state === 'failed' ? 'failed' : s.state === 'cancelled' ? 'cancelled' : 'done', detail, ...(energy ? { result: { energy } } : {}) });
       if (c.failed > 0) {
         notes.raise({ kind: 'conversion', level: 'warning', vehicleId: v?.id || null, dedupeKey: `conversion-failed:${s.id}`,

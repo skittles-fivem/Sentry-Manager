@@ -135,6 +135,8 @@ function encoderBlock({ snapshot, jobs, workers = [], energy = null, slotsOf = n
       wh: run ? r1(run.wh) : null,
       avgW: run ? Math.round(run.avgW) : null,
       cost: run?.cost ?? null,
+      // the nodes' share of wh (and of cost), when clips converted on nodes
+      ...(run?.nodeWh > 0 ? { nodeWh: r1(run.nodeWh) } : {}),
       clips: run ? (base ? Math.max(0, now.clips - base.clips) : 0) : now.clips,
       savedB: run ? (base ? Math.max(0, now.savedB - base.savedB) : 0) : now.savedB,
       // the energy the clips above were converted with

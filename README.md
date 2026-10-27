@@ -154,7 +154,10 @@ them (`ls /sys/devices/virtual/powercap` shows a folder; most Intel and AMD
 PCs and NAS boxes do). It is off by default because Docker refuses to start
 the container where that folder does not exist (a Raspberry Pi, some mini
 PCs and VMs, Windows/WSL); Overview → Server says when it is worth turning
-on. One optional line
+on. On Docker Desktop for Windows (WSL2) and inside other virtual machines
+CPU watts cannot be read at all, so the power tile says so instead of
+suggesting the line; GPU watts still show when the card reports them (NVIDIA
+does). One optional line
 adds the whole server's processes and network (`pid: host`); it also lets
 the container see and signal the server's processes, so use it only with a
 PUID/PGID of its own.
@@ -441,6 +444,19 @@ Security:
   number of clips at a time.
 - Only pair computers you own: a picture comparison catches swapped or
   blanked footage, not a small change to part of the picture.
+
+**Power across servers.** Each node reports its own power (CPU and GPU
+watts, and its energy today and this week) to the main over the same pinned
+connection, about every 30 seconds. With nodes paired, the Overview's Power
+tile (and the power card of every interface) shows **All servers** first:
+the total of this server and every node that reports, then a line per server
+with its CPU and GPU watts. A node that is offline, has not answered for over
+a minute, or runs an older version is listed as offline or unknown and left
+out of the total. Costs of a node's energy use this server's electricity
+price. A conversion's energy (the Encoder, Jobs) includes the nodes that
+converted its clips: their readings while they held its clips, which also
+counts their idle power. Readings come every 30 seconds or so, so it is an
+estimate. Only numbers are sent: watts, watt-hours and GPU names.
 
 A node needs its own HTTPS (the default; not `TLS_MODE=off`). It uses the
 same port as its web page, so there is nothing to add to `docker-compose.yml`.

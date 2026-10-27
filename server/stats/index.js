@@ -26,7 +26,7 @@ const { SensorsProvider } = require('./sensors');
 const { DisksProvider } = require('./disks');
 const { NetworkProvider } = require('./network');
 const { GpuProvider } = require('./gpu');
-const { PowerProvider } = require('./power');
+const { PowerProvider, cpuUnavailable } = require('./power');
 const { FilesystemsProvider } = require('./filesystems');
 const { HostInfo, probeFfmpeg } = require('./host');
 const { Alerts } = require('./alerts');
@@ -101,7 +101,7 @@ function createStats(options = {}) {
   let sampling = false;
   let stopped = false;
   let timer = null;
-  let lastTouch = null;
+  let watchUntil = null; // a page (or a main polling this node) watches until then
   let samplingSince = null;
   let probedAt = null;
   let lastSave = now();
@@ -232,7 +232,7 @@ function createStats(options = {}) {
     const out = [];
     // give the supervisor a few seconds to send its first RAPL reading; a
     // virtual machine has no counters to bind, so no hint there
-    if (cpu.info.x86 && !cpu.info.virtual && cpuW === null && !power.hasRapl(t) && samplingSince !== null && t - samplingSince >= 3 * intervalMs) {
+    if (cpu.info.x86 && !cpu.info.virtual && !host.static?.wsl && cpuW === null && !power.hasRapl(t) && samplingSince !== null && t - samplingSince >= 3 * intervalMs) {
       out.push({ key: 'cpu-power', ...UNLOCK['cpu-power'] });
     }
     if (procs.scope !== 'host') out.push({ key: 'host-view', ...UNLOCK['host-view'] });
@@ -248,7 +248,7 @@ function createStats(options = {}) {
       cpu: { model: null, cores: null, threads: null, usage: null, perCore: [], freqMHz: null, tempC: null, load: null, app: { usage: null, ffmpegUsage: null, ffmpegCount: null }, throttling: false, sockets: 1, perSocket: null },
       memory: { totalB: null, usedB: null, availableB: null, cacheB: null, swapTotalB: null, swapUsedB: null, appB: null },
       gpus: [],
-      power: { totalW: null, cpuW: null, gpuW: null, chipW: null, discreteW: null, todayWh: null, weekWh: null, todayCost: null, weekCost: null, priceNow: null, cpuSource: null, gpuSource: null },
+      power: { totalW: null, cpuW: null, gpuW: null, chipW: null, discreteW: null, todayWh: null, weekWh: null, todayCost: null, weekCost: null, priceNow: null, cpuSource: null, gpuSource: null, cpuUnavailable: null },
       disks: [],
       filesystems: [],
       network: { scope: 'container', interfaces: [], today: null, week: null, month: null },
@@ -300,7 +300,8 @@ function createStats(options = {}) {
       },
       memory,
       gpus: gpus.map(({ powerSource, ...g }) => g),
-      power: { ...pw, todayWh: es.todayWh, weekWh: es.weekWh, todayCost: es.todayCost, weekCost: es.weekCost, priceNow },
+      // (why the CPU's watts are missing: 'windows', 'vm' or null)
+      power: { ...pw, cpuUnavailable: cpuUnavailable({ cpuW: pw.cpuW, wsl: host.static?.wsl === true, virtual: cpu.info.virtual === true }), todayWh: es.todayWh, weekWh: es.weekWh, todayCost: es.todayCost, weekCost: es.weekCost, priceNow },
       disks: diskList,
       filesystems: fsList,
       network: { ...net, today: used.today, week: used.week, month: used.month },
@@ -327,7 +328,7 @@ function createStats(options = {}) {
   }
 
   const busy = () => Boolean(callSafe(isBusy));
-  const wanted = (t) => (lastTouch !== null && t - lastTouch < WATCH_MS) || busy() || energy.active();
+  const wanted = (t) => (watchUntil !== null && t < watchUntil) || busy() || energy.active();
 
   function schedule(ms) {
     timer = timers.setTimeout(tick, ms);
@@ -389,11 +390,21 @@ function createStats(options = {}) {
       return { ...body };
     },
 
-    /** A page is watching: sample for the next 15 s. */
-    touch() {
+    /** A page is watching: sample for the next 15 s (or holdMs, up to 2 minutes). */
+    touch(holdMs = WATCH_MS) {
       if (stopped) return;
-      lastTouch = now();
+      const hold = Math.min(Math.max(Number(holdMs) || WATCH_MS, WATCH_MS), 120_000);
+      watchUntil = Math.max(watchUntil ?? 0, now() + hold);
       start();
+    },
+
+    /**
+     * A node's total W read at t while `encoding` (clips of this server's
+     * job on it): its share of the running job's energy (energy.js addNode).
+     */
+    nodePower(nodeId, t, w, encoding) {
+      energy.addNode(String(nodeId), Number(t), w, Boolean(encoding), price(Number(t)));
+      dirty = true;
     },
 
     history(range) {

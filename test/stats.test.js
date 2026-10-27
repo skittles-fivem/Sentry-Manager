@@ -160,7 +160,7 @@ test('AMD desktop: k10temp, amdgpu sysfs and per-process video engine from fdinf
       vramUsedB: 1073741824, vramTotalB: 8573157376, clockMHz: 2044, tempC: 61, powerW: 85, clients: 1, integrated: false
     }]);
     assert.deepEqual(snap.power, {
-      totalW: 85, cpuW: null, gpuW: 85, chipW: null, discreteW: null, cpuSource: null, gpuSource: 'hwmon', todayWh: snap.power.todayWh, weekWh: snap.power.weekWh,
+      totalW: 85, cpuW: null, gpuW: 85, chipW: null, discreteW: null, cpuSource: null, gpuSource: 'hwmon', cpuUnavailable: null, todayWh: snap.power.todayWh, weekWh: snap.power.weekWh,
       todayCost: null, weekCost: null, priceNow: null
     });
     assert.deepEqual(snap.disks, [{ name: 'sdb', model: 'Samsung SSD 870', readBps: MiB, writeBps: 0, tempC: null, kind: 'ssd', busy: 0 }]);
@@ -224,7 +224,7 @@ test('Raspberry Pi: ARM board name, thermal zone as CPU temperature, V3D listed 
     }], 'VC4 only drives the display (no render node)');
     assert.deepEqual(snap.disks.map((d) => [d.name, d.model, d.kind]), [['mmcblk0', 'SC64G', 'other']]);
     assert.equal(snap.memory.swapUsedB, 51198 * 1024);
-    assert.deepEqual(snap.power, { totalW: null, cpuW: null, gpuW: null, chipW: null, discreteW: null, cpuSource: null, gpuSource: null, todayWh: 0, weekWh: 0, todayCost: null, weekCost: null, priceNow: null });
+    assert.deepEqual(snap.power, { totalW: null, cpuW: null, gpuW: null, chipW: null, discreteW: null, cpuSource: null, gpuSource: null, cpuUnavailable: null, todayWh: 0, weekWh: 0, todayCost: null, weekCost: null, priceNow: null });
     assert.ok(!snap.unlock.some((u) => u.key === 'cpu-power'), 'no RAPL on ARM, so no hint for it');
   } finally {
     s.done();
@@ -408,6 +408,32 @@ test('a virtual machine gets no "CPU power" hint (there is nothing to bind there
       s.stats.sampleNow();
     }
     assert.deepEqual(s.stats.snapshot().unlock.map((u) => u.key), ['host-view']);
+    assert.equal(s.stats.snapshot().power.cpuUnavailable, 'vm', 'the reason, for the power tile');
+  } finally {
+    s.done();
+  }
+});
+
+test('Docker Desktop for Windows (WSL2): no "CPU power" hint, and the reason is Windows', async () => {
+  const wsl = (phase) => {
+    const spec = M.amd(phase);
+    spec['proc/sys/kernel/osrelease'] = '5.15.153.1-microsoft-standard-WSL2\n';
+    return spec;
+  };
+  const held = { setTimeout: () => ({ unref() {} }), clearTimeout() {} };
+  const s = setup(wsl, { appPid: 8, timers: held });
+  try {
+    s.stats.touch();
+    for (let p = 1; p <= 4; p++) {
+      s.m.update(wsl(p));
+      s.clock.advance(2000);
+      s.stats.sampleNow();
+    }
+    const snap = s.stats.snapshot();
+    assert.equal(snap.host.os, 'Windows (WSL)');
+    assert.equal('wsl' in snap.host, false);
+    assert.deepEqual(snap.unlock.map((u) => u.key), ['host-view']);
+    assert.equal(snap.power.cpuUnavailable, 'windows');
   } finally {
     s.done();
   }

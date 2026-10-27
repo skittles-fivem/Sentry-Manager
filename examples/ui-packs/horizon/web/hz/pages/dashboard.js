@@ -168,6 +168,22 @@ export default {
     }
     // what a poll redraws (a highlight in the vehicles, attention or the log holds none of it)
     const STATS = () => [el.querySelector('.cluster'), $('#d-host')?.closest('section'), $('#d-enc'), $('#d-fs'), $('#d-gpu'), $('#d-procs')];
+    // why a server's CPU watts are missing (/api/stats power.cpuUnavailable)
+    const CPU_NA = { windows: 'CPU watts aren\'t available on Docker Desktop for Windows (Windows doesn\'t share them with Docker). NVIDIA GPU watts show when the card reports them.', vm: 'CPU watts aren\'t available inside a virtual machine.' };
+    const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)' };
+    // Nodes' power with this server's (/api/stats power.combined and
+    // power.nodes): '' with no nodes
+    function allServers(p, tot, cur) {
+      const c = p.combined;
+      if (!c || !p.nodes?.length) return '';
+      const split = (w, cpu, gpu, na) => {
+        const parts = [ok(cpu) && `CPU ${watt(cpu)}`, ok(gpu) && `GPU ${watt(gpu)}`, !ok(cpu) && CPU_NA_SHORT[na]].filter(Boolean);
+        return `${watt(w)}${parts.length ? ` (${parts.join(' · ')})` : ''}`;
+      };
+      const rows = [['This server', split(tot, p.cpuW, p.gpuW, p.cpuUnavailable)], ...p.nodes.map((n) => [n.name, !n.online ? 'offline' : ok(n.totalW) || CPU_NA_SHORT[n.cpuUnavailable] ? split(n.totalW, n.cpuW, n.gpuW, n.cpuUnavailable) : 'unknown'])];
+      return `<div class="meter"><div class="m-top"><span class="m-l">All servers</span><b class="m-v num">${h(watt(c.totalW))}</b></div>${bar(ok(c.totalW) ? Math.min(100, c.totalW / 6) : null, 'org')}`
+        + `<span class="m-s small faint">${rows.map(([k, v]) => `<span class="srv"><b>${h(k)}</b> ${h(v)}</span>`).join(' · ')}<br>today ${h(wh(c.todayWh))}${ok(c.todayCost) ? ` ${h(cash(c.todayCost, cur))}` : ''} · week ${h(wh(c.weekWh))}${ok(c.weekCost) ? ` ${h(cash(c.weekCost, cur))}` : ''}</span></div>`;
+    }
     function drawStats() {
       const s = stats;
       if (!s) return;
@@ -188,7 +204,9 @@ export default {
         meter('CPU', pc(cpu.usage), cpu.usage, 'cpu', { max: 100, sub: [cpu.model, ok(cpu.cores) && `${cpu.cores} cores / ${cpu.threads} threads`, Array.isArray(cpu.load) && `load ${cpu.load.map((x) => (ok(x) ? x.toFixed(2) : '—')).join(' ')}`, cpu.app?.ffmpegCount ? `ffmpeg ×${cpu.app.ffmpegCount}${ok(cpu.app.ffmpegUsage) ? ` ${pc(cpu.app.ffmpegUsage)}` : ''}` : null, ok(cpu.freqMHz) && `${(cpu.freqMHz / 1000).toFixed(2)} GHz`].filter(Boolean).join(' · ') }),
         meter('Memory', pc(memP), memP, 'mem', { max: 100, sub: `${size(m.usedB)} of ${size(m.totalB)} · app ${size(m.appB)} · cache ${size(m.cacheB)}${m.swapTotalB ? ` · swap ${size(m.swapUsedB)}/${size(m.swapTotalB)}` : ''}` }),
         meter('GPU', g.length ? pc(last('gpu')) : 'none', last('gpu'), 'gpu', { max: 100, sub: g.length ? g.map((x) => x.name).join(', ') : 'No GPU visible: encodes use the CPU' }),
-        meter('Power', watt(tot), ok(tot) ? Math.min(100, tot / 3) : null, 'power', { tone: 'org', sub: ok(tot) || p.todayWh ? `today ${wh(p.todayWh)}${ok(p.todayCost) ? ` ${cash(p.todayCost, cur)}` : ''} · week ${wh(p.weekWh)}${ok(p.weekCost) ? ` ${cash(p.weekCost, cur)}` : ''}${perHour !== null ? ` · ≈${cash(perHour, cur)}/h` : ''}${ok(s.price?.now) ? ` · ${cash(s.price.now, cur)}/kWh` : ''}` : 'No power sensor readable' }),
+        // with nodes: every server's power together, then this one's own
+        allServers(p, tot, cur),
+        meter(p.combined && p.nodes?.length ? 'This server' : 'Power', watt(tot), ok(tot) ? Math.min(100, tot / 3) : null, 'power', { tone: 'org', sub: ok(tot) || p.todayWh ? `today ${wh(p.todayWh)}${ok(p.todayCost) ? ` ${cash(p.todayCost, cur)}` : ''} · week ${wh(p.weekWh)}${ok(p.weekCost) ? ` ${cash(p.weekCost, cur)}` : ''}${perHour !== null ? ` · ≈${cash(perHour, cur)}/h` : ''}${ok(s.price?.now) ? ` · ${cash(s.price.now, cur)}/kWh` : ''}${!ok(p.cpuW) && CPU_NA_SHORT[p.cpuUnavailable] ? ` · ${CPU_NA_SHORT[p.cpuUnavailable]}` : ''}` : CPU_NA[p.cpuUnavailable] || 'No power sensor readable' }),
         meter('Network', `↓ ${perSec(last('rx'))}`, null, 'rx', { rate: true, pair: 'tx', subHtml: true, sub: `<span class="k-cyan">↓ download</span> · <span class="k-org">↑ upload ${h(perSec(last('tx')))}</span> · ${h(`${(s.network?.interfaces || []).map((i) => `${i.name}${ok(i.speedMbps) ? ` ${i.speedMbps} Mb/s` : ''}`).join(', ')} · ${s.network?.scope === 'host' ? 'whole server' : 'this container'}${s.network?.today ? ` · today ↓${size(s.network.today.rxB)} ↑${size(s.network.today.txB)}` : ''}`)}` }),
         meter('Disks', `R ${perSec(last('dr'))}`, null, 'dr', { rate: true, pair: 'dw', subHtml: true, sub: `<span class="k-cyan">— read</span> · <span class="k-org">— write ${h(perSec(last('dw')))}</span>` }),
         meter('Hottest', ok(t) ? `${Math.round(t)} °C` : '—', ok(t) ? t : null, 'temp', { tone: 'org', max: 100, sub: ok(t) ? 'CPU, GPU, disks and sensors' : 'No temperature sensor readable' })
@@ -217,7 +235,7 @@ export default {
       const e = s.encoder;
       $('#d-enc').innerHTML = e ? `<div class="row"><span class="pill ${e.running ? 'cyan' : 'org'}">${h(e.state || 'idle')}</span><span class="small dim">${e.workers.length} of ${e.concurrency ?? '—'} lanes busy${e.device ? ` · ${h(e.device.encoder)}${e.device.gpuName ? ` on ${h(e.device.gpuName)}` : ''}` : ''}</span></div>
           ${e.workers.map((w) => `<div class="lane-mini"><span class="mono ell small">${h(String(w.relativePath || '').split('/').pop())}</span>${bar(w.durationUs ? (w.outTimeUs / w.durationUs) * 100 : 0)}<span class="num small">${ok(w.fps) ? `${Math.round(w.fps)} fps` : ''}</span></div>`).join('')}
-          <p class="small faint">${fixed(e.run?.clips)} clips this run · saved ${size(e.run?.savedB)}${e.run && ok(e.run.wh) ? ` · ${wh(e.run.wh)}` : ''}</p>` : '<p class="small dim">The engine is idle. No conversion is running.</p><a class="btn sm" href="#/encoder?new=1">' + ico('play') + 'Start a conversion</a>';
+          <p class="small faint">${fixed(e.run?.clips)} clips this run · saved ${size(e.run?.savedB)}${e.run && ok(e.run.wh) ? ` · ${wh(e.run.wh)}${e.run.nodeWh > 0 ? ` (${wh(e.run.nodeWh)} on nodes)` : ''}` : ''}</p>` : '<p class="small dim">The engine is idle. No conversion is running.</p><a class="btn sm" href="#/encoder?new=1">' + ico('play') + 'Start a conversion</a>';
       $('#d-fs').innerHTML = (s.filesystems || []).map((f) => {
         const u = ok(f.usedB) && f.totalB ? (f.usedB / f.totalB) * 100 : null;
         return `<div class="fs"><div class="row"><b>${h(f.label)}</b><span class="num small dim">${u === null ? '—' : `${size(f.freeB)} free`}</span></div>${bar(u, u > 92 ? 'red' : u > 80 ? 'org' : '')}<p class="mono tiny faint ell">${h(f.path)}</p>

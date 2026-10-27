@@ -82,6 +82,9 @@ function probeFfmpeg({ spawn, ffmpegPath, timers }) {
   });
 }
 
+/** Docker Desktop for Windows (WSL2): its kernel's release says so. */
+const isWsl = (release) => /microsoft|WSL/i.test(String(release || ''));
+
 class HostInfo {
   constructor({ procRoot, version }) {
     this.procRoot = procRoot;
@@ -95,6 +98,7 @@ class HostInfo {
       hostname: readLine(join(this.procRoot, 'sys', 'kernel', 'hostname')) || os.hostname() || null,
       os: osFromKernel(kernel, readText(join(this.procRoot, 'version'))),
       kernel,
+      wsl: isWsl(kernel),
       arch: readLine(join(this.procRoot, 'sys', 'kernel', 'arch')) || (typeof os.machine === 'function' ? os.machine() : os.arch()),
       version: this.version,
       node: process.version
@@ -103,8 +107,9 @@ class HostInfo {
 
   info({ uptimeS, appStartS, ffmpeg }) {
     const appUptimeS = uptimeS !== null && appStartS !== null ? Math.round(uptimeS - appStartS) : null;
+    const { wsl: _wsl, ...known } = this.static || {};
     return {
-      ...(this.static || {}),
+      ...known,
       uptimeS: uptimeS === null ? null : Math.round(uptimeS),
       appUptimeS: appUptimeS !== null && appUptimeS >= 0 ? appUptimeS : null,
       ffmpeg
@@ -112,4 +117,4 @@ class HostInfo {
   }
 }
 
-module.exports = { HostInfo, osFromKernel, appVersion, parseFfmpegVersion, probeFfmpeg };
+module.exports = { HostInfo, isWsl, osFromKernel, appVersion, parseFfmpegVersion, probeFfmpeg };

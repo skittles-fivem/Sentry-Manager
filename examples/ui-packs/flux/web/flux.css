@@ -152,6 +152,10 @@ td.ell { display: table-cell; }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 8px 0; font-size: 13px; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+/* Power with nodes: all servers above, this server's own below the line */
+.kv dt.kv-sep { grid-column: 1 / -1; padding-top: 6px; border-top: 1px solid var(--line-soft); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+.kv dd.kv-sep { display: none; }
+.kv dd.kv-note { grid-column: 1 / -1; color: var(--muted); }
 .kv.tight { gap: 3px 12px; font-size: 12px; }
 .kv.tight dt { color: var(--faint); font-family: var(--mono); font-size: 11px; }
 .devlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }

@@ -16,7 +16,8 @@
 // Requests (HTTPS, /node/v1, the token as "Authorization: Bearer"):
 //   GET    /info                  name, encoders, slots, and `devices`: this
 //                                  server's own GPUs and its CPU, each with its
-//                                  encoders and clips at once
+//                                  encoders and clips at once; `power`: its
+//                                  live watts and energy (numbers only)
 //   POST   /jobs                  the clip as the body, settings in X-Node-Job
 //                                  (with `device`: encoded on that GPU or CPU)
 //   POST   /slots                 clips at once: { slots: n } (older mains, the
@@ -125,7 +126,7 @@ function parseJobSettings(raw) {
  * or null, workDir, ffmpegPath, spawn, runtime: () => converter runtime
  * (selectEncoder, cpuEncoder), name, now }
  */
-function createNodeWorker({ db, log, audit = log, authority = () => null, workDir, ffmpegPath = 'ffmpeg', spawn = require('child_process').spawn, runtime, name = os.hostname(), platform = process.platform, now = Date.now }) {
+function createNodeWorker({ db, log, audit = log, authority = () => null, workDir, ffmpegPath = 'ffmpeg', spawn = require('child_process').spawn, runtime, name = os.hostname(), platform = process.platform, now = Date.now, power = null }) {
   let pairing = null; // { code, expiresAt, tries, byAddress }
   const jobs = new Map(); // id -> job
   const waiting = []; // uploaded jobs waiting for a slot, oldest first
@@ -358,6 +359,11 @@ function createNodeWorker({ db, log, audit = log, authority = () => null, workDi
     }
     const list = await devices();
     const out = { name, encoders, slots: s.slots, use: s.use, busy: running().length, encoding: encoding(), capacity: s.slots + QUEUE };
+    // this server's live power and energy (numbers only; nodePower.js), for
+    // the main's "All servers" total; a node without it is "unknown" there
+    if (typeof power === 'function') {
+      try { out.power = power(); } catch { /* not measured */ }
+    }
     if (list) {
       const fallback = defaultDeviceOf(list);
       out.defaultDevice = fallback;

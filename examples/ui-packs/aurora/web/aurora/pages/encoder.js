@@ -5,7 +5,7 @@
 import '/web/vehicleEncoding.js';
 import {
   $, $$, esc, icon, api, invoke, state, current, footageRoot, bytes, plural, pct, num, dur, when, ago, fin, ring, meter, toast,
-  confirmDialog, openDialog, store, empty, liveDraw
+  confirmDialog, openDialog, store, empty, liveDraw, watts
 } from '../core.js';
 import { splitDevices, deviceLabel, laneValue, jobLanes, groupMemory, groupBodyId, wireGroups } from '../nodelanes.js';
 import { follow, onBenchmark, streamReady, counts, Pace, ACTIVE, PAUSED, STATE_TEXT, CODEC, PROFILES, GROUPS, explain, apply, refreshCurrent } from '../conv.js';
@@ -42,6 +42,7 @@ export default {
     let ctxInfo = null;
     let auto = null;
     let enc = null; // /api/stats encoder block
+    let power = null; // /api/stats power (with nodes: every server's)
     let statsTimer = 0;
     let dead = false;
     let bench = { running: false, progress: null, result: null, error: null };
@@ -110,7 +111,8 @@ export default {
           <div class="stat"><span class="stat-label">Speed</span><span class="stat-val">${p.perMin ? `${num(p.perMin, 1)}/min` : '—'}</span><span class="muted tiny">${fin(prog.fps) ? `${num(prog.fps, 1)} fps now` : ''}</span></div>
           <div class="stat"><span class="stat-label">Time left</span><span class="stat-val">${active && !paused ? dur(p.leftMs) : '—'}</span><span class="muted tiny">started ${esc(when(snap.createdAt))}</span></div>
           <div class="stat"><span class="stat-label">Saved</span><span class="stat-val">${bytes(saved)}</span><span class="muted tiny">${src ? `${pct((saved / src) * 100)} of ${bytes(src)}` : ''}</span></div>
-          <div class="stat"><span class="stat-label">Working now</span><span class="stat-val">${prog.encodingNow ?? c.working}</span><span class="muted tiny">${prog.waitingOnNode ? `${plural(prog.waitingOnNode, 'clip')} waiting on nodes` : enc?.run?.wh ? `${num(enc.run.wh, 1)} Wh so far` : ''}</span></div>
+          <div class="stat"><span class="stat-label">Working now</span><span class="stat-val">${prog.encodingNow ?? c.working}</span><span class="muted tiny">${prog.waitingOnNode ? `${plural(prog.waitingOnNode, 'clip')} waiting on nodes` : enc?.run?.wh ? `${num(enc.run.wh, 1)} Wh so far${enc.run.nodeWh > 0 ? ` (${num(enc.run.nodeWh, 1)} on nodes)` : ''}` : ''}</span></div>
+          ${power?.combined && power.nodes?.length ? `<div class="stat"><span class="stat-label">All servers</span><span class="stat-val">${watts(power.combined.totalW)}</span><span class="muted tiny">${esc([`this ${fin(power.totalW) ? Math.round(power.totalW) : '—'}`, ...power.nodes.map((n) => `${n.name} ${n.online && fin(n.totalW) ? Math.round(n.totalW) : n.online ? '?' : 'off'}`)].join(' · '))}</span></div>` : ''}
           <div class="stat"><span class="stat-label">Problems</span><span class="stat-val" style="${c.failed ? 'color:var(--bad)' : ''}">${c.failed}</span><span class="muted tiny">${c.skipped ? `${c.skipped} skipped` : ''}</span></div>
         </div>`;
       const ctrlHtml = `        ${active && !lanes ? `<div class="row" style="margin-top:18px"><span class="small">Conversions at once</span><div class="stepper" role="group" aria-label="Conversions at once"><button class="btn ghost" type="button" data-conc="-1" aria-label="Fewer at once">−</button><output id="conc">${cfg.concurrency || 1}</output><button class="btn ghost" type="button" data-conc="1" aria-label="More at once">+</button></div></div>` : ''}
@@ -394,6 +396,7 @@ export default {
         try {
           const s = await api('/api/stats', { timeoutMs: 8000 });
           enc = s.encoder;
+          power = s.power || null;
           if (!dead) { liveDraw(ORBIT(), drawOrbit); liveDraw($('#lanes-panel', body), drawLanes); liveDraw(ORBIT(), drawLive); }
         } catch { /* next time */ }
       }

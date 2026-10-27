@@ -84,6 +84,22 @@ function attention(stats) {
     ${alerts.map((a) => `<li class="attn ${esc(a.level)}"><span class="dot ${a.level === 'error' ? 'bad' : 'warn'}" style="margin-top:7px"></span><div>${esc(a.message)}<br><span class="muted small">from the server monitor</span></div></li>`).join('')}</ul>`;
 }
 
+// why a server's CPU watts are missing (/api/stats power.cpuUnavailable)
+const CPU_NA = { windows: 'CPU watts aren\'t available on Docker Desktop for Windows (Windows doesn\'t share them with Docker). NVIDIA GPU watts show when the card reports them.', vm: 'CPU watts aren\'t available inside a virtual machine.' };
+const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)' };
+
+// Nodes' power with this server's (/api/stats power.combined and
+// power.nodes): every server together and a line each; '' with no nodes
+function allServers(p, cur) {
+  const c = p.combined;
+  if (!c || !p.nodes?.length) return '';
+  const split = (w, cpu, gpu, na) => [fin(w) && watts(w), fin(cpu) && `CPU ${watts(cpu)}`, fin(gpu) && `GPU ${watts(gpu)}`, !fin(cpu) && CPU_NA_SHORT[na]].filter(Boolean).join(' · ') || 'not measured';
+  const rows = [['This server', split(p.totalW, p.cpuW, p.gpuW, p.cpuUnavailable)], ...p.nodes.map((n) => [n.name, !n.online ? 'offline' : fin(n.totalW) || CPU_NA_SHORT[n.cpuUnavailable] ? split(n.totalW, n.cpuW, n.gpuW, n.cpuUnavailable) : 'unknown'])];
+  return `<div class="stat"><span class="stat-label"><span>${icon('bolt', 'ico-sm')} All servers</span><span>${c.reporting}/${c.servers} reporting</span></span>
+        <span class="stat-val">${fin(c.totalW) ? watts(c.totalW) : 'not measured'}</span>
+        <span class="muted tiny">${rows.map(([k, v]) => `${esc(k)}: ${esc(v)}`).join('<br>')}<br>today ${energy(c.todayWh)}${fin(c.todayCost) ? ` (${money(c.todayCost, cur)})` : ''} · week ${energy(c.weekWh)}${fin(c.weekCost) ? ` (${money(c.weekCost, cur)})` : ''}</span></div>`;
+}
+
 function serverHtml(s, hist) {
   if (!s) return '<p class="loading">Reading the server…</p>';
   const cpu = s.cpu || {};
@@ -113,9 +129,10 @@ function serverHtml(s, hist) {
         <span class="stat-val">↓ ${rate(rx)} · ↑ ${rate(tx)}</span>
         <span class="muted tiny">Today ↓ ${bytes(net.today?.rxB)} ↑ ${bytes(net.today?.txB)} · week ↓ ${bytes(net.week?.rxB)}</span>
         ${spark((hist?.rxBps || []).slice(-90), 'l')}</div>
-      <div class="stat"><span class="stat-label"><span>${icon('bolt', 'ico-sm')} Power</span><span>${s.price ? `${money(s.price.now, cur)}/kWh${s.price.rate ? ` · ${esc(s.price.rate)}` : ''}` : ''}</span></span>
+      ${allServers(p, cur)}
+      <div class="stat"><span class="stat-label"><span>${icon('bolt', 'ico-sm')} Power${p.combined && p.nodes?.length ? ' · this server' : ''}</span><span>${s.price ? `${money(s.price.now, cur)}/kWh${s.price.rate ? ` · ${esc(s.price.rate)}` : ''}` : ''}</span></span>
         <span class="stat-val">${fin(p.totalW) ? watts(p.totalW) : 'not measured'}</span>
-        <span class="muted tiny">${fin(p.cpuW) ? `CPU ${watts(p.cpuW)} · ` : ''}${fin(p.gpuW) ? `GPU ${watts(p.gpuW)} · ` : ''}today ${energy(p.todayWh)}${fin(p.todayCost) ? ` (${money(p.todayCost, cur)})` : ''} · week ${energy(p.weekWh)}${fin(p.weekCost) ? ` (${money(p.weekCost, cur)})` : ''}</span></div>
+        <span class="muted tiny">${fin(p.cpuW) ? `CPU ${watts(p.cpuW)} · ` : ''}${fin(p.gpuW) ? `GPU ${watts(p.gpuW)} · ` : ''}today ${energy(p.todayWh)}${fin(p.todayCost) ? ` (${money(p.todayCost, cur)})` : ''} · week ${energy(p.weekWh)}${fin(p.weekCost) ? ` (${money(p.weekCost, cur)})` : ''}${CPU_NA[p.cpuUnavailable] ? `<br>${esc(CPU_NA[p.cpuUnavailable])}` : ''}</span></div>
     </div>
     ${(s.gpus || []).length ? `<hr class="soft"><div class="stat-grid">${s.gpus.map((g) => `<div class="stat"><span class="stat-label"><span>GPU · ${esc(g.name || g.vendor || g.id)}</span><span>${fin(g.tempC) ? `${num(g.tempC)} °C` : ''}</span></span>
         <span class="stat-val">${pct(g.busy)} busy${fin(g.video) ? ` · video ${pct(g.video)}` : ''}</span>${meter(g.busy)}${fin(g.video) ? meter(g.video, 'violet') : ''}

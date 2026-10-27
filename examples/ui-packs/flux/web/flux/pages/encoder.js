@@ -48,6 +48,7 @@ export default {
     let live = null;
     let enc = null; // /api/stats encoder block
     let price = null;
+    let power = null; // /api/stats power (with nodes: every server's)
     let devices = [];
     let caps = {};
     let auto = null;
@@ -183,7 +184,7 @@ export default {
       const thr = elapsed > 0 ? srcB / (elapsed / 1000) : null;
       const fpsNow = (enc?.workers || []).reduce((n, w) => n + (fin(w.fps) ? w.fps : 0), 0) || live?.fps || null;
       const cur = price?.currency || state.power?.currency || '$';
-      const k = (label, value, sub = '', tone = '') => `<div class="kpi ${tone}"><span class="kpi-l">${esc(label)}</span><b class="kpi-v num">${value}</b><span class="kpi-s">${esc(sub)}</span></div>`;
+      const k = (label, value, sub = '', tone = '') => `<div class="kpi ${tone}"><span class="kpi-l">${esc(label)}</span><b class="kpi-v num">${value}</b><span class="kpi-s" title="${esc(sub)}">${esc(sub)}</span></div>`;
       $('#enc-kpis').innerHTML = [
         k('Clips', c ? `${doneV}<span class="faint">/${c.total}</span>` : '—', c ? `${c.completed} converted · ${c.skipped} skipped` : 'no job'),
         k('Failed', c ? String(c.failed) : '—', c?.failed ? 'originals kept' : 'none', c?.failed ? 'bad' : ''),
@@ -192,7 +193,10 @@ export default {
         k('Throughput', esc(thr ? rate(thr) : '—'), fpsNow ? `${num(fpsNow, 1)} fps now` : 'source bytes / s'),
         k('Time left', eta ? esc(dur(eta)) : '—', elapsed ? `running ${dur(elapsed)}` : ''),
         k('Lanes', `${live?.encodingNow ?? enc?.workers?.length ?? 0}<span class="faint">/${conc}</span>`, `${live?.waitingOnNode || 0} waiting on node`),
-        k('Energy', esc(enc?.run && fin(enc.run.wh) ? energy(enc.run.wh) : '—'), enc?.run && fin(enc.run.cost) ? money(enc.run.cost, cur) : enc?.run?.avgW ? `avg ${watts(enc.run.avgW)}` : 'not measured')
+        k('Energy', esc(enc?.run && fin(enc.run.wh) ? energy(enc.run.wh) : '—'), [enc?.run && fin(enc.run.cost) ? money(enc.run.cost, cur) : enc?.run?.avgW ? `avg ${watts(enc.run.avgW)}` : 'not measured', enc?.run?.nodeWh > 0 ? `${energy(enc.run.nodeWh)} on nodes` : ''].filter(Boolean).join(' · ')),
+        // with nodes: every server's power now, this one and each node
+        ...(power?.combined && power.nodes?.length ? [k('All servers', esc(watts(power.combined.totalW)),
+          [`this ${fin(power.totalW) ? Math.round(power.totalW) : '—'}`, ...power.nodes.map((n) => `${n.name} ${n.online && fin(n.totalW) ? Math.round(n.totalW) : n.online ? '?' : 'off'}`)].join(' · '))] : [])
       ].join('');
     }
 
@@ -689,6 +693,7 @@ export default {
           const s = await api('/api/stats', { timeoutMs: 10000 });
           enc = s.encoder;
           price = s.price;
+          power = s.power || null;
           drawAll();
         } catch { /* keep the last */ }
       }
@@ -703,6 +708,7 @@ export default {
     const dataVol = (x?.filesystems || []).find((f) => !f.vehicle)?.path;
     ctx = { outputRoots: dataVol ? [`${dataVol}/converted`] : [] };
     enc = x?.encoder || null;
+    power = x?.power || null;
     if (params.get('vehicle')) form.vehicle = params.get('vehicle');
     else if (params.get('new') && v) form.vehicle = v.id;
     drawForm();

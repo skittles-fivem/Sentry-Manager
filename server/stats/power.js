@@ -156,4 +156,16 @@ class PowerProvider {
   }
 }
 
-module.exports = { PowerProvider, energyDelta, packageWatts, socketWatts, cleanReading };
+/**
+ * Why the CPU's watts cannot be read, when they cannot: 'windows' (Docker
+ * Desktop for Windows: WSL2 does not pass the energy counters to Linux),
+ * 'vm' (another virtual machine: the hypervisor keeps them), else null.
+ */
+function cpuUnavailable({ cpuW, wsl, virtual }) {
+  if (cpuW !== null && cpuW !== undefined) return null;
+  if (wsl) return 'windows';
+  if (virtual) return 'vm';
+  return null;
+}
+
+module.exports = { cpuUnavailable, PowerProvider, energyDelta, packageWatts, socketWatts, cleanReading };

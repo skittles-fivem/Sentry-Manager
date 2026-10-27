@@ -121,6 +121,9 @@ function vehicleCard(v) {
   </article>`;
 }
 
+// why the CPU's watts are missing (/api/stats power.cpuUnavailable)
+const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)' };
+
 export async function render(ctx) {
   const { view } = ctx;
   let snap;
@@ -159,7 +162,9 @@ export async function render(ctx) {
       <div class="stat-row" style="margin-top:14px">
         <div class="stat"><span>Processor</span><b>${fin(s.cpu?.usage) ? pct(s.cpu.usage) : '—'}</b></div>
         <div class="stat"><span>Memory</span><b>${mem !== null ? pct(mem * 100) : '—'}</b></div>
-        <div class="stat"><span>Power</span><b>${fin(s.power?.totalW) ? `${Math.round(s.power.totalW)} W` : '—'}</b></div>
+        ${s.power?.combined && s.power.nodes?.length
+    ? `<div class="stat"><span>Power, all servers</span><b>${fin(s.power.combined.totalW) ? `${Math.round(s.power.combined.totalW)} W` : '—'}</b></div>`
+    : `<div class="stat"><span>Power</span><b>${fin(s.power?.totalW) ? `${Math.round(s.power.totalW)} W` : '—'}</b>${!fin(s.power?.cpuW) && CPU_NA_SHORT[s.power?.cpuUnavailable] ? `<small class="muted">${CPU_NA_SHORT[s.power.cpuUnavailable]}</small>` : ''}</div>`}
         <div class="stat"><span>Data folder free</span><b>${fin(s.filesystems?.[0]?.freeB) ? bytes(s.filesystems[0].freeB) : '—'}</b></div>
       </div>`;
   };

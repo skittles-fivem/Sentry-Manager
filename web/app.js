@@ -502,6 +502,30 @@
       ])));
   }
 
+  /**
+   * Nodes' power with this server's (/api/stats power.combined and
+   * power.nodes): the total of every server that reports, then a line per
+   * server with its CPU and GPU watts. '' with no nodes.
+   */
+  function serversPower(p, energy) {
+    const c = p?.combined;
+    if (!c || !Array.isArray(p.nodes) || !p.nodes.length) return '';
+    const split = (cpu, gpu) => [fin(cpu) && `CPU ${Math.round(cpu)}`, fin(gpu) && `GPU ${Math.round(gpu)}`].filter(Boolean).join(' · ');
+    const line = (total, cpu, gpu, na) => esc([fin(total) ? watts(total) : '', split(cpu, gpu), !fin(cpu) && CPU_NA_SHORT[na]].filter(Boolean).join(' · ') || 'not measured');
+    const rows = [['This server', line(p.totalW, p.cpuW, p.gpuW, p.cpuUnavailable)]];
+    for (const n of p.nodes) rows.push([n.name, !n.online ? '<span class="muted">offline</span>' : fin(n.totalW) || CPU_NA_SHORT[n.cpuUnavailable] ? line(n.totalW, n.cpuW, n.gpuW, n.cpuUnavailable) : '<span class="muted">unknown</span>']);
+    const reporting = fin(c.reporting) && fin(c.servers) && c.reporting < c.servers ? ` (${c.reporting} of ${c.servers} reporting)` : ` (${plural(c.servers || p.nodes.length + 1, 'server')})`;
+    return `<div class="nd-servers">${ndBig(fin(c.totalW) ? watts(c.totalW) : '—', esc(`all servers${reporting}`))}`
+      + ndKv([...rows, ['All servers today', energy(c.todayWh, c.todayCost)], ['All servers this week', energy(c.weekWh, c.weekCost)]], ' nd-kv-servers') + '</div>';
+  }
+
+  // why a server's CPU watts are missing (/api/stats power.cpuUnavailable)
+  const CPU_NA = {
+    windows: 'CPU watts aren\'t available on Docker Desktop for Windows (Windows doesn\'t share them with Docker). NVIDIA GPU watts show when the card reports them.',
+    vm: 'CPU watts aren\'t available inside a virtual machine.'
+  };
+  const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)' };
+
   function powerTile(p, enc, price, currency, seen = null) {
     if (!p) return '';
     // A built-in GPU (an APU such as the Ryzen 8700G's 780M) is part of the
@@ -516,19 +540,22 @@
     const bars = steady(seen, chip ? 'power-chip' : 'power-parts', Object.entries(partW).map(([name, w]) => [name, fin(w) ? watts(w) : ''])).filter((row) => row[1]);
     const total = fin(p.totalW) ? p.totalW : parts.length ? parts.reduce((n, [, w]) => n + w, 0) : null;
     // no power reading at all (and nothing measured earlier this week): no tile
-    if (!fin(total) && !p.cpuSource && !p.gpuSource && !(p.todayWh > 0) && !(p.weekWh > 0)) return '';
+    const energy = (wh, c) => (fin(wh) ? esc(`${energyText(wh)}${fin(c) ? ` · ${money(c, currency)}` : ''}`) : '');
+    // with nodes: every server's power together first, then this server's own
+    const all = serversPower(p, energy);
+    const why = CPU_NA[p.cpuUnavailable] || '';
+    if (!all && !why && !fin(total) && !p.cpuSource && !p.gpuSource && !(p.todayWh > 0) && !(p.weekWh > 0)) return '';
     const label = chip ? (fin(p.discreteW) || bars.length === 2 ? 'whole chip + GPU' : 'whole chip (CPU + built-in GPU)')
       : parts.length === 2 ? 'CPU + GPU' : parts.length ? (parts[0][0] === 'GPU' ? 'GPU (CPU not measured)' : 'CPU package') : '';
-    const energy = (wh, c) => (fin(wh) ? esc(`${energyText(wh)}${fin(c) ? ` · ${money(c, currency)}` : ''}`) : '');
     const priceNow = fin(price?.now) ? `${esc(inCurrency(price.now.toFixed(price.now < 1 ? 3 : 2).replace(/(\.\d\d)0$/, '$1'), price.currency || currency))} per kWh${price.rate ? ` · ${esc(price.rate)}` : ''}` : '';
-    return ndTile('Power', 'measured, not estimated', (fin(total) ? ndBig(watts(total), label) : bars.length ? ndBig('—', label) : '')
+    return ndTile('Power', 'measured, not estimated', all + (fin(total) ? ndBig(watts(total), all ? `this server · ${label}` : label) : bars.length ? ndBig('—', all ? `this server · ${label}` : label) : '')
       + (bars.length ? `<div class="nd-rows">${bars.map(([name, text]) => `<div><span>${name}</span>${ndBar(fin(partW[name]) && total > 0 ? (partW[name] / total) * 100 : 0)}<b>${text}</b></div>`).join('')}</div>` : '')
       + ndKv(steady(seen, 'power', [
         ['Today', energy(p.todayWh, p.todayCost)],
         ['This week', energy(p.weekWh, p.weekCost)],
-        ['Converting', enc?.running && fin(enc.run?.wh) ? `${energyText(enc.run.wh)} this run` : ''],
+        ['Converting', enc?.running && fin(enc.run?.wh) ? `${energyText(enc.run.wh)} this run${enc.run.nodeWh > 0 ? ` (${energyText(enc.run.nodeWh)} on nodes)` : ''}` : ''],
         ['Price now', priceNow]
-      ])));
+      ])) + (why ? `<p class="muted small nd-note">${esc(why)}</p>` : ''));
   }
 
   function memoryTile(m, seen = null) {

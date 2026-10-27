@@ -131,6 +131,7 @@ async function overview(ctx) {
   let auto = null;
   let autoOpen = false;
   let drawn = false;
+  let power = null; // /api/stats while converting: energy so far, and every server's power with helpers
 
   const jobCard = () => {
     if (snap === undefined) return '<div class="card"><div class="loading"><span class="spin"></span><span>Checking…</span></div></div>';
@@ -166,6 +167,8 @@ async function overview(ctx) {
         <div class="stat"><span>Working for</span><b>${duration(workingMs(snap))}</b></div>
         <div class="stat"><span>Space saved</span><b>${bytes(summary?.savedBytes ?? saved)}</b></div>
         ${active ? `<div class="stat"><span>Converting now</span><b>${encodingNow}</b></div>` : ''}
+        ${active && power?.jobId === snap.id && fin(power.run?.wh) ? `<div class="stat"><span>Energy so far${power.run.nodeWh > 0 ? ' (with helpers)' : ''}</span><b>${power.run.wh < 1000 ? `${power.run.wh.toFixed(power.run.wh < 100 ? 1 : 0)} Wh` : `${(power.run.wh / 1000).toFixed(1)} kWh`}</b></div>` : ''}
+        ${active && power?.all ? `<div class="stat" title="${esc(power.split)}"><span>Power, all servers</span><b>${fin(power.all.totalW) ? `${Math.round(power.all.totalW)} W` : '—'}</b><small class="muted">${esc(power.split)}</small></div>` : ''}
         ${waiting ? `<div class="stat"><span>Waiting on helpers</span><b>${waiting}</b></div>` : ''}
         ${c.failed ? `<div class="stat"><span>Couldn’t convert</span><b style="color:var(--bad)">${c.failed}</b></div>` : ''}
         ${c.skipped ? `<div class="stat"><span>Skipped (already converted)</span><b>${c.skipped}</b></div>` : ''}
@@ -464,7 +467,20 @@ async function overview(ctx) {
     if (key) slot.querySelector(key)?.focus({ preventScroll: true });
   }
   ctx.cleanup(stop);
+  // while converting: the run's energy and, with helpers, every server's power
+  const readPower = async () => {
+    if (!snap || !ACTIVE.has(snap.state)) { power = null; return; }
+    const st = await api('/api/stats').catch(() => null);
+    if (!st) return;
+    const p = st.power || {};
+    const all = p.combined && p.nodes?.length ? p.combined : null;
+    power = {
+      jobId: st.encoder?.jobId || null, run: st.encoder?.run || null, all,
+      split: all ? [`This server ${fin(p.totalW) ? Math.round(p.totalW) : '—'} W`, ...p.nodes.map((n) => `${n.name} ${!n.online ? 'offline' : fin(n.totalW) ? `${Math.round(n.totalW)} W` : 'unknown'}`)].join(' · ') : ''
+    };
+  };
   ctx.every(5000, async () => {
+    await readPower();
     // the times (working for, time left) move on between updates
     const slot = view.querySelector('#job-slot');
     if (slot && snap && ACTIVE.has(snap.state) && !slot.contains(document.activeElement)) liveDraw(slot, () => { const o = slot.querySelector('details')?.open; slot.innerHTML = jobCard(); if (o) slot.querySelector('details').open = true; wireJob(); }, 'dl:job-slot');

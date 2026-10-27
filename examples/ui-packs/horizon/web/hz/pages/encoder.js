@@ -49,6 +49,7 @@ export default {
     let live = null;
     let enc = null;
     let price = null;
+    let power = null; // /api/stats power (with nodes: every server's)
     let devices = [];
     let caps = {};
     let auto = null;
@@ -215,7 +216,10 @@ export default {
         r('Saved', h(size(s?.counters?.savedBytes)), srcB ? `${pc((1 - outB / srcB) * 100, 1)} smaller` : '—', 'grn'),
         r('Failed', c ? String(c.failed) : '—', c?.failed ? 'originals kept' : 'none', c?.failed ? 'red' : ''),
         r('Lanes', `${live?.encodingNow ?? enc?.workers?.length ?? 0}<span class="faint">/${conc}</span>`, `${live?.waitingOnNode || 0} clips waiting on nodes`),
-        r('Fuel used', h(enc?.run && ok(enc.run.wh) ? wh(enc.run.wh) : '—'), enc?.run && ok(enc.run.cost) ? cash(enc.run.cost, cur) : enc?.run?.avgW ? `avg ${watt(enc.run.avgW)}` : 'not measured')
+        r('Fuel used', h(enc?.run && ok(enc.run.wh) ? wh(enc.run.wh) : '—'), [enc?.run && ok(enc.run.cost) ? cash(enc.run.cost, cur) : enc?.run?.avgW ? `avg ${watt(enc.run.avgW)}` : 'not measured', enc?.run?.nodeWh > 0 ? `${wh(enc.run.nodeWh)} on nodes` : ''].filter(Boolean).join(' · ')),
+        // with nodes: every server's power now, this one and each node
+        ...(power?.combined && power.nodes?.length ? [r('All servers', h(watt(power.combined.totalW)),
+          [`this ${ok(power.totalW) ? Math.round(power.totalW) : '—'}`, ...power.nodes.map((n) => `${n.name} ${n.online && ok(n.totalW) ? Math.round(n.totalW) : n.online ? '?' : 'off'}`)].join(' · '))] : [])
       ].join('');
       el.querySelector('.dyno').classList.toggle('revving', RUNNING.has(s?.state));
       status(s ? `${(s.state || '').replace('_', ' ')} · lap ${done}/${c?.total ?? 0}` : 'engine off');
@@ -654,6 +658,7 @@ export default {
           const s = await api('/api/stats', { timeout: 10000 });
           enc = s.encoder;
           price = s.price;
+          power = s.power || null;
           // a safety net for a missed live event: re-read the job now and then
           if (snap && ACTIVE.has(snap.state) && ++ticks % 3 === 0) await refresh();
           drawAll();
@@ -671,6 +676,7 @@ export default {
     const dataVol = (st?.filesystems || []).find((x) => !x.vehicle)?.path;
     outRoots = dataVol ? [`${dataVol}/converted`] : [];
     enc = st?.encoder || null;
+    power = st?.power || null;
     if (params.get('vehicle')) form.vehicle = params.get('vehicle');
     else if (params.get('new') && v0) form.vehicle = v0.id;
     drawForm();

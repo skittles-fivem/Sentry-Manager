@@ -1198,6 +1198,8 @@ select.converter-select {
     color: var(--text-muted);
     font-size: 12px;
     line-height: 17px;
+    /* (the All servers tile names each node) */
+    overflow-wrap: anywhere;
 }
 
 /* narrow tiles (phones): "GPU 59 · CPU 62" takes two lines or one depending

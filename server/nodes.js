@@ -25,10 +25,13 @@ const { EventEmitter } = require('events');
 const { pipeline } = require('stream');
 const { pairText, certFingerprint, normalizeCode, hmac, sameHex } = require('./nodeWorker');
 const { LOCAL_DEVICE_ID, nodeKeyOf, nodeDeviceOf } = require('../src/main/converter/contracts');
+const { cleanReport } = require('./nodePower');
 
 const SETTINGS_KEY = 'nodes';
 const MAX_NODES = 8;
 const INFO_TTL_MS = 30_000;
+// a node's power older than about two polls is unknown (not in the totals)
+const POWER_STALE_MS = 2 * INFO_TTL_MS + 15_000;
 const POLL_MS = 1000;
 const BUSY_WAIT_MS = 5 * 60_000;
 const BUSY_POLL_MS = 3000;
@@ -214,11 +217,22 @@ async function request(node, { method = 'GET', path, headers = {}, body = null, 
  * deps: { db, log, audit, name }. list() gives the nodes as converter devices;
  * encode() is the converter's remoteEncode.
  */
-function createNodes({ db, log, audit = log, name = os.hostname(), pollMs = POLL_MS }) {
+function createNodes({ db, log, audit = log, name = os.hostname(), pollMs = POLL_MS, onPower = null }) {
   const info = new Map(); // id -> { at, online, encoders, slots, busy, name, error }
   // when each node last moved any clip forward: a clip waiting on a node
   // that keeps working waits on, one waiting on a node that stopped does not
   const lastMoved = new Map(); // id -> ms
+  // each node's last power report (nodePower.js), when it came, and how many
+  // of this server's clips (not a benchmark's) it holds now
+  const powers = new Map(); // id -> { at, power }
+  const working = new Map(); // id -> clips sent and not yet back
+  const notePower = (id, json) => {
+    const power = cleanReport(json?.power);
+    if (!power) return powers.delete(id);
+    const at = Date.now();
+    powers.set(id, { at, power });
+    try { onPower?.(id, at, power.totalW, (working.get(id) || 0) > 0); } catch { /* the stats engine's own concern */ }
+  };
 
   const stored = () => (db.get(SETTINGS_KEY, []) || []).filter((n) => n && typeof n.id === 'string' && typeof n.token === 'string');
   const save = (list) => db.set(SETTINGS_KEY, list);
@@ -271,6 +285,7 @@ function createNodes({ db, log, audit = log, name = os.hostname(), pollMs = POLL
         encoding: Number.isSafeInteger(r.json.encoding) ? r.json.encoding : null,
         devices
       });
+      notePower(node.id, r.json);
       // remembered with the node when they change, for when it does not answer
       const current = byId(node.id);
       if (current && JSON.stringify(current.devices || null) !== JSON.stringify(devices ? listedOf(devices) : null)) {
@@ -324,6 +339,23 @@ function createNodes({ db, log, audit = log, name = os.hostname(), pollMs = POLL
       }));
     }));
     return all.flat();
+  }
+
+  /**
+   * Each paired node's power for "All servers" (/api/stats): [{ id, name,
+   * online, power }], power as the node reported it or null (offline, older
+   * than about two polls, or a node of a version that does not report it).
+   * Never waits: a node not asked for 30 s is asked now, for the next call.
+   */
+  function power() {
+    const t = Date.now();
+    return stored().map((node) => {
+      fresh(node);
+      const i = info.get(node.id);
+      const p = powers.get(node.id);
+      const online = i?.online === true;
+      return { id: node.id, name: node.name, online, power: online && p && t - p.at <= POWER_STALE_MS ? p.power : null };
+    });
   }
 
   /** What the Nodes page shows. */
@@ -460,6 +492,8 @@ function createNodes({ db, log, audit = log, name = os.hostname(), pollMs = POLL
     if (!node) return null;
     save(stored().filter((n) => n.id !== id));
     info.delete(id);
+    powers.delete(id);
+    working.delete(id);
     return node;
   }
 
@@ -483,9 +517,12 @@ function createNodes({ db, log, audit = log, name = os.hostname(), pollMs = POLL
     let upload = null; // the clip on its way up, until the node answers
     let jobId = null;
     let closed = false;
+    // counts toward the node's share of the job's energy while it is out
+    if (!benchmark) working.set(node.id, (working.get(node.id) || 0) + 1);
     const close = (code, signal = null) => {
       if (closed) return;
       closed = true;
+      if (!benchmark) working.set(node.id, Math.max(0, (working.get(node.id) || 1) - 1));
       setImmediate(() => child.emit('close', code, signal));
     };
     // the node deletes the clip and its encoded file
@@ -519,6 +556,7 @@ function createNodes({ db, log, audit = log, name = os.hostname(), pollMs = POLL
         });
         // unreachable: fail over at once (only a node that answers "busy" is waited for)
         if (!free || free.status !== 200) throw nodeError(peerText(free?.json?.error) || 'Could not reach the node.', 502, 'NODE_UNREACHABLE');
+        if (!benchmark) notePower(node.id, free.json);
         // full: its slots and the clips it takes ahead (a node from before
         // the queue reports only slots; with a device, that device's own); a
         // benchmark measures up to the node's maximum, past its setting
@@ -570,6 +608,8 @@ function createNodes({ db, log, audit = log, name = os.hostname(), pollMs = POLL
       for (;;) {
         await new Promise((r) => setTimeout(r, pollMs));
         if (controller.signal.aborted) return;
+        // its power at the usual info cadence while it converts (the job's energy)
+        if (!benchmark && Date.now() - (info.get(node.id)?.at || 0) >= INFO_TTL_MS) fresh(node);
         const s = await request(node, { path: `/node/v1/jobs/${jobId}`, signal: controller.signal, timeoutMs: 15_000 });
         if (s.status !== 200 || !s.json) throw nodeError(peerText(s.json?.error) || `The node lost the clip (${s.status}).`, 502);
         // Only real progress counts: the converter stops an encode that shows
@@ -655,7 +695,7 @@ function createNodes({ db, log, audit = log, name = os.hostname(), pollMs = POLL
     return info.get(node.id);
   }
 
-  return { list, overview, add, rename, setCars, forgetCar, setTrusted, trusted, carLists, remove, encode, setSlots, has: (id) => Boolean(byId(id)), refresh: (id) => (byId(id) ? refresh(byId(id)) : null) };
+  return { list, overview, power, add, rename, setCars, forgetCar, setTrusted, trusted, carLists, remove, encode, setSlots, has: (id) => Boolean(byId(id)), refresh: (id) => (byId(id) ? refresh(byId(id)) : null) };
 }
 
 module.exports = { createNodes, parseAddress, connectPinned, pinMatches, takeUploadSlot };
