@@ -293,6 +293,8 @@ export default {
       const recs = vs.reduce((n, v) => n + (v.inventory?.recordings || 0), 0);
       const healthy = vs.filter((v) => v.share?.healthy).length;
       const binB = vs.reduce((n, v) => n + (v.binBytes || 0), 0);
+      const savedB = vs.reduce((n, v) => n + (v.saved?.bytes || 0), 0);
+      const savedN = vs.reduce((n, v) => n + (v.saved?.clips || 0), 0);
       const open = state.notes.filter((n) => !n.resolvedAt);
       const v = current();
       const free = v?.share?.freeBytes;
@@ -302,6 +304,7 @@ export default {
         k('Vehicles', `${healthy}/${vs.length}`, 'shares reachable', healthy < vs.length ? 'warn' : '', '#/settings/vehicles'),
         k('Footage', bytes(inv), plural(recs, 'recording'), '', '#/footage'),
         k('Free', bytes(free), v ? `on ${v.name}` : '—', fin(free) && v?.share?.totalBytes && free / v.share.totalBytes < 0.05 ? 'bad' : ''),
+        k('Space saved', savedB ? bytes(savedB) : 'none yet', savedB ? `${plural(savedN, 'clip')} converted · all cars` : 'by conversions', '', '#/encoder'),
         k('Recycle Bin', bytes(binB), plural(vs.reduce((n, x) => n + (x.binItems || 0), 0), 'item'), '', '#/bin'),
         k('Attention', String(open.length), open.some((n) => n.level === 'critical') ? 'critical open' : 'open notifications', open.some((n) => n.level === 'critical') ? 'bad' : open.length ? 'warn' : '', '#/notifications'),
         k('CPU', pct(s?.cpu?.usage), s?.cpu?.load ? `load ${s.cpu.load[0]}` : '—'),
@@ -325,7 +328,7 @@ export default {
         const cats = Object.entries(v.inventory?.byCategory || {}).map(([c, x]) => `<span class="cat ${c}">${esc(c)} ${x.recordings}</span>`).join('');
         return `<div class="veh"><div class="veh-top"><b>${esc(v.name)}</b>${status}</div>
           ${meter(used, used > 95 ? 'red' : used > 85 ? 'amber' : 'violet')}
-          <div class="small muted num">${bytes(s.freeBytes)} free of ${bytes(s.totalBytes)} · ${bytes(v.inventory?.bytes)} footage</div>
+          <div class="small muted num">${bytes(s.freeBytes)} free of ${bytes(s.totalBytes)} · ${bytes(v.inventory?.bytes)} footage · saved ${v.saved?.bytes ? `${bytes(v.saved.bytes)} · ${plural(v.saved.clips, 'clip')}` : 'none yet'}</div>
           <div class="cats">${cats}</div>
           ${s.warning ? `<p class="small amber-text">${esc(s.warning)}</p>` : ''}${s.lastError ? `<p class="small bad-text">${esc(s.lastError)}</p>` : ''}
           <div class="small faint">${v.scanning ? 'scanning…' : `scanned ${ago(v.inventory?.scannedAt)}`} · ${esc(v.timezone || '')}</div>

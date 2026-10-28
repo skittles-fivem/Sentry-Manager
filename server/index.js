@@ -42,6 +42,7 @@ const { detectGpus } = require('./gpu');
 const { createConverterHost } = require('./converterHost');
 const { createStats } = require('./stats');
 const { encoderBlock, jobProgress, RUNNING: CONVERTER_RUNNING } = require('./encoderStats');
+const { createSavings } = require('./savings');
 const { parsePowerSettings, priceAt, rateNameAt, isCheapest, PriceError } = require('./powerPrice');
 const { createConverterBridge } = require('./converterBridge');
 const { hiddenPath, readDir, stat, sendMedia, readTextConfined } = require('./studioApi');
@@ -302,6 +303,8 @@ async function main() {
   raplKeepalive.unref();
   let statsJob = null;
   const policies = new Policies({ db, vehicles, inventory, bin, log: logger.scope('policies') });
+  // space saved by conversions, per vehicle, kept when jobs are cleared
+  const savings = createSavings({ db });
 
   // Nodes: other servers that encode for this one (server/nodes.js)
   const nodes = createNodes({
@@ -452,7 +455,8 @@ async function main() {
     scanning: Boolean(inventory.get(v.id)?.scanning),
     binBytes: bin.binBytes(v.id),
     binItems: db.binItems(v.id).length,
-    policy: policies.get(v.id)
+    policy: policies.get(v.id),
+    saved: savings.forVehicle(v.id)
   });
   // Who the throttle and the audit log count as the client. Behind a trusted
   // reverse proxy every request arrives from the proxy's own address, so the
@@ -799,6 +803,7 @@ async function main() {
     requireConfirmed(req);
     const v = vehicleOr404(params.id);
     await vehicles.remove(params.id);
+    savings.forget(params.id);
     // and from every node's Vehicles first list
     nodes.forgetCar(params.id);
     audit.info(`Vehicle "${v.name}" (${v.id}) removed (its footage is untouched): ${by(req, user)}`);
@@ -1466,11 +1471,16 @@ async function main() {
         if (benchmarking === null) stats.markJob(null);
       }
       mirrorConverterJob(event.snapshot);
+      recordSavings(event.snapshot);
     });
     // jobs from before a restart (a paused one still owns its clips)
     // (only a list that loaded settles rows: a failed one would end them all)
     const listed = await runtime.service.list().catch(() => null);
-    for (const s of listed || []) if (!converterJobs.has(s.id)) converterJobs.set(s.id, s);
+    for (const s of listed || []) {
+      if (!converterJobs.has(s.id)) converterJobs.set(s.id, s);
+      // (and the space saved by jobs from before savings were kept)
+      recordSavings(s);
+    }
     if (Array.isArray(listed)) {
       converterListed = true;
       settleConversionRows();
@@ -1487,6 +1497,18 @@ async function main() {
       else if (item.state === 'failed') out.failed++;
     }
     return out;
+  }
+
+  /** A converter job's saved space, onto its vehicle's total. */
+  function recordSavings(s) {
+    const src = s?.config?.sourceRoot || '';
+    const v = vehicleForReal(src)?.vehicle || vehicles.vehicleForPath(src);
+    if (!v) return;
+    try {
+      savings.record(s.id, v.id, { bytes: Number(s.counters?.savedBytes) || 0, clips: jobProgress(s).clips });
+    } catch (err) {
+      log.warn(`Space saved: ${err.message}`);
+    }
   }
 
   const mirroredLines = new Map();

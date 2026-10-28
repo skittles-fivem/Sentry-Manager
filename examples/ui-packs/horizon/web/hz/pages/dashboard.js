@@ -250,13 +250,16 @@ export default {
         box.innerHTML = '<p class="dim small">No vehicles yet.</p><a class="btn go sm" href="#/settings/vehicles?add=1">' + ico('plus') + 'Add a vehicle</a>';
         return;
       }
-      box.innerHTML = app.vehicles.map((v) => {
+      // space the conversions won back: per car on its row, all cars on the top line
+      const savedTxt = (s) => (s?.bytes ? `${size(s.bytes)} · ${count(s.clips, 'clip')}` : 'none yet');
+      const all = app.vehicles.reduce((t, v) => ({ bytes: t.bytes + (v.saved?.bytes || 0), clips: t.clips + (v.saved?.clips || 0) }), { bytes: 0, clips: 0 });
+      box.innerHTML = `<p class="small num">Space saved by conversions: <b>${savedTxt(all)}</b></p>` + app.vehicles.map((v) => {
         const sh = v.share || {};
         const u = ok(sh.totalBytes) && sh.totalBytes ? (1 - sh.freeBytes / sh.totalBytes) * 100 : null;
         const cats = Object.entries(v.inventory?.byCategory || {}).map(([c, x]) => pill(`${c} ${x.recordings}`, c === 'Sentry' ? 'org' : c === 'Saved' ? 'grn' : 'cyan')).join('');
         return `<div class="carcard"><div class="row"><b>${h(v.name)}</b>${!sh.healthy ? pill('offline', 'red') : sh.writable === false ? pill('read-only', 'org') : pill('online', 'grn')}</div>
           ${bar(u, u > 95 ? 'red' : u > 85 ? 'org' : '')}
-          <p class="small dim num">${size(sh.freeBytes)} free of ${size(sh.totalBytes)} · ${size(v.inventory?.bytes)} of footage</p>
+          <p class="small dim num">${size(sh.freeBytes)} free of ${size(sh.totalBytes)} · ${size(v.inventory?.bytes)} of footage · saved ${savedTxt(v.saved)}</p>
           <div class="row">${cats}</div>
           ${sh.warning ? `<p class="small warm">${h(sh.warning)}</p>` : ''}${sh.lastError ? `<p class="small badtx">${h(sh.lastError)}</p>` : ''}
           <div class="row"><button class="btn sm" type="button" data-scan="${h(v.id)}">${ico('refresh')}Refresh inventory</button>${sh.healthy ? '' : `<button class="btn sm" type="button" data-recon="${h(v.id)}">Reconnect</button>`}</div></div>`;

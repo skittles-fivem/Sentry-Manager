@@ -747,7 +747,11 @@
    * show with Nerd stats off too; each keeps its rows, so a live update does
    * not change its height. Only a share with a problem gets a chip.
    */
-  function vehicleTiles(v, at = Date.now()) {
+  /** Space saved by conversions (a vehicle's `saved`, or all of theirs together). */
+  const savedTotal = (list) => list.reduce((t, v) => ({ bytes: t.bytes + (v.saved?.bytes || 0), clips: t.clips + (v.saved?.clips || 0) }), { bytes: 0, clips: 0 });
+  const savedText = (sv) => (sv?.bytes > 0 ? `${size(sv.bytes)} · ${plural(sv.clips, 'clip')}` : 'none yet');
+
+  function vehicleTiles(v, at = Date.now(), all = [v]) {
     if (!v) {
       return `<div class="nd-grid nd-vgrid">${ndTile('Vehicles', 'none yet', '<p class="nd-note">Each vehicle has its own footage share (SMB) or folder. Add one in Settings to start.</p><div class="nd-actions"><a class="btn sm solid" href="#/settings">Open settings</a></div>')}</div>`;
     }
@@ -760,6 +764,8 @@
     const inventory = ndTile('Inventory', 'last discovered', ndBig(inv && fin(inv.bytes) ? size(inv.bytes) : '—', 'all categories')
       + ndKv([
         ['Recordings', inv ? Number(inv.recordings || 0).toLocaleString() : '—'],
+        ['Space saved', savedText(v.saved)],
+        ...(all.length > 1 ? [['All vehicles saved', savedText(savedTotal(all))]] : []),
         ['Scanned', esc(scanned)],
         ['Time zone', esc(v.timezone || '—')]
       ])
@@ -855,7 +861,7 @@
           ${on ? `<div class="seg nd-range" role="group" aria-label="Graphs over"><button type="button" data-range="15m">15 min</button><button type="button" data-range="24h">24 h</button></div>
           <a class="btn sm" href="/api/stats/export.csv?range=24h" download title="The last 24 hours as a spreadsheet">CSV</a>` : ''}
           <label class="check small"><input type="checkbox" id="nd-toggle" data-kept${on ? ' checked' : ''}> Nerd stats</label></div></div>
-      ${vehicleTiles(current())}
+      ${vehicleTiles(current(), Date.now(), state.vehicles)}
       ${on ? '<div class="nd-body"></div>' : ''}
       ${logsPart()}</section>`;
   }

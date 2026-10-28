@@ -208,7 +208,7 @@ dialog.dlg[open] { animation: pop 240ms var(--ease) both; }
 .vehicle-cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
 .vehicle-card .vc-top { display: flex; align-items: center; gap: 14px; }
 .vehicle-card .vc-icon { width: 48px; height: 48px; border-radius: 15px; background: var(--surface-2); display: grid; place-items: center; color: var(--text-2); }
-.vehicle-card .vc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+.vehicle-card .vc-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-top: 16px; }
 .vehicle-card .vc-stats div { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
 .vehicle-card .vc-stats b { display: block; font-size: 19px; }
 .vehicle-card .vc-stats span { font-size: 13px; color: var(--muted); }

@@ -51,13 +51,16 @@ function spaceCard() {
   const used = 1 - free / v.share.totalBytes;
   const tone = used > 0.95 ? 'bad' : used > 0.85 ? 'warn' : 'good';
   const bin = state.vehicles.reduce((n, x) => n + (x.binBytes || 0), 0);
+  // what converting has won back so far, every car together
+  const saved = state.vehicles.reduce((n, x) => n + (x.saved?.bytes || 0), 0);
+  const clips = state.vehicles.reduce((n, x) => n + (x.saved?.clips || 0), 0);
   const tip = tone === 'good' ? 'Plenty of room for now.' : bin > 0 ? `The Recycle Bin holds ${bytes(bin)} you could free up.` : 'Converting footage to a smaller format can win back a lot of room.';
   const action = tone === 'good'
     ? '<a class="btn btn-soft" href="#/encoder">Save even more space</a>'
     : bin > 0 ? '<a class="btn btn-primary" href="#/bin">Free up space</a>' : '<a class="btn btn-primary" href="#/encoder">Shrink my footage</a>';
   return card({
     tone, iconName: 'disk', q: 'How much space is left?', a: `${bytes(free)} free`,
-    detail: `${list.length > 1 ? `${esc(v.name)} has the least room. ` : ''}${pct(used * 100)} of ${bytes(v.share.totalBytes)} used. ${tip}`,
+    detail: `${list.length > 1 ? `${esc(v.name)} has the least room. ` : ''}${pct(used * 100)} of ${bytes(v.share.totalBytes)} used. ${tip} Space saved by converting: ${saved ? `${bytes(saved)} · ${plural(clips, 'clip')}` : 'none yet'}.`,
     body: meter(used, tone === 'good' ? '' : tone) , action
   });
 }
@@ -113,6 +116,7 @@ function vehicleCard(v) {
       <div><b>${inv ? Number(inv.recordings).toLocaleString() : '—'}</b><span>recordings</span></div>
       <div><b>${inv ? bytes(inv.bytes) : '—'}</b><span>of footage</span></div>
       <div><b>${v.binItems || 0}</b><span>in Recycle Bin</span></div>
+      <div><b>${v.saved?.bytes ? bytes(v.saved.bytes) : 'None yet'}</b><span>${v.saved?.bytes ? `saved · ${plural(v.saved.clips, 'clip')}` : 'saved by converting'}</span></div>
     </div>
     <div class="actions">
       <a class="btn btn-soft btn-sm" href="#/footage?vehicle=${encodeURIComponent(v.id)}">Footage</a>
