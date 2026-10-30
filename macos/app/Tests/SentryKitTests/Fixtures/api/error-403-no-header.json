@@ -1,0 +1,6 @@
+{
+  "status": 403,
+  "body": {
+    "error": "Missing X-Requested-With header."
+  }
+}

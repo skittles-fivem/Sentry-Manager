@@ -1,0 +1,16 @@
+{
+  "path": null,
+  "parent": null,
+  "entries": [
+    {
+      "name": "Model Y",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y",
+      "isDirectory": true
+    },
+    {
+      "name": "Converted copies",
+      "path": "/Users/Shared/SentrySixFixture/data/converted",
+      "isDirectory": true
+    }
+  ]
+}

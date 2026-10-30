@@ -1,0 +1,32 @@
+{
+  "ok": true,
+  "value": {
+    "settings": {
+      "enabled": false,
+      "intervalMinutes": 60,
+      "window": null,
+      "holdManual": false,
+      "keepRunning": false,
+      "openAtLogin": false,
+      "configs": []
+    },
+    "status": {
+      "lastCheckAt": null,
+      "nextCheckAt": null,
+      "lastNewFiles": null,
+      "lastJobId": null,
+      "activeJobId": null,
+      "pausedForWindow": false,
+      "checking": false,
+      "error": null,
+      "activeSource": null,
+      "round": [],
+      "sources": {},
+      "pending": {},
+      "active": {},
+      "heldManual": [],
+      "handledManual": []
+    },
+    "saved": []
+  }
+}

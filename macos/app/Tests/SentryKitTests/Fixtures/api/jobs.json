@@ -1,0 +1,46 @@
+{
+  "jobs": [
+    {
+      "id": 3,
+      "type": "conversion",
+      "vehicleId": "model-y",
+      "status": "failed",
+      "title": "Convert Model Y to H.265",
+      "detail": "0 converted, 0 skipped, 17 failed",
+      "startedAt": 1793382087068,
+      "finishedAt": 1793382088034,
+      "result": null,
+      "externalId": "converter:4e4624f2-d8e5-4042-b18c-98ef7dc441d0"
+    },
+    {
+      "id": 2,
+      "type": "restore",
+      "vehicleId": "model-y",
+      "status": "done",
+      "title": "Restore Saved 2025-06-03 09:59:00",
+      "detail": "2 file(s) restored",
+      "startedAt": 1793382086363,
+      "finishedAt": 1793382086363,
+      "result": null,
+      "externalId": null
+    },
+    {
+      "id": 1,
+      "type": "trash",
+      "vehicleId": "model-y",
+      "status": "done",
+      "title": "Move 1 recording(s) to the Recycle Bin",
+      "detail": "1 moved (413.4 KiB)",
+      "startedAt": 1793382084834,
+      "finishedAt": 1793382084844,
+      "result": {
+        "moved": [
+          "22ce385f24ed5c22"
+        ],
+        "skipped": [],
+        "bytes": 423319
+      },
+      "externalId": null
+    }
+  ]
+}

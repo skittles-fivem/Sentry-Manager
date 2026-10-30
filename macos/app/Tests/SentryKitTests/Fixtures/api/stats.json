@@ -1,0 +1,124 @@
+{
+  "at": 1793382086439,
+  "intervalMs": 2000,
+  "host": {
+    "hostname": "vm",
+    "os": "macOS",
+    "kernel": "6.18.44-fc-v185",
+    "arch": "arm64",
+    "version": "2026.26.35",
+    "node": "v22.22.0",
+    "uptimeS": null,
+    "appUptimeS": null,
+    "ffmpeg": null
+  },
+  "cpu": {
+    "model": "Apple M2 Pro",
+    "cores": 4,
+    "threads": 4,
+    "usage": null,
+    "perCore": [],
+    "freqMHz": null,
+    "tempC": null,
+    "load": [
+      0.94,
+      1.73,
+      1.77
+    ],
+    "app": {
+      "usage": null,
+      "ffmpegUsage": null,
+      "ffmpegCount": null
+    },
+    "throttling": false,
+    "sockets": 1,
+    "perSocket": null
+  },
+  "memory": {
+    "totalB": 16872808448,
+    "usedB": null,
+    "availableB": null,
+    "cacheB": null,
+    "swapTotalB": null,
+    "swapUsedB": null,
+    "appB": null
+  },
+  "gpus": [],
+  "power": {
+    "totalW": null,
+    "cpuW": null,
+    "gpuW": null,
+    "chipW": null,
+    "discreteW": null,
+    "cpuSource": null,
+    "gpuSource": null,
+    "cpuUnavailable": "macos",
+    "todayWh": 0,
+    "weekWh": 0,
+    "todayCost": null,
+    "weekCost": null,
+    "priceNow": null
+  },
+  "disks": [],
+  "filesystems": [
+    {
+      "label": "Data volume",
+      "path": "/Users/Shared/SentrySixFixture/data",
+      "vehicle": false,
+      "totalB": null,
+      "usedB": null,
+      "freeB": null,
+      "latencyMs": null,
+      "reachable": null,
+      "fsType": null,
+      "source": null,
+      "disk": null,
+      "smbVersion": null,
+      "mounted": null,
+      "checkedAt": 1793382086442,
+      "checkEveryMs": 10000,
+      "answeredAt": null
+    },
+    {
+      "label": "Model Y",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y",
+      "vehicle": true,
+      "totalB": null,
+      "usedB": null,
+      "freeB": null,
+      "latencyMs": null,
+      "reachable": null,
+      "fsType": null,
+      "source": null,
+      "disk": null,
+      "smbVersion": null,
+      "mounted": null,
+      "checkedAt": 1793382086442,
+      "checkEveryMs": 10000,
+      "answeredAt": null
+    }
+  ],
+  "network": {
+    "scope": "host",
+    "interfaces": [],
+    "today": null,
+    "week": null,
+    "month": null
+  },
+  "sensors": [],
+  "processes": {
+    "scope": "host",
+    "top": []
+  },
+  "alerts": [],
+  "unlock": [],
+  "sparks": {
+    "cpu": [],
+    "gpuVideo": [],
+    "gpuBusy": [],
+    "rxBps": [],
+    "txBps": []
+  },
+  "price": null,
+  "encoder": null
+}

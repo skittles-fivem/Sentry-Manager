@@ -1,0 +1,6 @@
+{
+  "status": 403,
+  "body": {
+    "error": "That setup code is not right. It was shown when the install finished. To see it again, run sudo sentry-six-manager setup-code in Terminal."
+  }
+}

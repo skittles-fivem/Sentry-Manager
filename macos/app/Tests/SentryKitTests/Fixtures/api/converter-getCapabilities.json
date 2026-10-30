@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "value": {
+    "separatePublication": "native-atomic",
+    "ownershipCleanup": "atomic-expected-ownership",
+    "replacement": "available",
+    "destinationContainment": "pathname-revalidated-non-atomic"
+  }
+}

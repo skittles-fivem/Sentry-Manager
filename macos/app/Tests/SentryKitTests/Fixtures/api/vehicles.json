@@ -1,0 +1,76 @@
+{
+  "vehicles": [
+    {
+      "id": "model-y",
+      "name": "Model Y",
+      "timezone": "America/Chicago",
+      "source": {
+        "type": "path",
+        "path": "/Users/Shared/SentrySixFixture/cars/Model Y"
+      },
+      "root": "/Users/Shared/SentrySixFixture/cars/Model Y",
+      "studioRoot": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam",
+      "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/Users/Shared/SentrySixFixture/cars/Model Y",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 27706064896,
+        "lastError": null,
+        "hint": null,
+        "warning": null,
+        "checkedAt": 1793382084368,
+        "writeCheckedAt": 1793382084371,
+        "mountedAt": null,
+        "network": false
+      },
+      "security": null,
+      "inventory": {
+        "recordings": 3,
+        "files": 19,
+        "bytes": 2587640,
+        "byCategory": {
+          "Saved": {
+            "recordings": 1,
+            "bytes": 423319
+          },
+          "Sentry": {
+            "recordings": 1,
+            "bytes": 435017
+          },
+          "Recent": {
+            "recordings": 1,
+            "bytes": 1729304
+          }
+        },
+        "scannedAt": 1793382084383
+      },
+      "scanning": false,
+      "binBytes": 0,
+      "binItems": 0,
+      "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+          "Recent": null,
+          "Sentry": null,
+          "Saved": null,
+          "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+      },
+      "saved": {
+        "bytes": 0,
+        "clips": 0
+      }
+    }
+  ]
+}

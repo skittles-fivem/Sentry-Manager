@@ -147,9 +147,14 @@ test('the scripts stay within macOS\'s bash 3.2', () => {
 });
 
 test('nothing in macos/ is for Intel Macs', () => {
-  for (const f of fs.readdirSync(MACOS)) {
-    const text = fs.readFileSync(path.join(MACOS, f), 'utf8');
-    assert.doesNotMatch(text, /darwin-x64|mac64-|x86_64|macos-x64|\bx64\b/i, f);
+  // every file, the app's folders too (not Swift's own build output)
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    if (e.isDirectory()) return e.name === '.build' || e.name === '.swiftpm' ? [] : walk(path.join(dir, e.name));
+    return [path.join(dir, e.name)];
+  });
+  for (const f of walk(MACOS)) {
+    const text = fs.readFileSync(f, 'utf8');
+    assert.doesNotMatch(text, /darwin-x64|mac64-|x86_64|macos-x64|\bx64\b/i, path.relative(MACOS, f));
   }
 });
 

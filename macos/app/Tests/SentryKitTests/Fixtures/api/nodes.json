@@ -1,0 +1,13 @@
+{
+  "nodes": [],
+  "worker": {
+    "enabled": false,
+    "slots": 2,
+    "use": "gpu",
+    "busy": 0,
+    "pairing": null,
+    "mains": [],
+    "available": true,
+    "name": "vm"
+  }
+}

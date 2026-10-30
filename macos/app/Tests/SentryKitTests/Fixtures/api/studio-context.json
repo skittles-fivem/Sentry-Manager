@@ -1,0 +1,15 @@
+{
+  "version": "2026.26.35 (web)",
+  "deployment": "macos",
+  "vehicles": [
+    {
+      "id": "model-y",
+      "name": "Model Y",
+      "root": "/Users/Shared/SentrySixFixture/cars/Model Y",
+      "timezone": "America/Chicago"
+    }
+  ],
+  "outputRoots": [
+    "/Users/Shared/SentrySixFixture/data/converted"
+  ]
+}

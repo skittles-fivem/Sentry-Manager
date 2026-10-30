@@ -1,0 +1,286 @@
+{
+  "at": 1793382086944,
+  "intervalMs": 2000,
+  "host": {
+    "hostname": "vm",
+    "os": "macOS",
+    "kernel": "6.18.44-fc-v185",
+    "arch": "arm64",
+    "version": "2026.26.35",
+    "node": "v22.22.0",
+    "uptimeS": null,
+    "appUptimeS": null,
+    "ffmpeg": "6.1.1-3ubuntu5"
+  },
+  "cpu": {
+    "model": "Apple M2 Pro",
+    "cores": 4,
+    "threads": 4,
+    "usage": 26,
+    "perCore": [
+      16,
+      25,
+      47,
+      16
+    ],
+    "freqMHz": null,
+    "tempC": null,
+    "load": [
+      0.94,
+      1.73,
+      1.77
+    ],
+    "app": {
+      "usage": null,
+      "ffmpegUsage": null,
+      "ffmpegCount": 1
+    },
+    "throttling": false,
+    "sockets": 1,
+    "perSocket": null
+  },
+  "memory": {
+    "totalB": 16872808448,
+    "usedB": null,
+    "availableB": null,
+    "cacheB": null,
+    "swapTotalB": null,
+    "swapUsedB": null,
+    "appB": 181444608
+  },
+  "gpus": [],
+  "power": {
+    "totalW": null,
+    "cpuW": null,
+    "gpuW": null,
+    "chipW": null,
+    "discreteW": null,
+    "cpuSource": null,
+    "gpuSource": null,
+    "cpuUnavailable": "macos",
+    "todayWh": 0,
+    "weekWh": 0,
+    "todayCost": null,
+    "weekCost": null,
+    "priceNow": null
+  },
+  "disks": [],
+  "filesystems": [
+    {
+      "label": "Data volume",
+      "path": "/Users/Shared/SentrySixFixture/data",
+      "vehicle": false,
+      "totalB": 270553174016,
+      "usedB": 13616574464,
+      "freeB": 27705933824,
+      "latencyMs": 16,
+      "reachable": true,
+      "fsType": "apfs",
+      "source": "/dev/disk3s1s1",
+      "disk": null,
+      "smbVersion": null,
+      "mounted": null,
+      "checkedAt": 1793382086442,
+      "checkEveryMs": 10000,
+      "answeredAt": 1793382086462
+    },
+    {
+      "label": "Model Y",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y",
+      "vehicle": true,
+      "totalB": 270553174016,
+      "usedB": 13616574464,
+      "freeB": 27705933824,
+      "latencyMs": 16,
+      "reachable": true,
+      "fsType": "apfs",
+      "source": "/dev/disk3s1s1",
+      "disk": null,
+      "smbVersion": null,
+      "mounted": null,
+      "checkedAt": 1793382086442,
+      "checkEveryMs": 10000,
+      "answeredAt": 1793382086463
+    }
+  ],
+  "network": {
+    "scope": "host",
+    "interfaces": [],
+    "today": null,
+    "week": null,
+    "month": null
+  },
+  "sensors": [],
+  "processes": {
+    "scope": "host",
+    "top": [
+      {
+        "pid": 100,
+        "name": "claude",
+        "cpu": null,
+        "memB": 365846528,
+        "gpuVideo": null
+      },
+      {
+        "pid": 3661,
+        "name": "sentry-six-manager",
+        "cpu": null,
+        "memB": 142757888,
+        "gpuVideo": null
+      },
+      {
+        "pid": 3533,
+        "name": "node",
+        "cpu": null,
+        "memB": 73433088,
+        "gpuVideo": null
+      },
+      {
+        "pid": 88,
+        "name": "environment-man",
+        "cpu": null,
+        "memB": 50917376,
+        "gpuVideo": null
+      },
+      {
+        "pid": 20800,
+        "name": "SentrySixManage",
+        "cpu": null,
+        "memB": 38195200,
+        "gpuVideo": null
+      },
+      {
+        "pid": 3733,
+        "name": "node",
+        "cpu": null,
+        "memB": 16900096,
+        "gpuVideo": null
+      },
+      {
+        "pid": 3716,
+        "name": "ffmpeg",
+        "cpu": null,
+        "memB": 15589376,
+        "gpuVideo": null
+      },
+      {
+        "pid": 1,
+        "name": "process_api",
+        "cpu": null,
+        "memB": 6742016,
+        "gpuVideo": null
+      },
+      {
+        "pid": 3730,
+        "name": "ps",
+        "cpu": null,
+        "memB": 4169728,
+        "gpuVideo": null
+      },
+      {
+        "pid": 3531,
+        "name": "bash",
+        "cpu": null,
+        "memB": 3510272,
+        "gpuVideo": null
+      },
+      {
+        "pid": 85,
+        "name": "6",
+        "cpu": null,
+        "memB": 3014656,
+        "gpuVideo": null
+      },
+      {
+        "pid": 3725,
+        "name": "sh",
+        "cpu": null,
+        "memB": 2027520,
+        "gpuVideo": null
+      },
+      {
+        "pid": 87,
+        "name": "sh",
+        "cpu": null,
+        "memB": 1863680,
+        "gpuVideo": null
+      },
+      {
+        "pid": 2369,
+        "name": "sleep",
+        "cpu": null,
+        "memB": 1794048,
+        "gpuVideo": null
+      },
+      {
+        "pid": 2975,
+        "name": "sleep",
+        "cpu": null,
+        "memB": 1794048,
+        "gpuVideo": null
+      },
+      {
+        "pid": 501,
+        "name": "sleep",
+        "cpu": null,
+        "memB": 1789952,
+        "gpuVideo": null
+      },
+      {
+        "pid": 1891,
+        "name": "sleep",
+        "cpu": null,
+        "memB": 1789952,
+        "gpuVideo": null
+      },
+      {
+        "pid": 31447,
+        "name": "sleep",
+        "cpu": null,
+        "memB": 1789952,
+        "gpuVideo": null
+      },
+      {
+        "pid": 31911,
+        "name": "sleep",
+        "cpu": null,
+        "memB": 1789952,
+        "gpuVideo": null
+      },
+      {
+        "pid": 32471,
+        "name": "sleep",
+        "cpu": null,
+        "memB": 1789952,
+        "gpuVideo": null
+      },
+      {
+        "pid": 1227,
+        "name": "sleep",
+        "cpu": null,
+        "memB": 1785856,
+        "gpuVideo": null
+      },
+      {
+        "pid": 3534,
+        "name": "tail",
+        "cpu": null,
+        "memB": 1773568,
+        "gpuVideo": null
+      }
+    ]
+  },
+  "alerts": [],
+  "unlock": [],
+  "sparks": {
+    "cpu": [
+      26
+    ],
+    "gpuVideo": [],
+    "gpuBusy": [],
+    "rxBps": [],
+    "txBps": []
+  },
+  "price": null,
+  "encoder": null
+}

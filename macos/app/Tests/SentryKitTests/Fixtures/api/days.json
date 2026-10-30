@@ -1,0 +1,79 @@
+{
+  "total": 3,
+  "recordings": 3,
+  "offset": 0,
+  "limit": 30,
+  "scannedAt": 1793382084383,
+  "scanning": false,
+  "error": null,
+  "dates": [
+    "2025-06-03",
+    "2025-06-02",
+    "2025-06-01"
+  ],
+  "days": [
+    {
+      "day": "2025-06-03",
+      "recordings": 1,
+      "byCategory": {
+        "Saved": 1
+      },
+      "bytes": 423319,
+      "minutes": 1,
+      "clips": 1,
+      "encoded": 0,
+      "encodedRecordings": 0,
+      "unknown": 0,
+      "cameras": 1,
+      "protected": 0,
+      "codecs": [],
+      "thumbId": "22ce385f24ed5c22",
+      "speedIndex": {
+        "clips": 1,
+        "indexed": 1
+      }
+    },
+    {
+      "day": "2025-06-02",
+      "recordings": 1,
+      "byCategory": {
+        "Sentry": 1
+      },
+      "bytes": 435017,
+      "minutes": 1,
+      "clips": 4,
+      "encoded": 0,
+      "encodedRecordings": 0,
+      "unknown": 0,
+      "cameras": 4,
+      "protected": 0,
+      "codecs": [],
+      "thumbId": "b5515799cbe2ba94",
+      "speedIndex": {
+        "clips": 1,
+        "indexed": 1
+      }
+    },
+    {
+      "day": "2025-06-01",
+      "recordings": 1,
+      "byCategory": {
+        "Recent": 1
+      },
+      "bytes": 1729304,
+      "minutes": 2,
+      "clips": 12,
+      "encoded": 0,
+      "encodedRecordings": 0,
+      "unknown": 0,
+      "cameras": 6,
+      "protected": 0,
+      "codecs": [],
+      "thumbId": "da3fd57c1788cc47",
+      "speedIndex": {
+        "clips": 2,
+        "indexed": 0
+      }
+    }
+  ]
+}

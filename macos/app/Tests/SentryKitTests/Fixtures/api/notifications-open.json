@@ -1,0 +1,16 @@
+{
+  "notifications": [
+    {
+      "id": 1,
+      "kind": "conversion",
+      "level": "warning",
+      "vehicleId": "model-y",
+      "title": "17 clip(s) could not be converted",
+      "message": "The originals were kept. Open the Encoder tab for details and Retry failed.",
+      "createdAt": 1793382088035,
+      "updatedAt": 1793382088035,
+      "resolvedAt": null,
+      "readAt": null
+    }
+  ]
+}

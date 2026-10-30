@@ -1,0 +1,13 @@
+{
+  "appearance": {
+    "reduceEffects": false,
+    "clock24": false
+  },
+  "power": {
+    "currency": "$",
+    "mode": "flat",
+    "pricePerKwh": null,
+    "defaultPrice": null,
+    "rates": []
+  }
+}

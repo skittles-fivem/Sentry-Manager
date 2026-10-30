@@ -1,0 +1,75 @@
+{
+  "id": "b5515799cbe2ba94",
+  "key": "event:TeslaCam/SentryClips/2025-06-02_12-30-00",
+  "vehicleId": "model-y",
+  "type": "SentryClips",
+  "category": "Sentry",
+  "folder": "TeslaCam/SentryClips/2025-06-02_12-30-00",
+  "eventId": "2025-06-02_12-30-00",
+  "startKey": "2025-06-02_12-29-00",
+  "start": "2025-06-02 12:29:00",
+  "end": "2025-06-02 12:29:00",
+  "eventAt": "2025-06-02 12:30:00",
+  "day": "2025-06-02",
+  "fileCount": 5,
+  "clipCount": 4,
+  "minutes": 1,
+  "bytes": 435017,
+  "cameras": [
+    "back",
+    "front",
+    "left_repeater",
+    "right_repeater"
+  ],
+  "thumbRel": null,
+  "frontRel": "TeslaCam/SentryClips/2025-06-02_12-30-00/2025-06-02_12-29-00-front.mp4",
+  "protected": false,
+  "mtimeMs": 1793382083730.4397,
+  "encoded": {
+    "clips": 4,
+    "encoded": 0,
+    "unknown": 0,
+    "codecs": []
+  },
+  "root": "/Users/Shared/SentrySixFixture/cars/Model Y",
+  "folderPath": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/SentryClips/2025-06-02_12-30-00",
+  "files": [
+    {
+      "rel": "TeslaCam/SentryClips/2025-06-02_12-30-00/2025-06-02_12-29-00-back.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/SentryClips/2025-06-02_12-30-00/2025-06-02_12-29-00-back.mp4",
+      "size": 4096,
+      "codec": null
+    },
+    {
+      "rel": "TeslaCam/SentryClips/2025-06-02_12-30-00/2025-06-02_12-29-00-front.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/SentryClips/2025-06-02_12-30-00/2025-06-02_12-29-00-front.mp4",
+      "size": 422583,
+      "codec": "h264"
+    },
+    {
+      "rel": "TeslaCam/SentryClips/2025-06-02_12-30-00/2025-06-02_12-29-00-left_repeater.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/SentryClips/2025-06-02_12-30-00/2025-06-02_12-29-00-left_repeater.mp4",
+      "size": 4096,
+      "codec": null
+    },
+    {
+      "rel": "TeslaCam/SentryClips/2025-06-02_12-30-00/2025-06-02_12-29-00-right_repeater.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/SentryClips/2025-06-02_12-30-00/2025-06-02_12-29-00-right_repeater.mp4",
+      "size": 4096,
+      "codec": null
+    },
+    {
+      "rel": "TeslaCam/SentryClips/2025-06-02_12-30-00/event.json",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/SentryClips/2025-06-02_12-30-00/event.json",
+      "size": 146
+    }
+  ],
+  "event": {
+    "timestamp": "2025-06-02T12:29:30",
+    "city": "Austin",
+    "est_lat": "30.2672",
+    "est_lon": "-97.7431",
+    "reason": "sentry_aware_object_detection",
+    "camera": "0"
+  }
+}

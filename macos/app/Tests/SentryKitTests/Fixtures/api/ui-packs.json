@@ -1,0 +1,58 @@
+{
+  "active": null,
+  "packs": [
+    {
+      "id": "aurora",
+      "name": "Aurora",
+      "description": "A night sky with drifting northern lights behind a frosted-glass, spatial interface: a floating dock, glass windows, a Sky home with a glowing storage ring, a filmstrip of days, a cockpit-style six-camera Viewer and an orbiting Encoder.",
+      "author": "Aurora",
+      "files": 24,
+      "bytes": 365739,
+      "replaces": [
+        "web"
+      ],
+      "uploadedAt": null,
+      "builtin": true
+    },
+    {
+      "id": "daylight",
+      "name": "Daylight",
+      "description": "A calm, friendly interface: a Today page that answers your questions first, a calendar of footage, a big six-camera Viewer, guided conversions, light and dark looks.",
+      "author": "Daylight pack",
+      "files": 25,
+      "bytes": 350891,
+      "replaces": [
+        "web"
+      ],
+      "uploadedAt": null,
+      "builtin": true
+    },
+    {
+      "id": "flux",
+      "name": "Flux",
+      "description": "A dense, dark control console for people who want every number: live canvas telemetry, a command palette (Ctrl/Cmd+K), keyboard shortcuts everywhere, sortable tables, a six-camera synced viewer with telemetry and a lane-level encoder view.",
+      "author": "Flux",
+      "files": 22,
+      "bytes": 364951,
+      "replaces": [
+        "web"
+      ],
+      "uploadedAt": null,
+      "builtin": true
+    },
+    {
+      "id": "horizon",
+      "name": "Horizon",
+      "description": "Retro-futuristic synthwave cockpit: neon HUD panels over an endless grid that runs toward a setting sun. Dashboard instrument cluster, track-list footage, heads-up Viewer and a dyno-room Encoder.",
+      "author": "Sentry Six Manager examples",
+      "files": 21,
+      "bytes": 369905,
+      "replaces": [
+        "web"
+      ],
+      "uploadedAt": null,
+      "builtin": true
+    }
+  ],
+  "original": false
+}
