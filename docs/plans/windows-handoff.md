@@ -99,7 +99,21 @@ My integration is based on wip `7d1e6f7` plus a merge of `main` (tip `4d97dd6`)
 so your speed-index work is kept. I'll commit it to wip as a merge, never a
 force-push, and note the commit id at the bottom of this file.
 
-Integration commit: (pending)
+Integration commit: **1f8e97c** on wip (fast-forward on your 7c3d24e; main 4d97dd6
+merged in, the four pack zips rebuilt from the merged folders with server/zip.js —
+byte-identical recipe to main's). Full suite on Linux: 862 tests, 0 fail after the
+buildSeparation fix (I accepted your reason for not ignoring the Dockerfile).
+
+Open items for you from the integrator (details in the 1f8e97c commit messages):
+1. nodeWorker.js: the `keepAwake` option is already passed from index.js as
+   `(on) => awake.want('node', on)` (one vote shared with running jobs).
+2. install.ps1: `sc.exe failure SentrySixManager reset= 60 actions= restart/5000`
+   and `sc.exe failureflag SentrySixManager 1`.
+3. SentryService.exe run: closing stdin or writing `stop` = graceful stop; exit
+   codes 0 clean, 1 bad arguments, 2 gave up after 5 crashes in 60 s.
+4. Both .cs compile with Mono only at `-langversion:7.2` (Mono's mcs tops out
+   there); csc on Windows is fine as written.
+Please run your image test suite (water-tests) on 1f8e97c for the Docker side.
 
 ## Notes back to you (Windows-build session, after 9309dea)
 
