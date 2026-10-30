@@ -2,6 +2,8 @@
 
 The owner wants a real Mac app for Sentry Six Manager, not a web page in a window. The native server build is already wired (commit f45795b, `docs/plans/macos.md`). This contract adds the app on top of it: a SwiftUI/AppKit window and a menu-bar item that talk to that same server, the "engine", over its HTTPS JSON API.
 
+The app is 1:1 with the web: the built-in interface **and** the four interface packs that ship with it (Horizon, Flux, Aurora, Daylight), all five from the first release. It shows whichever one is chosen in Settings › Interface (section 5). It follows the same plan as the native Windows app (`docs/plans/windows-native-ui.md`): one data layer, one skin per interface, the same same-computer sign-in endpoint (2.6), the same event streams, and the same side-by-side proof (`tools/parity/`, 11.4).
+
 Phones, tablets and other computers keep the web interface. Nothing here changes it.
 
 Nothing in this document has run on a Mac. Claims nobody could check are marked **(verify on a Mac)**. The app target is built and tested by CI on a Mac; only the `SentryKit` library is built and tested here, on Linux.
@@ -10,7 +12,9 @@ Nothing in this document has run on a Mac. Claims nobody could check are marked 
 
 **Goals**
 
-- A plain Mac app that does everything the web interface does on this Mac: Overview, Footage, Viewer, Encoder, Jobs, Policies, Recycle Bin, Notifications, Nodes and Settings (section 5 lists what is left out on purpose).
+- A plain Mac app that does everything the web interface does on this Mac, in each of the five interfaces: the built-in one (section 6 lists its pages, and 6.13 what is left out on purpose) and the four shipped packs (section 5). Same pages, controls, states, wording, layout, look and keyboard shortcuts, at desktop and narrow window widths.
+- An uploaded (third-party) pack is a web page, so the app cannot draw it. The app then shows a notice with a button that opens it in the user's browser (5.4).
+- Same-Mac sign-in without a password (2.6).
 - Six-camera playback with AVFoundation (hardware decode), the map with MapKit, graphs with Swift Charts.
 - A menu-bar item that shows whether the engine runs and what it is converting, and starts or stops it.
 - Installed from a `.dmg` by dragging to Applications. On first open the user picks how the engine runs: as a background service, or in their login.
@@ -19,13 +23,14 @@ Nothing in this document has run on a Mac. Claims nobody could check are marked 
 
 **Rules**
 
-- **No WebKit anywhere.** No `WKWebView`, no `WebView`, no `import WebKit`, no HTML rendered in the app, no web page loaded in a window. CI fails the build if the app's sources import WebKit or the linked binary loads `WebKit.framework` (section 10). Opening the web interface in the user's own browser (`NSWorkspace.open`) is allowed: that happens outside the app.
+- **No WebKit anywhere.** No `WKWebView`, no `WebView`, no `import WebKit`, no HTML rendered in the app, no web page loaded in a window. That also rules out `NSAttributedString` built from HTML (it loads WebKit underneath) and `JavaScriptCore` (a pack's scripts never run inside the app). The pack skins are drawn in SwiftUI from the pack's specs; no pack file (HTML, CSS, JS) is bundled into or read by the app. CI fails the build if the app's sources break any of this or the linked binary loads `WebKit.framework` or `JavaScriptCore.framework` (10.5). Opening the web interface in the user's own browser (`NSWorkspace.open`) is allowed: that happens outside the app. The parity tool's Playwright capture (11.4) runs outside the app too.
 - **One engine.** The app is a client. It never reads footage, the database or the TLS folder itself. Everything goes through the API, so every check the server makes (confinement, hidden paths, the Recycle Bin, the converter's rules) stays in one place.
 - **Passwords only over HTTPS, loopback included.** The app talks to `https://127.0.0.1:<port>` with the engine's own certificate pinned. It never sends a password over plain HTTP, never trusts the system roots for the engine, and never offers "trust anyway". If `/api/auth/me` says `secure:false` (`TLS_MODE=off`), the app refuses to sign in.
 - **Everything stays on the Mac.** No other service, no cloud API, no helper container. The only network use besides the engine is what the engine already does (SMB shares, nodes, the release check).
 - **macOS-only files live under `macos/`** (the app under `macos/app/`). `.dockerignore` already leaves out `macos/`, and `test/buildSeparation.test.js` keeps the Docker and Windows builds apart from it.
-- **Server changes are additive and darwin-safe.** On Linux and Windows every value, path, message and response key stays as it is. Each change in section 8 is behind `platform.name === 'darwin'` and an env key only the Mac installs set, and comes with tests.
+- **Server changes are additive and darwin-safe.** On Linux and Windows every value, path, message and response key stays as it is. Each change in section 9 is behind `platform.name === 'darwin'` and an env key only the Mac installs set, and comes with tests.
 - **Apple Silicon only**, as the engine. The app needs **macOS 14 (Sonoma)** or later, because it uses the Observation framework and `NSView.displayLink`. The Terminal install of the engine alone still works from 13.5.
+- **Server changes for the app are additive and shared with Windows where the two need the same thing** (same-computer sign-in, 2.6). One endpoint serves both platforms; only the transport that hands out the one-time token differs.
 - No model names in code, comments or commits. Plain short comments. English only (the web loads translations only for other languages; the app ships English).
 
 ## 2. Architecture
@@ -35,8 +40,10 @@ Nothing in this document has run on a Mac. Claims nobody could check are marked 
  ├─ main window (SwiftUI + AppKit)        ┐
  ├─ menu-bar item (MenuBarExtra)          ├─ app target: macOS only
  ├─ video (AVFoundation), map (MapKit)    ┘
+ │    one skin per interface: Builtin, Horizon, Flux, Aurora, Daylight
  └─ SentryKit (models, API client, pinning logic, SSE, telemetry,
-               sync clock, view models, formatting)  ← builds and tests on Linux
+               sync clock, view models, formatting, and per skin its
+               tokens, strings, formatters and maths)  ← builds and tests on Linux
           │  HTTPS, pinned, cookie session
           ▼
  engine: node server/index.js on 127.0.0.1:<port> (default 9000)
@@ -46,7 +53,7 @@ Nothing in this document has run on a Mac. Claims nobody could check are marked 
 
 ### 2.1 Three parts
 
-1. **The engine.** The same Node server and ffmpeg the Terminal install uses (`macos/build.sh` payload), with `BUILD_INFO.json` `channel:'macos-app'` (section 8). It runs as a launchd job in one of two modes (section 3). It is the only thing that touches footage.
+1. **The engine.** The same Node server and ffmpeg the Terminal install uses (`macos/build.sh` payload), with `BUILD_INFO.json` `channel:'macos-app'` (section 9). It runs as a launchd job in one of two modes (section 3). It is the only thing that touches footage.
 2. **SentryKit** (Swift library). Everything that does not need AppKit, SwiftUI, AVFoundation, MapKit, Security or ServiceManagement. It builds and tests on Linux with `swift build` / `swift test`. On Linux, `URLSession` comes from `FoundationNetworking` (`#if canImport(FoundationNetworking)`). `URLSession.bytes(for:)` does not exist there, so streaming uses a `URLSessionDataDelegate` on both platforms.
 3. **The app target** (`SentrySixManager`, macOS only). The windows, the menu bar, `AVPlayer`s, the resource loader, `MKMapView`, Swift Charts views, the `SecTrust` glue, `SMAppService`, the admin-prompt runner and Keychain storage. It holds as little logic as it can: it shows what SentryKit decides and runs what SentryKit asks for.
 
@@ -61,7 +68,8 @@ macos/app/
   Sources/
     SentryKit/                      Linux-safe; no AppKit/SwiftUI/AVFoundation/MapKit/Security
       API/          APIClient, Endpoint, Request building, ErrorEnvelope, ConfirmCoordinator
-      Auth/         SessionStore protocol, SetCookie parsing, SignInModel
+      Auth/         SessionStore protocol, SetCookie parsing, SignInModel,
+                    LocalSignIn (socket path rules, token line parsing, exchange; 2.6)
       Engine/       EngineInfo (engine.json reader + checks), EngineLocator, PinPolicy
       Events/       SSEParser, EventStream (delegate-driven, backoff), EventsHub, ConverterStream
       Models/       Codable models for every response (lenient decoding)
@@ -74,14 +82,37 @@ macos/app/
       ViewModels/   @Observable models: Shell, Overview, Logs, Footage, Viewer, Encoder,
                     Benchmark, Hardware, VehicleEncoding, Jobs, Policies, Bin, Notifications,
                     Nodes, Settings, VehicleForm, Power, Security, MenuBar
+                    (shared by all five skins; options per skin, section 5.3)
+      Interfaces/   SkinID, InterfaceResolver (/api/ui-packs -> skin or notice), SkinPrefs
+                    (UserDefaults per skin prefix), PageList and Route per skin, Commands,
+                    SVGPath (pack icon paths as data), OKLCH
+      Skins/        pure, Linux-tested, one folder per interface:
+        Builtin/    tokens, strings (the Strings/ above), page list
+        Horizon/    HorizonTokens, HorizonFormat, HorizonStrings/, HorizonDerived,
+                    HorizonSkyGeometry, HorizonPrefs
+        Flux/       FluxTokens (OKLCH data), FluxFormat, FluxStrings/, CommandPalette.score,
+                    StatsTimeline, FluxPrefs
+        Aurora/     AuroraTokens, AuroraFormat, AuroraStrings/, SkyField, CockpitFit,
+                    AuroraSky, AuroraEncoder, AuroraViewer, AuroraPrefs
+        Daylight/   DaylightTokens (light and dark), DaylightFormat, DaylightStrings/,
+                    DaylightTodayModel, DaylightCalendar, UndoTrash, DaylightPace,
+                    SaveSpaceFlow, AddVehicleFlow, PolicyPresets, DaylightPlaybackProfile,
+                    DaylightDash, DaylightServerTiles
       Service/      ServiceMode, AgentEnvironment (env for the launcher), InstallScript
                     (the admin bootstrap text), EngineManifest
     SentrySixManager/               macOS only (added to the package under #if os(macOS))
       App/          @main App, scenes, commands (menus and shortcuts), AppDelegate
       MenuBar/      MenuBarExtra content
-      Shell/        sidebar, toolbar, vehicle picker, toasts, confirm sheets, browse sheet
-      Screens/      SignIn, Overview, Footage, Viewer, Encoder, VehicleEncoding, Jobs,
+      Shell/        root (picks the skin), third-party pack notice, toast host, modal host,
+                    drawer host, KeyRouter, Downloader, SplitPane, WidthClass, parity render
+      Shared/       views every skin reuses with its SkinStyle: PlayerLayerView, camera tile
+                    host, TimeSeriesChart, Sparkline, DataGrid, ThumbnailImage, the Encoding
+                    per vehicle editor, vehicle source fields, rate editor, browse sheet
+      Skins/Builtin/   sidebar, toolbar, vehicle picker, confirm sheets, and the screens:
+                    SignIn, Overview, Footage, Viewer, Encoder, VehicleEncoding, Jobs,
                     Policies, Bin, Notifications, Nodes, Settings
+      Skins/Horizon/ Skins/Flux/ Skins/Aurora/ Skins/Daylight/
+                    each: theme, shell, its own pages (section 5)
       Video/        PlayerSet, PlayerLayerView, MediaResourceLoader, SyncDriver, DisplayTick
       Map/          RouteMapView (MKMapView), annotations, renderers
       Charts/       sparklines, history, speed graph, benchmark bars
@@ -91,6 +122,7 @@ macos/app/
   Tests/
     SentryKitTests/                 XCTest; runs on Linux and macOS
       Fixtures/                     canned JSON, SSE streams, telemetry, Content-Range cases
+                                    (the per-pack expected values come from tools/parity/expected/)
   bundle/
     Info.plist                      template (version filled in by assemble.sh)
     SentrySixManager.entitlements   app (hardened runtime, no exceptions)
@@ -103,11 +135,11 @@ macos/app/
     sign.sh  notarize.sh  dmg.sh    called by build-app.sh
 ```
 
-`Package.swift` declares `platforms: [.macOS(.v14)]`. It always has the `SentryKit` library, its tests and `sentry-six-engine`. It adds the `SentrySixManager` executable target only `#if os(macOS)`, so `swift build` on Linux never sees AppKit. Colours are defined in code (the shell.css tokens, section 5.0), because plain SwiftPM cannot compile asset catalogs. `macos/app/.build/` goes in `.gitignore`.
+`Package.swift` declares `platforms: [.macOS(.v14)]`. It always has the `SentryKit` library, its tests and `sentry-six-engine`. It adds the `SentrySixManager` executable target only `#if os(macOS)`, so `swift build` on Linux never sees AppKit. Colours are defined in code (the shell.css tokens, section 6.0), because plain SwiftPM cannot compile asset catalogs. `macos/app/.build/` goes in `.gitignore`.
 
 ### 2.3 How the app finds the engine
 
-The engine writes a small public file, **`engine.json`**, each time its certificates load or change (server change S1, section 8):
+The engine writes a small public file, **`engine.json`**, each time its certificates load or change (server change S1, section 9):
 
 | mode | path | dir | file |
 |---|---|---|---|
@@ -168,8 +200,8 @@ When a handshake is rejected, the app re-reads engine.json once (the CA may just
 - Bodies are at most 1 MiB, or 256 KiB under `/api/converter/`.
 - Path parameters (vehicle ids, recording ids, bin items, node ids, archive names) are percent-encoded. The server decodes them once.
 - Error answers are `{error, code?}`. `error` is plain and is shown as it is, through `Text(verbatim:)` so no Markdown is read from server strings. Without a body, the HTTP status text is shown.
-- `/api/converter/invoke/*` always answers 200 with `{ok, value}` or `{ok:false, error:{code, retryable, details?}}`. The client turns those into typed results; the words come from the Encoder's tables (5.5).
-- Timeouts: 10 s for polled stats, 15 s for history and logs, 30 s by default, 6 h for `runBenchmark` (5.5). A polled request never starts while the last one is still out.
+- `/api/converter/invoke/*` always answers 200 with `{ok, value}` or `{ok:false, error:{code, retryable, details?}}`. The client turns those into typed results; the words come from the Encoder's tables (6.5).
+- Timeouts: 10 s for polled stats, 15 s for history and logs, 30 s by default, 6 h for `runBenchmark` (6.5). A polled request never starts while the last one is still out.
 - When the engine cannot be reached: "Can't reach Sentry Six Manager." and, on the next line, "Start it from the menu bar." (the web's "Reload the page" advice does not apply).
 
 **The session cookie.**
@@ -180,7 +212,7 @@ When a handshake is rejected, the app re-reads engine.json once (the CA may just
 - SentryKit sees this only as a `SessionStore` protocol, with an in-memory store for tests.
 - A password change answers with a new cookie, which replaces the stored one.
 
-**401.** A 401 on any path not under `/api/auth/` means the session is gone (expired after 30 days, revoked by a password change elsewhere, or signed out). The client drops the stored token, closes the event streams and shows the sign-in sheet. Afterwards it returns to the same screen.
+**401.** A 401 on any path not under `/api/auth/` means the session is gone (expired after 30 days, revoked by a password change elsewhere, or signed out). The client drops the stored token and closes the event streams. It then tries same-Mac sign-in once (2.6), without asking; only if that is off or refused does it show the sign-in sheet. Afterwards it returns to the same screen.
 
 **403 `CONFIRM_PASSWORD`.**
 
@@ -192,8 +224,10 @@ When a handshake is rejected, the app re-reads engine.json once (the CA may just
 - A confirmation lasts 10 minutes for that session. It is kept in server memory only, so a restart of the engine asks again.
 - Sheet text, exact: title "Confirm with your password"; body "This change affects where footage comes from or what code runs, so Sentry Six Manager asks for your password again." (retry: "That password was not right. Try again."); field "Password"; buttons "Cancel" / "Confirm" (Return confirms).
 
-**Sign-in sheet** (5.1).
+**How the app signs in.**
 
+- Normally with **same-Mac sign-in** (2.6): no password, no sheet.
+- The **sign-in sheet** (6.1, drawn in the active interface's look, section 5) is the fallback: when same-Mac sign-in is turned off on the server, when this Mac user is not allowed to use it, or after the user chose Sign Out (then the sheet also offers "Sign in on this Mac", *native*, which runs 2.6 again).
 - `GET /api/auth/me` answers `{user, needsSetup, secure, fingerprint, deployment}`.
 - `secure:false`: refuse to sign in, and say why.
 - `needsSetup`: show "Create your account". Otherwise "Sign in".
@@ -204,15 +238,120 @@ When a handshake is rejected, the app re-reads engine.json once (the CA may just
 - The code is 15 characters `XXXXX-XXXXX-XXXXX`, made fresh at each start until an account exists.
 - It lives in `data/setup-code.txt` (0600) and in the log. It is never served over HTTP, and must not be: a code served over HTTP would let any local process claim the account.
 - How the app fills it in:
+  - **First choice, both modes:** the same-Mac sign-in socket hands out the setup code while no account exists (2.6). So a user the socket lets in never needs Terminal or an admin prompt for it.
   - **In your login:** the file is the user's own (`~/Library/Application Support/SentrySixManager/data/setup-code.txt`), so the app reads it and fills the field.
   - **Background service:** the admin step that installs the service (3.4) prints the code, and the app captures it from that step's output and keeps it in memory only, to fill the field.
   - Later (for example after the app was quit), "Get the setup code" runs `/Library/SentrySixManager/bin/sentry-six-manager setup-code` through the admin prompt. The menu bar's "Setup code…" does the same.
 - The field stays editable, with the Mac hint "In Terminal on the Mac, run sudo sentry-six-manager setup-code".
 
-**Throttles to know about.**
+**Throttles to know about** (password sign-in; same-Mac sign-in has its own, 2.6).
 
 - From loopback the client IP is always `127.0.0.1` or `::1`, so the app shares one login-throttle bucket with every local browser. After 5 failures it is locked for 30 s, doubling up to 15 min.
 - At most 2 password checks run at once server-wide. The app shows the 429 text as it is.
+
+### 2.6 Same-Mac sign-in (shared with Windows)
+
+The app signs in without a password when it runs on the same Mac as the engine. It uses the **same endpoint and token rules as the native Windows app** (`docs/plans/windows-native-ui.md`, "Same-PC sign-in"; `docs/plans/windows-handoff.md`, "Native app"). Only the transport that hands the app its one-time token differs: a named pipe on Windows, a Unix socket on the Mac.
+
+**How it goes.**
+
+1. The app connects to the engine's sign-in socket (paths below). Being able to connect at all is the proof: the folder around the socket lets in only the right Mac user.
+2. The engine writes one line of JSON with a fresh one-time token and closes the connection.
+3. The app sends the token to `POST /api/auth/local` over the pinned HTTPS connection (2.4).
+4. The engine answers with an ordinary session cookie (`__Host-sm_session`, 30 days), exactly as after a password sign-in. From then on nothing differs.
+
+**Transport on the Mac: a Unix socket in a folder only the right user can enter.**
+
+| mode | socket | folder around it |
+|---|---|---|
+| background service | `/Library/Application Support/SentrySixManager Local/signin.sock` | `_sentrysix:wheel 0700`, made by install.sh, plus one ACL entry per allowed Mac user: `user:<name> allow search` |
+| in your login | `~/Library/Application Support/SentrySixManager/run/signin.sock` | the user's own `run/`, `0700` (3.3) |
+
+- The engine creates the socket at start (`net.createServer().listen(path)`), after removing a stale one: only a socket it owns, never a file or a symlink. Then it sets the socket to `0666`. The folder does the guarding: a process can only connect if it can enter the folder.
+- **Why a socket and not a token file.** A socket hands out a token only when asked, so no secret sits on disk, and it matches the Windows pipe step for step (connect, read one line). A token file would need a second, unauthenticated way to ask for a fresh token, or a token rewritten every minute.
+- **Why a folder ACL for the service and not a group.** The engine runs as `_sentrysix`, so its files are not the user's. An ACL entry lets exactly the named users through, takes effect at once, and is set by root in the install step that already has the admin prompt (3.4). A group would need `dseditgroup` and a fresh login before it works. Granting `search` on the state root instead would open a path towards `data/`; a folder of its own exposes nothing else. The ACL is stored by the user's GUID, so a renamed Mac account keeps working. macOS checks ACL entries before the mode bits, so `search` lets the user through a `0700` folder **(verify on a Mac)**.
+- **Who is allowed (background service).** install.sh gets `--local-user <name>`: the app passes the logged-in user's short name (`NSUserName()`). A Terminal install (`sudo install.sh`) uses `$SUDO_USER` when it is a real user (uid 501 or above), otherwise nobody, and the password still works. Root changes the list with `sentry-six-manager local-signin list | allow <name> | remove <name>`. Settings › This Mac shows "Mac users who can sign in without a password", with Add and Remove through the admin prompt (3.4). Uninstall removes the folder.
+- **Socket path length.** `sun_path` holds 103 bytes on macOS. If the login-mode path is longer (a very long home folder), the launcher (3.3) uses `/private/tmp/sentrysix-<uid>/signin.sock` instead. It creates that folder `0700`; if the folder already exists and is a symlink, is not owned by the user or is not `0700`, same-Mac sign-in stays off and the password still works.
+- The engine finds the path in the env key **`LOCAL_SIGNIN_SOCKET`**, which only the Mac app's plist and launcher set. Without it there is no socket and no `POST /api/auth/local` (below).
+- **The app checks the folder before connecting** (SentryKit `LocalSignIn`, file checks behind the same fake-file-system protocol as 2.3): `lstat` the folder and the socket, refuse symlinks, and require the folder's owner to be `_sentrysix` (service) or the user (login), mode `0700`. So the app never hands a token-shaped secret to, or takes one from, a socket someone else made.
+- **What this trusts.** Anything that runs as an allowed Mac user can sign in as the server account. That is the same reach as that user's own files and Keychain, and the same rule as on Windows ("only the signed-in user can open the pipe"). Other Mac users, guests and the other local accounts cannot enter the folder.
+
+**The line on the socket** (UTF-8 JSON, one line ending in `\n`, at most 4 KiB; the client waits at most 5 s and ignores unknown keys):
+
+```json
+{"v":1,"token":"local1_AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8","expiresAt":1793000060000,"port":9000}
+{"v":1,"needsSetup":true,"setupCode":"ABCDE-FGHIJ-KLMNO","port":9000}
+{"v":1,"error":"off"}
+{"v":1,"error":"busy"}
+```
+
+- A token while an account exists and same-Mac sign-in is on. The setup code instead, and no token, while no account exists (it is the same code the setup file and the log hold, so whoever may enter the folder may read it: 2.5). `off` when the owner turned it off. `busy` when the limits below are reached.
+- `port` must equal engine.json's port, or the app ignores the line.
+
+**The token.**
+
+- Format: `local1_` followed by 32 random bytes in base64url without padding (43 characters), 50 characters in all. Anything else is refused before any lookup.
+- The engine keeps only its SHA-256, in memory. A restart forgets every token.
+- **Single use:** the first `POST /api/auth/local` that names it deletes it, whether the sign-in then succeeds or not.
+- **Lifetime 60 s** from when it was given out.
+- At most **4 tokens** live at once; a fifth drops the oldest.
+- It is never logged, never put in a URL, and never written to disk by the app (the app keeps it in memory for the one request).
+
+**The endpoint: `POST /api/auth/local`** (one endpoint for the Mac and Windows).
+
+- **Exists only** when the platform is `darwin` or `win32` **and** a transport is configured (`LOCAL_SIGNIN_SOCKET` on the Mac; the Windows session names its key). Otherwise it is not registered, and the answer is the router's plain 404 "Not found". **Linux and Docker never have it.**
+- Request: `Content-Type: application/json`, `X-Requested-With: sentry-six-manager`, body `{"token":"local1_…"}`. No cookie needed. It is a public route like `/api/auth/login`.
+- Checks, in this order. Each refusal is a JSON `{error}` answer and an audit line:
+  1. **The general rules** every state-changing request already has: `X-Requested-With: sentry-six-manager`, and an `Origin`, if sent, matching the host (index.js).
+  2. **No `Origin` at all:** a browser always sends one on a POST; a native client never does. 403 "Cross-site request refused."
+  3. **Loopback only:** the raw `req.socket.remoteAddress` is `127.0.0.1`, `::1` or `::ffff:127.0.0.1`. Never `X-Forwarded-For`, even with `TRUST_PROXY`. 403 "Same-computer sign-in only works on this computer."
+  4. **Loopback host name:** the `Host` header is `127.0.0.1:<port>`, `[::1]:<port>` or `localhost:<port>`. Same 403.
+  5. **HTTPS only** (`auth.isSecure(req)`): the token is a credential, so the passwords-over-HTTPS rule applies. 403 "Same-computer sign-in needs HTTPS."
+  6. **Throttle:** key `local:<address>`, with the same failure rule as passwords (5 failures lock it for 30 s, doubling up to 15 min). 429 "Too many attempts. Try again in N s."
+  7. **Turned on:** 403 "Same-computer sign-in is turned off. Sign in with your password."
+  8. **An account exists:** 409 `{error:"Create the account first.", needsSetup:true}`. The token is not used up by this answer.
+  9. **The token:** right format, known, not expired. Otherwise 401 "That sign-in code is not valid any more. Try again." and a counted failure.
+- **Success:** the same session as `auth.login()` (a fresh token, 30 days, the old cookie's session dropped), answer `{ok:true, user}`. One difference: **it does not count as a password confirmation**. A password sign-in marks the session confirmed for 10 minutes; this one does not, so changes that ask for the password (2.5, 403 `CONFIRM_PASSWORD`) still ask for it.
+- **Which account:** the one in the setting below; by default the account made at setup (the oldest one). If that account no longer exists: 409 "Choose the account for same-computer sign-in in Settings › Account."
+
+**Limits.**
+
+- Giving out tokens: at most 10 a minute per transport and 4 live; past that the socket answers `busy`.
+- A socket connection gets its line at once and is closed; the engine never reads from it. It accepts at most 8 open connections and drops one that is still open after 2 s.
+- The exchange: the throttle in check 6.
+
+**Audit lines** (scope `audit`, as the other sign-in lines; never the token or the code):
+
+| when | level | text |
+|---|---|---|
+| token given out | info | `Same-computer sign-in code given out (Unix socket)` / `(named pipe)` |
+| setup code given out | info | `Setup code given out for same-computer sign-in (Unix socket)` |
+| signed in | info | `Signed in on this computer without a password (Unix socket): "<user>" from 127.0.0.1` |
+| refused | warn | `Same-computer sign-in refused (<reason>) from <address>`, reason one of `origin sent`, `not loopback`, `wrong host`, `not HTTPS`, `turned off`, `no account`, `bad or used code` |
+| setting changed | info | `Same-computer sign-in turned on for "<user>"` / `turned off`: `<user> from <address>` |
+
+The via word comes from the transport that gave out the token, kept with its hash.
+
+**The setting.**
+
+- `GET /api/settings` gains `localSignIn: {enabled, user, via}` **only** where the endpoint exists. Elsewhere the key is absent, so Linux answers stay byte-identical.
+- `PUT /api/settings/local-sign-in {enabled, user?}` changes it. It needs the password confirm (403 `CONFIRM_PASSWORD`), like other security changes. `user` must be an existing account. Default `{enabled:true, user:null}` (null = the oldest account).
+- The built-in web interface shows it in Settings › Account when the key exists: a checkbox "Sign in without a password on this computer (the Sentry Six Manager app)" and, with more than one account, an account picker. The packs do not show it (an additive server key they do not know). The Mac app shows it in every skin's Account section and in Settings › This Mac.
+
+**In the app** (SentryKit `LocalSignIn` plus a POSIX `AF_UNIX` client, both Linux-testable with a test socket):
+
+- At launch, after engine.json is read and pinned: if a stored session works (`/api/auth/me` has `user`), use it. Otherwise run the steps above. On `needsSetup`, open "Create your account" with the code filled in. On `off`, `busy` (after one retry 1 s later), no socket, a failed folder check, or any refusal, show the sign-in sheet (6.1) with the server's text.
+- After the user chooses Sign Out, the app does not sign in again by itself until the user clicks "Sign in on this Mac" (*native*) or relaunches the app.
+- The token goes only into the body of one `POST /api/auth/local`, never into logs, crash reports or UserDefaults.
+
+> **Contract ready (for the Windows session).** This section is the contract for the shared server side. The endpoint, token format, single use, 60 s lifetime, the limits, the checks and their order, the answers, the setting and the audit lines are the same on both platforms. What the server side must do:
+>
+> 1. **`server/localSignIn.js`** (shared, Windows session): the token store (`mint({via})` returning the token and `expiresAt`; SHA-256 only; 60 s; single use; at most 4 live; at most 10 a minute per `via`), the setup-code hand-out for `needsSetup`, and the exchange handler with the checks 1–9 above.
+> 2. **`index.js`** (Windows session): register `POST /api/auth/local` as a public route only when `platform.name` is `darwin` or `win32` and a transport env key is set; give `auth.login()` an option so this route's session is not marked confirmed; add `localSignIn` to `GET /api/settings` and `PUT /api/settings/local-sign-in` (with the password confirm) only in that case; the audit lines above.
+> 3. **The Windows transport** (Windows session): the pipe, its ACL (the interactive user's SID plus SYSTEM, created by whatever runs as the service account), its env key, and the same JSON line as above through `mint()`.
+> 4. **The Mac transport** (this plan, unit S1 in section 12): `server/platform/darwinLocalSignIn.js` (the socket in `LOCAL_SIGNIN_SOCKET`, stale-socket removal, `0666`, the connection limits, the line), `LOCAL_SIGNIN_SOCKET` in the daemon plist and the launcher, install.sh `--local-user`, the `SentrySixManager Local` folder and its ACL, and the `local-signin` command. It only calls `mint()`; it adds no route.
+> 5. **The built-in web Settings › Account row** (Windows session, since it owns the setting; the Mac app draws its own).
+> 6. **Tests** (node, both sessions' parts): the route is absent on linux and without the env key; the 404 equals an unknown route; every check in order with its answer; token format, single use, expiry with an injected clock, the 4-live and 10-a-minute limits; the setup code only while `needsSetup`; the session is not confirmed; `X-Forwarded-For` is ignored with `TRUST_PROXY`; the settings key is absent on linux; the audit lines, and that no line holds a token. On darwin: the socket is made in a temp folder, a stale socket is replaced, a symlink or a regular file at the path is refused, the line is right, and `busy` past the limits.
 
 ## 3. Service management
 
@@ -273,7 +412,7 @@ A LaunchAgent plist cannot expand `~`, and `node --env-file-if-exists` needs a f
    It creates any missing folder with mode 0700 (`public/` 0755).
 2. Empties `run/tmp`.
 3. Points stdout and stderr at the log (opened with `O_APPEND`). newsyslog does not rotate a user's log, so the launcher rotates it itself at 10 MiB, keeping 3.
-4. Builds the environment. This is the same list as the daemon plist, plus `SERVICE_MODE=agent` and `PUBLIC_INFO_PATH=<state>/public/engine.json`, with `APP_ROOT`, `FFMPEG_PATH`, `FFPROBE_PATH` and `SENTRY_NOREPLACE_RENAME` inside the bundle (`Contents/Resources/engine/...`).
+4. Builds the environment. This is the same list as the daemon plist, plus `SERVICE_MODE=agent`, `PUBLIC_INFO_PATH=<state>/public/engine.json` and `LOCAL_SIGNIN_SOCKET=<state>/run/signin.sock` (or the short `/private/tmp` path, 2.6), with `APP_ROOT`, `FFMPEG_PATH`, `FFPROBE_PATH` and `SENTRY_NOREPLACE_RENAME` inside the bundle (`Contents/Resources/engine/...`).
 5. `execv`s `node --disable-warning=ExperimentalWarning --env-file-if-exists=<state>/manager.env <app>/server/index.js`. Exec keeps the pid, so launchd still tracks the job.
 
 The env-building step is SentryKit `AgentEnvironment`, which is pure and unit-tested. The target itself is only the `execv`.
@@ -303,7 +442,7 @@ Rejected:
    - Its SHA-256 must equal the value compiled into the app (`EngineManifest.sha256`, written by `build-app.sh`). The running app's own code is what macOS verified at launch, so this ties the staged files to the signed app.
    - Then `shasum -a 256 -c MANIFEST.sha256` inside `$S`.
    - Any mismatch: delete `$S` and stop with "The app's files were changed after it was opened. Download it again."
-4. `bash $S/install.sh --from-dir $S --service-mode daemon [--import-data <dir>]`. The new `--from-dir` option takes an already staged and checked folder instead of a tarball. Everything else in install.sh runs as today.
+4. `bash $S/install.sh --from-dir $S --service-mode daemon --local-user '<NSUserName()>' [--import-data <dir>]`. The new `--from-dir` option takes an already staged and checked folder instead of a tarball. Everything else in install.sh runs as today.
 5. install.sh prints the address, the fingerprint and `SETUP-CODE: <code>` on a line of its own. The app reads that line from the step's output and keeps the code in memory only.
 
 **Other admin actions** in background-service mode go through the same runner, one prompt each. macOS may not ask again for a few minutes **(verify on a Mac)**.
@@ -314,6 +453,7 @@ Rejected:
 | Stop | `/Library/SentrySixManager/bin/sentry-six-manager stop` |
 | Setup code | `/Library/SentrySixManager/bin/sentry-six-manager setup-code` |
 | Let the service read a folder | `/Library/SentrySixManager/bin/sentry-six-manager allow-folder <path> [--write]` |
+| Mac users who sign in without a password | `/Library/SentrySixManager/bin/sentry-six-manager local-signin allow\|remove <name>` (2.6) |
 | Update the service | the staging steps above, then `install.sh --from-dir $S --update` |
 | Uninstall | `/Library/SentrySixManager/uninstall.sh [--remove-data]` |
 
@@ -328,7 +468,7 @@ The admin prompt's own text says "Sentry Six Manager wants to make changes." The
 - **The engine version travels with the app.** A new `.dmg` brings a new engine.
 - **In your login:** the new engine is used at the next start, and 3.2 restarts it.
 - **Background service:** when the bundled engine's sha differs from the running one, the app shows a banner and a menu line: "This app has a newer Sentry Six Manager. Update the service?" with "Update" (admin prompt, `--update`, which keeps `.old` and rolls back if `/healthz` fails) and "Later".
-- **A critical update** (`/api/updates` `critical`) keeps the web's red bar (5.0). Its button is "Download update", which opens the release page in the browser, because the new version comes as a new `.dmg`. Server change S3 gives the `how` text and the download URL for this channel.
+- **A critical update** (`/api/updates` `critical`) keeps the web's red bar (6.0). Its button is "Download update", which opens the release page in the browser, because the new version comes as a new `.dmg`. Server change S3 gives the `how` text and the download URL for this channel.
 - The Terminal `sudo sentry-six-manager update` still works for a service the app installed. It installs the tarball of the same release, so the app and the engine can differ for a while. The app says so plainly: "The service is newer than this app. Download the new app." when the engine's version is higher.
 
 ### 3.6 Switching modes
@@ -338,7 +478,7 @@ Settings › This Mac › "How it runs" shows the current mode and a "Change…"
 - **In your login → background service** (one admin prompt):
   1. Stop and unregister the agent.
   2. Run 3.4 with `--import-data ~/Library/Application Support/SentrySixManager/data`. When the service has no `data/` yet, install.sh copies it in with `ditto` and gives it to `_sentrysix` (`chown -R`, modes as today). An existing service `data/` is never overwritten; the app says so and keeps the service's.
-  3. Accounts, sessions, vehicles, policies, the Recycle Bin index and the certificates move with `data/`. So the pin and the sign-in stay the same.
+  3. Accounts, sessions, vehicles, policies, the Recycle Bin index and the certificates move with `data/`. So the pin and the sign-in stay the same. Same-Mac sign-in moves to the service's socket; install.sh allows the user who switched (`--local-user`).
   4. The user's own copy is left in place until uninstall.
   5. Folder vehicles in the user's home cannot be read by the service. The app lists them afterwards: "<name>: the service can't read this folder. Move the footage to /Users/Shared or a drive, or choose Let the service read this folder." (the latter runs `allow-folder`, 3.4).
 - **Background service → in your login** (one admin prompt):
@@ -358,7 +498,7 @@ Settings › This Mac › "Uninstall…", with the confirm text: "Remove Sentry 
 What it runs:
 
 - **In your login:** `unregister()`, kill the agent, remove `~/Library/Application Support/SentrySixManager` (with "Remove everything") and `~/Library/Logs/SentrySixManager`.
-- **Background service:** the admin prompt runs `uninstall.sh [--remove-data]`.
+- **Background service:** the admin prompt runs `uninstall.sh [--remove-data]`, which also removes `/Library/Application Support/SentrySixManager Local/`.
 - **Both:** remove the Keychain session item and the app's UserDefaults. Then: "Done. Drag Sentry Six Manager from Applications to the Bin to finish."
 
 Dragging the app to the Bin without uninstalling leaves the engine behind:
@@ -382,22 +522,211 @@ Items, top to bottom:
 4. Separator.
 5. **Open Sentry Six Manager** (⌘O inside the menu): brings up the main window.
 6. **Start** or **Stop**, whichever applies. In background-service mode it needs the admin prompt (3.4). Stop first asks, when conversions are running: "Stop Sentry Six Manager? 2 conversions are running. They pause safely and continue when it starts again."
-7. **Setup code…** Shown only while `/api/auth/me` says `needsSetup`. It shows the code in a small window with a Copy button: read from the file in login mode, or through the admin prompt for the service.
+7. **Setup code…** Shown only while `/api/auth/me` says `needsSetup`. It shows the code in a small window with a Copy button: from the same-Mac sign-in socket (2.6) when this user may use it, else read from the file in login mode, or through the admin prompt for the service.
 8. **Logs.** Opens the main window on the Overview, scrolled to Logs. With the option key held: "Show service log in Finder" (`/Library/Logs/SentrySixManager/service.log` or `~/Library/Logs/SentrySixManager/service.log`).
 9. Separator.
 10. **Quit (the service keeps running)**: quits the app only.
 
 Signed out, the menu still shows the status, Start/Stop, Setup code and Quit. The conversions line reads "Sign in to see conversions".
 
-The menu bar's data lives in SentryKit `MenuBarModel`, which uses the app-wide `EventsHub` (section 7). There is no second event stream.
+The menu bar's data lives in SentryKit `MenuBarModel`, which uses the app-wide `EventsHub` (section 8). There is no second event stream.
 
-## 5. Screens
+## 5. Interfaces
 
-### 5.0 Shared pieces
+The web has five interfaces that come with Sentry Six Manager: the built-in one and the packs in `examples/ui-packs/` (Horizon, Flux, Aurora, Daylight). The owner picks one for everyone in Settings › Interface. The app draws all five natively, from the first release, and shows the one the server says is active. This follows the Windows plan word for word: **one data layer, one skin per interface**.
+
+### 5.1 One data layer, five skins
+
+- **The data layer is SentryKit**: the API client, the event streams, the converter stream, the models, the view models, telemetry, playback decisions. Every skin uses the same instances. A page's logic exists once; each skin only draws it.
+- **A skin** is a theme plus a page set. Its pure parts live in SentryKit `Skins/<Name>/` and are tested on Linux: tokens (colours, radii, type sizes, breakpoints), strings (every sentence word for word), formatters (each pack has its own `bytes`, `ago`, `duration`…), derived values and maths (gauges, sky geometry, layout fits, paces). Its views live in the app target, `Skins/<Name>/`.
+- **The authority for every exact value is the web code itself:** `web/` for the built-in skin and `examples/ui-packs/<id>/` for each pack. Each skin unit (section 12) starts by porting tokens, strings and formatters into SentryKit, with expected values generated by running the pack's own JS (`tools/parity/expected/<id>/*.json`, made by a node script; the Windows app's tests read the same files). Nothing is typed in by hand from a screenshot.
+- **`SkinStyle`** is an environment value that carries the active skin's tokens into the shared views (6.0 and 5.3): cards, buttons (default, primary, soft, ghost, danger), inputs, chips, toggles, meters, dialogs, toasts.
+- **What is per skin and what is shared:**
+
+| | shared (SentryKit / `Shared/`) | per skin |
+|---|---|---|
+| Data, fetching, live updates, the converter, password confirm, pinning, downloads, thumbnails | all | — |
+| Playback engine (`PlayerSet`, `SyncDriver`, `MediaResourceLoader`, `PlaylistBuilder`, telemetry decode) | all | a `PlaybackProfile`: camera order and labels, mirroring, speed list, skip sizes, frame step, drift threshold and check interval, telemetry lookup rule, playlist rule, event lead time, key table |
+| Encoding per vehicle editor | one view (the web shares one module, `/web/vehicleEncoding.js`, in every interface) | `SkinStyle` and the confirm/toast hooks |
+| Vehicle source fields and Test connection, the electricity rate editor, Security host names and CA download, Updates and System rows, password change, pack list and upload | one field-group view each | the container around it and the few sentences that differ |
+| Shell, page layouts, charts' look, instruments, backgrounds | — | all |
+| Sign-in sheet | `SignInModel`, the 429 countdown | its card and wording |
+| Critical-update bar | one view (the server puts `/web/critical.js` into every interface's pages, so every web skin shows the same red bar) | — |
+
+- **Per-browser settings become per-Mac-user settings.** What a pack keeps in `localStorage` goes into `UserDefaults` under the skin's prefix (`horizon.sky`, `flux.collapsed`, `aurora.glass`, `daylight.theme`, …), the same key names otherwise. The list per skin is in 5.6–5.9.
+- **One selected vehicle for all skins** (`selectedVehicle`). The web keeps one per interface; in the app, switching skin keeps the car. This is a deliberate difference, listed in the parity checklists.
+- **One next-run lanes store for all skins** (the Encoder's "conversions at once" per device, written by the Encoder form and by Nodes' "Use N at once"). The web keeps one per interface under different keys.
+- **Motion.** Every skin turns animation off when **either** the server's `appearance.reduceEffects` is on **or** the system's Reduce Motion is on, as the packs do. The 24-hour clock is the server's `appearance.clock24` in every skin.
+- **Width.** The main window can shrink to **390 × 600 pt**. Below each skin's breakpoints it draws that skin's narrow (phone-width) layout, as the web does at the same width. Touch-only rules (`pointer: coarse`, 44 px taps, 16 px inputs) never apply on a Mac. Layout decisions use the content width (`onGeometryChange`), not the screen.
+
+### 5.2 Which skin shows
+
+SentryKit `InterfaceResolver` decides from `GET /api/ui-packs` (`{active, packs, original}`):
+
+| `active` | the pack entry | the app shows |
+|---|---|---|
+| null | — | the built-in skin |
+| `horizon`, `flux`, `aurora`, `daylight` | `builtin: true` | that skin |
+| anything else | `builtin: false` (uploaded), or a future shipped pack without a native skin | the third-party notice (5.4) |
+
+- Only `builtin: true` counts. An uploaded pack named "Horizon" is still third-party. Uploaded ids can never take a shipped pack's id (`server/uiPacks.js` filters them), so the id plus `builtin` is exact.
+- **Live switching.** On the `interface` topic of `/api/events`, the web reloads its page. The app re-reads `/api/ui-packs` and swaps the skin in place, keeping the open page (5.5) and the selected vehicle. Open dialogs and sheets are closed first; a form draft being typed is kept by the shared view model.
+- **The app's own `/original`.** A browser can open `/original` to see the built-in interface whatever is active (a cookie for that browser). The app has the same: View › "Use the Original Interface in This App" (*native*), kept in `UserDefaults` `interfaceOverride`. While it is on, the app shows the built-in skin and Settings › Interface shows the web's `/original` note.
+- **Before the first answer** (signed out, or the engine starting), the app uses the last skin it showed (`lastSkin`), else the built-in one, so the sign-in sheet and the "Starting…" screen already look right.
+
+### 5.3 What the shared view models gain for the packs
+
+Additive options; the built-in skin ignores what it does not use. Each is tested on Linux.
+
+- **ShellModel:** a page list and order per skin; routes with query parameters (`encoder?new=1|vehicle=`, `viewer?rec=|day=|autoplay=0`, `footage?day=`, `settings/<tab>?add=1|edit=`, `vehicles?edit=`, `jobs?clear=1`, and each skin's own route shapes); badges as raw counts so each skin applies its own rule (`openCount`, `unreadOpenCount`, `anyOpenCritical`, `binItems`, `runningJobs`, `conversionRunning`, `converterState`); the jobs load at start; an optional converter-state poll (`invoke getCurrent` every 5 s while running, 15 s otherwise; only Horizon turns it on, and Flux reads it on the `jobs` topic); the live-stream state (connecting, connected, reconnecting) and a pulse counter for live dots; a busy hold (dialog open, field focused, text selected) that delays live redraws until it ends.
+- **NotificationsModel:** all notifications (not only `?open=1`), `markRead(ids)`, `markAllRead`, filters open / unread / all, `dismissAll`.
+- **StatsModel:** a ring buffer per series (`keep:` 180, 450 or 90 by skin) prefilled from `/api/stats/history?range=15m`; the 24 h history cache; a poll interval set by the page (2 s, 10 s on Daylight's Today); the CSV links for 15 min and 24 h.
+- **LogsModel:** `limit`, level, scope and text filters, a follow interval (5 s; none for the built-in), the archives list, and a converter preset (`/converter|nodes|stats/`, limit 400, polled while a job is active).
+- **FootageModel:** the built-in paged days (30 a page) **and** a library mode (100 days, recordings paged by offset up to 5000, "All days"), Aurora's append-older plus jump-to-date, a single chosen day; client-side codec, protected and text filters; sort; cursor, anchor and selection across rows; the speed-index follower (start or follow, 3 s poll).
+- **ViewerModel / playback:** the `PlaybackProfile` (5.1); frame stepping (pause, seek every player to master ± 1/fps with zero tolerance, fps = median telemetry spacing, default 36, Daylight 1/30 s); telemetry lookups `.nearest(3000 ms)` (built-in), `.atOrBefore` (packs); extra telemetry fields 13–16 (heading, acceleration); a speed-graph model (day index, then batches of 6 to `POST /api/telemetry/speeds`); "whole day, every category" and "one recording at a time" playlist rules.
+- **EncoderViewModel:** per-skin form drafts (defaults, labels, kbit/s or Mbps), a 350 ms debounced live concurrency stepper, per-device fps history (90 samples), phase timings, item filters and sort with state labels as data, the paces (built-in `ThroughputMeter`, Aurora and Daylight 2-minute windows, Horizon and Flux whole-run averages), the inline benchmark with "both" codecs, `keepRunning` in the automatic form.
+- **JobsModel:** scope (this vehicle or every vehicle), status filter, search, a 1 s tick for running durations, clear with preview.
+- **BinModel:** scope, filter, multi-select restore.
+- **PoliciesModel:** every vehicle's policy at once.
+- **NodesModel:** unchanged; "Use N at once" writes the shared lanes store.
+- **SettingsModel:** `reconnect(vehicleID)`, appearance toggles, the same-Mac sign-in setting (2.6).
+- **Commands** (SentryKit): a `Command` value (id, group, label, hint, action) that pages supply; Flux's palette scoring as an exact port. Every skin's page commands also appear in the app's menus.
+
+### 5.4 An uploaded (third-party) pack
+
+When the server's active interface is a pack the app cannot draw, the main window shows one plain screen instead of the pages (*native* wording):
+
+> **This server uses an interface the app can't show**
+> "<pack name>" was uploaded to this server. It is a web page, so it opens in your browser.
+> [Open in Browser]  [Use the Original Interface Here]  [Interface Settings…]
+
+- **Open in Browser:** `NSWorkspace.open` on `https://<LocalHostName>.local:<port>/` (the same address as the Settings line, 6.12). The browser shows its own certificate warning until the CA is installed there; the app says nothing about it.
+- **Use the Original Interface Here:** turns on the app's own `/original` (5.2).
+- **Interface Settings…:** opens the built-in skin's Settings › Interface, where the owner can choose another interface for everyone.
+- The menu bar, notifications, the critical-update bar and Sign Out keep working. The app never loads, unpacks or reads the pack's files.
+
+### 5.5 Pages across skins
+
+Each skin has its own page list, order, names and routes. When the skin changes, or the menu bar asks for a page, the app maps by page, not by position:
+
+| page | Builtin | Horizon | Flux | Aurora | Daylight |
+|---|---|---|---|---|---|
+| home | Overview | Dashboard | Overview | Sky | Today |
+| server numbers and logs | Overview (Logs) | Dashboard (Black box) | Overview (Log tail) | Sky (Logs) | Server & logs |
+| footage | Footage | Footage | Footage | Footage | Footage |
+| viewer | Viewer | Viewer | Viewer | Viewer | Viewer |
+| encoder | Encoder | Encoder | Encoder | Encoder | Encoder |
+| encoding per vehicle | Encoder sub-tab | Encoding per vehicle | Encoding per vehicle | Per car | Encoding per vehicle |
+| nodes | Nodes | Nodes | Nodes | Nodes | Helper servers |
+| policies | Policies | Policies | Policies | Policies | Cleanup rules |
+| jobs | Jobs | Jobs | Jobs | Jobs | Activity |
+| bin | Recycle Bin | Recycle Bin | Recycle Bin | Bin | Recycle Bin |
+| notifications | Notifications | Notifications (Alerts) | Notifications | Alerts | Alerts |
+| settings | Settings | Settings | Settings | Settings | Settings |
+
+- The menu bar's "Logs" item (section 4) opens the "server numbers and logs" page of the active skin.
+- **Window title:** each skin's own form ("<Page> · Sentry Six Manager", "<Label> · Horizon · Sentry Six Manager", "<Page> · Flux · Sentry Six Manager", Aurora's, "(N) <Label> · Sentry Six").
+- **Keyboard:** every skin's shortcuts are kept exactly, bare keys included (`g` chords, `[` `]`, `?`, ⌘K, the Viewer and Footage keys). One `KeyRouter` (an `NSEvent` local monitor) applies the web's rules: ignored while a text field, menu or dialog has focus, page handler first, the chord timeout. Each skin registers its key tables. The same actions also appear in the app's menus (Go, Playback) so they are discoverable; menu equivalents never take a bare key away.
+- **Settings › Interface** exists in every skin, with that skin's look and words. Choosing an interface there sends `PUT /api/ui-packs/active` (password confirm) and the app switches skin when the `interface` topic arrives (5.2). Upload, delete and "Download the original to start from" work as in 6.12.
+
+### 5.6 Horizon
+
+**Look.** Synthwave: magenta `#ff3fb4`, orange `#ff8a3d` and cyan `#3df0ff` on indigo (`--bg0 #07041a`), 4 px radius, translucent "HUD glass" panels with corner brackets, chrome-gradient UPPERCASE headings, system fonts (SF Pro and SF Mono on a Mac). Behind every page an animated scene: sky gradient, ten stars, a striped sun, wireframe mountains from a seeded LCG (seed 20261026), haze and a neon grid floor drawn on a canvas (one stroke `#ff62cc`). The floor speeds up while a conversion runs. Background modes Auto / Full (30 fps) / Calm (12 fps) / Off; Auto means Full on a Mac; Reduce Motion gives a still picture; it stops while the window is hidden and while a Viewer video plays.
+
+**Shell.** No sidebar: a sticky "car dashboard" strip (brand, five nav buttons, a radio display with the channel "CH 01", page name, status line, LIVE light and seek arrows, six nav buttons, tools: vehicle picker, bell, keyboard button). At 1023 pt and below the strip shows only brand, radio and tools, a swipeable **tuner** of 11 pills appears under it, and a round **Quick** button opens "Quick actions". Breakpoints 1560 / 1440 / 1279 / 1023 / 760 / 700 / 640 / 400. Toasts 4 s, errors 8 s. Keys: `[` and `]` previous/next page (wrapping), `?` the shortcut sheet, plus each page's own.
+
+**Pages, in order:** Dashboard, Footage, Viewer, Encoder, Encoding per vehicle (own page), Nodes, Policies, Jobs, Recycle Bin, Notifications ("Alerts" on the tuner), Settings. Routes: `dashboard`, `footage`, `viewer`, `encoder`, `vehicles`, `nodes`, `policies`, `jobs`, `bin`, `alerts`, `settings/<tab>`; unknown routes go to the Dashboard.
+
+**What differs from the built-in, in the data layer:**
+
+- Badges: alerts count open **unread** notifications, red when any open one is critical, else orange; the Encoder badge follows the converter state ("●" running, "II" paused); jobs badge at start. The shell polls `getCurrent` every 5 s while running, 15 s otherwise, on every page but the Encoder.
+- Dashboard: an instrument cluster (speedometer "Storage used", fuel gauge "Free space", CPU and Memory mini dials, a trip computer summing the newest 100 days, nine warning lights), telemetry meters with 180-sample sparklines prefilled from 15 min history, Vehicles, Attention, Engine room, Storage, GPUs and sensors, Disks and processes (the first 8 raw rows), and the Black box log (Follow polls every 5 s, scope and text filters). Gauge needles animate with `timingCurve(0.3, 1.35, 0.5, 1)` over 0.8 s.
+- Footage: a "music library": days (100, no pager, no date picker) and a track list loading every recording up to 5000; client-side codec filter and search; bulk bar; details sheet; keys `j k Enter x p Delete i / Esc`.
+- Viewer: its own heads-up display, not Studio: main camera plus five picture-in-picture tiles (tap to swap), all-six grid, HUD over the main camera (clock, GPS, speed, blinkers, P R N D, Autopilot, brake, steering, accelerator), a timeline with a **speed graph** (`/api/vehicles/:id/speeds`, then batches of 6 to `POST /api/telemetry/speeds`), speeds 0.25–4×, frame step at the telemetry rate, start 5 s before an event, lookup "last record at or before". No map.
+- Encoder: a "dyno": tachometer (scale steps 60…3840 frames/s), lap ring, readouts, cylinders per device, clips table with filters (newest 256 from the server), timing sheet, the tune-up form (defaults: replace originals, Sentry → Saved → Recent, 2 at once, kbit/s bitrate), automatic conversion with "Keep running past the window", the inline dyno run with "Both", the converter log. Live +/− at once debounced 350 ms. Elapsed and time left include paused time (copy this).
+- Policies every vehicle at once; Jobs with a scope "This vehicle / Every vehicle" and live "took"; Bin with "Restore selected" and an every-vehicle scope; Notifications with Mark read, Mark all read and filters Open / Unread / All; Settings tabs Vehicles, Account, Interface, **Background**, Updates, Security, System, **Electricity**.
+
+**Prefs** (`horizon.` prefix): `sky`, `log.level`, `log.follow`, `ft.cat`, `ft.conv`, `vw.main`, `vw.grid`, `vw.hud`, `vw.units`, `vw.speed`, `enc.form`, `enc.nodeGroups`, `bcodec`, `bench`.
+
+**Mac points.** Fullscreen is the window's own; theater mode is dropped. The decode message becomes "This Mac can't decode this clip…" (AV1 decodes in hardware only on M3 or later). Leftover "Support" chat styles in `app.css` are not ported.
+
+**Parity items:** each page at 1440, 1279, 1023, 700 and 400 wide; background Full, Calm, Off and still (phase 0); engine on and off; LIVE connecting, on and off; badges in every tone; the Quick sheet; the shortcut sheet per page; Footage with a day, All days, a selection, details; Viewer main, grid, HUD off, no telemetry, decode error, speed graph with gaps, km/h; Encoder idle, discovering, running with lanes and node blocks, paused, completed with timings, failed items, dyno run; Notifications unread, read, resolved; Bin every-vehicle; each Settings tab including Background.
+
+### 5.7 Flux
+
+**Look.** A dense, dark console. Colours are OKLCH in `shell.css` (bg `0.155 0.012 275`, violet `0.72 0.19 295`, cyan `0.84 0.13 210`, …): SentryKit keeps them as OKLCH data and converts them (a pure, tested OKLCH → linear sRGB function); the app makes extended-sRGB colours so P3 Macs match Safari, and parity PNGs are rendered in sRGB so they clip like a Playwright capture. Radii 10 / 6, 32 pt buttons, mono uppercase labels, a violet → cyan gradient logo. Motion 120/220 ms; off with Reduce Motion or `reduceEffects`.
+
+**Shell.** A grouped sidebar (Monitor: Overview, Footage, Viewer; Process: Encoder, Encoding per vehicle, Nodes, Policies, Jobs, Recycle Bin; System: Notifications, Settings), 228 pt or a 60 pt icon rail (`[`), with capsule badges. A top bar on every page: crumb "flux / <page>", "Jump to…" (⌘K) **command palette** with Flux's scoring, the vehicle menu, a live dot, the bell and the keyboard button. `g` + key chords to every page (`g c` for Encoding per vehicle). Breakpoints 1180 / 860 / 420; at 860 and below the sidebar becomes a slide-out menu. Toasts 4.2 s, errors 8 s. A right-hand **drawer** (Footage inspector). **Resizable split panes** on Overview, Footage, Viewer and Encoder (drag, arrow keys, double-click reset, saved per page).
+
+**What differs, in the data layer:**
+
+- Badges: Encoder "●" / "II" from the converter state (read at start and on every `jobs` topic); notifications count unread, red when any open one is critical.
+- Overview: a KPI row of nine tiles, a chart grid (CPU with ffmpeg line, a per-core heat strip and bars; GPU; Power; Memory; Network; Disks; Temperatures; Top processes as sent), right-rail cards (Vehicles with Reconnect, Attention, Encoder, Storage) and the log tail (limit 500, Follow every 5 s). Live 15 min / 24 h. 450-point ring buffers prefilled from 15 min history. Charts: `niceMax`, 5 grid lines, gaps of up to 3 samples bridged, hover readout, legend toggles.
+- Footage: days pane (100) and one sortable table of every recording (up to 5000), thumbnails, camera chips, codec column, cursor and range selection, bulk bar, inspector drawer with Summary / Files / Raw JSON (coloured JSON, "Copy JSON").
+- Viewer: Grid / Focus / Front + Back / Single, speeds 0.1–8×, skip 5 s (1 s with Shift), frame step, drift 0.15 s checked every display tick, start 5 s before an event, a telemetry side pane with a speed/steering chart, a clips card. No map, no mirroring, no HW3 layout.
+- Encoder: state chip with the raw state, KPI row, the form (stays usable during a job; kbit/s; 2 at once by default; Sentry → Saved → Recent), automatic card saved only on Save, inline benchmark, lane tiles with 90-sample fps sparklines, timings, clips table, converter log every 4 s while active.
+- Policies every vehicle at once; Jobs with status and scope filters and live durations; Bin with multi-select restore; Notifications with Mark read and filters; Settings tabs Vehicles, Account, Interface, Updates, Security, System, Electricity, **Appearance** (reduce effects, 24-hour clock, "Extra-dense tables in this browser").
+
+**Prefs** (`flux.` prefix): `collapsed`, `dense`, `split:<page>`, `ov:range`, `ov:logLevel`, `ov:logAuto`, `fo:cat`, `fo:conv`, `fo:sort`, `vw:layout`, `vw:focus`, `vw:speed`, `vw:units`, `vw:tele`, `enc:form`, `enc:bench`, `enc:bcodec`, `enc:nodeGroups`.
+
+**Mac points.** The Viewer's "This browser can't play this clip" becomes "This Mac can't play this clip (…)". Text-highlight holds need a selectable text view that reports its selection, or a hold while a mouse drag is under way. No Support page (its icon and styles are leftovers).
+
+**Parity items:** every state above plus empty, loading, error, long names and 860 / 420 widths, captured without touch emulation; Overview with no GPU, no power, with nodes, 24 h; Footage no vehicle, no recordings, filtered empty, selection, each inspector tab; Viewer missing cameras, no telemetry, event mark, each layout, telemetry hidden; Encoder idle, running, paused, failed, lanes mode, benchmark running and result; Nodes none, offline, pairing code, TLS off; every Settings tab.
+
+### 5.8 Aurora
+
+**Look.** A night sky in glass: sky `#02040b` → `#0f2146`, aurora green `#46f0a8`, teal `#2fd6d8`, violet `#9b7dff`, magenta `#e86ee0`; capsule buttons; very light type weights (250, 200), which on SF come from `NSFont.Weight` raw values. Three glass levels (Frosted chrome, the default; Frosted everywhere; Solid glass). Behind every page: a star canvas (mulberry32, seed 1977), twinkles (seed 4242), five aurora ribbons drawn at low resolution with a "lighter" blend, and a rare shooting star; Full / Calm (default) / Off; Off and Reduce Motion show one still frame at t = 37; mouse parallax.
+
+**Shell.** A top bar (brand pill with the page title; status pill with live dot, clock and sign-out) and a **floating dock** at the bottom: Sky, Footage, Viewer, Encoder, Per car | Nodes, Policies, Jobs, Bin, Alerts | Settings, with hover lift, tooltips and badges. Under 700 pt the dock shows Sky, Footage, Viewer, Encoder, Alerts and More (a "MORE PLACES" sheet). Each page is one glass "window" with a kicker (FILMSTRIP, COCKPIT, ORBIT, CONSTELLATION, …). Toasts top right, 4.5 s, errors 8 s. `g` chords (not on the Viewer). Routes `#/sky`, `#/footage[/DAY]`, `#/viewer[/VID/RID | /VID/day/DAY]`, `#/encoder`, `#/vehicles`, …, `#/settings/SECTION[/SUB]`. Breakpoints 1100 / 1000 / 900 / 700 / 380, and height under 500 landscape.
+
+**What differs, in the data layer:**
+
+- Badges: alerts count open notifications not read yet; the Encoder "•" while a running job is a conversion; More "•" when Jobs or Bin shows one.
+- Sky (home): a hero (greeting by the hour, the vehicle, counts, a two-ring storage gauge), Attention (notes plus server alerts), Encoder, Latest days (6), Server stats (CPU with per-core bars, Memory, Network, All servers, Power, GPUs, filesystems, disks, temperatures, busiest processes), Keeping, Logs. Polls `/api/stats` every 2 s; 450-point history from 15 min.
+- Footage: a filmstrip of days (30 at a time, "Older days", jump to a date), one chosen day with recording cards, a sticky selection bar.
+- Viewer: a "cockpit" whose layout (wide, tall, focus, theatre) is solved by `CockpitFit` (a port of `doFit()`), side cameras turned in 3D, the rear as a mirror pill (mirror rear only, default off), a HUD, a control bar that hides itself after 2.5 s, start 8 s before an event, sync every 300 ms at 0.18 s, skip 5 s.
+- Encoder: an orbit (one light per worker, colour per device), the live stats, lanes, clips and "Where the time goes", the "New conversion" form with choice cards and a "Network" choice, the browse dialog, automatic conversion as its own panel, benchmark panel. Aurora's own state words.
+- Jobs as a timeline, Bin as a list with scope, Notifications with read state and Mark all read, Policies as a keep-grid, Settings with a left nav (Vehicles, Account, Interface with Background effect, Glass and Clock, Updates, Security, System, Electricity) and Reconnect for SMB vehicles.
+
+**Prefs** (`aurora.` prefix): `effect`, `glass`, `hud`, `unit`, `mirror`, `encForm`, `encNodeGroups`, `jobsScope`, `binScope`, `bH265`, `bAV1`.
+
+**Quirks: fix the pack and the skin together** (each a small pack change, with screenshots, in the Aurora unit): Settings › Interface shows "Delete" and an empty "uploaded" date on shipped packs (hide for `builtin`); telemetry frames are not sorted before the binary search (sort them, as the shared `TelemetryTrack` does). Not ported: the lightbox dialog and the leftover Support styles. `g c` (Per car) is missing from the pack's README: add it.
+
+**Mac points.** SwiftUI applies perspective per view where CSS uses one 1400 px perspective on the container; the per-tile perspective is tuned against the parity PNGs. Full screen hides the top bar, dock, title rows and list, as the web's `:fullscreen` rule does.
+
+**Parity items:** each element of each page; at least 1440×900, 1100, 900, 699 wide, and 800×450 for theatre; each glass level; the dock wide and narrow with badges; still sky (`effect` Off) and a frozen clock (the greeting, `ago` and the top-bar clock depend on it).
+
+### 5.9 Daylight
+
+**Look.** Light first, with a real dark look (Automatic / Light / Dark, per Mac in `daylight.theme`): warm off-white `#f6f2ea`, one deep teal accent `#0d6b6b` (dark `#55c7bf`), pill buttons, 17 pt body text, every control at least 44 pt. Colours are dynamic `NSColor`s that follow the effective appearance. Calm mode (`reduceEffects`, or the device's Reduce Motion) cuts animations.
+
+**Shell.** A sidebar of three groups (Today, Footage, Viewer, Encoder, Encoding per vehicle | "Looking after": Recycle Bin, Cleanup rules, Activity, Alerts | "Set up & help": Helper servers, Server & logs, Settings), a brand block, and a footer with the look button and Sign out. No top bar on wide windows. Below 960 pt: a top bar, a five-tab bar (Today, Footage, Viewer, Encoder, More) and the More page. Window title "(N) <Label> · Sentry Six". Toasts bottom centre, 5 s, 9 s for errors or with an action ("Undo", "Open Recycle Bin").
+
+**What differs, in the data layer:**
+
+- Badges: alerts count unread open alerts; Activity running jobs; Encoder "•" for a running conversion.
+- Today: four question cards ("Is my car's footage safe?", "How much space is left?", "Is anything converting?", "Does anything need me?") from `DaylightTodayModel`, latest days, vehicles, a server card (`/api/stats` every 10 s).
+- Footage: a calendar (Monday first) and day cards grouped by month (30, then up to 100), a separate **day page** per day with recording cards, select mode, "Tidy up this day", and **Undo** after a move to the Bin (finds the moved items by label and time, `UndoTrash`).
+- Viewer: a chooser with "Pick up where you left off"; a player with the cameras in a 3-column grid (left pillar, front, right pillar, left side, rear, right side), focus on click, speeds 0.25–4×, J/L ±10 s, a driving-data gauge row; the whole day in every category, one recording at a time, then the next; drift 0.25 s checked every 200 ms; no map, mirroring or HW3 layout.
+- Encoder: the job card (Daylight's state words and pace), clips at once, automatic conversion; the guided **"Save space"** flow (four steps, `SaveSpaceFlow`) and the **Speed test** page.
+- Server & logs: the Overview's server half as its own page (2 s stats, 15 min / 24 h, tiles, logs and archives).
+- Activity, Cleanup rules (presets and "Another number of days…"), Recycle Bin, Alerts (opening the page marks them read; "Dismiss all"), Helper servers, Settings with an inner nav (Vehicles, Account, Look, Interface, Security, Updates, System & power), the three-step **Add a vehicle** flow (`AddVehicleFlow`).
+
+**Prefs** (`daylight.` prefix): `theme`, `calm`, `lastDay`, `lastWatched`, `rate`, `units`, `statsRange`, `addVehicleDraft`, and the Encoder's `choices` and `hiddenJobs`.
+
+**Mac points.** The unlock line ("…in docker-compose.yml") is never shown; the app shows "Every number stays on this server." The player's "This browser can't play this video…" becomes "This Mac can't play this video." The Updates fallback uses the app's update wording (S3), not the Terminal line. The Security page's "You opened this page as X" note and the HTTPS warning do not apply (the app always uses pinned loopback HTTPS). Node pairing shows the Mac's LAN name, not `location.hostname`. The critical-update bar shows as in every skin (5.1): the server puts it into Daylight's pages too.
+
+**Parity items:** 1280 × 800, light and dark, Calm on; sign-in both forms; Today in its four states plus full disk at warn and bad; Footage list with the calendar, each filter, the empty states, the day page, select mode, "More details", each confirm, the Undo toast; Viewer chooser, grid and focus with 6 and 4 cameras, no-telemetry dash, lit gauges; the Encoder states, the automatic card with options, all four flow steps (replace and copy), the speed test running and done; every other page and Settings section, Add a vehicle's three steps and Edit.
+
+## 6. The built-in interface, page by page
+
+This section is the built-in skin (`web/`). The four pack skins are in section 5; they share everything in 6.0 that is not look or wording.
+
+### 6.0 Shared pieces
 
 **Wording.** Every sentence on these screens is the web interface's, copied word for word into `SentryKit/Strings` constants. Views never make up their own text. Lines marked *native* are new and follow the same tone. The Mac (`deployment:"macos"`) wording is used throughout; Docker and Windows texts never appear. Server strings are shown with `Text(verbatim:)`.
 
-**Window.** A `NavigationSplitView`.
+**Window** (the built-in skin; each pack skin has its own shell, section 5). A `NavigationSplitView`.
 
 - **Sidebar** (order and badges as `web/index.html`). The brand at the top: a shield, "Sentry Six" (bold) / "Manager". Items:
   1. Overview.
@@ -417,14 +746,14 @@ The menu bar's data lives in SentryKit `MenuBarModel`, which uses the app-wide `
 - **The app menu** has "Sign Out" (`POST /api/auth/logout {}`). The web's per-page "Sign out" button is replaced by it.
 - The web's top-bar checkboxes move:
   - "24-hour clock" goes to Settings › System and the View menu (`PUT /api/settings/appearance {clock24}`). It applies to every time shown.
-  - "Reduce visual effects" is left out. The app follows the system's Reduce Motion instead.
+  - "Reduce visual effects" goes to Settings › System and the View menu too (`PUT /api/settings/appearance {reduceEffects}`). Motion is off when it is on or when the system's Reduce Motion is on (5.1).
 - **Page heads.** Each page has an eyebrow and a title, for example "Your archive workspace" / "Overview".
 
 **Startup.**
 
 1. `GET /api/settings` (appearance, power currency).
 2. In parallel: `GET /api/vehicles`, `GET /api/notifications?open=1`, `GET /api/jobs?limit=50` (*native*: the web waits for the first `jobs` event), `GET /api/info`.
-3. Open `/api/events` (section 7).
+3. Open `/api/events` (section 8).
 
 **Vehicle picker.**
 
@@ -453,7 +782,7 @@ The menu bar's data lives in SentryKit `MenuBarModel`, which uses the app-wide `
 - Buttons: "Cancel" and "Select this folder" (disabled at the root).
 - NSOpenPanel is not used for server paths, because the engine may run as `_sentrysix` and see a different set of folders. The one exception is folder vehicles: there "Choose…" may also open NSOpenPanel at `/Volumes`, because those paths are on this Mac and the server still checks them.
 
-**Colours.** The shell.css dark set, as code:
+**Colours** (the built-in skin's tokens, SentryKit `Skins/Builtin/`). The shell.css dark set, as code:
 
 | token | colour |
 |---|---|
@@ -476,9 +805,11 @@ Tiles have a 14 pt radius and cards 16 pt. The app follows the system appearance
 
 **Live redraws never overwrite the user.** Form drafts are kept apart from server snapshots. A refresh updates server state, and a field being edited keeps its text. A list redraw that would move rows under an open menu or a text selection waits until it is closed.
 
-### 5.1 Sign in / Create account (sheet)
+### 6.1 Sign in / Create account (sheet)
 
 **Data.** `GET /api/auth/me` and `GET /api/info`. If `user` is set, go straight on.
+
+**When it shows.** Only as the fallback to same-Mac sign-in (2.5, 2.6). Each pack skin draws this sheet in its own look with its own sentences (5.6–5.9); the logic (`SignInModel`, the checks, the 429 countdown) is shared.
 
 **Sign in.**
 
@@ -513,7 +844,7 @@ Tiles have a 14 pt radius and cards 16 pt. The app follows the system appearance
 
 **Password saving.** The app stores only the session. Passwords AutoFill works through the content types.
 
-### 5.2 Overview
+### 6.2 Overview
 
 **Layout.** Page head ("Your archive workspace" / "Overview"), the vehicle picker, then one card, "Server".
 
@@ -635,7 +966,7 @@ Tiles have a 14 pt radius and cards 16 pt. The app follows the system appearance
 
 *Native* extra, labelled as new: a "History" sheet that draws all 8 history series (`cpu, memory, gpuBusy, gpuVideo, powerW, rxBps, txBps, tempMax`) with gaps at nulls.
 
-### 5.3 Footage
+### 6.3 Footage
 
 **Head.** "Your archive workspace" / "Footage", the vehicle picker, and a toolbar button "Refresh inventory" (*native*; the web has it on the Overview). With no vehicle: "Add a vehicle in Settings first."
 
@@ -710,7 +1041,7 @@ Tiles have a 14 pt radius and cards 16 pt. The app follows the system appearance
 
 The native app uses the server's inventory, never the Studio folder crawl (`/api/studio/readDir`, `/readFile`, `/exists`, `/stat`).
 
-### 5.4 Viewer (the screen; the engine is section 6)
+### 6.4 Viewer (the screen; the engine is section 7)
 
 **Opening the Viewer.**
 
@@ -754,9 +1085,9 @@ The native app uses the server's inventory, never the Studio folder crawl (`/api
 - A "More" disclosure: Seq, latitude and longitude (6 decimals), heading (1 decimal).
 - The parked state ("PARKED", gauges hidden) when no record is within 3000 ms. After 2000 ms without one, every widget resets.
 - A clip without telemetry also shows "This clip carries no telemetry (older firmware, parked, or not a Tesla clip)."
-- The math lives in SentryKit `DashboardMath` (section 6.6).
+- The math lives in SentryKit `DashboardMath` (section 7.6).
 
-**Map** (toggle `mapEnabled`). An `MKMapView` (section 6.7):
+**Map** (toggle `mapEnabled`). An `MKMapView` (section 7.7):
 
 - the route in green for autopilot and blue for manual;
 - start and end dots;
@@ -803,7 +1134,7 @@ The web's `keybinds` setting is ignored.
 - `/api/vehicles/:id/speeds`, `/api/telemetry/speeds`
 - `/api/studio/settings`
 
-### 5.5 Encoder
+### 6.5 Encoder
 
 **Head.**
 
@@ -839,7 +1170,7 @@ The web's `keybinds` setting is ignored.
    - Under it, the saved-settings line from `getAuto`:
      - "<Vehicle> saved settings: H.265 · Balanced · Replace · Quick (automatic on)", with "Load these" and the link "Encoding per vehicle";
      - or "<Vehicle> has no saved encoding settings — this form is used."
-2. **Destination folder** (Separate only). The browse sheet (5.0), then `invoke chooseFolder {purpose:'destination', defaultPath}`. Placeholder "Choose where converted files are saved". Error toast "Folder selection failed: {code}".
+2. **Destination folder** (Separate only). The browse sheet (6.0), then `invoke chooseFolder {purpose:'destination', defaultPath}`. Placeholder "Choose where converted files are saved". Error toast "Folder selection failed: {code}".
 3. **Include groups:** RecentClips, SavedClips, SentryClips, all on.
 4. **Processing order:** three rows with up and down buttons ("Move X earlier/later"). Default Saved, Sentry, Recent.
 5. **Codec:** "H.265 Broader support" (the default) or "AV1 Newer codec".
@@ -958,7 +1289,7 @@ The web's `keybinds` setting is ignored.
 
 - The intro text for one GPU (or the lanes text).
 - Buttons "Run benchmark", "Use …" and "Close".
-- Run sends `invoke runBenchmark {codecs:['h265','av1'], verifyMode, profileId, bitrateKbps?|qualityLevel?, sourceRoot}` with a 6 h timeout, on the same HTTP/2 connection as the converter stream (section 7).
+- Run sends `invoke runBenchmark {codecs:['h265','av1'], verifyMode, profileId, bitrateKbps?|qualityLevel?, sourceRoot}` with a 6 h timeout, on the same HTTP/2 connection as the converter stream (section 8).
 - Progress comes from `converter:benchmarkProgress`:
   - "Finding sample clips in your source folder…"
   - "Copying sample clip {i} of {n}…"
@@ -980,14 +1311,14 @@ The web's `keybinds` setting is ignored.
 **Data flow.**
 
 1. On open: `getCapabilities`, `getCurrent` and `devices`. The form is filled from the first snapshot's `config` once only.
-2. The converter stream and the snapshot merge, as in section 7.
+2. The converter stream and the snapshot merge, as in section 8.
 
 **Endpoints:**
 
 - `/api/converter/invoke/*`: getCapabilities, getCurrent, devices, start, pause, resume, cancel, discard, retryFailed, dismissSummary, setConcurrency, setLanes, subscribeProgress, unsubscribeProgress, runBenchmark, cancelBenchmark, getAuto, setAuto, checkAutoNow, chooseFolder.
 - `/api/converter/events`, `/api/vehicles`, `/api/stats`, `/api/studio/browse`, `/api/settings`.
 
-### 5.6 Encoding per vehicle (Encoder sub-tab)
+### 6.6 Encoding per vehicle (Encoder sub-tab)
 
 **Intro.** "What each vehicle converts with. A vehicle with automatic conversion on uses these for its automatic runs; in the Encoder, "Load these" fills the form with them for a run you start." It has a link "Open the Encoder".
 
@@ -1042,7 +1373,7 @@ The web's `keybinds` setting is ignored.
 
 A refresh never redraws an open editor.
 
-### 5.7 Jobs
+### 6.7 Jobs
 
 **Head.** "Your archive workspace" / "Jobs", the vehicle picker, and "Clear jobs". "Clear jobs" is disabled, with the tooltip "No finished jobs to clear", when every row is running.
 
@@ -1071,7 +1402,7 @@ A refresh never redraws an open editor.
 
 **Live.** Reload on `jobs`.
 
-### 5.8 Policies
+### 6.8 Policies
 
 **No vehicle:** "Add a vehicle in Settings first."
 
@@ -1106,7 +1437,7 @@ A refresh never redraws an open editor.
 
 **Live.** The preview reloads on `inventory`, but not while a field is being edited.
 
-### 5.9 Recycle Bin
+### 6.9 Recycle Bin
 
 **Head.** "Recycle Bin", the vehicle picker, and "Empty Recycle Bin" (destructive) when there are items.
 
@@ -1149,7 +1480,7 @@ A refresh never redraws an open editor.
 
 **Live.** Reload on `bin`.
 
-### 5.10 Notifications
+### 6.10 Notifications
 
 **Head.** "Your archive workspace" / "Notifications".
 
@@ -1173,7 +1504,7 @@ A refresh never redraws an open editor.
 
 **Live.** Reload on `notifications`. The badge counts `?open=1`.
 
-### 5.11 Nodes
+### 6.11 Nodes
 
 **Data and polling.**
 
@@ -1229,11 +1560,11 @@ A refresh never redraws an open editor.
 - **Main servers table:** "Paired <when>, last seen <when>", and "Revoke".
   - Revoke asks "Revoke this main server?" with "<name> can no longer send clips here. Clips it is converting now stop.", then sends `DELETE /api/nodes/worker/mains/:id`.
 
-### 5.12 Settings
+### 6.12 Settings
 
 Settings is a page in the main window with a section list; ⌘, opens it.
 
-**Sections:** Vehicles, Updates, Account, Web interface, Security, System, and *native* **This Mac**.
+**Sections:** Vehicles, Updates, Account, Interface, Security, System, and *native* **This Mac**.
 
 **Loading.** `GET /api/settings`, `/api/updates`, `/api/system`, `/api/security` and `/api/ui-packs` load in parallel. A section whose request failed is hidden; the rest still show. Results that arrive after the user left are dropped (task cancellation).
 
@@ -1297,10 +1628,11 @@ Settings is a page in the main window with a section list; ⌘, opens it.
 - On success: keep the new cookie, toast "Password changed.", clear the fields.
 - Every other session is signed out, including browsers.
 
-**Web interface** (UI packs). The app never loads packs; this section only manages what browsers see.
+**Interface** (UI packs). The interface chosen here is used by browsers **and by this app** (section 5). The app never loads a pack's files: it draws the four shipped packs itself and shows a notice for an uploaded one (5.4).
 
-- Intro (*native*): "How Sentry Six Manager looks in a web browser (phones, tablets, other computers). This app always uses its own Mac interface. Original is the built-in web interface; Daylight, Flux, Horizon and Aurora come with the app, and you can upload packs of your own."
-- **"Interface" picker:** Original plus the packs. It sends `PUT /api/ui-packs/active {id|null}`; a pack needs the password confirm. On error, the picker goes back.
+- Intro: the web's sentence ("How Sentry Six Manager looks and works for everyone who signs in. Original is the built-in interface; the others are packs you uploaded."), then (*native*) "This app shows the same interface. Packs you upload open in your browser."
+- The `/original` note when the app's own override is on (5.2), with "Stop using the original here".
+- **"Interface for everyone" picker:** Original plus the packs. It sends `PUT /api/ui-packs/active {id|null}`; a pack needs the password confirm. On error, the picker goes back. On success the skin changes when the `interface` topic arrives.
 - **Table:**
   - Pack: name, "In use", description, "by author".
   - Changes: "Pages" / "Viewer and Encoder" · N file(s).
@@ -1377,11 +1709,11 @@ Settings is a page in the main window with a section list; ⌘, opens it.
 - **"Service log":** "Show in Finder".
 - **"Uninstall…"** (3.7).
 
-### 5.13 Left out on purpose
+### 6.13 Left out on purpose
 
 | left out | why |
 |---|---|
-| UI packs applied to the app | packs are web pages and scripts; the app has no web view. Managed in Settings › Web interface for browsers |
+| Uploaded (third-party) UI packs inside the app | they are web pages and scripts; the app has no web view. A notice opens them in the browser (5.4). The four shipped packs are drawn natively (section 5) |
 | The plain-HTTP "continue" page and certificate-warning steps | the app pins and never meets the warning |
 | Studio's folder crawl (`/api/studio/readDir`, `readFile`, `exists`, `stat`), its folder picker, `trashFolder`, `deleteFolderWithReload` | the inventory API replaces them; trash goes by recording id |
 | Studio export, markers in/out, share links, SentryUSB, welcome/privacy/support screens, map tile providers, glass blur, layout lab | not in the web build either, or replaced by MapKit |
@@ -1390,17 +1722,15 @@ Settings is a page in the main window with a section list; ⌘, opens it.
 | Touch handling, phone scaling, autoplay workarounds, Data Saver, picture-in-picture | browser-only |
 | Verification "Off" | an insurance rule; the server clamps it to Quick anyway |
 | "Keep running in the background" / "Start Sentry Studio … when I sign in" | desktop-only; stored values are sent back unchanged |
-| "Reduce visual effects" | the system's Reduce Motion is used |
 | The hidden converter estimate | unused in the web too |
-| The `interface` event topic | only reloads web pages |
 | Translations | English only |
 | Per-page "Sign out" buttons | one "Sign Out" in the app menu |
 
-## 6. Viewer in AVFoundation
+## 7. Viewer in AVFoundation
 
 All the deciding logic is SentryKit (`Playback/`, `Telemetry/`, `Media/`), with tests on Linux and an injected clock. The app's `SyncDriver` runs the AVFoundation calls that logic asks for.
 
-### 6.1 Building the playlist
+### 7.1 Building the playlist
 
 1. **Recordings.** `GET /api/vehicles/:id/recordings?date=DAY&limit=500`, sorted by `startKey`. "Whole day" keeps `category==='Recent'`. An event playlist is one Sentry or Saved recording, and "Play recording" opens just that recording.
 2. **Files.** `GET /api/vehicles/:id/recordings/:rid` for each recording, up to 6 at a time. From `files`:
@@ -1416,7 +1746,7 @@ All the deciding logic is SentryKit (`Playback/`, `Telemetry/`, `Media/`), with 
 
 `PlaylistBuilder` is pure and has fixture tests (HW3, HW4, older firmware names, missing cameras, mixed codecs).
 
-### 6.2 Players
+### 7.2 Players
 
 - **One `AVPlayer` per slot (6)**, each drawn by an `AVPlayerLayer` in a layer-backed `NSView` (`NSViewRepresentable`) with `.resizeAspect` on black. There are no `AVPlayerView` controls.
 - **Each player:**
@@ -1429,7 +1759,7 @@ All the deciding logic is SentryKit (`Playback/`, `Telemetry/`, `Media/`), with 
 - **The master camera** is `front`. Without a front file, it is the first slot that has a file. The timeline, telemetry and segment end follow the master.
 - **Two sets of six players, A and B.** The standby set prepares the next segment. **No `AVQueuePlayer`**: each queue would advance on its own and the cameras would part at every boundary.
 
-### 6.3 Video over pinned HTTPS (`MediaResourceLoader`)
+### 7.3 Video over pinned HTTPS (`MediaResourceLoader`)
 
 AVPlayer's own HTTP stack trusts only the system roots and cannot take our cookie safely. So every clip uses a custom scheme and a loader that runs over the pinned `URLSession`.
 
@@ -1480,7 +1810,7 @@ AVPlayer's own HTTP stack trusts only the system roots and cannot take our cooki
 - AV1 only where `VTIsHardwareDecodeSupported(kCMVideoCodecType_AV1)` is true (M3 and later) **(verify on a Mac)**. The app checks `files[].codec` together with `asset.load(.isPlayable)`.
 - Converted HEVC carries telemetry in private NAL units, which decoders ignore **(verify on a Mac)**.
 
-### 6.4 The sync clock
+### 7.4 The sync clock
 
 The playlist position is `T = cumulativeStarts[seg] + local`.
 
@@ -1529,7 +1859,7 @@ The playlist position is `T = cumulativeStarts[seg] + local`.
 
 **Wall clock:** the first file's key plus `floor(master.currentTime)`, wrapped at 24 h. `formatTimeHMS` and the 12/24-hour forms are in SentryKit.
 
-### 6.5 Telemetry
+### 7.5 Telemetry
 
 - **Data:** `GET /api/telemetry?path=<master clip>` returns `{v:1, frames:[[tsMs, base64]]}`.
   - `tsMs` is the raw sample PTS from the track start, in decode order. Frames are sorted on load.
@@ -1553,7 +1883,7 @@ The playlist position is `T = cumulativeStarts[seg] + local`.
   - More than 3000 ms away means nil: parked or no data.
 - **Edit lists.** If a clip has an edit list, AVFoundation's time is shifted against the raw sample times. The app compares the first record's time with the first frame's PTS from `AVAssetTrack` and applies the offset **(verify on a Mac)**.
 
-### 6.6 Dashboard math (SentryKit `DashboardMath`)
+### 7.6 Dashboard math (SentryKit `DashboardMath`)
 
 | widget | rule |
 |---|---|
@@ -1566,7 +1896,7 @@ The playlist position is `T = cumulativeStarts[seg] + local`.
 | Autopilot highlight | states 1 and 2 only |
 | Blinkers | the period comes from the CSS keyframe in `src/renderer/styles`; blinking pauses when playback pauses |
 
-### 6.7 Map (MapKit)
+### 7.7 Map (MapKit)
 
 **Route points.** A point counts when lat and lon are finite, not (0,0), and in range. Each point has `autopilot = state != 0`, so TACC counts here.
 
@@ -1589,9 +1919,9 @@ The playlist position is `T = cumulativeStarts[seg] + local`.
 
 **View.** `MKMapView` in `NSViewRepresentable`, not SwiftUI `Map`, which is too slow for these updates. `MapPath` (runs, fit box, snapping, bearing smoothing) is SentryKit.
 
-## 7. Live updates
+## 8. Live updates
 
-### 7.1 Two event streams
+### 8.1 Two event streams
 
 **`GET /api/events`** is one stream for the whole app (`EventsHub`, shared by the window and the menu bar).
 
@@ -1603,7 +1933,7 @@ The playlist position is `T = cumulativeStarts[seg] + local`.
   | `vehicles`, `inventory`, `bin` | `/api/vehicles` (picker, bin badge) |
   | `notifications` | `/api/notifications?open=1` (badge, system notifications) |
   | `jobs` | `/api/jobs?limit=50` (badges, menu bar) |
-  | `interface` | ignored |
+  | `interface` | `/api/ui-packs`, then the skin switches in place (5.2) |
 
 - Then the page that is showing reloads its own data:
 
@@ -1624,7 +1954,7 @@ The playlist position is `T = cumulativeStarts[seg] + local`.
 - After each `hello`: `invoke subscribeProgress`. After a reconnect (every `hello` but the first), also `invoke getCurrent`, fed in as a full update.
 - When the stream is no longer needed: `invoke unsubscribeProgress`.
 
-### 7.2 Parsing and reconnecting (SentryKit, Linux-tested with canned streams)
+### 8.2 Parsing and reconnecting (SentryKit, Linux-tested with canned streams)
 
 - **`SSEParser`** is a pure line parser fed with `Data` chunks from a `URLSessionDataDelegate`. It handles CR, LF and CRLF, `event:`, multi-line `data:`, `:` comments and blank-line dispatch.
 - **Reconnect** with backoff from 1 s, doubling to 30 s, reset on a successful open. This covers a dropped stream, a 503 (over 200 streams, or "Converter is starting"), the 120 s idle cut, and a server restart.
@@ -1632,7 +1962,7 @@ The playlist position is `T = cumulativeStarts[seg] + local`.
 - **Sleep and wake:** on `NSWorkspace.didWakeNotification`, both streams reopen and the visible page reloads once.
 - **A 401** on a stream goes to sign-in (2.5).
 
-### 7.3 Converter snapshots (`EncoderViewModel`)
+### 8.3 Converter snapshots (`EncoderViewModel`)
 
 - **Revision:** an event with a revision lower than the last one is ignored.
 - **Merging:**
@@ -1646,15 +1976,15 @@ The playlist position is `T = cumulativeStarts[seg] + local`.
 - **Large jobs:** snapshots of more than 256 items arrive truncated (`itemsTruncated`, `itemCount`, `itemStateCounts`, `cleanupPendingCount`). Counts come from those fields.
 - **Redraws** are coalesced to about 4 a second.
 
-### 7.4 The long benchmark request
+### 8.4 The long benchmark request
 
 `runBenchmark` is one POST that stays open for minutes and sends nothing until the end. Over HTTP/1.1 the server's 120 s idle cut would end it.
 
 - So it goes on the same `URLSession` (one HTTP/2 connection, ALPN h2) as the converter stream, whose pings keep the connection alive.
 - That one request has a 6 h timeout.
-- If tests on a Mac show it being cut anyway, server change S6 is the fallback.
+- If tests on a Mac show it being cut anyway, server change S7 is the fallback.
 
-### 7.5 Polling that remains
+### 8.5 Polling that remains
 
 | what | when |
 |---|---|
@@ -1668,9 +1998,11 @@ The playlist position is `T = cumulativeStarts[seg] + local`.
 
 Every timer is a `Task` loop tied to the view's lifetime, with an injected clock for tests, and none runs while its window is hidden.
 
-## 8. Server changes needed (all additive, darwin-only, with tests)
+## 9. Server changes needed (all additive, darwin-only, with tests)
 
-Each change keeps Linux and Windows byte-identical: same values, paths, messages and response keys. Each is gated on `platform.name === 'darwin'` and on an env key or build channel that only the Mac app's installs set. Tests use `forPlatform('darwin')` and assert that the Linux output is unchanged.
+Each change keeps Linux and Windows byte-identical: same values, paths, messages and response keys. Each is gated on `platform.name === 'darwin'` and on an env key or build channel that only the Mac app's installs set. Tests use `forPlatform('darwin')` and assert that the Linux output is unchanged. The one exception is S5, which is shared with Windows on purpose and stays off on Linux.
+
+**The interfaces need no server change.** Every endpoint and field the four pack skins use already exists (`POST /api/notifications/read`, `POST /api/vehicles/:id/reconnect`, `/api/vehicles/:id/speeds`, `POST /api/telemetry/speeds`, `/api/telemetry`, `/api/stats/history?range=15m`, `/api/stats/export.csv?range=15m`, `/api/studio/browse` and `/context`, the converter calls). The skin choice reads `GET /api/ui-packs` and the `interface` topic, which exist.
 
 **S1. Public engine file (needed).**
 
@@ -1704,6 +2036,11 @@ Each change keeps Linux and Windows byte-identical: same values, paths, messages
 - For `channel:'macos-app'` only, the 403 setup-code text in `auth.js` gains " Or choose Setup code in the Sentry Six Manager menu bar."
 - The Terminal Mac wording and every other deployment stay the same. Tested in `test/macWording.test.js`.
 
+**S5. Same-computer sign-in (needed, shared with Windows).**
+
+- The contract is 2.6. The shared part (`server/localSignIn.js`, the `POST /api/auth/local` route, the `auth.login()` option, the setting, the audit lines) is built by the Windows session; the Mac adds only its transport, `server/platform/darwinLocalSignIn.js`, behind `LOCAL_SIGNIN_SOCKET`.
+- Linux and Docker: no route, no setting key, no socket. A test proves the Linux answers are unchanged.
+
 **Install script changes** (`macos/`, not the server; Linux tests in `test/macosInstall.test.js`). `install.sh` gains:
 
 - `--from-dir <staged dir>`;
@@ -1711,26 +2048,27 @@ Each change keeps Linux and Windows byte-identical: same values, paths, messages
 - `--import-data <dir>` (copies only into an empty `data/`);
 - creating `/Library/Application Support/SentrySixManager Public/` (`_sentrysix:wheel 0755`);
 - `PUBLIC_INFO_PATH` and `TRUSTED_HOSTS`-safe defaults in the plist;
-- a `SETUP-CODE: <code>` output line.
+- a `SETUP-CODE: <code>` output line;
+- `--local-user <name>`, the `/Library/Application Support/SentrySixManager Local/` folder (`_sentrysix:wheel 0700` plus `user:<name> allow search`), `LOCAL_SIGNIN_SOCKET` in the plist, and the `sentry-six-manager local-signin list|allow|remove` command (2.6); uninstall.sh removes the folder.
 
 The Terminal path (`--from`, `--release`, no flags) behaves exactly as today. The plist's `EnvironmentVariables` gains `PUBLIC_INFO_PATH`, which is harmless for Terminal installs: they get engine.json too, and the app can then use a Terminal-installed service.
 
 **Not needed:**
 
-- **Auth:** a native client without `Origin` passes the cross-site check, and the `__Host-` cookie works when sent by hand.
+- **Auth for password sign-in:** a native client without `Origin` passes the cross-site check, and the `__Host-` cookie works when sent by hand.
 - **Any endpoint for the screens:** every page above is built on existing routes.
 
 **Optional, later, only if testing on a Mac shows a need:**
 
-- **S5.** `GET /api/vehicles/:id/playlist?date=&rec=`, returning ready segments. It would replace one `/recordings/:rid` call per recording and the filename regex. Pure inventory data, darwin-safe, tests in `test/footage*.test.js`.
-- **S6.** `GET /api/converter/benchmark`, the last result and progress, if the long benchmark POST is cut (7.4).
-- **S7.** A `nodes` SSE topic, so the Nodes page stops polling.
-- **S8.** The Encoder lane map stored on the server, so the web and the app share it (today both keep their own copy, with the same keys).
-- **S9.** `caPem` and `fingerprint` in the `PUT /api/security/hostnames` answer. S1 already covers re-pinning, so this is only a belt-and-braces option.
+- **S6.** `GET /api/vehicles/:id/playlist?date=&rec=`, returning ready segments. It would replace one `/recordings/:rid` call per recording and the filename regex. Pure inventory data, darwin-safe, tests in `test/footage*.test.js`.
+- **S7.** `GET /api/converter/benchmark`, the last result and progress, if the long benchmark POST is cut (8.4).
+- **S8.** A `nodes` SSE topic, so the Nodes page stops polling.
+- **S9.** The Encoder lane map stored on the server, so the web and the app share it (today the app keeps one copy for all its skins, and each web interface keeps its own).
+- **S10.** `caPem` and `fingerprint` in the `PUT /api/security/hostnames` answer. S1 already covers re-pinning, so this is only a belt-and-braces option.
 
-## 9. Build, sign, notarize, dmg
+## 10. Build, sign, notarize, dmg
 
-### 9.1 Steps (`macos/app/scripts/build-app.sh`, runs on an arm64 Mac)
+### 10.1 Steps (`macos/app/scripts/build-app.sh`, runs on an arm64 Mac)
 
 1. **Engine payload.** Run `macos/build.sh` with `--channel macos-app`. It verifies every pin, builds `sentry-fsops` and writes `BUILD_INFO.json`. Extract its staged folder into `engine/`, with `install.sh`, `update.sh`, `uninstall.sh`, the plist, `node/`, `ffmpeg/`, `bin/` and `app/`.
 2. **Manifest.** Write `engine/MANIFEST.sha256` (`shasum -a 256` of every file, sorted), then write its own SHA-256 into `Sources/SentrySixManager/Platform/EngineManifest.generated.swift` (git-ignored).
@@ -1757,8 +2095,8 @@ The Terminal path (`--from`, `--release`, no flags) behaves exactly as today. Th
      - `NSLocalNetworkUsageDescription` "Sentry Six Manager connects to your NAS and to other Sentry Six Manager servers on your network." In login mode the engine's LAN use is attributed to the app **(verify on a Mac)**.
      - `LSUIElement` is false; the Dock icon is handled at run time (section 4).
    - The `.app` is checked with `lipo -archs` (arm64 only) and `plutil -lint`.
-5. **Sign** (9.2), or ad-hoc sign when the secrets are missing (9.4).
-6. **Notarize and staple the app** (9.3).
+5. **Sign** (10.2), or ad-hoc sign when the secrets are missing (10.4).
+6. **Notarize and staple the app** (10.3).
 7. **Make the `.dmg`:**
    - `hdiutil create -volname "Sentry Six Manager" -srcfolder <staging> -format UDZO -fs APFS`, where the staging folder holds the `.app` and an `Applications` symlink.
    - No background image or icon layout: a plain window with the app and the Applications link is enough, and it needs no Finder scripting on CI.
@@ -1766,7 +2104,7 @@ The Terminal path (`--from`, `--release`, no flags) behaves exactly as today. Th
 8. **Sign the dmg, notarize and staple it** (signed builds only).
 9. **Write** `SHA256SUMS` lines for the dmg next to the tarball's.
 
-### 9.2 Signing (inside out, never `--deep`)
+### 10.2 Signing (inside out, never `--deep`)
 
 The keychain on CI:
 
@@ -1794,7 +2132,7 @@ Order, each with `codesign --force --timestamp --options runtime -s "$ID"`:
 - `codesign -d --entitlements -` on each binary, compared with the expected list;
 - `spctl -a -t exec -vv` (after notarization).
 
-### 9.3 Notarization
+### 10.3 Notarization
 
 Secrets: `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_PASSWORD` (an app-specific password), `DEVELOPER_ID_P12` and `DEVELOPER_ID_P12_PASSWORD`.
 
@@ -1805,7 +2143,7 @@ Secrets: `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_PASSWORD` (an app-specific pass
 
 Two submissions: the stapled app inside the dmg works offline even after it is copied out.
 
-### 9.4 Unsigned fallback
+### 10.4 Unsigned fallback
 
 When any of the five secrets is empty, the script signs everything ad-hoc (`codesign --force -s -`). Apple Silicon needs at least an ad-hoc signature to run arm64 code. It skips notarization and names the dmg `…-unsigned.dmg`.
 
@@ -1815,28 +2153,30 @@ Ad-hoc builds are also what forks and local builds produce. The `SMAppService.ag
 
 The script never prints a secret. Secrets are passed through the environment only, and `set -x` is never used in the signing steps.
 
-### 9.5 CI (`.github/workflows/macos.yml`)
+### 10.5 CI (`.github/workflows/macos.yml`)
 
 New jobs, keeping the workflow's existing rules (push to `main`/`wip` plus `workflow_dispatch`, never pull requests, read-only by default):
 
 - **`sentrykit-linux`** (ubuntu): install the pinned Swift 6.x toolchain by SHA-256, then `swift build` and `swift test` in `macos/app`. This proves SentryKit stays Linux-safe.
 - **`app`** (macos-15, arm64; needs `package`):
   1. `swift build` and `swift test` (SentryKit on macOS too).
-  2. The no-WebKit check:
-     - `grep -R "import WebKit\|WKWebView\|WebView(" macos/app/Sources` must find nothing;
-     - `otool -L` on the app binary must not list `WebKit.framework`.
+  2. The no-WebKit check (`macos/app/scripts/check-no-webkit.sh`, also run by a node test on Linux over the sources):
+     - `grep -R -E "import (WebKit|JavaScriptCore)|WKWebView|WebView\(|JSContext|NSAttributedString\.DocumentType\.html|\.html\b.*documentType|NSAttributedString\(html" macos/app/Sources` must find nothing;
+     - no `.html`, `.css` or `.js` file anywhere in the built `.app` (the engine payload under `Contents/Resources/engine/` is exempt: it is the server, which the app never loads), and no file read from `examples/ui-packs/` by the app target;
+     - `otool -L` on the app binary must not list `WebKit.framework` or `JavaScriptCore.framework`, also through the frameworks it links (`otool -L` recursively over non-system dylibs).
   3. `build-app.sh`.
   4. Upload the `.dmg` as a workflow artifact.
-- **`app-check`** (macos-15; needs `app` and the existing `install-check` steps): mount the dmg, copy the app, run `"Sentry Six Manager.app/Contents/MacOS/Sentry Six Manager" --check`. That headless mode (10.2) finds the installed engine through engine.json, pins, calls `/healthz` and `/api/auth/me`, and exits 0 or 1 with a plain line.
+- **`app-check`** (macos-15; needs `app` and the existing `install-check` steps): mount the dmg, copy the app, run `"Sentry Six Manager.app/Contents/MacOS/Sentry Six Manager" --check`. That headless mode (11.2) finds the installed engine through engine.json, pins, calls `/healthz` and `/api/auth/me`, and exits 0 or 1 with a plain line.
+- **`parity-mac`** (macos-15; needs `app`; on `wip` pushes and `workflow_dispatch`): the macOS capture mode of `tools/parity/` (11.4). It uploads the side-by-side report and the PNGs as an artifact. It fails only on a crash or a missing capture, never on a pixel difference: the checklists decide.
 - **`publish`**: from `main` only, the existing `macos-v*` release also gets the `.dmg` and its `SHA256SUMS` line.
 
 The secrets are read only by the signing step (`env:` on that step). Wip builds sign too when the secrets exist.
 
 `paths-ignore` and `test/buildSeparation.test.js` keep `macos/app/**` out of `image.yml` and `windows.yml`. `.dockerignore` already leaves out `macos/`, and `appFiles.js` never picks up `macos/`.
 
-## 10. Testing
+## 11. Testing
 
-### 10.1 SentryKit on Linux (`swift test`, here and in `sentrykit-linux`)
+### 11.1 SentryKit on Linux (`swift test`, here and in `sentrykit-linux`)
 
 - **Models:** decode every fixture answer from the specs, including unknown keys, numbers as Double, and null fields.
 - **API client:**
@@ -1866,17 +2206,21 @@ The secrets are read only by the signing step (`env:` on that step). Wip builds 
   - SMB field checks;
   - the power rate list;
   - the Nodes "Use N at once" lane-map update.
+- **Same-Mac sign-in (`LocalSignIn`):** the socket path per mode and the 103-byte fallback; the folder and socket checks (owner, mode, symlink) through the fake file system; parsing every line shape (token, setup code, `off`, `busy`, wrong port, unknown keys, over 4 KiB, no newline within 5 s) against a real `AF_UNIX` test socket; the exchange request (headers, no `Origin`, body); the fallbacks to the sign-in sheet; no automatic sign-in after Sign Out; the token never reaching a log or `UserDefaults`.
+- **Interfaces:** `InterfaceResolver` for null, each shipped id with and without `builtin`, an uploaded pack, the app's own override, and a switch on the `interface` topic keeping the page and the vehicle; the page mapping table (5.5); `SkinPrefs` keys per skin.
+- **Each skin's pure parts** (5.6–5.9) against `tools/parity/expected/<interface>/`: formatters, strings present for every page, badge rules, and the maths (gauges, sky geometry, `CockpitFit`, palette scoring, calendar, paces, Undo matching).
 
-### 10.2 App on macOS CI
+### 11.2 App on macOS CI
 
 - Builds with zero warnings in Swift 6 mode.
-- The no-WebKit check (9.5).
+- The no-WebKit check (10.5).
 - `--check` against the CI-installed engine (`app-check`).
-- A short smoke run without UI-test tooling: launch with `--self-test-ui`, which opens each screen with fixture data from a local stub of the API and exits. This catches layout crashes without a signed-in engine. Screenshots of each screen are uploaded as artifacts, for the owner's desktop screenshots rule.
+- A short smoke run without UI-test tooling: launch with `--self-test-ui`, which opens each screen of each of the five skins with data from the parity fixture server (11.4) and exits. This catches layout crashes without a real engine.
+- The parity capture (`parity-mac`, 11.4), whose PNGs are the screenshots for the owner's rule.
 
 Not tested on CI: video decode, VideoToolbox, AV1, the admin prompt, `SMAppService` approval and notarization's Gatekeeper path. Those are owner checks.
 
-### 10.3 Owner checks on a real Mac (in this order)
+### 11.3 Owner checks on a real Mac (in this order)
 
 1. **Open the unsigned dmg** (then the signed one when it exists), drag to Applications, open.
 2. **First open, "In your login":** no admin prompt. The engine runs as the user. The setup code is filled in. Create the account and sign in.
@@ -1895,37 +2239,97 @@ Not tested on CI: video decode, VideoToolbox, AV1, the admin prompt, `SMAppServi
 8. **Footage, Policies, Recycle Bin, Nodes, Settings:** each action once, including every password-confirm route, Test connection on a real NAS, and a folder vehicle with `allow-folder`.
 9. **Uninstall,** both choices. Nothing is left except what "Keep my settings" keeps.
 10. **Signed builds:** Gatekeeper opens the app with no warning offline after it is copied out of the dmg. `spctl -a -vv` says "Notarized Developer ID". Full Disk Access is granted to the app-installed node path.
-11. **Screenshots** of every screen at desktop width, as the CLAUDE.md rule asks. The app has no phone layout, so "phone" screenshots for app changes mean the web pages the change touches, which stay unchanged.
+11. **Screenshots** of every screen in each of the five skins, at desktop width and at the narrow width (390 pt), as the CLAUDE.md rule asks. The parity run (11.4) makes them; the owner looks through the side-by-side report.
+12. **Interfaces:** switch Settings › Interface through all five while the Viewer plays and while a conversion runs; the app follows each switch without a restart. Upload a pack: the notice shows, Open in Browser works, Use the Original Interface Here works.
+13. **Same-Mac sign-in** in both modes: no password asked at first open, after Sign Out plus "Sign in on this Mac", and after a mode switch. A second Mac user (not allowed) gets the password sheet. `ls -le` on the `SentrySixManager Local` folder shows one ACL entry. The audit log has the lines from 2.6 and no token.
 
-## 11. Work split
+### 11.4 Parity proof (`tools/parity/`, shared with Windows)
 
-Each unit is built in its own detached worktree and merged by commit id into `wip`. Commit subjects start with "macOS app:". Each unit comes with its tests.
+The Windows plan's side-by-side check, with a macOS capture mode. One tool, one set of fixtures and one set of checklists for both native apps. `tools/parity/**` is the Windows plan's (its "Ownership" section); the Mac adds its mode there with that session's agreement, and changes nothing else in it.
+
+**What the tool has** (from the Windows plan):
+
+- **A fixture server** (`tools/parity/fixture-server.js`, node, no new dependencies): the server's JSON API with fixed data (vehicles, days, recordings, short fixture clips, telemetry, stats samples, a converter job in each state, nodes, notifications, packs) and a frozen clock. It answers `POST /api/auth/local` with a fixed fixture token, so the native apps sign in exactly as for real.
+- **Web capture** with Playwright for each interface and page, at the checklist's sizes.
+- **Native capture** through each app's render-to-PNG test mode.
+- **A side-by-side report** (`tools/parity/report/<platform>/index.html`, a developer page outside the app): web and native per page, state and width, with a difference overlay.
+- **Checklists**, one per page per interface: `tools/parity/checklists/<interface>/<page>.md`. Each item is a control or a state (empty, loading, error, long names, narrow width, and the pack-specific items in 5.6–5.9) with a tick column per platform: `web`, `windows`, `mac`. A page is done on the Mac when every item has a Mac tick. Allowed differences are written in the checklist with the reason (the list below), never silently.
+- **Expected values** (`tools/parity/expected/<interface>/*.json`): outputs of the web's own formatters and maths (sizes, durations, `ago`, gauge arcs, the Horizon mountains, the Aurora star field and ribbon strips at t = 37, `CockpitFit` sizes, Flux's palette scores, Daylight's calendar), made by running the web JS in node. SentryKit tests and the Windows Core tests both read them.
+
+**The macOS capture mode** (`node tools/parity/run.js --platform mac`):
+
+- Runs on the macOS CI runner (`parity-mac`, 10.5) or the owner's Mac. It starts the fixture server on loopback HTTPS with a fixture CA and writes a fixture engine.json for it.
+- **Web side:** Playwright **WebKit and Chromium on macOS**, so the system font stack resolves to SF Pro and SF Mono as in the app. A Linux capture would never match. No touch emulation: the narrow sizes are plain window widths.
+- **Native side:** the app with `--parity --engine-json <file> --skin <id> --page <page> --state <state> --size <w>x<h> --out <png>`. It signs in through the fixture server, opens that page and state, waits until the page reports it is idle (no request in flight, layout done), and draws the window content into a bitmap with `NSView.cacheDisplay(in:to:)` at 2× in sRGB. No screen recording permission is needed and nothing shows on screen.
+- **Video tiles:** an `AVPlayerLayer` does not draw into a cached bitmap. In parity mode each camera tile shows the frame at the state's time from `AVAssetImageGenerator` (exact time, zero tolerance), and the web side is paused at the same time.
+- **Making both sides still:** the frozen clock (Playwright `page.clock`, the app's injected `Clock`), the fixture vehicle selected, effects off or still (Horizon background at phase 0, Aurora `effect` Off at t = 37, Daylight Calm), Reduce Motion on, caret and cursor hidden, scroll at the top unless the state says otherwise.
+- **Sizes:** every interface at 1440 × 900 and at 390 × 844, plus the breakpoints its section lists (5.6–5.9); the built-in interface also at 1200 (the sidebar rule, 6.0) and at its phone breakpoint. Daylight in light and dark.
+- **Results** go in `tools/parity/out/mac/` (git-ignored) and the CI artifact. These PNGs are also the desktop and narrow screenshots that the CLAUDE.md rule asks for with app changes.
+
+**Allowed differences on the Mac** (written into the checklists where they apply): font hinting and anti-aliasing; SF Symbols or SVG-path fidelity if a skin does not draw the pack's own paths; font weights SF lacks (650, 750); native text fields, menus and date pickers inside controls; the "This Mac can't play…" wordings; no plain-HTTP or "opened as X" notes; the app's update wording (S3); one selected vehicle and one lanes store for all skins (5.1); no docker-compose unlock line; the window's own full screen instead of a theater mode.
+
+**A unit is done** when its pages' checklists are ticked for the Mac at every size, the report is attached to the commit's CI run, and the owner has looked at it.
+
+## 12. Work split
+
+Each unit is built in its own detached worktree and merged by commit id into `wip`. Commit subjects start with "macOS app:". Each unit comes with its tests; each unit that draws pages also comes with its parity checklists ticked for the Mac (11.4). The order follows the Windows plan's phases: core, then the shared shell, then the built-in interface in groups, then one unit per pack.
+
+**1. SentryKit core** (Linux-tested; most of it can start at once)
 
 | # | unit | contents | needs |
 |---|---|---|---|
-| A1 | **SentryKit core** | `Package.swift` (Linux-safe split), Models, APIClient (headers, errors, 401, `ConfirmCoordinator`), `SessionStore`, `EngineInfo`/`EngineLocator`/`PinPolicy`, SSE parser + `EventStream` + `EventsHub`, Format, Strings scaffolding, `AgentEnvironment`, `InstallScript`; fixtures and the JS-output fixture generator | — |
-| A2 | **SentryKit playback and telemetry** | Media (`ContentRange`, `RangePlanner`, `MediaURL`), Telemetry (`ProtoReader`, `SeiRecord`, `TelemetryTrack`, `MapPath`, `DashboardMath`), Playback (`PlaylistBuilder`, layouts, `SyncPolicy`, `SeekCoalescer`, `Timeline`) | A1 |
-| A3 | **Server and install changes** | S1–S4 with node tests; install.sh `--from-dir`, `--service-mode`, `--import-data`, the public folder, the plist key, the `SETUP-CODE:` line, with `test/macosInstall.test.js` | — (parallel to A1) |
-| A4 | **Shell, sign-in, Overview, Notifications** | the app target skeleton, `PinnedTrust`, Keychain store, sidebar/toolbar/vehicle picker/toasts/confirm sheets, the critical bar, sign-in and create-account, Overview tiles and Logs, Notifications page and system notifications; `ShellModel`, `OverviewModel`, `LogsModel`, `NotificationsModel` | A1 |
-| A5 | **Footage and Viewer** | Footage page; Viewer screen, `PlayerSet`, `MediaResourceLoader`, `SyncDriver`, dashboard, `MKMapView`, speed graph, Playback menu; `FootageModel`, `ViewerModel` | A2, A4 |
-| A6 | **Encoder, Encoding per vehicle, Jobs** | the three pages, `ConverterStream`, benchmark sheet, hardware panel, browse sheet; `EncoderViewModel`, `ThroughputMeter`, `HardwareViewModel`, `BenchmarkViewModel`, `VehicleEncodingViewModel`, `JobsViewModel` | A1, A4 |
-| A7 | **Manage pages** | Settings (all sections but This Mac), Policies, Recycle Bin, Nodes; `SettingsModel`, `VehicleFormModel` (`sourceUnchanged`, SMB checks), `PowerModel`, `SecurityModel`, `PoliciesModel`, `BinModel`, `NodesModel` | A1, A4 |
-| A8 | **Service and menu bar** | first-open window, `AgentService` (`SMAppService.agent` + fallback), `sentry-six-engine` launcher, `AdminRunner` and `DaemonService`, switching modes, uninstall, Settings › This Mac, the menu bar and `MenuBarModel`, `--check` | A1, A3, A4 |
-| A9 | **Packaging and CI** | `build-app.sh`, `sign.sh`, `notarize.sh`, `dmg.sh`, Info.plist, entitlements, icon, the macos.yml jobs (`sentrykit-linux`, `app`, `app-check`, publish), the no-WebKit check, build-separation test updates, README section | A3, A8 (a skeleton app is enough to start) |
+| K1 | **SentryKit core** | `Package.swift` (Linux-safe split), Models, APIClient (headers, errors, 401, `ConfirmCoordinator`), `SessionStore`, `EngineInfo`/`EngineLocator`/`PinPolicy`, `LocalSignIn` and its `AF_UNIX` client (2.6), SSE parser + `EventStream` + `EventsHub` + `ConverterStream`, `AgentEnvironment`, `InstallScript`; `Interfaces/` (`SkinID`, `InterfaceResolver`, `SkinPrefs`, page lists and routes, `Commands`, `SVGPath`, `OKLCH`); the JS-output fixture generator feeding `tools/parity/expected/` | — |
+| K2 | **SentryKit playback and telemetry** | Media (`ContentRange`, `RangePlanner`, `MediaURL`), Telemetry (`ProtoReader` with fields 1–16, `SeiRecord`, `TelemetryTrack` with `.nearest` and `.atOrBefore`, `MapPath`, `DashboardMath`), Playback (`PlaylistBuilder` with the per-skin playlist rules, layouts, `PlaybackProfile`, `SyncPolicy`, frame step, `SeekCoalescer`, `Timeline`, the speed-graph model) | K1 |
+| K3 | **SentryKit view models** | every shared view model with the options of 5.3 (the built-in skin's needs first, the pack options as data and tests), the built-in `Format/` and `Strings/` | K1 |
+
+**2. Service and packaging**
+
+| # | unit | contents | needs |
+|---|---|---|---|
+| S1 | **Server and install changes** | S1–S4 with node tests; the Mac transport for S5 (`darwinLocalSignIn.js`, `LOCAL_SIGNIN_SOCKET`) once the Windows session's shared part has landed; install.sh `--from-dir`, `--service-mode`, `--import-data`, `--local-user`, the public and local folders, the plist keys, the `SETUP-CODE:` line, `local-signin`; `test/macosInstall.test.js` | — (parallel to K1) |
+| S2 | **Service and menu bar** | first-open window, `AgentService` (`SMAppService.agent` + fallback), `sentry-six-engine` launcher, `AdminRunner` and `DaemonService`, switching modes, uninstall, Settings › This Mac (with the same-Mac sign-in users list), the menu bar and `MenuBarModel`, `--check` | K1, S1, H1 |
+| S3 | **Packaging and CI** | `build-app.sh`, `sign.sh`, `notarize.sh`, `dmg.sh`, Info.plist, entitlements, icon, the macos.yml jobs (`sentrykit-linux`, `app`, `app-check`, `parity-mac`, publish), the no-WebKit check and its Linux node test, build-separation test updates, README section | S1, S2 (a skeleton app is enough to start) |
+
+**3. The shared shell**
+
+| # | unit | contents | needs |
+|---|---|---|---|
+| H1 | **App skeleton and shared views** | the app target skeleton, `PinnedTrust`, Keychain store, same-Mac sign-in in the app, the root that picks the skin and switches it live (5.2), the third-party pack notice (5.4), the app's own `/original`, toast / modal / drawer hosts, `KeyRouter`, `Downloader`, `SplitPane`, `WidthClass`, the critical-update bar, `SkinStyle`; the shared views (`PlayerLayerView` and the camera tile host, `TimeSeriesChart`, `Sparkline`, `DataGrid`, `ThumbnailImage`, the Encoding per vehicle editor, vehicle source fields, rate editor, browse sheet); the parity render mode and the macOS capture mode in `tools/parity/` (agreed with the Windows session) | K1, K3 |
+
+**4. The built-in interface, in groups** (section 6)
+
+| # | unit | contents | needs |
+|---|---|---|---|
+| B1 | **Built-in shell, sign-in, Overview, Notifications** | sidebar, toolbar, vehicle picker, confirm sheets, narrow layout; sign-in and create-account; Overview tiles and Logs; Notifications page and system notifications | H1 |
+| B2 | **Built-in Footage and Viewer** | Footage page; the Viewer screen, `PlayerSet`, `MediaResourceLoader`, `SyncDriver`, dashboard, `MKMapView`, speed graph, Playback menu | K2, B1 |
+| B3 | **Built-in Encoder, Encoding per vehicle, Jobs** | the three pages, benchmark sheet, hardware panel, browse sheet | B1 |
+| B4 | **Built-in Settings, Policies, Recycle Bin, Nodes** | Settings (all sections but This Mac, which is S2), Policies, Recycle Bin, Nodes | B1 |
+
+**5. One unit per pack** (section 5; each: SentryKit `Skins/<Name>/` with its expected-value tests, the app's `Skins/<Name>/` views for every page, the sign-in sheet in its look, its parity checklists)
+
+| # | unit | contents | needs |
+|---|---|---|---|
+| P1 | **Horizon** | 5.6: tokens, formatters, strings, `HorizonDerived`, sky geometry and gauges; the HUD strip, tuner and Quick sheet, the animated background, every page | H1, K2, B2 (Viewer engine), B3 (converter views to compare) |
+| P2 | **Flux** | 5.7: OKLCH tokens, formatters, strings, the palette and its scoring, `StatsTimeline`; sidebar and top bar, palette, drawer, split panes, every page | H1, K2 |
+| P3 | **Aurora** | 5.8: tokens, formatters, strings, `SkyField`, `CockpitFit`, `AuroraSky`, `AuroraEncoder`, `AuroraViewer`; the sky, dock, windows, cockpit, orbit, every page; the two small pack fixes with web screenshots | H1, K2 |
+| P4 | **Daylight** | 5.9: light and dark tokens, formatters, strings, `DaylightTodayModel`, calendar, `UndoTrash`, `DaylightPace`, the two flows, policy presets, playback profile, dash and server tiles; the sidebar, tab bar and More page, every page | H1, K2 |
 
 **Order:**
 
-1. A1 and A3 in parallel.
-2. Then A2 and A4.
-3. Then A5, A6, A7 and A8 in parallel. A9 starts as soon as A8 has a skeleton.
-4. Then the owner's checks (10.3).
+1. K1 and S1 in parallel.
+2. Then K2, K3 and H1.
+3. Then B1; then B2, B3, B4 and S2 in parallel. S3 starts as soon as S2 has a skeleton.
+4. Then P1–P4, in parallel if there are hands for it. Each needs only H1, K2 and the shared view-model options it uses (added to K3's models in the same unit, with tests).
+5. Then the owner's checks (11.3).
 
-Everything goes to `wip` until it is finished and tested, then to `release/next-update`, and to `main` only when the owner says so.
+Everything goes to `wip` until it is finished and tested, then to `release/next-update`, and to `main` only when the owner says so. All five interfaces ship together in the first release, as the owner decided; units can land on `wip` one by one.
 
-**Questions for the owner** (they do not block A1–A3):
+**Questions for the owner** (they do not block K1–K3 or S1):
 
 1. Is macOS 14 (Sonoma) as the app's minimum OK? The engine alone stays at 13.5.
 2. Should "Background service" be the recommended first-open choice, as written?
 3. The bundle id and agent label `io.github.skittles-fivem.sentry-six-manager` / `….agent`: are they OK?
 4. Should the `.dmg` go on the same `macos-v*` release as the tarball?
 5. When the Developer ID exists: which team, and is a re-grant of Full Disk Access for the re-signed node acceptable?
+6. Same-Mac sign-in is on by default (2.6). Turn it off by default instead?
+7. Two small Aurora pack fixes ride along with the Aurora skin (5.8): hide "Delete" on shipped packs, and sort telemetry frames. They change what browsers see in Aurora. OK?
