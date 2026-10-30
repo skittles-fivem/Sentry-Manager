@@ -12,3 +12,5 @@ README.md
 # (the packs' folders go into the image; their zips are for downloading)
 examples/ui-packs/*.zip
 examples/ui-packs/*/README.md
+# the native Windows build (its own workflow, windows.yml, packages it)
+windows/

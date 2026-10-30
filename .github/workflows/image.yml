@@ -19,7 +19,7 @@ name: Image
 on:
   push:
     branches: [main]
-    paths-ignore: ['README.md', 'docs/**', 'truenas/**']
+    paths-ignore: ['README.md', 'docs/**', 'truenas/**', 'windows/**', '.github/workflows/windows.yml']
   schedule:
     - cron: '17 5 * * 1'
   workflow_dispatch:

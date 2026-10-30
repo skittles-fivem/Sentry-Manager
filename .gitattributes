@@ -1,0 +1,28 @@
+# Line endings stay as they are in the repository on every checkout, also on
+# Windows (core.autocrlf), so the Docker image and the Windows package are
+# built from the same bytes. Only the Windows scripts get CRLF, which
+# PowerShell 5.1 and cmd.exe expect.
+* text=auto eol=lf
+*.cs text eol=lf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+
+# never touched as text
+*.png binary
+*.jpg binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.zip binary
+*.mp4 binary
+*.ico binary
+*.gpg binary
+
+# a script for the Studio desktop app that ships inside the Docker image
+# too: kept LF as committed, so the image's bytes do not change
+src/main/converter/windowsOwnedCleanup.ps1 text eol=lf
+
+# these two already have a few CRLF lines in the repository; -text keeps
+# their bytes exactly as committed
+src/renderer/scripts/lib/i18n.js -text
+src/renderer/scripts/ui/mapVisualization.js -text
