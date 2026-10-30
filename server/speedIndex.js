@@ -79,21 +79,31 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
   }
 
   async function pass() {
-    let done = 0;
+    // what is left to read, so the log can say how far along it is
+    const todo = [];
     for (const v of vehicles.list()) {
       const root = vehicles.rootOf(v);
       if (!root) continue;
       for (const c of fronts(v.id)) {
-        if (stopped) return done;
-        const data = await load(c.vid, c.day);
-        const had = data[c.rel];
-        if (had && had[0] === c.size && had[1] === c.mtimeMs) continue;
-        while (!idle() && !stopped) await new Promise((r) => setTimeout(r, 2000));
-        data[c.rel] = [c.size, c.mtimeMs, await speedsFor(path.join(root, c.rel), c.size)];
-        dirty.add(`${c.vid}/${c.day}`);
-        if (++done % 25 === 0) await flush();
-        if (pauseMs) await new Promise((r) => setTimeout(r, pauseMs));
+        const had = (await load(c.vid, c.day))[c.rel];
+        if (!(had && had[0] === c.size && had[1] === c.mtimeMs)) todo.push({ ...c, root });
       }
+    }
+    if (todo.length) log?.info(`Speed index: ${todo.length} clip(s) to read, newest days first`);
+    let done = 0;
+    const started = Date.now();
+    for (const c of todo) {
+      if (stopped) return done;
+      while (!idle() && !stopped) await new Promise((r) => setTimeout(r, 2000));
+      const data = await load(c.vid, c.day);
+      data[c.rel] = [c.size, c.mtimeMs, await speedsFor(path.join(c.root, c.rel), c.size)];
+      dirty.add(`${c.vid}/${c.day}`);
+      if (++done % 25 === 0) await flush();
+      if (done % 250 === 0 && done < todo.length) {
+        const left = Math.round(((Date.now() - started) / done) * (todo.length - done) / 60000);
+        log?.info(`Speed index: ${done} of ${todo.length} clips (now on ${c.day}, about ${left} min left)`);
+      }
+      if (pauseMs) await new Promise((r) => setTimeout(r, pauseMs));
     }
     await flush();
     return done;
@@ -107,7 +117,7 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
         again = false;
         try {
           const n = await pass();
-          if (n) log?.info(`Speed index: ${n} clip(s) indexed`);
+          if (n) log?.info(`Speed index: done, ${n} clip(s) indexed`);
         } catch (err) {
           log?.warn(`Speed index: ${err.message}`);
         }
