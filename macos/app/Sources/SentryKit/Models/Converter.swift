@@ -210,6 +210,12 @@ public struct ConverterDevice: Codable, Sendable, Equatable, Identifiable {
     public var isDefault: Bool?
     public var slots: Double?
     public var encoders: [String: JSONValue]?
+    // a Mac's own GPU only (darwinDevices.js): the chip, its GPU cores, its
+    // video encode engines and whether it runs in a virtual machine
+    public var chip: String?
+    public var gpuCores: Double?
+    public var encodeEngines: Double?
+    public var virtual: Bool?
 }
 
 /// invoke getAuto

@@ -127,6 +127,17 @@ final class ModelTests: XCTestCase {
         XCTAssertTrue(jobs.contains { $0.isConversion })
     }
 
+    func testTheMacGPUDevice() throws {
+        // what a real Mac's /api/converter devices list adds for its GPU
+        let json = #"{"id":"pci:0000:00:00.0","kind":"videotoolbox","vendor":"apple","name":"Apple M2 Max media engine","chip":"Apple M2 Max","gpuCores":38,"encodeEngines":2,"virtual":false}"#
+        let device = try JSON.decode(ConverterDevice.self, from: Data(json.utf8))
+        XCTAssertEqual(device.kind, "videotoolbox")
+        XCTAssertEqual(device.chip, "Apple M2 Max")
+        XCTAssertEqual(device.gpuCores, 38)
+        XCTAssertEqual(device.encodeEngines, 2)
+        XCTAssertEqual(device.virtual, false)
+    }
+
     func testLenientDecoding() throws {
         // unknown keys, fractions where a whole number usually is, nulls
         let v = try JSON.decode(Vehicle.self, from: json(#"{"id":"a","name":null,"binItems":2.5,"futureKey":{"x":1},"share":null}"#))

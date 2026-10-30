@@ -101,7 +101,11 @@ test('the committed app fixtures match what the server answers now', { skip: !ha
         for (const line of d) problems.push(`${name} ${line}`);
       }
     }
-    assert.deepEqual(problems, [], 'run node macos/app/Tests/fixtures-gen/dump-api.js and commit the result');
+    // a real Mac lists its GPU with keys a dump on Linux cannot make (there
+    // is no VideoToolbox there); SentryKit's ConverterDevice has them
+    const macGpu = /^converter-devices\.json \$\.value\.devices\[\]\.(chip|gpuCores|encodeEngines|virtual): new key$/;
+    const real = process.platform === 'darwin' ? problems.filter((p) => !macGpu.test(p)) : problems;
+    assert.deepEqual(real, [], 'run node macos/app/Tests/fixtures-gen/dump-api.js and commit the result');
     // nothing private: no setup code, no password, no session token
     const all = Object.values(files).join('\n');
     assert.equal(dump.lastSecrets.length, 3);
