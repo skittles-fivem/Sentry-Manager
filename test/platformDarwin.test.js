@@ -11,6 +11,7 @@ const fs = require('fs');
 const fsp = require('fs/promises');
 const os = require('os');
 const path = require('path');
+const { realTmp } = require('./fixtures/tmp');
 const { EventEmitter } = require('events');
 const platform = require('../server/platform');
 const safePath = require('../server/safePath');
@@ -19,7 +20,7 @@ const { createDarwinPlatform, archMessage, STATE_ROOT } = require('../server/pla
 const { forPlatform } = platform;
 const APP = '/Library/SentrySixManager/app';
 const mac = (extra = {}) => forPlatform('darwin', { env: {}, appRoot: APP, exists: () => false, ...extra });
-const tmp = () => fsp.mkdtemp(path.join(os.tmpdir(), 'sm-darwin-'));
+const tmp = () => realTmp('sm-darwin-');
 const hasSh = fs.existsSync('/bin/sh');
 
 // The export names linux.js and win32.js had before darwin.js existed.

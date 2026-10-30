@@ -9,8 +9,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const fsp = require('fs/promises');
-const os = require('os');
 const path = require('path');
+const { realTmp } = require('./fixtures/tmp');
 const { EventEmitter } = require('events');
 const { PassThrough } = require('stream');
 const {
@@ -120,7 +120,7 @@ function mountsOk(fr, mountOpts) {
 }
 
 async function setup(t, { root = 'foot age', ...opts } = {}) {
-  const base = await fsp.mkdtemp(path.join(os.tmpdir(), 'sm-smbdarwin-'));
+  const base = await realTmp('sm-smbdarwin-');
   t.after(() => fsp.rm(base, { recursive: true, force: true }));
   const footageRoot = path.join(base, root);
   const runDir = path.join(base, 'run');
