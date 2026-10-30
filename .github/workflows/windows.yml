@@ -202,7 +202,8 @@ jobs:
           $list = 'windows/app/Shell/RENDER-PAGES.md'
           if (-not (Test-Path -LiteralPath $list)) { throw "$list is missing: the shell has to list the pages its --render mode draws" }
           if (-not $env:SENTRY_APP_EXE -or -not (Test-Path -LiteralPath $env:SENTRY_APP_EXE)) { throw 'SentrySix.exe was not built (see the build step)' }
-          $rx = '^\s*(?:[-*+]\s+|\|\s*|\d+\.\s+)?`?(builtin|horizon|flux|aurora|daylight)`?\s*(?:\|\s*|\s+)`?([a-z][a-z0-9-]*)`?'
+          # (also the "SentrySix.exe --render <interface> <page> ..." command lines it lists)
+          $rx = '(?:^\s*(?:[-*+]\s+|\|\s*|\d+\.\s+)?|--render\s+)`?(builtin|horizon|flux|aurora|daylight)`?\s*(?:\|\s*|\s+)`?([a-z][a-z0-9-]*)`?'
           $pairs = @(Get-Content -LiteralPath $list | ForEach-Object { if ($_ -match $rx) { "$($Matches[1]) $($Matches[2])" } } | Sort-Object -Unique)
           if (-not $pairs.Count) { throw "$list lists no '<interface> <page>' lines (interfaces: builtin, horizon, flux, aurora, daylight)" }
           $out = Join-Path $env:GITHUB_WORKSPACE 'native-renders'
