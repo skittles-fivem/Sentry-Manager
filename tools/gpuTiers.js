@@ -591,7 +591,11 @@ async function runClip({ report, set, entry, source, lanes, options, runner, ada
           const decode = await runner(options.ffmpeg, ['-nostdin', '-hide_banner', '-loglevel', 'error', '-xerror', '-err_detect', 'explode',
             '-i', target, '-map', '0:v:0', '-an', '-sn', '-dn', '-fps_mode', 'passthrough', '-progress', 'pipe:1', '-nostats', '-f', 'null', '-'], { timeoutMs: 30 * 60_000 });
           run.verify.decodeStatus = decode?.status ?? null;
-          run.verify.decodeStderr = stderrTail(decode?.stderr, 8) || null;
+          // (less the null muxer's duplicate-dts lines the verifier tolerates)
+          const tolerated = /^\[null[^\r\n]*\] Application provided invalid, non monotonically increasing dts to muxer in stream 0: \d+ >= \d+$/;
+          const lines = String(decode?.stderr || '').split(/\r?\n/).filter((line) => line.trim().length > 0);
+          run.verify.decodeToleratedLines = lines.filter((line) => tolerated.test(line)).length;
+          run.verify.decodeStderr = lines.filter((line) => !tolerated.test(line)).slice(0, 12).map((line) => JSON.stringify(line).slice(1, -1)).join('\n') || null;
           run.verify.decodedFrames = progressFrames(decode?.stdout);
         }
         if (!verification?.ok) {
