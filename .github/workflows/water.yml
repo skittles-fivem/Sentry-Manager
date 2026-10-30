@@ -11,9 +11,11 @@ on:
 permissions:
   contents: read
 
+# A run in progress finishes (the GPU job takes about half an hour, and two
+# sessions push to wip often); only the newest waiting run follows it.
 concurrency:
   group: water
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   probe:
