@@ -169,8 +169,10 @@ function parseNvidiaLine(line) {
 
 /** The long-running nvidia-smi: started while sampling, restarted with backoff, killed on stop. */
 class NvidiaSmi {
-  constructor({ spawn, timers, now, intervalMs, log }) {
+  constructor({ spawn, timers, now, intervalMs, log, missingMessage = null }) {
     this.spawn = spawn;
+    // what to log once when nvidia-smi cannot be started (the Windows build words it its own way)
+    this.missingMessage = missingMessage || 'An NVIDIA GPU is present but nvidia-smi is not available in the container; NVIDIA numbers are not shown.';
     this.timers = timers;
     this.now = now;
     this.intervalMs = intervalMs;
@@ -250,7 +252,7 @@ class NvidiaSmi {
     let delay;
     if (err?.code === 'ENOENT') {
       // the device is there but the toolkit did not bring nvidia-smi in
-      if (!this.missingLogged) this.log?.warn('An NVIDIA GPU is present but nvidia-smi is not available in the container; NVIDIA numbers are not shown.');
+      if (!this.missingLogged) this.log?.warn(this.missingMessage);
       this.missingLogged = true;
       delay = 10 * 60 * 1000;
     } else {

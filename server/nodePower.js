@@ -13,7 +13,8 @@ const MAX_GPUS = 16;
 const NODE_SAMPLE_MAX_AGE_MS = 60_000;
 
 const text = (value, max = 64) => String(value || '').replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').trim().slice(0, max);
-// why a server's CPU watts are missing: Docker Desktop for Windows, or a virtual machine
+// why a server's CPU watts are missing: 'windows' (Docker Desktop for Windows, or the
+// native Windows build on a PC without Energy Meter counters) or 'vm' (a virtual machine)
 const unavailable = (v) => (v === 'windows' || v === 'vm' ? v : null);
 const watts = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= MAX_W ? Math.round(v * 10) / 10 : null);
 const wh = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= MAX_WH ? Math.round(v * 1000) / 1000 : null);

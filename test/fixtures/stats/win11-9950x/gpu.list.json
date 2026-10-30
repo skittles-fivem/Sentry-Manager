@@ -1,0 +1,40 @@
+{
+  "adapters": [
+    {
+      "index": 0,
+      "luid": "0x000000000000d1a6",
+      "vendorId": 4318,
+      "deviceId": 10114,
+      "subsysId": 1095504090,
+      "revision": 161,
+      "name": "NVIDIA GeForce RTX 4070 Ti",
+      "dedicatedVideoMemory": "12557746176",
+      "pci": "0000:01:00.0",
+      "software": false
+    },
+    {
+      "index": 1,
+      "luid": "0x000000000000e3f1",
+      "vendorId": 4098,
+      "deviceId": 5056,
+      "subsysId": 2027556888,
+      "revision": 201,
+      "name": "AMD Radeon(TM) Graphics",
+      "dedicatedVideoMemory": "536870912",
+      "pci": "0000:0f:00.0",
+      "software": false
+    },
+    {
+      "index": 2,
+      "luid": "0x000000000000f012",
+      "vendorId": 5140,
+      "deviceId": 140,
+      "subsysId": 0,
+      "revision": 0,
+      "name": "Microsoft Basic Render Driver",
+      "dedicatedVideoMemory": "0",
+      "pci": null,
+      "software": true
+    }
+  ]
+}

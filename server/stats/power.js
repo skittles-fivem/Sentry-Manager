@@ -134,38 +134,49 @@ class PowerProvider {
 
   sample(t, gpus) {
     const cpuW = this.cpu(t);
-    const withPower = gpus.filter((g) => g.powerW !== null && g.powerW !== undefined);
-    const gpuW = sumOf(withPower.map((g) => g.powerW));
-    // An AMD APU's reading is the whole chip, CPU included: adding it to the
-    // CPU package would count the CPU twice.
-    const discrete = sumOf(withPower.filter((g) => !g.integrated).map((g) => g.powerW));
-    const integrated = sumOf(withPower.filter((g) => g.integrated).map((g) => g.powerW));
-    // the whole chip (CPU and built-in GPU): the larger of the two readings
-    const chipW = integrated !== null ? Math.max(integrated, cpuW ?? 0) : null;
-    let totalW = null;
-    if (chipW !== null) totalW = chipW + (discrete || 0);
-    else if (cpuW !== null) totalW = cpuW + (discrete || 0);
-    else if (gpuW !== null) totalW = gpuW;
-    return {
-      totalW: round(totalW, 1), cpuW: round(cpuW, 1), gpuW: round(gpuW, 1),
-      // with a built-in GPU: one figure for the chip, the other GPUs apart
-      chipW: round(chipW, 1), discreteW: chipW !== null ? round(discrete, 1) : null,
-      cpuSource: cpuW !== null ? 'rapl' : null,
-      gpuSource: withPower[0]?.powerSource || null
-    };
+    return combinePower(cpuW, gpus, cpuW !== null ? 'rapl' : null);
   }
 }
 
 /**
- * Why the CPU's watts cannot be read, when they cannot: 'windows' (Docker
- * Desktop for Windows: WSL2 does not pass the energy counters to Linux),
- * 'vm' (another virtual machine: the hypervisor keeps them), else null.
+ * The power block from the CPU's watts (or null), the GPUs of the same
+ * sample and where the CPU's figure came from ('rapl' here, 'energy-meter'
+ * on Windows).
  */
-function cpuUnavailable({ cpuW, wsl, virtual }) {
+function combinePower(cpuW, gpus, cpuSource) {
+  const withPower = gpus.filter((g) => g.powerW !== null && g.powerW !== undefined);
+  const gpuW = sumOf(withPower.map((g) => g.powerW));
+  // An AMD APU's reading is the whole chip, CPU included: adding it to the
+  // CPU package would count the CPU twice.
+  const discrete = sumOf(withPower.filter((g) => !g.integrated).map((g) => g.powerW));
+  const integrated = sumOf(withPower.filter((g) => g.integrated).map((g) => g.powerW));
+  // the whole chip (CPU and built-in GPU): the larger of the two readings
+  const chipW = integrated !== null ? Math.max(integrated, cpuW ?? 0) : null;
+  let totalW = null;
+  if (chipW !== null) totalW = chipW + (discrete || 0);
+  else if (cpuW !== null) totalW = cpuW + (discrete || 0);
+  else if (gpuW !== null) totalW = gpuW;
+  return {
+    totalW: round(totalW, 1), cpuW: round(cpuW, 1), gpuW: round(gpuW, 1),
+    // with a built-in GPU: one figure for the chip, the other GPUs apart
+    chipW: round(chipW, 1), discreteW: chipW !== null ? round(discrete, 1) : null,
+    cpuSource: cpuW !== null ? cpuSource : null,
+    gpuSource: withPower[0]?.powerSource || null
+  };
+}
+
+/**
+ * Why the CPU's watts cannot be read, when they cannot: 'windows' (Docker
+ * Desktop for Windows: WSL2 does not pass the energy counters to Linux; or
+ * the native Windows build on a PC without Energy Meter counters), 'vm'
+ * (another virtual machine: the hypervisor keeps them), else null. Older
+ * mains know 'windows', so a Windows node reports it the same way.
+ */
+function cpuUnavailable({ cpuW, wsl, virtual, windows = false }) {
   if (cpuW !== null && cpuW !== undefined) return null;
-  if (wsl) return 'windows';
+  if (wsl || windows) return 'windows';
   if (virtual) return 'vm';
   return null;
 }
 
-module.exports = { cpuUnavailable, PowerProvider, energyDelta, packageWatts, socketWatts, cleanReading };
+module.exports = { cpuUnavailable, combinePower, PowerProvider, energyDelta, packageWatts, socketWatts, cleanReading };

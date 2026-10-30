@@ -44,8 +44,11 @@ function mountFor(mounts, p) {
 }
 
 class FilesystemsProvider {
-  constructor({ procRoot, sysRoot, appPid, readShares, fsp, now, log, fragmentSize = null }) {
+  constructor({ procRoot, sysRoot, appPid, readShares, fsp, now, log, fragmentSize = null, locate = null }) {
     this.procRoot = procRoot;
+    // where a share lives without /proc (Windows): locate(path, network) ->
+    // { fsType, source, disk, smbVersion, mounted } or null; see refreshList
+    this.locate = typeof locate === 'function' ? locate : null;
     this.sysRoot = sysRoot;
     this.appPid = appPid;
     this.readShares = readShares;
@@ -95,7 +98,24 @@ class FilesystemsProvider {
     this.listedAt = t;
     // with a network share, at every check: a share mounted or lost shows within 10 s
     const every = [...this.shares.values()].some((s) => s.network) ? CHECK_EVERY_MS : MOUNTS_EVERY_MS;
-    if (changed || this.mountsAt === null || t - this.mountsAt >= every) {
+    if ((changed || this.mountsAt === null || t - this.mountsAt >= every) && this.locate) {
+      this.mountsAt = t;
+      for (const s of this.shares.values()) {
+        let m = null;
+        try {
+          m = this.locate(s.path, s.network);
+        } catch {
+          m = null;
+        }
+        s.fsType = m?.fsType || null;
+        s.source = m?.source || null;
+        s.disk = m?.disk || null;
+        s.smbVersion = m?.smbVersion || null;
+        const mounted = s.network ? m?.mounted === true : null;
+        if (mounted === false && s.mounted !== false) Object.assign(s, { totalB: null, usedB: null, freeB: null, latencyMs: null, reachable: false });
+        s.mounted = mounted;
+      }
+    } else if (changed || this.mountsAt === null || t - this.mountsAt >= every) {
       this.mounts = parseMountinfo(readText(join(this.procRoot, String(this.appPid), 'mountinfo')));
       this.mountsAt = t;
       for (const s of this.shares.values()) {

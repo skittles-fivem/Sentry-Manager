@@ -6,7 +6,10 @@
 // once-a-minute housekeeping calls tick(), which reads the network counters
 // once a day, so the data used lands on the right day with nobody watching.
 // Everything comes from this machine's /proc and /sys (plus nvidia-smi on an
-// NVIDIA host); nothing leaves the server.
+// NVIDIA host); nothing leaves the server. The native Windows build reads
+// the same numbers from Windows's performance counters through
+// SentryHelper.exe instead (platform/win32.js): the providers are picked by
+// platform, and the body has the same shape on both.
 //
 // What exists is probed once (and again every 10 minutes while sampling);
 // a sample is then a few dozen small reads. Reads that ask a device (disk
@@ -19,16 +22,9 @@ const fs = require('fs');
 const path = require('path');
 const { fragmentSize } = require('../../src/main/converter/fsSpace');
 const { BackgroundReads, round, maxOf, sumOf } = require('./util');
-const { ProcessTable } = require('./procs');
-const { CpuProvider } = require('./cpu');
-const { MemoryProvider } = require('./memory');
-const { SensorsProvider } = require('./sensors');
-const { DisksProvider } = require('./disks');
-const { NetworkProvider } = require('./network');
-const { GpuProvider } = require('./gpu');
-const { PowerProvider, cpuUnavailable } = require('./power');
+const { cpuUnavailable } = require('./power');
 const { FilesystemsProvider } = require('./filesystems');
-const { HostInfo, probeFfmpeg } = require('./host');
+const { probeFfmpeg } = require('./host');
 const { Alerts } = require('./alerts');
 const { History, SERIES } = require('./history');
 const { Energy, dayKey } = require('./energy');
@@ -76,23 +72,18 @@ function createStats(options = {}) {
   const priceAt = opt('priceAt', () => null);
   // where a conversion job stands ({ clips, savedB }), asked at each sample while its energy is counted
   const jobProgress = opt('jobProgress', () => null);
+  // 'linux' (the Docker image) or 'win32' (the native Windows build, which
+  // also takes `helper`, the SentryHelper.exe client); tests pass either
+  const platform = opt('platform', process.platform) === 'win32' ? 'win32' : 'linux';
 
   const reads = new BackgroundReads({ now, readFile: typeof fsp.readFile === 'function' ? fsp.readFile.bind(fsp) : fs.promises.readFile });
-  const procs = new ProcessTable({ procRoot, appPid });
-  const cpu = new CpuProvider({ procRoot, sysRoot, now });
-  const memoryProvider = new MemoryProvider({ procRoot });
-  const sensors = new SensorsProvider({ sysRoot, reads });
-  const disks = new DisksProvider({ procRoot, sysRoot, now, sensors });
-  const network = new NetworkProvider({ procRoot, sysRoot, now });
-  const gpu = new GpuProvider({
-    procRoot, sysRoot, devRoot, now, reads, sensors, spawn, timers, intervalMs, log,
-    ...(options.pciIdsFiles ? { pciIdsFiles: options.pciIdsFiles } : {}),
-    ...(options.findBin ? { findBin: options.findBin } : {})
-  });
-  const power = new PowerProvider({ sysRoot, now, intervalMs });
+  const providers = require(`./platform/${platform}`).createProviders({ procRoot, sysRoot, devRoot, now, reads, spawn, timers, intervalMs, log, appPid, options });
+  const { procs, cpu, sensors, disks, network, gpu, power, host } = providers;
+  const memoryProvider = providers.memory;
   // (the real file system only: a stand-in fsp in tests has no fragment size)
-  const filesystems = new FilesystemsProvider({ procRoot, sysRoot, appPid, readShares, fsp, now, log, fragmentSize: fsp === fs.promises ? fragmentSize : null });
-  const host = new HostInfo({ procRoot, version: options.version });
+  const filesystems = new FilesystemsProvider({
+    procRoot, sysRoot, appPid, readShares, fsp, now, log, fragmentSize: fsp === fs.promises ? fragmentSize : null, locate: providers.locate
+  });
   const history = new History({ intervalMs });
   const energy = new Energy({ intervalMs, progressOf: (jobId) => callSafe(jobProgress, jobId) || null });
   const traffic = new Traffic();
@@ -231,6 +222,8 @@ function createStats(options = {}) {
 
   function unlockHints(t, cpuW) {
     const out = [];
+    // (they are compose lines: nothing to add on Windows)
+    if (!providers.unlockable) return out;
     // give the supervisor a few seconds to send its first RAPL reading; a
     // virtual machine has no counters to bind, so no hint there
     if (cpu.info.x86 && !cpu.info.virtual && !host.static?.wsl && cpuW === null && !power.hasRapl(t) && samplingSince !== null && t - samplingSince >= 3 * intervalMs) {
@@ -302,7 +295,7 @@ function createStats(options = {}) {
       memory,
       gpus: gpus.map(({ powerSource, ...g }) => g),
       // (why the CPU's watts are missing: 'windows', 'vm' or null)
-      power: { ...pw, cpuUnavailable: cpuUnavailable({ cpuW: pw.cpuW, wsl: host.static?.wsl === true, virtual: cpu.info.virtual === true }), todayWh: es.todayWh, weekWh: es.weekWh, todayCost: es.todayCost, weekCost: es.weekCost, priceNow },
+      power: { ...pw, cpuUnavailable: cpuUnavailable({ cpuW: pw.cpuW, wsl: host.static?.wsl === true, virtual: cpu.info.virtual === true, windows: platform === 'win32' }), todayWh: es.todayWh, weekWh: es.weekWh, todayCost: es.todayCost, weekCost: es.weekCost, priceNow },
       disks: diskList,
       filesystems: fsList,
       network: { ...net, today: used.today, week: used.week, month: used.month },
@@ -367,6 +360,7 @@ function createStats(options = {}) {
     samplingSince = now();
     if (probedAt === null) probe(samplingSince);
     callSafe(options.onSampling, true);
+    guard('platform', () => providers.start());
     guard('gpus', () => gpu.startStreams());
     askFfmpeg();
     guard('sample', sampleOnce);
@@ -379,6 +373,7 @@ function createStats(options = {}) {
     if (timer) timers.clearTimeout(timer);
     timer = null;
     guard('gpus', () => gpu.stopStreams());
+    guard('platform', () => providers.stop());
     if (dirty) save();
     callSafe(options.onSampling, false);
   }
@@ -445,7 +440,11 @@ function createStats(options = {}) {
       // a sample read them today already
       if (network.readAt !== null && dayKey(network.readAt) === day) return;
       if (probedAt === null) guard('network', () => network.probe());
-      guard('network', () => network.read());
+      // (Windows asks its helper in the background: the reading is there next minute)
+      if (guard('network', () => network.read()) === 'pending') {
+        tickedDay = null;
+        return;
+      }
       if (!network.counters) return;
       guard('traffic', () => traffic.add(network.readAt, network.counters, network.where(), (name) => network.ifindex(name)));
       dirty = true;
@@ -476,7 +475,7 @@ function createStats(options = {}) {
 
     /** Resolves when no background read is in flight (tests). */
     settle() {
-      return reads.idle().then(() => new Promise((resolve) => setImmediate(resolve)));
+      return reads.idle().then(() => providers.idle()).then(() => new Promise((resolve) => setImmediate(resolve)));
     },
 
     stop() {
@@ -484,6 +483,7 @@ function createStats(options = {}) {
       if (sampling) goIdle();
       else {
         guard('gpus', () => gpu.stopStreams());
+        guard('platform', () => providers.stop());
         if (dirty) save();
       }
     }

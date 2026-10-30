@@ -1,0 +1,489 @@
+{
+  "t100ns": "134056879660000000",
+  "freq": "10000000",
+  "sets": {
+    "cpu": {
+      "0,0": {
+        "% Processor Time": "9000007600000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000007600000",
+        "% Processor Performance": "513000000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,1": {
+        "% Processor Time": "9000010000000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000010000000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,2": {
+        "% Processor Time": "9000012400000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000012400000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,3": {
+        "% Processor Time": "9000012800000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000012800000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,4": {
+        "% Processor Time": "9000015200000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000015200000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,5": {
+        "% Processor Time": "9000015600000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000015600000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,6": {
+        "% Processor Time": "9000015400000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000015400000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,7": {
+        "% Processor Time": "9000017200000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000017200000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,8": {
+        "% Processor Time": "9000016400000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000016400000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,9": {
+        "% Processor Time": "9000020800000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000020800000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,10": {
+        "% Processor Time": "9000020800000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000020800000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,11": {
+        "% Processor Time": "9000021000000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000021000000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,12": {
+        "% Processor Time": "9000023000000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000023000000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,13": {
+        "% Processor Time": "9000022600000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000022600000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,14": {
+        "% Processor Time": "9000025400000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000025400000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,15": {
+        "% Processor Time": "9000023800000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000023800000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,16": {
+        "% Processor Time": "9000024000000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000024000000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,17": {
+        "% Processor Time": "9000026200000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000026200000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,18": {
+        "% Processor Time": "9000029600000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000029600000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,19": {
+        "% Processor Time": "9000029400000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000029400000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,20": {
+        "% Processor Time": "9000030600000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000030600000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,21": {
+        "% Processor Time": "9000031000000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000031000000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,22": {
+        "% Processor Time": "9000033200000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000033200000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,23": {
+        "% Processor Time": "9000032400000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000032400000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,24": {
+        "% Processor Time": "9000034200000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000034200000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,25": {
+        "% Processor Time": "9000036000000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000036000000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,26": {
+        "% Processor Time": "9000034600000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000034600000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,27": {
+        "% Processor Time": "9000037800000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000037800000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,28": {
+        "% Processor Time": "9000037800000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000037800000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,29": {
+        "% Processor Time": "9000040600000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000040600000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,30": {
+        "% Processor Time": "9000039000000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000039000000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,31": {
+        "% Processor Time": "9000041400000",
+        "% Privileged Time": "400002000000",
+        "% User Time": "800008000000",
+        "% Idle Time": "9000041400000",
+        "% Processor Performance": "511200000000",
+        "% Processor Performance Base": "4100000000",
+        "Processor Frequency": "4300"
+      },
+      "0,_Total": {
+        "% Processor Time": "290000300000000",
+        "Processor Frequency": "4300"
+      },
+      "_Total": {
+        "% Processor Time": "290000300000000",
+        "Processor Frequency": "4300"
+      }
+    },
+    "disk": {
+      "0 C:": {
+        "Disk Read Bytes/sec": "81625350144",
+        "Disk Write Bytes/sec": "40806383616",
+        "Disk Reads/sec": "1200300",
+        "Disk Writes/sec": "900100",
+        "% Idle Time": "1500000018000000"
+      },
+      "1 Z:": {
+        "Disk Read Bytes/sec": "5368709120",
+        "Disk Write Bytes/sec": "2199274913792",
+        "Disk Reads/sec": "40000",
+        "Disk Writes/sec": "3000900",
+        "% Idle Time": "1490000006000000"
+      },
+      "_Total": {
+        "Disk Read Bytes/sec": "86994059264",
+        "Disk Write Bytes/sec": "2240081297408",
+        "% Idle Time": "2990000024000000"
+      }
+    },
+    "net": {
+      "Intel[R] Ethernet Controller I226-V": {
+        "Bytes Received/sec": "918298645123",
+        "Bytes Sent/sec": "51236567890"
+      },
+      "Hyper-V Virtual Ethernet Adapter": {
+        "Bytes Received/sec": "1235567",
+        "Bytes Sent/sec": "7657321"
+      },
+      "Bluetooth Device [Personal Area Network]": {
+        "Bytes Received/sec": "0",
+        "Bytes Sent/sec": "0"
+      }
+    },
+    "gpu": {
+      "pid_5100_luid_0x00000000_0x0000D1A6_phys_0_eng_0_engtype_3D": {
+        "Utilization Percentage": "701600000"
+      },
+      "pid_5100_luid_0x00000000_0x0000D1A6_phys_0_eng_3_engtype_VideoDecode": {
+        "Utilization Percentage": "906000000"
+      },
+      "pid_5100_luid_0x00000000_0x0000D1A6_phys_0_eng_4_engtype_VideoEncode": {
+        "Utilization Percentage": "1209000000"
+      },
+      "pid_5104_luid_0x00000000_0x0000E3F1_phys_0_eng_0_engtype_3D": {
+        "Utilization Percentage": "51200000"
+      },
+      "pid_5104_luid_0x00000000_0x0000E3F1_phys_0_eng_4_engtype_Video Codec_0": {
+        "Utilization Percentage": "408000000"
+      },
+      "pid_1200_luid_0x00000000_0x0000D1A6_phys_0_eng_0_engtype_3D": {
+        "Utilization Percentage": "9001000000"
+      },
+      "pid_1200_luid_0x00000000_0x0000E3F1_phys_0_eng_0_engtype_3D": {
+        "Utilization Percentage": "3000400000"
+      },
+      "pid_1200_luid_0x00000000_0x0000D1A6_phys_0_eng_1_engtype_Copy": {
+        "Utilization Percentage": "100200000"
+      }
+    },
+    "gpumem": {
+      "luid_0x00000000_0x0000D1A6_phys_0": {
+        "Dedicated Usage": "2147483648",
+        "Shared Usage": "134217728"
+      },
+      "luid_0x00000000_0x0000E3F1_phys_0": {
+        "Dedicated Usage": "268435456",
+        "Shared Usage": "536870912"
+      }
+    },
+    "energy": {
+      "RAPL_Package0_PKG": {
+        "Energy": "912385678900000",
+        "Power": "72000"
+      },
+      "RAPL_Package0_PP0": {
+        "Energy": "712379012233333",
+        "Power": "60000"
+      }
+    },
+    "proc": {
+      "_Total": {
+        "% Processor Time": "1000000640000000",
+        "Working Set - Private": "9876543210",
+        "ID Process": "0",
+        "Creating Process ID": "0"
+      },
+      "Idle": {
+        "% Processor Time": "102400000",
+        "Working Set - Private": "8192",
+        "ID Process": "0",
+        "Creating Process ID": "0",
+        "IO Read Bytes/sec": "1000",
+        "IO Write Bytes/sec": "1000"
+      },
+      "System": {
+        "% Processor Time": "401280000",
+        "Working Set - Private": "155648",
+        "ID Process": "4",
+        "Creating Process ID": "0",
+        "IO Read Bytes/sec": "4001000",
+        "IO Write Bytes/sec": "8001000"
+      },
+      "services": {
+        "% Processor Time": "90000000000",
+        "Working Set - Private": "6815744",
+        "ID Process": "900",
+        "Creating Process ID": "700",
+        "IO Read Bytes/sec": "900001000",
+        "IO Write Bytes/sec": "1800001000"
+      },
+      "SentryService": {
+        "% Processor Time": "310000000000",
+        "Working Set - Private": "18874368",
+        "ID Process": "3100",
+        "Creating Process ID": "900",
+        "IO Read Bytes/sec": "3100001000",
+        "IO Write Bytes/sec": "6200001000"
+      },
+      "node": {
+        "% Processor Time": "420025600000",
+        "Working Set - Private": "241172480",
+        "ID Process": "4200",
+        "Creating Process ID": "3100",
+        "IO Read Bytes/sec": "4200001000",
+        "IO Write Bytes/sec": "8400001000"
+      },
+      "SentryHelper": {
+        "% Processor Time": "500003200000",
+        "Working Set - Private": "31457280",
+        "ID Process": "5000",
+        "Creating Process ID": "4200",
+        "IO Read Bytes/sec": "5000001000",
+        "IO Write Bytes/sec": "10000001000"
+      },
+      "ffmpeg": {
+        "% Processor Time": "510128000000",
+        "Working Set - Private": "524288000",
+        "ID Process": "5100",
+        "Creating Process ID": "4200",
+        "IO Read Bytes/sec": "5100001000",
+        "IO Write Bytes/sec": "10200001000"
+      },
+      "ffmpeg#1": {
+        "% Processor Time": "510515200000",
+        "Working Set - Private": "412090368",
+        "ID Process": "5104",
+        "Creating Process ID": "4200",
+        "IO Read Bytes/sec": "5104001000",
+        "IO Write Bytes/sec": "10208001000"
+      },
+      "dwm": {
+        "% Processor Time": "120006400000",
+        "Working Set - Private": "157286400",
+        "ID Process": "1200",
+        "Creating Process ID": "1000",
+        "IO Read Bytes/sec": "1200001000",
+        "IO Write Bytes/sec": "2400001000"
+      },
+      "explorer": {
+        "% Processor Time": "600003200000",
+        "Working Set - Private": "98566144",
+        "ID Process": "6000",
+        "Creating Process ID": "5900",
+        "IO Read Bytes/sec": "6000001000",
+        "IO Write Bytes/sec": "12000001000"
+      },
+      "chrome": {
+        "% Processor Time": "700019200000",
+        "Working Set - Private": "734003200",
+        "ID Process": "7000",
+        "Creating Process ID": "6000",
+        "IO Read Bytes/sec": "7000001000",
+        "IO Write Bytes/sec": "14000001000"
+      },
+      "chrome#1": {
+        "% Processor Time": "700409600000",
+        "Working Set - Private": "367001600",
+        "ID Process": "7004",
+        "Creating Process ID": "7000",
+        "IO Read Bytes/sec": "7004001000",
+        "IO Write Bytes/sec": "14008001000"
+      }
+    }
+  }
+}
