@@ -15,7 +15,12 @@ const { forPlatform } = require('../server/platform');
 const { createSafeFs } = require('../server/safeFs');
 const { RecycleBin } = require('../server/recycleBin');
 const { ManagerDB } = require('../server/db');
-const { linuxOnly } = require('./fixtures/platformSkip');
+const { linuxOnly, notOnWindows } = require('./fixtures/platformSkip');
+
+// The darwin rules act on the real file system with POSIX paths (path.posix,
+// '/' as the separator) and open folders with O_NOFOLLOW_ANY, a macOS flag:
+// a Windows disk gives C:\ paths, so they need a POSIX file system.
+const MAC_FS = notOnWindows('the darwin safeFs needs a POSIX file system (POSIX paths, symlinks, O_NOFOLLOW_ANY); Windows has its own safeFs walk');
 
 const tmp = async () => fsp.mkdtemp(path.join(fs.realpathSync(os.tmpdir()), 'sm-noproc-'));
 const quiet = { info() {}, warn() {}, error() {} };
@@ -40,7 +45,7 @@ async function layout() {
 // The Linux rules without /proc still read /proc/self/fd for the folder
 // walk (openDirInside, rmrfInside): a Linux code path, so Linux only.
 for (const [label, make, skip] of [['linux, haveProc:false', () => createSafeFs({ platform: linux(), haveProc: false }), linuxOnly('the Linux rules walk folders through /proc/self/fd')],
-  ['darwin', () => createSafeFs({ platform: mac(), haveProc: false }), false]]) {
+  ['darwin', () => createSafeFs({ platform: mac(), haveProc: false }), MAC_FS]]) {
   test(`safeFs ${label}: rmrfInside really deletes, at depth 0 and deeper`, { skip }, async () => {
     const { dir, root } = await layout();
     try {
@@ -129,7 +134,7 @@ for (const [label, make, skip] of [['linux, haveProc:false', () => createSafeFs(
   });
 }
 
-test('safeFs darwin: a root reached through a link (as /var is on a Mac) still works', async () => {
+test('safeFs darwin: a root reached through a link (as /var is on a Mac) still works', { skip: MAC_FS }, async () => {
   const { dir, root } = await layout();
   try {
     // /var -> /private/var: the root is configured by its linked name
@@ -149,7 +154,7 @@ test('safeFs darwin: a root reached through a link (as /var is on a Mac) still w
   }
 });
 
-test('safeFs darwin: names Windows refuses are ordinary on a Mac', async () => {
+test('safeFs darwin: names Windows refuses are ordinary on a Mac', { skip: MAC_FS }, async () => {
   const { dir, root } = await layout();
   try {
     const sfs = createSafeFs({ platform: mac(), haveProc: false });
@@ -184,7 +189,7 @@ test('safeFs darwin: a folder whose open handle has inode 0 is refused', async (
   }
 });
 
-test('Recycle Bin with the darwin safeFs: emptying the bin deletes the files (it used to delete nothing)', async () => {
+test('Recycle Bin with the darwin safeFs: emptying the bin deletes the files (it used to delete nothing)', { skip: MAC_FS }, async () => {
   const dir = await tmp();
   try {
     const root = path.join(dir, 'share');

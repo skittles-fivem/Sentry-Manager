@@ -12,7 +12,6 @@ const assert = require('node:assert/strict');
 const crypto = require('crypto');
 const fs = require('fs');
 const fsp = require('fs/promises');
-const os = require('os');
 const path = require('path');
 const { forPlatform } = require('../server/platform');
 const { createRealGuard } = require('../server/safePath');
@@ -23,12 +22,20 @@ const { scanTeslaFootage, resolveContainedPath } = require('../src/main/converte
 const { createVolumeInfo } = require('../src/main/converter/runtime');
 const { classifyPath, createFileTransaction } = require('../src/main/converter/staging');
 
-const tmp = async () => fsp.mkdtemp(path.join(fs.realpathSync(os.tmpdir()), 'sm-macfs-'));
+const { notOnWindows } = require('./fixtures/platformSkip');
+const { realTmp } = require('./fixtures/tmp');
+
+// the native real path on Windows (no 8.3 short names), as realpath gives it
+const tmp = () => realTmp('sm-macfs-');
+// safePath and safeFs with the darwin (and Linux) rules compare POSIX paths
+// ('/' as the separator) of the real file system: a Windows disk gives C:\
+// paths, so these need a POSIX one.
+const MAC_FS = notOnWindows('the darwin rules check real paths on a POSIX file system (POSIX paths, symlinks, O_NOFOLLOW_ANY)');
 const mac = () => forPlatform('darwin', { env: {}, appRoot: '/Library/SentrySixManager/app', exists: () => false });
 const linux = () => forPlatform('linux', { env: {}, exists: () => false });
 const O_NOFOLLOW_ANY = 0x20000000;
 
-test('safePath on darwin: deny checks fold case, allow checks never do', async () => {
+test('safePath on darwin: deny checks fold case, allow checks never do', { skip: MAC_FS }, async () => {
   const dir = await tmp();
   try {
     // a case-insensitive Mac reaches "Data" through "data"
@@ -54,7 +61,7 @@ test('safePath on darwin: deny checks fold case, allow checks never do', async (
   }
 });
 
-test('safePath on darwin: an open file is matched to its path by device and inode', async () => {
+test('safePath on darwin: an open file is matched to its path by device and inode', { skip: MAC_FS }, async () => {
   const dir = await tmp();
   try {
     await fsp.writeFile(path.join(dir, 'a.mp4'), 'clip');
@@ -136,7 +143,7 @@ test('studioApi on darwin: opened with the platform flags (O_NOFOLLOW_ANY), bin 
   }
 });
 
-test('darwin safeFs and studioApi open as a Mac allows: never O_NOFOLLOW with O_NOFOLLOW_ANY', async () => {
+test('darwin safeFs and studioApi open as a Mac allows: never O_NOFOLLOW with O_NOFOLLOW_ANY', { skip: MAC_FS }, async () => {
   const dir = await tmp();
   const restore = macOpenRules();
   try {
@@ -183,7 +190,7 @@ test('scanner on darwin: macOS system folders are never entered; Linux walks as 
       await fsp.mkdir(path.join(dir, name));
     }
     // a Mac's root-only folders: opening one fails
-    const opendir = (p, ...rest) => (/\/\.(Trashes|Spotlight-V100|fseventsd|PKInstallSandboxManager)/.test(p)
+    const opendir = (p, ...rest) => (/[\\/]\.(Trashes|Spotlight-V100|fseventsd|PKInstallSandboxManager)/.test(p)
       ? Promise.reject(Object.assign(new Error(`EACCES: ${p}`), { code: 'EACCES' }))
       : fsp.opendir(p, ...rest));
     assert.deepEqual(await scanAll(dir, { platform: 'darwin', opendir }), ['TeslaCam/RecentClips/2020-01-01_08-00-00-front.mp4']);
@@ -199,8 +206,8 @@ test('scanner on darwin: a root typed in NFC and read back in NFD is the same fo
   const typed = '/Volumes/Café';
   const onDisk = typed.normalize('NFD');
   const realpath = async (p) => (p === typed ? onDisk : p.replace(typed, onDisk).normalize('NFC'));
-  assert.equal(await resolveContainedPath(typed, 'TeslaCam/a.mp4', { platform: 'darwin', realpath }), `${typed}/TeslaCam/a.mp4`);
-  await assert.rejects(resolveContainedPath(typed, 'TeslaCam/a.mp4', { platform: 'linux', realpath }), { code: 'PATH_OUTSIDE_ROOT' });
+  assert.equal(await resolveContainedPath(typed, 'TeslaCam/a.mp4', { platform: 'darwin', realpath, path: path.posix }), `${typed}/TeslaCam/a.mp4`);
+  await assert.rejects(resolveContainedPath(typed, 'TeslaCam/a.mp4', { platform: 'linux', realpath, path: path.posix }), { code: 'PATH_OUTSIDE_ROOT' });
 });
 
 const MOUNT_TABLE = [
@@ -362,7 +369,8 @@ test('staging with the darwin adapter on an SMB share: fails closed before anyth
     const owned = createDarwinOwnedFs({ posix: fakePosix(), volumeInfo: async () => ({ fstype: 'smbfs', local: false }) });
     const writes = [];
     const staging = createFileTransaction({
-      tempRoot, platform: 'darwin', pathApi: path.posix, validatePublicationArtifact: async () => true,
+      // the host's own paths (path.posix on a Mac): the files below are real
+      tempRoot, platform: 'darwin', pathApi: path, validatePublicationArtifact: async () => true,
       removeOwned: owned.removeOwned, renameExclusive: owned.renameExclusive
     });
     assert.equal(staging.capabilities.replacement, 'available', 'the adapter can replace on a local drive');

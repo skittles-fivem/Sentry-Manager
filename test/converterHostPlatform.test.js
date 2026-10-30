@@ -139,7 +139,8 @@ test('macOS host: a footage folder whose share stopped answering is given up on,
       { root: dead, available: false, reason: 'the folder cannot be read (ETIMEDOUT)' },
       { root: good, available: true }
     ]);
-    assert.deepEqual(asked, [fs.realpathSync(good)], 'a folder not resolved is never checked');
+    // native, as fs.promises.realpath is (Windows: no 8.3 short names)
+    assert.deepEqual(asked, [fs.realpathSync.native(good)], 'a folder not resolved is never checked');
   } finally {
     fs.rmSync(base, { recursive: true, force: true });
   }
