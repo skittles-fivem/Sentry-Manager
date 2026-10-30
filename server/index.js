@@ -60,6 +60,7 @@ const { powerReport, combine: combinePower } = require('./nodePower');
 const { createNodeBenchmark } = require('./nodeBenchmark');
 const { run } = require('./proc');
 const { Telemetry } = require('./telemetry');
+const { createSpeedIndex } = require('./speedIndex');
 
 const APP_ROOT = path.resolve(process.env.APP_ROOT || path.join(__dirname, '..'));
 const SRC = path.join(APP_ROOT, 'src');
@@ -218,9 +219,12 @@ async function main() {
   const vehicles = new VehicleManager({ db, footageRoot: FOOTAGE_ROOT, folderRoots, protectedDirs, logger, mounter });
   const smbTester = createSmbTester({ mounter, vehicles, log: logger.scope('vehicles') });
   vehicles.bootstrapFromEnv();
-  const inventory = new Inventory({ vehicles, db, log: logger.scope('inventory'), onChange: () => announce('inventory') });
+  let speedIndex = null;
+  const inventory = new Inventory({ vehicles, db, log: logger.scope('inventory'), onChange: () => { announce('inventory'); speedIndex?.kick(); } });
   const thumbs = new Thumbnails({ dir: path.join(DATA, 'thumbnails'), ffmpegPath: FFMPEG });
   const telemetry = new Telemetry({ srcRoot: SRC, cacheDir: path.join(DATA, 'telemetry'), log: logger.scope('telemetry') });
+  // every front clip's speed, a value a second, indexed in the background for the Viewer's speed graph
+  speedIndex = createSpeedIndex({ dir: path.join(DATA, 'speeds'), inventory, vehicles, telemetry, log: logger.scope('speeds') });
 
   // ---- paths
   // Default place for converted copies ("keep originals" mode); EXTRA_ROOTS adds more.
@@ -900,19 +904,31 @@ async function main() {
     res.end(gzip ? zlib.gzipSync(body) : body);
     return undefined;
   });
-  // speed once a second for up to 40 clips at a time (the viewer's speed graph
-  // over the whole timeline); a clip without telemetry, or out of reach, is null
+  // The Viewer's speed graph: a day's indexed speeds (one value a second per
+  // front clip, keyed by the clip's path as the recording lists it) ...
+  r.add('GET', '/api/vehicles/:id/speeds', async (req, res, { params, query }) => {
+    const v = vehicleOr404(params.id);
+    const root = vehicles.rootOf(v);
+    const byRel = await speedIndex.day(v.id, String(query.date || ''));
+    return { speeds: Object.fromEntries(Object.entries(byRel).map(([rel, sp]) => [path.join(root, rel), sp])) };
+  });
+  // ... and up to 40 clips the index has not reached yet, read now (and indexed);
+  // a clip without telemetry, or out of reach, is null
   r.add('POST', '/api/telemetry/speeds', async (req, res, { body }) => {
     const paths = Array.isArray(body?.paths) ? body.paths.filter((p) => typeof p === 'string').slice(0, 40) : [];
-    const speeds = await Promise.all(paths.map(async (p) => {
+    const speeds = [];
+    for (const p of paths) {
       try {
         const real = await studioReadable.resolve(p);
-        if (!real || hiddenPath(real)) return null;
-        return await telemetry.speeds(real);
+        if (!real || hiddenPath(real)) { speeds.push(null); continue; }
+        const st = await fs.promises.stat(real);
+        const owner = vehicleForReal(real);
+        const rel = owner ? path.relative(owner.root, real).split(path.sep).join('/') : null;
+        speeds.push(await speedIndex.clip(owner?.vehicle.id, rel, real, st.size, st.mtimeMs));
       } catch {
-        return null;
+        speeds.push(null);
       }
-    }));
+    }
     return { speeds };
   });
   r.add('GET', '/api/vehicles/:id/recordings/:rid', async (req, res, { params }) => {

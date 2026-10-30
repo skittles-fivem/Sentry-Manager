@@ -177,17 +177,6 @@ class Telemetry {
     return this.pending.get(key);
   }
 
-  /** A clip's speed, one value a second (speedsOf), for the viewer's timeline graph. */
-  async speeds(real) {
-    const { key, body } = await this.forFile(real);
-    this.speedMemo ||= new Map();
-    if (this.speedMemo.has(key)) return this.speedMemo.get(key);
-    const out = speedsOf(body);
-    this.speedMemo.set(key, out);
-    if (this.speedMemo.size > 5000) this.speedMemo.delete(this.speedMemo.keys().next().value);
-    return out;
-  }
-
   /** The clip's telemetry as JSON text, read in a worker thread. */
   read(real, size) {
     return new Promise((resolve, reject) => {

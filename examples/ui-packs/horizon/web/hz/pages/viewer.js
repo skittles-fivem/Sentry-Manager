@@ -164,8 +164,8 @@ export default {
       $('#vw-clips').innerHTML = st.clips.map((c, i) => `<li><button type="button" class="clipbtn${i === st.i ? ' on' : ''}" data-clip="${i}"${i === st.i ? ' aria-current="true"' : ''}><span class="num faint">${String(i + 1).padStart(2, '0')}</span><b class="num">${h(wall(c.key))}</b><span class="pill ${c.cat === 'Sentry' ? 'org' : c.cat === 'Saved' ? 'grn' : 'cyan'}">${h(c.cat)}</span><span class="num faint small">${ok(c.len) ? mmss(c.len) : ''} · ${Object.keys(c.files).length} cams</span></button></li>`).join('');
     }
     // ---------- speed over the whole timeline ----------
-    // one speed a second per clip (m/s, null where there is none), read from
-    // the front camera a few clips at a time once playback has started
+    // one speed a second per clip (m/s, null where there is none) from the
+    // front camera, as indexed by the server
     function drawSpeed() {
       const cv = $('#vw-spd');
       const w = cv.clientWidth;
@@ -220,6 +220,15 @@ export default {
       }
     }
     async function loadSpeeds() {
+      // the server's index first (a day in one request), then any clip it has not reached
+      for (const day of new Set(st.clips.map((c) => String(c.key).slice(0, 10)))) {
+        try {
+          const { speeds } = await api(`/api/vehicles/${encodeURIComponent(v.id)}/speeds?date=${encodeURIComponent(day)}`);
+          for (const c of st.clips) if (c.files.front && Object.prototype.hasOwnProperty.call(speeds || {}, c.files.front)) c.spd = speeds[c.files.front];
+        } catch { /* read below */ }
+        if (!alive) return;
+      }
+      drawSpeed();
       const todo = st.clips.filter((c) => c.files.front && c.spd === undefined);
       for (let k = 0; k < todo.length && alive; k += 6) {
         const part = todo.slice(k, k + 6);
