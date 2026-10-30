@@ -101,7 +101,7 @@ test('safeFs without /proc: every component is checked, links are never followed
     await fsp.writeFile(path.join(outside, 'keep.txt'), 'mine');
     await fsp.writeFile(path.join(root, 'TeslaCam', 'RecentClips', 'a.mp4'), 'clip');
     await dirLink(outside, path.join(root, 'TeslaCam', 'link'));
-    const sfs = createSafeFs({ haveProc: false, checkLinks: true });
+    const sfs = createSafeFs({ platform: winLike(), haveProc: false, checkLinks: true });
 
     await assert.rejects(sfs.mkdirpInside(root, path.join(root, 'TeslaCam', 'link', 'bin')), { code: 'ELINKESCAPE' });
     await assert.rejects(sfs.renameInside(root, path.join(root, 'TeslaCam', 'RecentClips', 'a.mp4'), path.join(root, 'TeslaCam', 'link', 'a.mp4')), { code: 'ELINKESCAPE' });

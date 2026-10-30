@@ -52,8 +52,13 @@ const DARWIN_TEXT = {
   timedOut: 'mount timed out (the NAS did not answer)',
   noFolder: 'Plug in the drive or create this folder, or choose the folder that holds your footage in the vehicle\'s settings (or connect the vehicle to an SMB share).',
   driveGone: (drive) => `The drive ${drive.slice('/Volumes/'.length)} is not connected.`,
-  driveHint: 'Plug the drive into this Mac. Until it is back nothing is read from or written to this folder.'
+  driveHint: 'Plug the drive into this Mac. Until it is back nothing is read from or written to this folder.',
+  // macOS privacy settings (TCC) or the folder's permissions keep the service out
+  blocked: (dir) => `macOS is blocking the app from this folder. In Terminal run: sudo sentry-six-manager allow-folder "${dir}" (add --write to let it save there). If it is still blocked, give Full Disk Access to /Library/SentrySixManager/node/bin/node in System Settings > Privacy & Security.`,
+  blockedWrite: (dir) => `macOS lets the app read this folder but not save in it. In Terminal run: sudo sentry-six-manager allow-folder "${dir}" --write`,
+  ntfs: 'This drive is formatted NTFS, which a Mac can only read: footage can be watched, but nothing can be saved or deleted on it. To save to it, use a drive formatted exFAT or APFS.'
 };
+const DENIED = new Set(['EPERM', 'EACCES']);
 
 function withTimeout(promise, ms, what) {
   let timer;
@@ -431,7 +436,8 @@ class ShareManager extends EventEmitter {
           : this.mac ? DARWIN_TEXT.noFolder
             : 'Mount your footage at this path (volumes: - /path/to/TeslaCam:/footage) or set SMB_SHARE.');
       } else if (this.mode === 'local' || st.mounted) {
-        this.fail(`Cannot read ${this.root}: ${err.message}`, null);
+        const blocked = this.mac && this.mode === 'local' && DENIED.has(err.code);
+        this.fail(`Cannot read ${this.root}: ${err.message}`, blocked ? DARWIN_TEXT.blocked(this.root) : null);
       }
       this.updateHealthy();
       return;
@@ -483,7 +489,14 @@ class ShareManager extends EventEmitter {
       return;
     }
     st.writable = false;
-    this.fail(`Share is not writable: ${r.step} failed (${r.error})`, r.hint);
+    this.fail(`Share is not writable: ${r.step} failed (${r.error})`, this.writeHintFor(r));
+  }
+
+  // A Mac folder that refuses the first write: an NTFS drive (read-only on
+  // a Mac) or a folder the service may not save in. Else the usual hint.
+  writeHintFor(r) {
+    if (!this.mac || this.mode !== 'local' || r.step !== WRITE_STEPS.write || !r.hint) return r.hint;
+    return this.state.fsType === 'ntfs' ? DARWIN_TEXT.ntfs : DARWIN_TEXT.blockedWrite(this.root);
   }
 
   updateHealthy() {

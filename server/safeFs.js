@@ -25,8 +25,12 @@
 // macOS has no /proc either. There every operation is made on the folder's
 // real path, after the same lstat walk, and the folder it lands in is first
 // opened with O_NOFOLLOW_ANY (no symlink anywhere in the path) and matched
-// to its path by device and inode (an inode of 0 is refused). The same pin,
-// with O_NOFOLLOW only, is used on Linux when /proc is missing.
+// to its path by device and inode (an inode of 0 is refused). This is still
+// check-then-act: Node has no unlinkat/renameat, so the operation itself
+// runs on the path, and the open folder only proves no symlink was there at
+// the moment of the check. A swap between the check and the call is not
+// caught (phase 2 moves these onto sentry-fsops' root-relative *at() calls,
+// docs/plans/macos.md section 6).
 
 const fs = require('fs');
 const fsp = require('fs/promises');
@@ -51,8 +55,8 @@ const procPath = (dirFh, name) => `/proc/self/fd/${dirFh.fd}/${name}`;
 /**
  * The helpers, for one platform. `haveProc` (tests) says whether the
  * /proc descriptor walk is used; `checkLinks` whether the fallback walks
- * the components with lstat (Windows and macOS). Without /proc, on Linux
- * and macOS, each folder is also pinned before anything is done in it.
+ * the components with lstat (Windows and macOS). Without /proc on macOS,
+ * each folder is also checked by an open just before anything is done in it.
  */
 function createSafeFs({
   platform = defaultPlatform, haveProc = HAVE_PROC,
@@ -63,8 +67,9 @@ function createSafeFs({
   const noNotEmpty = { codes: new Set(['EBUSY', 'EPERM', 'EACCES']) };
   // names Windows would read differently are refused there (a Mac allows them)
   const checkNames = checkLinks && platform.name !== 'darwin';
-  // without /proc (macOS, a Linux without it): pin each folder before acting in it
-  const pin = !haveProc && platform.name !== 'win32';
+  // macOS (no /proc): check each folder by an open before acting in it.
+  // Linux and Windows keep their own fallback unchanged.
+  const pin = !haveProc && platform.name === 'darwin';
   const dirFlags = (platform.openNoFollowFlags ?? (O_RDONLY | O_NOFOLLOW)) | O_DIRECTORY;
 
   /** The components of `target` below `root`, or throw if it is not inside root. */
@@ -173,7 +178,11 @@ function createSafeFs({
     }
   }
 
-  /** Run `op(abs)` on `target`'s real path with its folder pinned (no /proc). */
+  /**
+   * Run `op(abs)` on `target`'s real path once its folder has been opened
+   * and matched (no /proc). `op` still acts on the path, not on the open
+   * folder: check-then-act, see the note at the top.
+   */
   async function inPinnedParent(root, target, op) {
     await assertParentReal(root, target);
     const { abs } = await realInside(root, target);
@@ -325,9 +334,10 @@ function createSafeFs({
   }
 
   /**
-   * Without /proc on macOS (or Linux): the same removal, with every folder
-   * pinned while it is read and every entry removed through a pinned
-   * parent. A symlink is unlinked, never entered.
+   * Without /proc on macOS: the same removal, with every folder checked by
+   * an open before it is read (by path) and every entry removed after its
+   * parent is checked. A symlink is unlinked, never entered. Check-then-act,
+   * as the note at the top says.
    */
   async function rmrfPinned(root, given) {
     let abs;
@@ -363,7 +373,7 @@ function createSafeFs({
     // without /proc the descriptor walk below cannot run: it used to report
     // success and remove nothing (the Recycle Bin on a Mac)
     if (pin) return rmrfPinned(root, targetAbs);
-    if (!haveProc) return rmrfByPath(root, targetAbs);
+    if (!haveProc && checkLinks) return rmrfByPath(root, targetAbs);
     const parent = path.dirname(targetAbs);
     const name = path.basename(targetAbs);
     let dir;

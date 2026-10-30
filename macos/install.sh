@@ -24,6 +24,8 @@ LABEL=io.github.skittles-fivem.sentry-six-manager
 SVC=_sentrysix
 REPO=${SENTRY_RELEASE_REPO:-skittles-fivem/Sentry-Manager}
 WAIT=${SENTRY_WAIT_SECONDS:-60}
+# how long to wait for the service's own VideoToolbox answer
+VT_WAIT=${SENTRY_VT_WAIT_SECONDS:-60}
 
 ROOT=${SENTRY_ROOT:-}
 ROOT=${ROOT%/}
@@ -109,33 +111,47 @@ https_get() { # https_get <url> <file>
 }
 
 # The newest final release whose tag starts with macos-v (or --release), as
-# the tarball's URL. Releases come newest first.
+# the tarball's URL. Releases come newest first, 100 to a page; Windows
+# publishes its own in between, so a few pages are read before giving up.
 find_release() {
-  local api repo_rx tag_rx url u t finals
+  local api repo_rx tag_rx url page n
   printf '%s' "$REPO" | grep -Eq '^[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}$' || fail "SENTRY_RELEASE_REPO is not owner/name: $REPO"
-  api="https://api.github.com/repos/$REPO/releases?per_page=30"
-  https_get "$api" "$WORK/releases.json" || fail "could not ask GitHub for the releases ($api)"
   repo_rx=$(printf '%s' "$REPO" | sed 's/[.]/\\./g')
   tag_rx='macos-v[^/]+'
   if [ -n "$TAG" ]; then
     printf '%s' "$TAG" | grep -Eq '^macos-v[A-Za-z0-9._+-]+$' || fail "--release takes a macos-v... tag"
     tag_rx=$(printf '%s' "$TAG" | sed 's/[.+]/\\&/g')
   fi
-  # the tags of final releases (each release has its tag_name before its
-  # prerelease flag): a pre-release is installed only when named with --release
-  finals=" $(grep -oE '"(tag_name|prerelease)": *("[^"]*"|true|false)' "$WORK/releases.json" \
-    | awk -F'"' '$2 == "tag_name" { t = $4; next } $2 == "prerelease" { if ($3 ~ /false/ && t != "") print t; t = "" }' \
-    | tr '\n' ' ') "
   url=""
-  for u in $(grep -oE '"browser_download_url": *"[^"]+"' "$WORK/releases.json" \
-    | sed -E 's/^.*"(https:[^"]+)"$/\1/' \
-    | grep -E "^https://github\\.com/$repo_rx/releases/download/$tag_rx/SentrySixManager-[A-Za-z0-9._+-]+-macos-arm64\\.tar\\.gz\$" || true); do
-    t=$(basename "$(dirname "$u")")
-    if [ -n "$TAG" ]; then url=$u; break; fi
-    case "$finals" in *" $t "*) url=$u; break ;; esac
+  for page in 1 2 3 4 5; do
+    api="https://api.github.com/repos/$REPO/releases?per_page=100&page=$page"
+    https_get "$api" "$WORK/releases.json" || fail "could not ask GitHub for the releases ($api)"
+    url=$(release_in_page "$WORK/releases.json" "$repo_rx" "$tag_rx")
+    [ -z "$url" ] || break
+    # a page that is not full is the last one
+    n=$(grep -oE '"tag_name": *"' "$WORK/releases.json" | wc -l | tr -d ' ' || true)
+    [ "$n" -ge 100 ] || break
   done
   [ -n "$url" ] || fail "found no macOS release in $REPO${TAG:+ called $TAG}"
   printf '%s\n' "$url"
+}
+
+# release_in_page <releases.json> <repo regex> <tag regex>: the tarball URL
+# of the first matching release on that page, or nothing.
+release_in_page() {
+  local u t finals
+  # the tags of final releases (each release has its tag_name before its
+  # prerelease flag): a pre-release is installed only when named with --release
+  finals=" $(grep -oE '"(tag_name|prerelease)": *("[^"]*"|true|false)' "$1" \
+    | awk -F'"' '$2 == "tag_name" { t = $4; next } $2 == "prerelease" { if ($3 ~ /false/ && t != "") print t; t = "" }' \
+    | tr '\n' ' ') "
+  for u in $(grep -oE '"browser_download_url": *"[^"]+"' "$1" \
+    | sed -E 's/^.*"(https:[^"]+)"$/\1/' \
+    | grep -E "^https://github\\.com/$2/releases/download/$3/SentrySixManager-[A-Za-z0-9._+-]+-macos-arm64\\.tar\\.gz\$" || true); do
+    t=$(basename "$(dirname "$u")")
+    if [ -n "$TAG" ]; then printf '%s\n' "$u"; return; fi
+    case "$finals" in *" $t "*) printf '%s\n' "$u"; return ;; esac
+  done
 }
 
 # Puts the tarball and SHA256SUMS into $WORK and prints the tarball's name.
@@ -334,6 +350,8 @@ stop_service() {
 # enable first: a job left disabled (launchctl disable, or switched off in
 # Login Items) cannot be bootstrapped
 start_service() {
+  # the service writes its own VideoToolbox answer here once it is up
+  rm -f "$STATE/run/videotoolbox"
   mkdir -p "$(dirname "$PLIST")"
   cp "$PROG/$LABEL.plist" "$PLIST"
   chown root:wheel "$PLIST"
@@ -402,12 +420,25 @@ run_limited() { # run_limited <seconds> <command...>
   return "$rc"
 }
 
-# One second of hardware HEVC as the service account, the way the converter
+# Whether hardware HEVC works for the service. The running service tries it
+# itself (it runs as a daemon, which this Terminal session does not) and
+# writes ok or failed to run/videotoolbox. When it has not answered in time,
+# one second of HEVC as the service account from here, the way the converter
 # encodes (-allow_sw 0: no quiet fallback to the CPU).
 videotoolbox_selftest() {
-  if run_limited 30 sudo -u "$SVC" env HOME="$STATE/run/home" TMPDIR="$STATE/run/tmp" \
-    "$PROG/ffmpeg/ffmpeg" -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1280x720:rate=30 -t 1 \
-    -c:v hevc_videotoolbox -q:v 55 -allow_sw 0 -f null - >/dev/null 2>&1; then
+  local answer="" i=0
+  while [ "$i" -lt "$VT_WAIT" ]; do
+    answer=$(tr -cd 'a-z' < "$STATE/run/videotoolbox" 2>/dev/null || true)
+    [ -z "$answer" ] || break
+    sleep 1
+    i=$((i + 1))
+  done
+  if [ -z "$answer" ]; then
+    if run_limited 30 sudo -u "$SVC" env HOME="$STATE/run/home" TMPDIR="$STATE/run/tmp" \
+      "$PROG/ffmpeg/ffmpeg" -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1280x720:rate=30 -t 1 \
+      -c:v hevc_videotoolbox -q:v 55 -allow_sw 0 -f null - >/dev/null 2>&1; then answer=ok; else answer=failed; fi
+  fi
+  if [ "$answer" = ok ]; then
     say "GPU: VideoToolbox HEVC works for the service."
   else
     say "GPU: VideoToolbox HEVC did not work for the service. Converting still works, on the CPU (libx265)."

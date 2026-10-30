@@ -112,3 +112,35 @@ test('Windows host: one entry per real folder, its letter case ignored; the firs
     fs.rmSync(base, { recursive: true, force: true });
   }
 });
+
+test('macOS host: a footage folder whose share stopped answering is given up on, the server never waits', async () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'conv-host-mac-'));
+  const good = path.join(base, 'drive');
+  fs.mkdirSync(good);
+  const dead = '/Library/Application Support/SentrySixManager/footage/nas';
+  const asked = [];
+  const owned = {
+    removeOwned: { remove: async () => ({ removed: false }) },
+    renameExclusive: { replacementSupport: async (dir) => { asked.push(dir); return { available: true }; } }
+  };
+  const host = createConverterHost({
+    dataDir: path.join(base, 'data'), tempDir: path.join(base, 'temp'), log: logger(),
+    platform: 'darwin', owned, rootTimeoutMs: 50,
+    // the dead share's realpath never answers; the rest are real
+    rootRealpath: (p) => (p === dead ? new Promise(() => {}) : fs.promises.realpath(p))
+  });
+  try {
+    let ticks = 0;
+    const timer = setInterval(() => { ticks++; }, 5);
+    const out = await host.checkReplacementRoots([dead, good]);
+    clearInterval(timer);
+    assert.ok(ticks > 0, 'the event loop kept running');
+    assert.deepEqual(out, [
+      { root: dead, available: false, reason: 'the folder cannot be read (ETIMEDOUT)' },
+      { root: good, available: true }
+    ]);
+    assert.deepEqual(asked, [fs.realpathSync(good)], 'a folder not resolved is never checked');
+  } finally {
+    fs.rmSync(base, { recursive: true, force: true });
+  }
+});

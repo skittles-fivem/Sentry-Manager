@@ -73,6 +73,7 @@ const { TlsManager, localTlsSource, supervisorTlsSource, parseHostnames } = requ
 const { Router, HttpError, sendJson, readJson, readRaw, serveFile } = require('./http');
 const { createUiPacks, originalPack, MAX_ZIP_BYTES: MAX_UI_PACK_BYTES } = require('./uiPacks');
 const { createSmbTester } = require('./smbTest');
+const { darwinVolumeOf } = require('./share');
 const { diskSpace } = require('../src/main/converter/fsSpace');
 const { createNodes } = require('./nodes');
 const { createNodeWorker } = require('./nodeWorker');
@@ -417,6 +418,15 @@ async function main() {
   await uiPacks.tidy().catch((err) => logger.scope('ui').warn(`UI packs folder: ${err.message}`));
   // macOS: the Apple GPU for Settings > System, its test encode run with this ffmpeg and cached
   const darwinGpus = platform.name === 'darwin' ? require('./platform/darwinGpu').createDarwinGpus({ runImpl: run, ffmpegPath: FFMPEG }) : null;
+  // macOS: the service's own answer, for install.sh (a daemon may reach the
+  // media engine differently from a Terminal session)
+  if (darwinGpus) {
+    darwinGpus.detect()
+      .then((g) => fs.promises.writeFile(path.join(RUN_DIR, 'videotoolbox'), g.gpus[0]?.encodes?.hevc ? 'ok\n' : 'failed\n'))
+      .catch((err) => logger.scope('gpu').warn(`VideoToolbox check: ${err.message}`));
+  }
+  // macOS: the drives plugged in, for the folder-vehicle picker
+  const darwinDrives = platform.name === 'darwin' ? require('./platform/darwinVolumes').createVolumes({ runCmd: run }) : null;
   // The converter's owned-file operations: Docker keeps converterHost's own
   // default (posixOwnedFs). Windows: the helper's (winOwnedFs), its GPU list
   // (gpu.list) and a check, per footage drive, that originals can be
@@ -689,6 +699,9 @@ async function main() {
     audit.info(`Password changed (all other sessions signed out): ${by(req, user)}`);
     return { ok: true };
   });
+
+  // "Drives on this Mac" for a folder vehicle ([] on Docker and Windows)
+  r.add('GET', '/api/system/volumes', async () => (darwinDrives ? darwinDrives.list() : []));
 
   r.add('GET', '/api/system', async (req) => ({
     version: buildInfo,
@@ -1639,6 +1652,13 @@ async function main() {
     front.listen(PORT, HOST, () => log.info(`Sentry Six Manager on https://${HOST}:${PORT} (${buildInfo.sha ? buildInfo.sha.slice(0, 7) : 'dev'})`));
   }
   vehicles.startAll();
+  // macOS: a drive plugged in or ejected re-checks the folder vehicles on
+  // drives at once (the 30 s poll stays as the fallback)
+  const stopDriveWatch = darwinDrives ? darwinDrives.watch(() => {
+    for (const v of vehicles.list()) {
+      if (v.source?.type === 'path' && darwinVolumeOf(v.source.path)) vehicles.share(v.id)?.ensure().catch(() => {});
+    }
+  }) : null;
 
   // Converter starts in the background; the Encoder tab shows "starting" until ready.
   host.start().then(async (runtime) => {
@@ -1767,6 +1787,7 @@ async function main() {
     log.info(`${signal}: shutting down`);
     for (const res of clients) res.end();
     for (const s of servers) s.close();
+    stopDriveWatch?.();
     try { stats.stop(); } catch { /* history is saved on a best-effort basis */ }
     nodeWorker.close();
     await host.stop().catch(() => {});

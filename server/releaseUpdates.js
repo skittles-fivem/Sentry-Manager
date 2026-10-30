@@ -42,7 +42,10 @@ const HOW = 'To update, run update.ps1 in the Sentry Six Manager install folder 
 
 const HOW_MACOS = 'To update, run sudo sentry-six-manager update in Terminal. Settings, footage and the Recycle Bin stay as they are.';
 const MACOS_TAG = 'macos-v';
-const MACOS_LIST = 30;
+// releases come newest first, 100 to a page; Windows publishes its own in
+// between, so a few pages are read before saying there is no macOS one
+const MACOS_LIST = 100;
+const MACOS_PAGES = 5;
 // what each release channel reads and how its install is updated
 const CHANNELS = Object.freeze({
   windows: Object.freeze({ how: HOW, list: false }),
@@ -242,28 +245,34 @@ class ReleaseUpdates {
   /** The release to read: releases/latest (Windows), or the newest macos-v* one in the list. */
   async latestRelease(calm) {
     const { owner, name } = this.repo;
-    const url = this.channel.list
-      ? `https://api.github.com/repos/${owner}/${name}/releases?per_page=${MACOS_LIST}`
-      : `https://api.github.com/repos/${owner}/${name}/releases/latest`;
-    const r = await this.request(url, API_HOSTS, 'application/vnd.github+json');
-    if (r.status === 404) throw calm('no release has been published yet');
-    if (r.status === 403 || r.status === 429) throw calm('GitHub is limiting checks right now; it tries again later');
-    if (r.status !== 200) throw new Error(`GitHub answered ${r.status}`);
-    let rel;
-    try { rel = JSON.parse(r.text); } catch { throw new Error('GitHub sent an unexpected answer'); }
     if (!this.channel.list) {
+      const rel = await this.readReleases(`https://api.github.com/repos/${owner}/${name}/releases/latest`, calm);
       if (!rel || typeof rel !== 'object') throw new Error('GitHub sent an unexpected answer');
       // releases/latest skips these already; a stray one is never offered
       if (rel.draft || rel.prerelease) throw calm('the newest release is not final yet');
       return rel;
     }
-    if (!Array.isArray(rel)) throw new Error('GitHub sent an unexpected answer');
     const when = (x) => Date.parse(x.published_at || x.created_at || '') || 0;
-    const mac = rel.filter((x) => x && typeof x === 'object' && !x.draft && !x.prerelease
-      && typeof x.tag_name === 'string' && x.tag_name.startsWith(MACOS_TAG)
-      && Array.isArray(x.assets) && x.assets.some((a) => a && a.name === 'release.json'));
-    if (!mac.length) throw calm('no macOS release has been published yet');
-    return mac.reduce((best, x) => (when(x) > when(best) ? x : best));
+    for (let page = 1; page <= MACOS_PAGES; page++) {
+      const rel = await this.readReleases(`https://api.github.com/repos/${owner}/${name}/releases?per_page=${MACOS_LIST}&page=${page}`, calm);
+      if (!Array.isArray(rel)) throw new Error('GitHub sent an unexpected answer');
+      const mac = rel.filter((x) => x && typeof x === 'object' && !x.draft && !x.prerelease
+        && typeof x.tag_name === 'string' && x.tag_name.startsWith(MACOS_TAG)
+        && Array.isArray(x.assets) && x.assets.some((a) => a && a.name === 'release.json'));
+      if (mac.length) return mac.reduce((best, x) => (when(x) > when(best) ? x : best));
+      // a page that is not full is the last one
+      if (rel.length < MACOS_LIST) break;
+    }
+    throw calm('no macOS release has been published yet');
+  }
+
+  /** One GitHub API answer, parsed. */
+  async readReleases(url, calm) {
+    const r = await this.request(url, API_HOSTS, 'application/vnd.github+json');
+    if (r.status === 404) throw calm('no release has been published yet');
+    if (r.status === 403 || r.status === 429) throw calm('GitHub is limiting checks right now; it tries again later');
+    if (r.status !== 200) throw new Error(`GitHub answered ${r.status}`);
+    try { return JSON.parse(r.text); } catch { throw new Error('GitHub sent an unexpected answer'); }
   }
 
   async fetchLatest() {

@@ -224,6 +224,74 @@ test('darwin folder on a drive: an ejected drive is never read from the Mac\'s o
   for (const t of [st.lastError, st.hint, st2.hint]) assert.doesNotMatch(t, DOCKER_WORDS);
 });
 
+test('darwin folder on a drive typed in another case: the drive is still found', async () => {
+  const p = mac({
+    runCmd: async () => ({ code: 0, stdout: '/dev/disk4s1 on /Volumes/TESLADRIVE (exfat, local, nodev, nosuid, noowners)\n' }),
+    fsp: { realpath: async (x) => x }
+  });
+  const share = new ShareManager({ config: { footagePath: '/Volumes/tesladrive/TeslaCam' }, log: captureLog(), platform: p });
+  await share.ensure();
+  const st = share.status();
+  assert.equal(st.mounted, true);
+  assert.equal(st.fsType, 'exfat');
+  assert.notEqual(st.lastError, 'The drive tesladrive is not connected.');
+});
+
+// fsp is shared with share.js: one call made to fail like macOS would
+async function failing(name, code, fn) {
+  const real = fsp[name];
+  fsp[name] = async () => { throw Object.assign(new Error(`${code}: operation not permitted`), { code }); };
+  try {
+    return await fn();
+  } finally {
+    fsp[name] = real;
+  }
+}
+
+test('darwin folder macOS keeps the app out of: a plain next step; Linux has no hint as before', async () => {
+  const root = fs.realpathSync(await fsp.mkdtemp(path.join(os.tmpdir(), 'sm-mac-tcc-')));
+  try {
+    for (const code of ['EPERM', 'EACCES']) {
+      const share = new ShareManager({ config: { footagePath: root }, log: captureLog(), probe: async () => null, platform: mac() });
+      await failing('readdir', code, () => share.ensure());
+      assert.equal(share.status().healthy, false);
+      assert.equal(share.status().hint, DARWIN_TEXT.blocked(root));
+      assert.match(share.status().hint, /sudo sentry-six-manager allow-folder ".*" \(add --write/);
+      assert.match(share.status().hint, /Full Disk Access/);
+      assert.doesNotMatch(share.status().hint, DOCKER_WORDS);
+    }
+    const linux = new ShareManager({ config: { footagePath: root }, log: captureLog(), probe: async () => null, platform: 'linux' });
+    await failing('readdir', 'EACCES', () => linux.ensure());
+    assert.equal(linux.status().lastError, `Cannot read ${root}: EACCES: operation not permitted`);
+    assert.equal(linux.status().hint, null);
+
+    // readable but not writable: allow-folder --write, never the NAS account
+    const share = new ShareManager({ config: { footagePath: root }, log: captureLog(), probe: async () => null, platform: mac() });
+    await failing('writeFile', 'EACCES', () => share.ensure({ forceWriteCheck: true }));
+    assert.equal(share.status().healthy, true);
+    assert.equal(share.status().writable, false);
+    assert.equal(share.status().hint, DARWIN_TEXT.blockedWrite(root));
+    const linuxW = new ShareManager({ config: { footagePath: root }, log: captureLog(), probe: async () => null, platform: 'linux' });
+    await failing('writeFile', 'EACCES', () => linuxW.ensure({ forceWriteCheck: true }));
+    assert.equal(linuxW.status().hint, writeHint('write', 'linux'));
+  } finally {
+    await fsp.rm(root, { recursive: true, force: true });
+  }
+});
+
+test('darwin folder on an NTFS drive: told the Mac can only read it', async () => {
+  const root = fs.realpathSync(await fsp.mkdtemp(path.join(os.tmpdir(), 'sm-mac-ntfs-')));
+  try {
+    const share = new ShareManager({ config: { footagePath: root }, log: captureLog(), probe: async () => ({ fsType: 'ntfs', source: '/dev/disk5s1' }), platform: mac() });
+    await failing('writeFile', 'EROFS', () => share.ensure({ forceWriteCheck: true }));
+    assert.equal(share.status().writable, false);
+    assert.equal(share.status().hint, DARWIN_TEXT.ntfs);
+    assert.doesNotMatch(DARWIN_TEXT.ntfs, DOCKER_WORDS);
+  } finally {
+    await fsp.rm(root, { recursive: true, force: true });
+  }
+});
+
 test('darwin folder on the Mac\'s own disk: no container warning; Linux keeps it word for word', async () => {
   const root = fs.realpathSync(await fsp.mkdtemp(path.join(os.tmpdir(), 'sm-mac-local-')));
   try {

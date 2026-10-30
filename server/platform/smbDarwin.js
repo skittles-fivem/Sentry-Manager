@@ -163,18 +163,28 @@ function parseDarwinMount(text) {
   return String(text || '').split('\n').map(parseMountLine).filter(Boolean);
 }
 
-/** Topmost mount at exactly `mountPoint` (the last line wins when stacked). */
+// A drive's name as /Volumes compares it: without regard to case or
+// Unicode form, like the Mac's own disk does.
+const foldName = (p) => String(p).normalize('NFC').toLowerCase();
+
+/**
+ * Topmost mount at exactly `mountPoint` (the last line wins when stacked).
+ * A drive (/Volumes/<name>) typed in another case still matches its line.
+ */
 function findDarwinMount(text, mountPoint) {
   const needle = ` on ${mountPoint} (`;
+  const drive = /^\/Volumes\/[^/]+$/.test(mountPoint) ? foldName(mountPoint) : null;
   let found = null;
+  let folded = null;
   for (const line of String(text || '').split('\n')) {
-    const at = line.lastIndexOf(needle);
-    if (at === -1) continue;
+    if (line.lastIndexOf(needle) === -1 && !drive) continue;
     const m = parseMountLine(line);
+    if (!m) continue;
     // the exact mount point, not one that only ends the same way
-    if (m && m.mountPoint === mountPoint) found = m;
+    if (m.mountPoint === mountPoint) found = m;
+    else if (drive && foldName(m.mountPoint) === drive) folded = m;
   }
-  return found;
+  return found || folded;
 }
 
 /**

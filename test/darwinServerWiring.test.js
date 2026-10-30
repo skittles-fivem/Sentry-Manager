@@ -126,7 +126,9 @@ function fakeList(list, infoFor = () => ({})) {
   const calls = [];
   const fetchImpl = async (url) => {
     calls.push(url);
-    if (url === `https://api.github.com/repos/${REPO}/releases?per_page=30`) return Response.json(list);
+    // 100 to a page, as GitHub pages them
+    const page = new RegExp(`^https://api\\.github\\.com/repos/${REPO}/releases\\?per_page=100&page=(\\d+)$`).exec(url);
+    if (page) return Response.json(list.slice((page[1] - 1) * 100, page[1] * 100));
     const m = /\/releases\/download\/([^/]+)\/release\.json$/.exec(url);
     if (m) return new Response(JSON.stringify({ sha: 'c'.repeat(40), builtAt: '2026-10-20T04:00:00Z', version: m[1], critical: { level: 0, reason: '' }, ...infoFor(m[1]) }), { status: 200 });
     return new Response('', { status: 404 });
@@ -161,10 +163,24 @@ test('updates on a Mac: the newest final macos-v* release with a release.json, a
   assert.equal(st.how, HOW_MACOS);
   assert.equal(st.how, 'To update, run sudo sentry-six-manager update in Terminal. Settings, footage and the Recycle Bin stay as they are.');
   assert.ok(!gh.calls.some((c) => c.endsWith('/releases/latest')));
-  assert.deepEqual(gh.calls, [`https://api.github.com/repos/${REPO}/releases?per_page=30`, assetUrl('macos-v1.2.0-ddddddd')]);
+  assert.deepEqual(gh.calls, [`https://api.github.com/repos/${REPO}/releases?per_page=100&page=1`, assetUrl('macos-v1.2.0-ddddddd')]);
   const msg = notes.open.get('image-update').message;
   assert.match(msg, /sudo sentry-six-manager update/);
   assert.doesNotMatch(msg, /update\.ps1|docker|Install\.cmd/i);
+});
+
+test('updates on a Mac: a macOS release behind a full page of Windows ones is still found', async () => {
+  const windows = Array.from({ length: 130 }, (_, i) => rel(`v9.${130 - i}.0`, new Date(Date.UTC(2026, 9, 25) - i * 3600e3).toISOString()));
+  const gh = fakeList([...windows, rel('macos-v1.2.0-ddddddd', '2026-10-01T00:00:00Z')]);
+  const st = await new ReleaseUpdates({ db: fakeDb(), buildInfo: macBuild(), fetchImpl: gh.fetchImpl }).check();
+  assert.equal(st.error, null);
+  assert.equal(st.latest.release, 'macos-v1.2.0-ddddddd');
+  assert.deepEqual(gh.calls.slice(0, 2), [1, 2].map((n) => `https://api.github.com/repos/${REPO}/releases?per_page=100&page=${n}`));
+  // only Windows releases: read until a page is not full, never past five
+  const none = fakeList(Array.from({ length: 1000 }, (_, i) => rel(`v8.${i}.0`, '2026-10-01T00:00:00Z')));
+  const st2 = await new ReleaseUpdates({ db: fakeDb(), buildInfo: macBuild(), fetchImpl: none.fetchImpl }).check();
+  assert.equal(st2.error, 'no macOS release has been published yet');
+  assert.equal(none.calls.length, 5);
 });
 
 test('updates on a Mac: no macOS release yet is calm; Windows keeps its own text', async () => {
@@ -272,6 +288,12 @@ test('server as on a Mac: unsupervised, macOS security keys, quiet console, SIGH
     assert.equal(sys.security.supervised, false);
     assert.equal(sys.security.account, '_sentrysix');
     assert.ok('fullDiskAccess' in sys.security);
+    // no /sbin/mount on this box: no drives, still a list
+    assert.deepEqual((await s.call('GET', '/api/system/volumes')).data, []);
+    // the service's own VideoToolbox answer for install.sh (no media engine here)
+    const vt = path.join(dir, 'run', 'videotoolbox');
+    for (let i = 0; i < 100 && !fs.existsSync(vt); i++) await new Promise((r) => setTimeout(r, 100));
+    assert.equal(fs.readFileSync(vt, 'utf8'), 'failed\n');
     s.child.kill('SIGHUP');
     const { code } = await s.exited;
     assert.equal(code, 0);
@@ -296,6 +318,7 @@ test('server on Linux: today\'s security keys, and SIGHUP is not a stop', { time
     assert.deepEqual(Object.keys(sec).sort(), ['confirmed', 'currentHost', 'https', 'runningAsRoot', 'supervised', 'tls', 'tlsMode', 'trustProxy']);
     const sys = (await s.call('GET', '/api/system')).data;
     assert.deepEqual(Object.keys(sys.security).sort(), ['https', 'runningAsRoot', 'supervised', 'tlsMode', 'uid']);
+    assert.deepEqual((await s.call('GET', '/api/system/volumes')).data, []);
     assert.match(s.out(), /INFO/); // the console still has the lines
     s.child.kill('SIGHUP');
     const { code, signal } = await s.exited;

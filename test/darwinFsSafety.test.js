@@ -17,7 +17,7 @@ const path = require('path');
 const { forPlatform } = require('../server/platform');
 const { createRealGuard } = require('../server/safePath');
 const { hiddenPath, openConfined, readDir } = require('../server/studioApi');
-const { createDarwinOwnedFs, SMB_REPLACE, SMB_PUBLISH, NET_REPLACE } = require('../server/platform/darwinOwnedFs');
+const { createDarwinOwnedFs, selfTestDrive, SMB_REPLACE, SMB_PUBLISH, NET_REPLACE } = require('../server/platform/darwinOwnedFs');
 const { scanTeslaFootage, resolveContainedPath } = require('../src/main/converter/scanner');
 const { createVolumeInfo } = require('../src/main/converter/runtime');
 const { classifyPath, createFileTransaction } = require('../src/main/converter/staging');
@@ -183,6 +183,9 @@ const fakePosix = () => ({
   helperAvailable: true
 });
 
+// the drive's own trial, as a drive that does what it says
+const passes = async () => ({ renameExcl: true, hardLinks: true });
+
 test('darwin owned files: replacing originals and saving onto an SMB share are unavailable, with a plain reason', async () => {
   const dir = await tmp();
   try {
@@ -191,7 +194,7 @@ test('darwin owned files: replacing originals and saving onto an SMB share are u
       exfat: { fstype: 'exfat', local: true, renameExcl: false, hardLinks: false } };
     let kind = 'smb';
     let asked = 0;
-    const owned = createDarwinOwnedFs({ posix: fakePosix(), volumeInfo: async () => { asked += 1; return volumes[kind]; } });
+    const owned = createDarwinOwnedFs({ posix: fakePosix(), volumeInfo: async () => { asked += 1; return volumes[kind]; }, selfTest: passes });
     const sub = path.join(dir, 'TeslaCam', 'SavedClips');
     assert.deepEqual(await owned.renameExclusive.replacementSupport(sub), { available: false, reason: SMB_REPLACE },
       'a folder not made yet is checked on the drive it will be on');
@@ -206,7 +209,7 @@ test('darwin owned files: replacing originals and saving onto an SMB share are u
       ['exfat', { available: false, reason: 'this drive cannot move a file without risking another' },
         { available: false, reason: 'this drive cannot save a file without risking another' }]]) {
       kind = k;
-      const fresh = createDarwinOwnedFs({ posix: fakePosix(), volumeInfo: async () => volumes[kind] });
+      const fresh = createDarwinOwnedFs({ posix: fakePosix(), volumeInfo: async () => volumes[kind], selfTest: passes });
       assert.deepEqual(await fresh.renameExclusive.replacementSupport(dir), replace, k);
       if (publish) assert.deepEqual(await fresh.renameExclusive.publicationSupport(dir), publish, k);
     }
@@ -217,6 +220,63 @@ test('darwin owned files: replacing originals and saving onto an SMB share are u
     // the rest of the adapter is the posix one
     assert.equal(owned.renameExclusive.atomicNoReplace, true);
     assert.equal(owned.helperAvailable, true);
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('darwin owned files: a drive that says it can but fails its own trial is a no', async () => {
+  const dir = await tmp();
+  try {
+    const apfs = { fstype: 'apfs', local: true, renameExcl: true, hardLinks: true };
+    const tried = [];
+    const liar = createDarwinOwnedFs({ posix: fakePosix(), volumeInfo: async () => apfs,
+      selfTest: async (d) => { tried.push(d); return { renameExcl: false, hardLinks: true }; } });
+    assert.deepEqual(await liar.renameExclusive.replacementSupport(dir), { available: false, reason: 'this drive cannot move a file without risking another' });
+    assert.deepEqual(await liar.renameExclusive.publicationSupport(dir), { available: true }, 'a hard link still publishes');
+    assert.deepEqual(tried, [dir], 'tried once per drive');
+    const noLinks = createDarwinOwnedFs({ posix: fakePosix(), volumeInfo: async () => apfs, selfTest: async () => ({ renameExcl: false, hardLinks: false }) });
+    assert.deepEqual(await noLinks.renameExclusive.publicationSupport(dir), { available: false, reason: 'this drive cannot save a file without risking another' });
+    // the trial could not run (no write access): the drive is not checked
+    const denied = createDarwinOwnedFs({ posix: fakePosix(), volumeInfo: async () => apfs, selfTest: async () => ({ error: 'EACCES' }) });
+    assert.deepEqual(await denied.renameExclusive.replacementSupport(dir), { available: false, reason: 'the drive could not be checked' });
+    // an SMB share is never tried: it is a no before anything is written
+    let smbTried = false;
+    const smb = createDarwinOwnedFs({ posix: fakePosix(), volumeInfo: async () => ({ fstype: 'smbfs', local: false }), selfTest: async () => { smbTried = true; return {}; } });
+    assert.deepEqual(await smb.renameExclusive.replacementSupport(dir), { available: false, reason: SMB_REPLACE });
+    assert.equal(smbTried, false);
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('darwin self-test on a real folder: what it tries, and it leaves nothing behind', async () => {
+  const dir = await tmp();
+  try {
+    // a rename that refuses to replace, like rename-excl on APFS
+    const excl = async (from, to) => {
+      if (await fsp.lstat(to).then(() => true, () => false)) throw Object.assign(new Error('EEXIST'), { code: 'EEXIST' });
+      await fsp.rename(from, to);
+    };
+    assert.deepEqual(await selfTestDrive(dir, { rename: excl }), { renameExcl: true, hardLinks: true });
+    // a rename that replaces (no EEXIST) does not pass
+    assert.deepEqual(await selfTestDrive(dir, { rename: (a, b) => fsp.rename(a, b) }), { renameExcl: false, hardLinks: true });
+    // ENOTSUP, as smbfs and exFAT answer
+    const notsup = async () => { throw Object.assign(new Error('ENOTSUP'), { code: 'ENOTSUP' }); };
+    assert.deepEqual(await selfTestDrive(dir, { rename: notsup }), { renameExcl: false, hardLinks: true });
+    // a rename that lands a different file (identity lost) does not pass
+    const copies = async (from, to) => {
+      if (await fsp.lstat(to).then(() => true, () => false)) throw Object.assign(new Error('EEXIST'), { code: 'EEXIST' });
+      await fsp.copyFile(from, to);
+      await fsp.unlink(from);
+    };
+    assert.equal((await selfTestDrive(dir, { rename: copies })).renameExcl, false);
+    // no hard links
+    const noLink = { ...fsp, link: async () => { throw Object.assign(new Error('ENOTSUP'), { code: 'ENOTSUP' }); } };
+    assert.deepEqual(await selfTestDrive(dir, { rename: excl, fsp: noLink }), { renameExcl: true, hardLinks: false });
+    // a folder it may not write in
+    assert.deepEqual(await selfTestDrive(path.join(dir, 'missing'), { rename: excl }), { error: 'ENOENT' });
+    assert.deepEqual(fs.readdirSync(dir), [], 'every trial folder was removed');
   } finally {
     await fsp.rm(dir, { recursive: true, force: true });
   }

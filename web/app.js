@@ -2452,7 +2452,7 @@
       </div>
       <div class="full" data-src="path"${s.type === 'path' ? '' : ' hidden'}>
         <label class="field">Folder<input class="input" name="path" value="${esc(s.path || '')}" placeholder="${win ? 'D:\\TeslaCam' : mac ? '/Volumes/TESLADRIVE' : '/footage/weekend-car'}"></label>
-        <p class="muted small" style="margin-top:8px">${win ? 'A folder on a drive of this PC (an internal or USB drive). For a NAS, use SMB share.' : mac ? 'A drive plugged into this Mac (under /Volumes) or a folder in /Users/Shared. For a NAS, use SMB share.' : 'A folder you mounted into the container yourself (bind mount or Docker CIFS volume).'}</p>
+        <p class="muted small" style="margin-top:8px">${win ? 'A folder on a drive of this PC (an internal or USB drive). For a NAS, use SMB share.' : mac ? 'A drive plugged into this Mac (under /Volumes) or a folder in /Users/Shared. For a NAS, use SMB share.' : 'A folder you mounted into the container yourself (bind mount or Docker CIFS volume).'}</p>${mac ? '\n        <div class="small" id="drive-pick" style="margin-top:8px" hidden></div>' : ''}
       </div>
       <div class="full form-actions">${v ? '<button class="btn danger" type="button" id="veh-del">Remove vehicle</button>' : ''}<a class="btn" href="#/settings">Cancel</a><button class="btn solid" type="submit">${v ? 'Save' : 'Add vehicle'}</button></div>
     </form>`;
@@ -2469,6 +2469,18 @@
           veh.querySelectorAll('[data-src]').forEach((x) => { x.hidden = x.dataset.src !== type; });
         };
       });
+      // macOS: the drives plugged in, one click fills the folder
+      const pick = $('drive-pick');
+      if (pick) {
+        api('/api/system/volumes').then((drives) => {
+          if (!pick.isConnected || !Array.isArray(drives) || !drives.length) return;
+          pick.innerHTML = `Drives on this Mac: ${drives.map((d, i) => `<button class="btn" type="button" data-drive="${i}">${esc(d.name)}${d.readOnly ? ' (read only)' : ''}</button>`).join(' ')}`;
+          pick.querySelectorAll('[data-drive]').forEach((b) => {
+            b.onclick = () => { veh.elements.path.value = drives[Number(b.dataset.drive)].path; };
+          });
+          pick.hidden = false;
+        }, () => {});
+      }
       // Test connection: the details as typed, nothing saved
       const testBtn = $('smb-test');
       if (testBtn) {

@@ -70,6 +70,10 @@ test('app.js on a Mac: Terminal and the sentry-six-manager command, no Docker wo
   const form = app.vehicleForm(VEHICLES[1], 'macos');
   assert.ok(form.includes('>Folder on this Mac</button>'));
   assert.ok(form.includes('placeholder="/Volumes/TESLADRIVE"'));
+  // the "Drives on this Mac" picker is a Mac's only (filled from /api/system/volumes)
+  assert.ok(form.includes('id="drive-pick"'));
+  assert.ok(!app.vehicleForm(VEHICLES[1], 'docker').includes('drive-pick'));
+  assert.ok(!app.vehicleForm(VEHICLES[1], 'windows').includes('drive-pick'));
   assert.ok(form.includes('A drive plugged into this Mac (under /Volumes) or a folder in /Users/Shared. For a NAS, use SMB share.'));
   assert.ok(app.vehicleForm(VEHICLES[2], 'macos').includes('Files on the share are never run as programs.'));
   assert.ok(app.logsPart().includes('Warnings and errors from the server, the converter and the service.'));
