@@ -15,6 +15,7 @@ const crypto = require('crypto');
 const { spawnSync } = require('child_process');
 const fake = require('./fixtures/fakeAppBuildCommand');
 const { buildInfo } = require('../macos/buildInfo');
+const { notOnWindows } = require('./fixtures/platformSkip');
 
 const REPO = path.join(__dirname, '..');
 const APP = path.join(REPO, 'macos', 'app');
@@ -23,6 +24,10 @@ const BUNDLE = path.join(APP, 'bundle');
 const SCRIPT_NAMES = ['build-app.sh', 'sign.sh', 'notarize.sh', 'dmg.sh', 'check-no-webkit.sh'];
 const LABEL = 'io.github.skittles-fivem.sentry-six-manager';
 const SECRETS = { APPLE_ID: 'dev@example.com', APPLE_TEAM_ID: 'TEAM123456', APPLE_APP_PASSWORD: 'abcd-efgh-ijkl-mnop', DEVELOPER_ID_P12: Buffer.from('p12 bytes').toString('base64'), DEVELOPER_ID_P12_PASSWORD: 'p12-secret-pass' };
+
+// build-app.sh and check-no-webkit.sh run under /bin/bash, with #! Node
+// stand-ins for the macOS commands; Windows has neither.
+const runsBash = notOnWindows('the app scripts run under /bin/bash, with #! Node stand-ins for the macOS commands');
 
 const made = [];
 function tmp() {
@@ -80,12 +85,17 @@ const plist = (f) => parsePlist(fs.readFileSync(f, 'utf8'));
 
 // ---- the scripts
 
-test('every app script parses with bash and stays within bash 3.2', () => {
+test('every app script parses with bash', { skip: runsBash }, () => {
+  for (const f of SCRIPT_NAMES) {
+    const r = spawnSync('/bin/bash', ['-n', path.join(SCRIPTS, f)], { encoding: 'utf8' });
+    assert.equal(r.status, 0, `${f}: ${r.stderr}`);
+  }
+});
+
+test('every app script stays within bash 3.2', () => {
   const bash4 = [/declare -A|local -A/, /\bmapfile\b|\breadarray\b/, /\$\{[A-Za-z_]+(,,|\^\^)/, /\|&/, /&>>/, /\bcoproc\b/, /shopt -s globstar/, /\$\{[A-Za-z_]+@[QEPAa]\}/];
   for (const f of SCRIPT_NAMES) {
     const file = path.join(SCRIPTS, f);
-    const r = spawnSync('/bin/bash', ['-n', file], { encoding: 'utf8' });
-    assert.equal(r.status, 0, `${f}: ${r.stderr}`);
     const text = fs.readFileSync(file, 'utf8');
     for (const rx of bash4) assert.doesNotMatch(text, rx, `${f}: ${rx}`);
     assert.match(text, /^set -euo pipefail$/m, f);
@@ -139,7 +149,7 @@ function calls(sb) {
 
 const appPath = (sb) => path.join(sb.base, 'work', 'Sentry Six Manager.app');
 
-test('build-app.sh without secrets: ad hoc, signed inside out, the manifest after signing, an -unsigned dmg', () => {
+test('build-app.sh without secrets: ad hoc, signed inside out, the manifest after signing, an -unsigned dmg', { skip: runsBash }, () => {
   const sb = sandbox();
   const r = build(sb);
   assert.equal(r.status, 0, r.out);
@@ -204,7 +214,7 @@ test('build-app.sh without secrets: ad hoc, signed inside out, the manifest afte
   assert.ok(!all.some((c) => c.cmd === 'xcrun' || c.cmd === 'security'));
 });
 
-test('build-app.sh with the five secrets: Developer ID with the runtime and a timestamp, two notarizations, never a secret printed', () => {
+test('build-app.sh with the five secrets: Developer ID with the runtime and a timestamp, two notarizations, never a secret printed', { skip: runsBash }, () => {
   const sb = sandbox();
   const r = build(sb, [], SECRETS);
   assert.equal(r.status, 0, r.out);
@@ -238,7 +248,7 @@ test('build-app.sh with the five secrets: Developer ID with the runtime and a ti
   assert.deepEqual(fs.readdirSync(sb.out).sort(), ['SHA256SUMS.dmg', 'SentrySixManager-2026.2.0-ccccccc-macos-arm64.dmg']);
 });
 
-test('build-app.sh: one secret missing means ad hoc; a refused notarization fails the build with Apple\'s log', () => {
+test('build-app.sh: one secret missing means ad hoc; a refused notarization fails the build with Apple\'s log', { skip: runsBash }, () => {
   const sb = sandbox();
   const r = build(sb, [], { ...SECRETS, APPLE_APP_PASSWORD: '' });
   assert.equal(r.status, 0, r.out);
@@ -252,7 +262,7 @@ test('build-app.sh: one secret missing means ad hoc; a refused notarization fail
   assert.equal(calls(sb2).filter((c) => c.cmd === 'security').pop().args[0], 'delete-keychain', 'the keychain goes on a failure too');
 });
 
-test('build-app.sh refuses an engine built for another channel, and a web file outside the engine', () => {
+test('build-app.sh refuses an engine built for another channel, and a web file outside the engine', { skip: runsBash }, () => {
   const sb = sandbox({ channel: 'macos' });
   const r = build(sb);
   assert.notEqual(r.status, 0);
@@ -340,7 +350,7 @@ test('the app\'s fixed paths are install.sh\'s', () => {
 
 // ---- no WebKit
 
-test('no WebKit: the sources pass, and each forbidden use is caught', () => {
+test('no WebKit: the sources pass, and each forbidden use is caught', { skip: runsBash }, () => {
   const ok = spawnSync('/bin/bash', [path.join(SCRIPTS, 'check-no-webkit.sh')], { encoding: 'utf8' });
   assert.equal(ok.status, 0, ok.stderr);
   for (const bad of ['import WebKit', 'import JavaScriptCore', 'let v = WKWebView()', 'let v = WebView(frame: .zero)', 'let c = JSContext()',

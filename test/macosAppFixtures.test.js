@@ -12,6 +12,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const { notOnWindows } = require('./fixtures/platformSkip');
 
 const REPO = path.join(__dirname, '..');
 const DIR = path.join(REPO, 'macos', 'app', 'Tests', 'SentryKitTests', 'Fixtures', 'api');
@@ -81,7 +82,7 @@ function relax(s, at = '$') {
 
 const events = (text) => [...new Set(text.split('\n').filter((l) => l.startsWith('event: ')).map((l) => l.slice(7)))].sort();
 
-test('the committed app fixtures match what the server answers now', { skip: !hasX265 && 'needs ffmpeg with libx265', timeout: 240000 }, async () => {
+test('the committed app fixtures match what the server answers now', { skip: notOnWindows('the server started as a Mac (process.platform darwin) takes its folders as macOS paths (path.posix), so a Windows folder is no path to it; a real Mac runs this') || (!hasX265 && 'needs ffmpeg with libx265'), timeout: 240000 }, async () => {
   const { dump } = require(path.join(REPO, 'macos', 'app', 'Tests', 'fixtures-gen', 'dump-api.js'));
   const out = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-app-fx-'));
   try {

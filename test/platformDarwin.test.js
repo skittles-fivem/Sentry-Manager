@@ -12,6 +12,7 @@ const fsp = require('fs/promises');
 const os = require('os');
 const path = require('path');
 const { realTmp } = require('./fixtures/tmp');
+const { notOnWindows } = require('./fixtures/platformSkip');
 const { EventEmitter } = require('events');
 const platform = require('../server/platform');
 const safePath = require('../server/safePath');
@@ -146,17 +147,19 @@ test('darwin: systemDirs leaves /Library and /Users whole out, and names manager
 
 test('darwin: isInside takes (root, p), the reverse of safePath.isInside(abs, root)', () => {
   const p = mac();
-  const pairs = [['/Volumes/A', '/Volumes/A/x'], ['/Volumes/A/x', '/Volumes/A'], ['/Volumes/A', '/Volumes/AB'], ['/a', '/a'], ['/', '/a']];
-  for (const [root, abs] of pairs) {
-    // safePath.isInside asks this host's platform (linux here): byte rules,
-    // the same answers as darwin for these ASCII paths
-    assert.equal(p.isInside(root, abs), safePath.isInside(abs, root), `${root} ⊇ ${abs}`);
+  const pairs = [[['/Volumes/A', '/Volumes/A/x'], true], [['/Volumes/A/x', '/Volumes/A'], false], [['/Volumes/A', '/Volumes/AB'], false], [['/a', '/a'], true], [['/', '/a'], true]];
+  for (const [[root, abs], inside] of pairs) {
+    assert.equal(p.isInside(root, abs), inside, `${root} ⊇ ${abs}`);
+    // safePath.isInside asks this host's platform: on Linux and a Mac the
+    // same answers for these ASCII paths. Windows refuses a path with no
+    // drive, so there it has nothing to compare.
+    if (process.platform !== 'win32') assert.equal(p.isInside(root, abs), safePath.isInside(abs, root), `${root} ⊇ ${abs}`);
   }
   assert.equal(p.isInside('/Volumes/A', '/Volumes/A/x'), true);
   assert.equal(p.isInside('/Volumes/A/x', '/Volumes/A'), false, 'swapped arguments must not allow');
 });
 
-test('darwin: the guard exempts a root inside a denied folder, and nothing else there', async (t) => {
+test('darwin: the guard exempts a root inside a denied folder, and nothing else there', { skip: notOnWindows('the guard resolves real folders with the darwin rules (path.posix); a Windows temp folder is no path to them') }, async (t) => {
   const base = await tmp();
   t.after(() => fsp.rm(base, { recursive: true, force: true }));
   // a stand-in for /Users with /Users/Shared/cam as the root
@@ -402,13 +405,19 @@ test('darwin: openNoFollowFlags is O_RDONLY|O_NOFOLLOW_ANY, never with O_NOFOLLO
   assert.equal(flags & constants.O_NOFOLLOW, 0);
 });
 
-test('darwin: isSmbFsType, smbText and the mounter', async (t) => {
+test('darwin: isSmbFsType and smbText', () => {
   const p = mac();
   assert.equal(p.isSmbFsType('smbfs'), true);
   assert.equal(p.isSmbFsType('cifs'), false);
   assert.equal(p.isSmbFsType('apfs'), false);
   assert.match(p.smbText.explain('mount_smbfs: server rejected the connection: Authentication error', 77), /rejected the user name or password/);
   assert.equal(p.smbText.explain('', null), null);
+});
+
+// smbDarwin.js (only ever loaded on a Mac) joins its folders with the host's
+// path module: posix on a Mac and Linux, backslashes on Windows.
+test('darwin: the mounter', { skip: notOnWindows('smbDarwin.js joins folders with the host\'s path module, which on Windows is win32 (backslashes)') }, async (t) => {
+  const p = mac();
   const base = await tmp();
   t.after(() => fsp.rm(base, { recursive: true, force: true }));
   const m = p.mounter({ footageRoot: path.join(base, 'footage'), credDir: path.join(base, 'run') });
@@ -418,11 +427,18 @@ test('darwin: isSmbFsType, smbText and the mounter', async (t) => {
   assert.equal(p.mounter().target('car'), `${STATE_ROOT}/footage/car`);
 });
 
-test('darwin: probe reads /sbin/mount, caches it 2 s, and matches the exact mount point', async (t) => {
-  const base = await tmp();
-  t.after(() => fsp.rm(base, { recursive: true, force: true }));
-  const real = await fsp.realpath(base);
-  const mp = path.join(real, 'car');
+test('darwin: probe reads /sbin/mount, caches it 2 s, and matches the exact mount point', async () => {
+  // a Mac's temp folder: /var is a link to /private/var, and /sbin/mount
+  // names the real path. The darwin platform reads paths as a Mac does
+  // (path.posix), so they are given as a Mac's on every host.
+  const base = '/var/folders/xy/T/sm-darwin-probe';
+  const real = `/private${base}`;
+  const realpath = async (p) => {
+    if (p === base) return real;
+    throw Object.assign(new Error(`ENOENT: ${p}`), { code: 'ENOENT' });
+  };
+  const fakeFsp = { ...fsp, realpath };
+  const mp = path.posix.join(real, 'car');
   const text = [
     `/dev/disk3s1s1 on / (apfs, sealed, local, read-only, journaled)`,
     `//bob@nas/TeslaCam on ${mp}2 (smbfs, nodev, nosuid, noexec, nobrowse, mounted by _sentrysix)`,
@@ -431,16 +447,16 @@ test('darwin: probe reads /sbin/mount, caches it 2 s, and matches the exact moun
   const runs = [];
   let clock = 1000;
   const runCmd = async (cmd, args) => { runs.push([cmd, args]); return { code: 0, stdout: text }; };
-  const p = mac({ runCmd, now: () => clock });
-  assert.deepEqual(await p.probe(path.join(base, 'car')), {
-    mountPoint: path.join(base, 'car'), fsType: 'smbfs', source: '//bob@nas/TeslaCam',
+  const p = mac({ runCmd, now: () => clock, fsp: fakeFsp });
+  assert.deepEqual(await p.probe(path.posix.join(base, 'car')), {
+    mountPoint: path.posix.join(base, 'car'), fsType: 'smbfs', source: '//bob@nas/TeslaCam',
     options: 'nodev,nosuid,noexec,nobrowse', mountedBy: '_sentrysix'
   });
-  assert.equal(await p.probe(path.join(base, 'other')), null);
+  assert.equal(await p.probe(path.posix.join(base, 'other')), null);
   assert.equal(runs.length, 1, 'cached');
   assert.deepEqual(runs[0], ['/sbin/mount', []]);
   clock += 2000;
-  await p.probe(path.join(base, 'car'));
+  await p.probe(path.posix.join(base, 'car'));
   assert.equal(runs.length, 2);
   const failing = mac({ runCmd: async () => ({ code: 1, stdout: '' }) });
   assert.equal(await failing.probe('/x'), null);

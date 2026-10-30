@@ -15,6 +15,7 @@ const net = require('net');
 const os = require('os');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
+const { notOnWindows } = require('./fixtures/platformSkip');
 
 const REPO_DIR = path.join(__dirname, '..');
 const SERVER = path.join(REPO_DIR, 'server', 'index.js');
@@ -62,7 +63,7 @@ async function until(what, fn, { tries = 200, ms = 100 } = {}) {
   assert.fail(`${what}: ${JSON.stringify(last?.value)}`);
 }
 
-test('the server as on a Mac: health, macos deployment, the Apple GPU, an SMB vehicle, VideoToolbox', { skip: !hasFfmpeg && 'needs ffmpeg', timeout: 120000 }, async () => {
+test('the server as on a Mac: health, macos deployment, the Apple GPU, an SMB vehicle, VideoToolbox', { skip: notOnWindows('the server started as a Mac (process.platform darwin) takes its folders as macOS paths (path.posix), so a Windows folder is no path to it; a real Mac runs this') || (!hasFfmpeg && 'needs ffmpeg'), timeout: 120000 }, async () => {
   const dir = fs.realpathSync(await fsp.mkdtemp(path.join(os.tmpdir(), 'sm-mac-smoke-')));
   const state = path.join(dir, 'state');
   const nas = path.join(dir, 'nas');

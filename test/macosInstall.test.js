@@ -635,7 +635,7 @@ function stagedDir(sb, opts) {
 }
 const fromDir = (sb, dir, extra = [], env = {}) => run(sb, path.join(MACOS, 'install.sh'), ['--from-dir', dir, '--service-mode', 'daemon', ...extra], env);
 
-test('--from-dir: a staged folder installs as a tarball does, with the public and local folders and a SETUP-CODE line', { skip: !hasTar && 'needs tar' }, () => {
+test('--from-dir: a staged folder installs as a tarball does, with the public and local folders and a SETUP-CODE line', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const users = dscl(sb);
   users.Users.anna = { UniqueID: '501' };
@@ -674,7 +674,7 @@ test('--from-dir: a staged folder installs as a tarball does, with the public an
   assert.equal(fs.readFileSync(path.join(sb.state, 'local-signin-users'), 'utf8'), 'anna\n');
 });
 
-test('the Terminal install: no SETUP-CODE line; the sudo user is allowed when a real user, nobody otherwise', { skip: !hasTar && 'needs tar' }, () => {
+test('the Terminal install: no SETUP-CODE line; the sudo user is allowed when a real user, nobody otherwise', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const users = dscl(sb);
   users.Users.bob = { UniqueID: '502' };
@@ -690,7 +690,7 @@ test('the Terminal install: no SETUP-CODE line; the sudo user is allowed when a 
   assert.equal(calls(sb2).filter((c) => c.cmd === 'chmod' && c.args[0] === '+a').length, 0);
 });
 
-test('--from-dir refuses a folder with links or missing files, and options that do not go together', { skip: !hasTar && 'needs tar' }, () => {
+test('--from-dir refuses a folder with links or missing files, and options that do not go together', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const dir = stagedDir(sb, { version: '3.0.0' });
   fs.symlinkSync('/etc/passwd', path.join(dir, 'app', 'link'));
@@ -712,7 +712,7 @@ test('--from-dir refuses a folder with links or missing files, and options that 
   assert.match(fromDir(sb, stagedDir(sb, { version: '3.0.2' }), ['--local-user', "a'b"]).stderr, /is not a user on this Mac/);
 });
 
-test('--import-data: copied into an empty data folder and handed to the service; an existing one is kept', { skip: !hasTar && 'needs tar' }, () => {
+test('--import-data: copied into an empty data folder and handed to the service; an existing one is kept', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const mine = path.join(sb.base, 'home-data');
   fs.mkdirSync(path.join(mine, 'tls'), { recursive: true });
@@ -740,7 +740,7 @@ test('--import-data: copied into an empty data folder and handed to the service;
   assert.equal(fs.readFileSync(path.join(sb.state, 'data', 'manager.db'), 'utf8'), 'mine');
 });
 
-test('TRUSTED_HOSTS without 127.0.0.1 gets it added once; a list with it, or none, is left alone', { skip: !hasTar && 'needs tar' }, () => {
+test('TRUSTED_HOSTS without 127.0.0.1 gets it added once; a list with it, or none, is left alone', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   fs.mkdirSync(sb.state, { recursive: true });
   fs.writeFileSync(path.join(sb.state, 'manager.env'), 'TRUSTED_HOSTS=nas.local, mac.lan\n');
@@ -754,7 +754,7 @@ test('TRUSTED_HOSTS without 127.0.0.1 gets it added once; a list with it, or non
   assert.doesNotMatch(fs.readFileSync(path.join(sb2.state, 'manager.env'), 'utf8'), /^TRUSTED_HOSTS=/m);
 });
 
-test('the CLI: local-signin list, allow and remove; uninstall removes the app\'s folders', { skip: !hasTar && 'needs tar' }, () => {
+test('the CLI: local-signin list, allow and remove; uninstall removes the app\'s folders', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const users = dscl(sb);
   users.Users.anna = { UniqueID: '501' };

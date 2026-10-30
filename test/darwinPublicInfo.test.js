@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const https = require('https');
 const { spawn } = require('child_process');
 const { realTmp } = require('./fixtures/tmp');
+const { notOnWindows } = require('./fixtures/platformSkip');
 const { createPublicInfo, engineInfo } = require('../server/platform/darwinPublicInfo');
 const { TlsManager, localTlsSource } = require('../server/tls');
 
@@ -23,6 +24,9 @@ const PRETEND = path.join(__dirname, 'fixtures', 'pretendDarwin.js');
 const HELPER = path.join(REPO_DIR, 'build', 'noreplace-rename');
 const BUILD = { version: '2026.1.0', sha: 'a'.repeat(40) };
 const mode = (p) => fs.statSync(p).mode & 0o777;
+// engine.json is only ever written on a Mac, through path.posix with POSIX
+// modes and links; on Windows the real files these tests write cannot be.
+const macFiles = notOnWindows('darwinPublicInfo.js writes engine.json as on a Mac: path.posix, mode 0644, a symlink replaced; a Windows folder is no path to it');
 const read = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
 
 async function localCa(dir) {
@@ -48,7 +52,7 @@ test('nothing is written off a Mac or without PUBLIC_INFO_PATH', async () => {
   }
 });
 
-test('local CA: port, pid, version, both certificates and fingerprints; 0644; no key', async () => {
+test('local CA: port, pid, version, both certificates and fingerprints; 0644; no key', { skip: macFiles }, async () => {
   const dir = await realTmp('sm-pubinfo-');
   const old = process.umask(0o027);
   try {
@@ -82,7 +86,7 @@ test('local CA: port, pid, version, both certificates and fingerprints; 0644; no
   }
 });
 
-test('a host-name save rewrites it; the CA changes when caReplaced; a renewal keeps the last leaf', { timeout: 60000 }, async () => {
+test('a host-name save rewrites it; the CA changes when caReplaced; a renewal keeps the last leaf', { timeout: 60000, skip: macFiles }, async () => {
   const dir = await realTmp('sm-pubinfo-');
   try {
     const { manager, source, material } = await localCa(dir);
@@ -113,7 +117,7 @@ test('a host-name save rewrites it; the CA changes when caReplaced; a renewal ke
   }
 });
 
-test('own certificate: no CA fields; a key in the certificate file never reaches the file', async () => {
+test('own certificate: no CA fields; a key in the certificate file never reaches the file', { skip: macFiles }, async () => {
   const dir = await realTmp('sm-pubinfo-');
   try {
     const { manager } = await localCa(dir);
@@ -139,7 +143,7 @@ test('own certificate: no CA fields; a key in the certificate file never reaches
   }
 });
 
-test('TLS_MODE=off: tls is null; a link at the path is replaced, never written through', async () => {
+test('TLS_MODE=off: tls is null; a link at the path is replaced, never written through', { skip: macFiles }, async () => {
   const dir = await realTmp('sm-pubinfo-');
   try {
     const file = path.join(dir, 'engine.json');
@@ -161,7 +165,7 @@ test('TLS_MODE=off: tls is null; a link at the path is replaced, never written t
   }
 });
 
-test('a write that fails is logged, not thrown', async () => {
+test('a write that fails is logged, not thrown', { skip: macFiles }, async () => {
   const dir = await realTmp('sm-pubinfo-');
   try {
     // a file where the folder should be
@@ -230,7 +234,7 @@ async function startServer(dir, { darwin, env = {} }) {
   return { child, port, up, exited, out: () => out };
 }
 
-test('the server as on a Mac writes engine.json once it listens, again on a host-name save, and removes it on a stop', { timeout: 90000 }, async () => {
+test('the server as on a Mac writes engine.json once it listens, again on a host-name save, and removes it on a stop', { timeout: 90000, skip: macFiles }, async () => {
   const dir = await realTmp('sm-pubinfo-srv-');
   const file = path.join(dir, 'public', 'engine.json');
   const s = await startServer(dir, { darwin: true, env: { PUBLIC_INFO_PATH: file, SENTRY_CONSOLE: 'off' } });

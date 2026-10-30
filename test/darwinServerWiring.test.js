@@ -14,6 +14,7 @@ const net = require('net');
 const path = require('path');
 const { spawn } = require('child_process');
 const { realTmp } = require('./fixtures/tmp');
+const { notOnWindows } = require('./fixtures/platformSkip');
 const { canonicalRoot, emptyDir, fullDiskAccess, darwinAccount } = require('../server/platform/darwinRuntime');
 const { Logger, consoleOff } = require('../server/log');
 const { TlsManager } = require('../server/tls');
@@ -265,7 +266,7 @@ test('server on an Intel Mac or under Rosetta: one line on stderr, exit 78, noth
   await fsp.rm(dir, { recursive: true, force: true });
 });
 
-test('server as on a Mac: unsupervised, macOS security keys, quiet console, SIGHUP stops it cleanly', { timeout: 60000 }, async () => {
+test('server as on a Mac: unsupervised, macOS security keys, quiet console, SIGHUP stops it cleanly', { timeout: 60000, skip: notOnWindows('the server started as a Mac (process.platform darwin) takes its folders as macOS paths (path.posix), so a Windows folder is no path to it, and Windows has no SIGHUP to stop it with; a real Mac runs this') }, async () => {
   const dir = await realTmp('sm-darwin-srv-');
   await fsp.mkdir(path.join(dir, 'run', 'tmp', 'old'), { recursive: true });
   await fsp.writeFile(path.join(dir, 'run', 'tmp', 'old', 'f'), 'x');
@@ -312,7 +313,7 @@ test('server as on a Mac: unsupervised, macOS security keys, quiet console, SIGH
 });
 
 // (on a Mac the server is a Mac's: the test above covers it there)
-test('server on Linux: today\'s security keys, and SIGHUP is not a stop', { timeout: 60000, skip: process.platform === 'darwin' && 'on a Mac the server takes its macOS keys' }, async () => {
+test('server on Linux: today\'s security keys, and SIGHUP is not a stop', { timeout: 60000, skip: (process.platform === 'darwin' && 'on a Mac the server takes its macOS keys') || notOnWindows('on Windows the server is a Windows server, with its own security keys, and SIGHUP there ends any process') }, async () => {
   const dir = await realTmp('sm-linux-srv-');
   const s = await start(dir, { darwin: false });
   try {
