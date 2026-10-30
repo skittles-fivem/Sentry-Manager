@@ -526,3 +526,87 @@ test('the darwin outputs have the Linux providers\' shapes (plus cpu.coreKinds)'
   for (const k of uses.procs) assert.ok(k in lin.procs, `linux procs.${k}`);
   assert.deepEqual(m.p.sensors.socketTemps([0, 1]), [null, null]);
 });
+
+test('data used while nothing samples: the daily read alone counts, a day late', async () => {
+  // stats/index.js tick(): only network.probe() and read(), once a day
+  const state = { phase: 0, thermal: 0 };
+  const clock = fakeClock();
+  const run = D.fakeRun(state);
+  const p = createDarwinProviders({ now: clock.now, run, osApi: D.osApi(state), appPid: 500, version: 'test' });
+  const traffic = new Traffic();
+  const tick = async () => {
+    p.network.probe();
+    p.network.read();
+    if (p.network.counters) traffic.add(p.network.readAt, p.network.counters, p.network.where(), (n) => p.network.ifindex(n));
+    await p.runs.idle();
+  };
+  await tick();
+  assert.equal(p.network.counters, null, 'the first read has no answer yet');
+  assert.ok(run.calls.some((c) => /sysctl/.test(c.args[1] || '')), 'the probe asks for the boot session');
+  clock.advance(86400000);
+  state.phase = 1;
+  await tick();
+  assert.deepEqual([...p.network.counters], [['en0', { rx: 900000000, tx: 300000000 }]], 'yesterday\'s answer, at its own time');
+  assert.equal(p.network.readAt, clock.t - 86400000);
+  assert.equal(p.network.where().boot, D.BOOT_UUID);
+  clock.advance(86400000);
+  await tick();
+  assert.equal(p.network.readAt, clock.t - 86400000);
+  assert.equal(traffic.summary(clock.t).month.rxB, 10000000, 'the bytes between the two readings');
+});
+
+test('a boot session not known yet: no counters, so the saved ones are kept', async () => {
+  const state = { phase: 0, thermal: 0 };
+  const inner = D.fakeRun(state);
+  let sysctl = false;
+  const run = (cmd, args, opts, cb) => (!sysctl && /sysctl "\$k"/.test(args[1] || '') ? setImmediate(() => cb(Object.assign(new Error('x'), { code: 1 }), '', '')) : inner(cmd, args, opts, cb));
+  const m = mac({ run, state });
+  await m.step();
+  await m.step();
+  assert.equal(m.p.network.where().boot, null);
+  assert.equal(m.p.network.counters, null);
+  assert.equal(m.p.network.readAt, null);
+  assert.equal(m.p.network.ifindex('en0'), 6, 'the indexes are still known');
+  // sysctl answers at the next probe, and a later failed run keeps it
+  sysctl = true;
+  m.p.cpu.probe();
+  await m.p.runs.idle();
+  await m.step();
+  assert.equal(m.p.network.where().boot, D.BOOT_UUID);
+  assert.ok(m.p.network.counters);
+  sysctl = false;
+  m.clock.advance(10 * 60 * 1000);
+  m.p.cpu.probe();
+  await m.step();
+  assert.equal(m.p.runs.peek('sysctl').text, null);
+  assert.equal(m.p.network.where().boot, D.BOOT_UUID, 'a failed sysctl run keeps the last answer');
+  assert.equal(m.p.cpu.info.cores, 12);
+});
+
+test('kern.boottime arriving late does not count a running ffmpeg as ended', async () => {
+  const state = { phase: 0, thermal: 0 };
+  const clock = fakeClock();
+  const inner = D.fakeRun(state);
+  let sysctl = false;
+  const run = (cmd, args, opts, cb) => (!sysctl && /sysctl "\$k"/.test(args[1] || '') ? setImmediate(() => cb(Object.assign(new Error('x'), { code: 1 }), '', '')) : inner(cmd, args, opts, cb));
+  const p = createDarwinProviders({ now: clock.now, run, osApi: D.osApi(state), appPid: 500, version: 'test' });
+  p.cpu.probe();
+  const step = async () => {
+    p.procs.sample();
+    await p.runs.idle();
+    await tick();
+    clock.advance(2000);
+    state.phase++;
+  };
+  for (let i = 0; i < 3; i++) await step();
+  assert.equal(p.procs.appStartS(), null, 'no boot time yet');
+  assert.equal(p.procs.byPid.get(611).cpu, 10);
+  // both ffmpegs still run (pid 611 ends after phase 2)
+  sysctl = true;
+  p.cpu.probe();
+  await p.runs.idle();
+  p.procs.sample();
+  assert.ok(p.procs.appStartS() !== null);
+  assert.ok(p.procs.byPid.has(611));
+  assert.deepEqual(p.procs.reaped, { ticks: 0, ffmpegTicks: 0, cpu: 0, ffmpegCpu: 0 });
+});

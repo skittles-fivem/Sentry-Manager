@@ -76,6 +76,7 @@ class Sources {
     this.now = now;
     this.maxAgeMs = maxAgeMs;
     this.memo = new Map(); // key -> [{ at, value }] (the last two answers)
+    this.sysctlGood = {}; // the last sysctl answer that said something
   }
 
   parsed(key, at, text, parse) {
@@ -89,24 +90,24 @@ class Sources {
   }
 
   /** The last two answers of a key: { cur, at, prev, prevAt }; cur is null when too old. */
-  pair(key, argv, everyMs, parse) {
+  pair(key, argv, everyMs, parse, maxAgeMs = this.maxAgeMs) {
     const e = this.runs.get(key, argv, everyMs);
-    const fresh = e.at !== null && this.now() - e.at <= this.maxAgeMs;
+    const fresh = e.at !== null && this.now() - e.at <= maxAgeMs;
     return {
       cur: fresh ? this.parsed(key, e.at, e.text, parse) : null, at: fresh ? e.at : null,
       prev: fresh ? this.parsed(key, e.prevAt, e.prevText, parse) : null, prevAt: fresh ? e.prevAt : null
     };
   }
 
-  /** vm_stat, swap, netstat and ps of one run. */
-  fast() {
+  /** vm_stat, swap, netstat and ps of one run (no older than maxAgeMs). */
+  fast(maxAgeMs = this.maxAgeMs) {
     return this.pair('fast', FAST, 0, (text) => {
       const [vm, swap, net, ps] = P.sections(text, MARK, 4);
       return {
         vm: P.parseVmStat(vm), swap: P.parseSwapUsage(P.parseSysctl(swap)['vm.swapusage']),
         net: P.parseNetstat(net), ps: P.parsePs(ps)
       };
-    });
+    }, maxAgeMs);
   }
 
   /** The block storage statistics and the GPU of one run. */
@@ -117,10 +118,16 @@ class Sources {
     });
   }
 
-  /** The sysctl values (asked at each probe), { name: 'value' }. */
+  /**
+   * The sysctl values (asked at each probe), { name: 'value' }. A later
+   * run that fails keeps the last good answer: the boot session must not
+   * flicker to unknown, or the data used would start a new count.
+   */
   sysctl() {
     const e = this.runs.peek('sysctl');
-    return e?.text ? this.parsed('sysctl', e.at, e.text, P.parseSysctl) : {};
+    const v = e?.text ? this.parsed('sysctl', e.at, e.text, P.parseSysctl) : {};
+    if (Object.keys(v).length) this.sysctlGood = v;
+    return this.sysctlGood;
   }
 
   /** The last answer of a slow command, asked again after everyMs; null when older than maxAgeMs. */
@@ -250,6 +257,7 @@ class DarwinProcs {
     this.scope = 'host'; // ps sees every process on a Mac
     this.list = [];
     this.byPid = new Map();
+    this.keys = new Map(); // pid -> `${pid}:${lstart}` of the list
     this.app = new Set();
     this.uptime = null;
     this.reaped = { ticks: 0, ffmpegTicks: 0, cpu: null, ffmpegCpu: null };
@@ -270,6 +278,7 @@ class DarwinProcs {
     if (!f.cur) {
       this.list = [];
       this.byPid = new Map();
+      this.keys = new Map();
       this.app = new Set();
       this.reaped = { ticks: 0, ffmpegTicks: 0, cpu: null, ffmpegCpu: null };
       this.at = null;
@@ -277,6 +286,7 @@ class DarwinProcs {
     }
     if (f.at === this.at) return this;
     const before = new Map((f.prev?.ps || []).map((p) => [`${p.pid}:${p.lstart}`, p.cpuMs]));
+    const alive = new Set(f.cur.ps.map((p) => `${p.pid}:${p.lstart}`));
     const wallMs = f.prevAt !== null && f.prev ? f.at - f.prevAt : null;
     let ncpu = 1;
     try {
@@ -297,9 +307,10 @@ class DarwinProcs {
         rssPages: Math.ceil((r.rssKiB * 1024) / 16384), cpu: delta === null ? null : share(delta), memB: r.rssKiB * 1024
       };
     });
-    const lastApp = [...this.app].map((pid) => this.byPid.get(pid)).filter(Boolean);
+    const lastApp = [...this.app].map((pid) => [this.byPid.get(pid), this.keys.get(pid)]).filter(([p]) => p);
     this.list = list;
     this.byPid = new Map(list.map((p) => [p.pid, p]));
+    this.keys = new Map(f.cur.ps.map((r) => [r.pid, `${r.pid}:${r.lstart}`]));
     const children = new Map();
     for (const p of list) {
       if (!children.has(p.ppid)) children.set(p.ppid, []);
@@ -321,8 +332,8 @@ class DarwinProcs {
     // graphs do not dip at the end of each clip.
     let cpu = 0;
     let ffmpegCpu = 0;
-    for (const p of lastApp) {
-      if (p.pid === this.appPid || this.byPid.get(p.pid)?.start === p.start || !Number.isFinite(p.cpu)) continue;
+    for (const [p, key] of lastApp) {
+      if (p.pid === this.appPid || alive.has(key) || !Number.isFinite(p.cpu)) continue;
       cpu += p.cpu;
       if (/^ffmpeg/.test(p.comm)) ffmpegCpu += p.cpu;
     }
@@ -427,7 +438,9 @@ class DarwinNetwork {
   }
 
   probe() {
-    // the boot session comes with the probe's sysctl
+    // the boot session comes with sysctl. The data used's daily read calls
+    // only this probe, so it asks sysctl too (unless it answered lately).
+    this.src.runs.get('sysctl', SYSCTL, 60000);
   }
 
   /** The counters belong to this boot of this Mac: an app restart counts on, a reboot starts again. */
@@ -457,8 +470,11 @@ class DarwinNetwork {
     return carriers.length ? carriers : names;
   }
 
+  // No counters until the boot session is known: a reading without it
+  // would throw away the readings saved before an app restart.
   remember(cur, at) {
     this.indexes = new Map([...cur].map(([n, c]) => [n, c.ifindex]));
+    if (!this.where().boot) return;
     this.counters = new Map(this.counted(cur).map((n) => [n, { rx: cur.get(n).rx, tx: cur.get(n).tx }]));
     this.readAt = at;
   }
@@ -487,12 +503,14 @@ class DarwinNetwork {
   }
 
   /**
-   * Only the counters, for the data used: the last netstat answer if it is
-   * fresh (a new one is asked in the background, for the next call).
+   * Only the counters, for the data used: the last netstat answer of any
+   * age, with the time it was taken (a new one is asked in the background,
+   * for the next call). The daily read comes a day apart, so a fresh
+   * answer would never be there.
    */
   read() {
     this.counters = null;
-    const f = this.src.fast();
+    const f = this.src.fast(Infinity);
     if (f.cur?.net?.size) this.remember(f.cur.net, f.at);
   }
 }
