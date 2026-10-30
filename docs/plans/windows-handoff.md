@@ -129,3 +129,19 @@ Please run your image test suite (water-tests) on 1f8e97c for the Docker side.
   the same on both. Pin the same 8.x version the Docker image installs where you
   can (`ffmpeg -version` in the image shows it).
 - Node 24.11.1: fine (Docker is node:24).
+
+## Windows CI after the repair loop (c7e79c3, run 41051932413)
+
+- **test: green on windows-latest.** 974 tests, 926 pass, 0 fail, 48 skipped.
+- **package: green.** (Jellyfin ffmpeg + node verified, both .cs compiled.)
+- **install-check: fails before running.** `windows/install.ps1:471` is a parse
+  error (`InvalidVariableReferenceWithDrive`): in
+  `"... (runs as $ServiceAccount: no password ...)"` PowerShell reads
+  `$ServiceAccount:` as a drive-qualified variable. Write `${ServiceAccount}:`.
+  I grepped install/uninstall/update/build.ps1 for the same pattern: that line
+  is the only one. Suggest a first step in install-check (and in tests) that
+  parses every .ps1 with
+  `[System.Management.Automation.Language.Parser]::ParseFile($f, [ref]$null, [ref]$errs)`
+  and fails on `$errs`, so the next one shows up at once.
+- Still yours: the 6 "TODO after platform integration" skips in
+  test/nodesCrossPlatform.test.js (the platform module is on wip now).
