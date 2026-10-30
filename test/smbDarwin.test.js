@@ -25,6 +25,8 @@ const SECRET = 'pa$$ w0rd;@x';
 const SMB = { type: 'smb', share: '//nas/TeslaCam', username: 'tesla', password: SECRET, domain: '', version: '3.1.1', encrypt: true, port: null };
 const ME = '_sentrysix';
 const OK_OPTS = 'nodev, nosuid, noexec, nobrowse';
+// Windows has no process.getuid, and its stat() reports every file as uid 0
+const MY_UID = process.getuid?.() ?? 0;
 
 /**
  * A fake /usr/bin/script child. `script` says what it does:
@@ -128,7 +130,7 @@ async function setup(t, { root = 'foot age', ...opts } = {}) {
   const fr = fakeRun(opts.run);
   const fsps = fakeSpawn(opts.script ? opts.script(fr) : mountsOk(fr, opts.mountOpts));
   const mounter = createDarwinMounter({
-    footageRoot, runDir, user: ME, uid: opts.uid ?? process.getuid(), spawn: fsps.spawn, runCmd: fr.runCmd,
+    footageRoot, runDir, user: ME, uid: opts.uid ?? MY_UID, spawn: fsps.spawn, runCmd: fr.runCmd,
     now: opts.now, promptWaitMs: opts.promptWaitMs ?? 2000, timeoutMs: opts.timeoutMs ?? 4000
   });
   return { base, footageRoot, runDir, fr, fsps, mounter };
@@ -310,7 +312,7 @@ test('mount: a symlinked mount point, or one owned by someone else, is refused',
     assert.equal(fsps.calls.length, 0);
   }
   {
-    const { mounter, fsps } = await setup(t, { uid: process.getuid() + 1 });
+    const { mounter, fsps } = await setup(t, { uid: MY_UID + 1 });
     await assert.rejects(mounter.mount('car', SMB), /not owned by the app's own user/);
     assert.equal(fsps.calls.length, 0);
   }
