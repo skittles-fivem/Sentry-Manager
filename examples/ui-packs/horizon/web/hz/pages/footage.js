@@ -94,11 +94,13 @@ export default {
         ${list.map((d) => {
           const cats = Object.entries(d.byCategory || {});
           const enc = d.clips ? Math.round((d.encoded / d.clips) * 100) : 0;
+          // the speed graph's index for this day
+          const ix = (d.speedIndex?.indexed ? (d.speedIndex.indexed >= d.speedIndex.clips ? 'Indexed' : `Indexed ${d.speedIndex.indexed}/${d.speedIndex.clips}`) : '');
           return `<button type="button" class="album${f.day === d.day ? ' on' : ''}" data-day="${h(d.day)}" aria-pressed="${f.day === d.day}">
             <span class="album-art" aria-hidden="true">${d.thumbId ? `<img alt="" loading="lazy" src="${thumbUrl(v.id, d.thumbId)}">` : ico('film')}</span>
             <span class="album-t"><b>${h(dayName(d.day))}</b><span class="small dim">${count(d.recordings, 'track')} · ${d.minutes} min · ${size(d.bytes)}</span>
               <span class="catbar" aria-hidden="true">${cats.map(([c, n]) => `<i class="c-${h(c)}" style="flex:${n}"></i>`).join('')}</span>
-              <span class="tiny faint">${cats.map(([c, n]) => `${c} ${n}`).join(' · ')}${d.protected ? ` · ${d.protected} protected` : ''} · ${enc}% converted</span></span></button>`;
+              <span class="tiny faint">${cats.map(([c, n]) => `${c} ${n}`).join(' · ')}${d.protected ? ` · ${d.protected} protected` : ''} · ${enc}% converted</span>${ix ? `<span class="album-tags">${pill(ix, 'cyan')}</span>` : ''}</span></button>`;
         }).join('')}
         ${!list.length && !days.error ? '<p class="small dim">No days match these filters.</p>' : ''}`);
     }

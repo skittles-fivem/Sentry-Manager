@@ -158,6 +158,7 @@ details.more p { margin-top: 10px; color: var(--text-2); max-width: 760px; }
 .selrow { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .recs { display: flex; flex-direction: column; gap: 12px; }
 .chip.blue { color: var(--info); border-color: rgba(90, 209, 242, 0.55); background: rgba(90, 209, 242, 0.12); }
+.chip.violet { color: #c4b5fd; border-color: rgba(167, 139, 250, 0.55); background: rgba(167, 139, 250, 0.12); }
 .chip .cdot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 /* Footage by day */
 .days { display: flex; flex-direction: column; gap: 16px; }

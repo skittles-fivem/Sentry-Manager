@@ -112,11 +112,13 @@ export default {
         ${list.map((d) => {
           const cats = Object.entries(d.byCategory || {});
           const encP = d.clips ? (d.encoded / d.clips) * 100 : 0;
+          const ix = (d.speedIndex?.indexed ? (d.speedIndex.indexed >= d.speedIndex.clips ? 'Indexed' : `Indexed ${d.speedIndex.indexed}/${d.speedIndex.clips}`) : '');
           return `<div class="day${f.date === d.day ? ' on' : ''}" data-day="${esc(d.day)}" role="button" tabindex="0" aria-pressed="${f.date === d.day}">
             <div class="day-top"><b>${esc(dayTitle(d.day))}</b><span class="num small">${bytes(d.bytes)}</span></div>
             <div class="daybar" title="${esc(cats.map(([c, n]) => `${c}: ${n}`).join(', '))}">${cats.map(([c, n]) => `<i class="cat-${esc(c)}" style="flex:${n}"></i>`).join('')}</div>
             <div class="small muted num">${plural(d.recordings, 'rec')} · ${d.minutes} min · ${d.cameras} cams${d.protected ? ` · ${d.protected} ${icon('lock', 'ico xs')}` : ''}</div>
             <div class="enc-line"><span class="enc-track"><span style="width:${encP.toFixed(1)}%"></span></span><span class="small faint num">${d.encoded}/${d.clips} encoded</span></div>
+            ${ix ? `<div><span class="chip violet" title="Speeds read for the Viewer's speed graph">${ix}</span></div>` : ''}
             <div class="day-actions">
               <button class="btn sm" type="button" data-play-day="${esc(d.day)}" aria-label="Play ${esc(d.day)}">${icon('play')}Play</button>
               <button class="btn sm" type="button" data-del-day="${esc(d.day)}">Delete day</button>

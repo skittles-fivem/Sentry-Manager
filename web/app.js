@@ -1272,6 +1272,14 @@
     return `<span class="chip blue" title="${esc(`${d.encoded} of ${d.clips} clips are H.265 or AV1`)}"><span class="cdot"></span>${label}</span>`;
   }
 
+  /** The purple "Indexed" badge: the day's speeds are read for the Viewer's speed graph. */
+  function dayIndexedChip(d) {
+    const x = d.speedIndex;
+    if (!x?.indexed) return '';
+    const label = x.indexed >= x.clips ? 'Indexed' : `Indexed ${x.indexed}/${x.clips}`;
+    return `<span class="chip violet" title="${esc(`Speed read from ${x.indexed} of ${x.clips} front-camera clips for the Viewer's speed graph`)}"><span class="cdot"></span>${label}</span>`;
+  }
+
   function dayCard(v, d) {
     const f = state.footage;
     const open = f.open.has(d.day);
@@ -1287,7 +1295,7 @@
         <div class="day-thumb">${thumb}<span class="count">${plural(d.recordings, 'recording')}</span></div>
         <div class="day-info">
           <span class="date">${esc(dayTitle(d.day))}</span>
-          <span class="row">${cat('Recent', '', 'drive')}${cat('Sentry', 'amber', 'Sentry event')}${cat('Saved', 'green', 'Saved event')}${cat('Other', '', 'other')}${dayEncodedChip(d)}${d.protected ? `<span class="chip green">${d.protected} protected</span>` : ''}</span>
+          <span class="row">${cat('Recent', '', 'drive')}${cat('Sentry', 'amber', 'Sentry event')}${cat('Saved', 'green', 'Saved event')}${cat('Other', '', 'other')}${dayEncodedChip(d)}${dayIndexedChip(d)}${d.protected ? `<span class="chip green">${d.protected} protected</span>` : ''}</span>
           <span class="meta">${minutesText(d.minutes)}${d.cameras ? ` · ${plural(d.cameras, 'camera')}` : ''} · ${bytes(d.bytes)}${d.unknown ? ' · checking which clips are encoded…' : ''}</span>
         </div>
         <div class="day-actions">

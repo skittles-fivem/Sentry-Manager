@@ -133,7 +133,7 @@ function dayCard(v, d) {
     <div class="thumb">${d.thumbId ? `<img class="thumb-img" loading="lazy" alt="" src="${thumbUrl(v.id, d.thumbId)}">` : icon('film')}
       <span class="thumb-badge">${plural(d.recordings, 'recording')}</span><span class="play-over">${icon('playOutline')}</span></div>
     <div class="dc-body"><span class="dc-title">${esc(dayTitle(d.day, { weekday: 'long', month: 'short', day: 'numeric' }))}</span>
-      <div class="row">${catChips(d)}${d.protected ? chip(`${d.protected} protected`, 'good', 'lock') : ''}${d.encodedRecordings ? chip(d.encodedRecordings === d.recordings ? 'Converted' : `${d.encodedRecordings}/${d.recordings} converted`, 'teal', 'sparkle') : ''}</div>
+      <div class="row">${catChips(d)}${d.protected ? chip(`${d.protected} protected`, 'good', 'lock') : ''}${d.encodedRecordings ? chip(d.encodedRecordings === d.recordings ? 'Converted' : `${d.encodedRecordings}/${d.recordings} converted`, 'teal', 'sparkle') : ''}${d.speedIndex?.indexed ? chip(d.speedIndex.indexed >= d.speedIndex.clips ? 'Speed indexed' : `Speed indexed ${d.speedIndex.indexed}/${d.speedIndex.clips}`, 'violet') : ''}</div>
       <span class="dc-meta">${d.minutes} min of video · ${bytes(d.bytes)}</span></div></a>`;
 }
 
