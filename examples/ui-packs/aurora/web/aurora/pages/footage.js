@@ -7,6 +7,30 @@ import {
   $, $$, esc, icon, api, current, vehiclePicker, bytes, plural, dayParts, dayTitle, timeOf, humanize, toast, confirmDialog, empty, loadVehicles
 } from '../core.js';
 
+// "Index speeds": start the speed graph's index now; the button shows how far it is
+async function followIndex(b, start) {
+  if (!b || b.dataset.following) return;
+  b.dataset.following = '1';
+  const label = b.innerHTML;
+  try {
+    let s = start ? await api('/api/speeds/index', { body: {} }) : await api('/api/speeds/status');
+    const was = s.running;
+    while (s.running && b.isConnected) {
+      b.disabled = true;
+      b.textContent = s.total ? `Indexing ${s.done.toLocaleString()} / ${s.total.toLocaleString()}` : 'Indexing…';
+      await new Promise((r) => setTimeout(r, 3000));
+      s = await api('/api/speeds/status');
+    }
+    if (b.isConnected && (start || was)) toast(s.last ? `Speeds indexed for ${s.last.toLocaleString()} clip${s.last === 1 ? '' : 's'}.` : 'Every clip is indexed already.');
+  } catch (err) {
+    if (start) toast(err.message);
+  } finally {
+    b.innerHTML = label;
+    b.disabled = false;
+    delete b.dataset.following;
+  }
+}
+
 const PAGE = 30;
 const CATS = [['all', 'All'], ['Recent', 'Drives'], ['Sentry', 'Sentry'], ['Saved', 'Saved'], ['Other', 'Other']];
 const CAT_CHIP = { Recent: 'teal', Sentry: 'magenta', Saved: 'green', Other: 'violet' };
@@ -66,7 +90,7 @@ export default {
   async mount(ctx) {
     const { body, actions } = ctx;
     const v = current();
-    actions.innerHTML = `${vehiclePicker()}${v ? `<button class="btn" type="button" id="rescan">${icon('refresh')} Refresh</button><a class="btn" href="#/encoder">${icon('orbit')} Convert</a>` : ''}`;
+    actions.innerHTML = `${vehiclePicker()}${v ? `<button class="btn" type="button" id="rescan">${icon('refresh')} Refresh</button><button class="btn" type="button" id="speed-index" title="Read every clip's speed now, for the Viewer's speed graph">${icon('refresh')} Index speeds</button><a class="btn" href="#/encoder">${icon('orbit')} Convert</a>` : ''}`;
     if (!v) {
       body.innerHTML = empty('No vehicle yet', 'Add one in Settings to see its footage.', `<a class="btn primary" href="#/settings/vehicles/new">${icon('plus')} Add a vehicle</a>`);
       return {};
@@ -314,6 +338,8 @@ export default {
         $(`.frame[data-day="${CSS.escape(next.day)}"]`, strip)?.focus();
       }
     });
+    $('#speed-index', actions)?.addEventListener('click', (e) => followIndex(e.currentTarget, true));
+    followIndex($('#speed-index', actions), false);
     $('#rescan', actions)?.addEventListener('click', async () => {
       try {
         await api(`/api/vehicles/${encodeURIComponent(v.id)}/scan`, { body: {} });

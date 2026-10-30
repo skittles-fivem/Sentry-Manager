@@ -916,6 +916,12 @@ async function main() {
     const byRel = await speedIndex.day(v.id, String(query.date || ''));
     return { speeds: Object.fromEntries(Object.entries(byRel).map(([rel, sp]) => [path.join(root, rel), sp])) };
   });
+  // "Index speeds" on the Footage page: start a pass now, and how far it is
+  r.add('GET', '/api/speeds/status', () => speedIndex.status());
+  r.add('POST', '/api/speeds/index', () => {
+    speedIndex.kick();
+    return speedIndex.status();
+  });
   // ... and up to 40 clips the index has not reached yet, read now (and indexed);
   // a clip without telemetry, or out of reach, is null
   r.add('POST', '/api/telemetry/speeds', async (req, res, { body }) => {

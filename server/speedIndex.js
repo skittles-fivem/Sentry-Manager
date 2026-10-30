@@ -23,6 +23,8 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
   let running = null;
   let again = false;
   let stopped = false;
+  // where the running pass is, for the Footage page's "Index speeds"
+  const progress_ = { running: false, done: 0, total: 0, day: null, finishedAt: null, last: 0 };
 
   const fileOf = (vid, day) => path.join(dir, String(vid).replace(/[^\w-]/g, '_'), `${day}.json`);
 
@@ -91,6 +93,7 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
     }
     if (todo.length) log?.info(`Speed index: ${todo.length} clip(s) to read, newest days first`);
     let done = 0;
+    Object.assign(progress_, { done: 0, total: todo.length, day: null });
     const started = Date.now();
     for (const c of todo) {
       if (stopped) return done;
@@ -98,6 +101,7 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
       const data = await load(c.vid, c.day);
       data[c.rel] = [c.size, c.mtimeMs, await speedsFor(path.join(c.root, c.rel), c.size)];
       dirty.add(`${c.vid}/${c.day}`);
+      Object.assign(progress_, { done: done + 1, day: c.day });
       if (++done % 25 === 0) await flush();
       if (done % 250 === 0 && done < todo.length) {
         const left = Math.round(((Date.now() - started) / done) * (todo.length - done) / 60000);
@@ -112,17 +116,19 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
   /** Index what is new; again after this pass if more changed meanwhile. */
   function kick() {
     if (running) { again = true; return running; }
+    progress_.running = true;
     running = (async () => {
       do {
         again = false;
         try {
           const n = await pass();
           if (n) log?.info(`Speed index: done, ${n} clip(s) indexed`);
+          progress_.last = n;
         } catch (err) {
           log?.warn(`Speed index: ${err.message}`);
         }
       } while (again && !stopped);
-    })().finally(() => { running = null; });
+    })().finally(() => { running = null; Object.assign(progress_, { running: false, finishedAt: Date.now() }); });
     return running;
   }
 
@@ -167,7 +173,7 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
     return sp;
   }
 
-  return { kick, day, clip, progress, flush, stop() { stopped = true; } };
+  return { kick, day, clip, progress, status: () => ({ ...progress_ }), flush, stop() { stopped = true; } };
 }
 
 module.exports = { createSpeedIndex };
