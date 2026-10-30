@@ -7,6 +7,22 @@ as today's plan (docs/plans/windows.md). Conversions keep running when the
 window is closed; phones and other PCs still use the web pages; Windows and
 Docker stay identical underneath.
 
+## Running: in the app, or as a service when asked
+
+- **Default, "app mode":** no Windows service. The app starts the server
+  itself (`SentryService.exe run --data %ProgramData%\SentrySixManager`, as
+  the signed-in user, in a kill-on-close Job Object) and waits for
+  `/healthz`. Closing the window keeps it running in the tray; Quit stops it
+  gracefully (`stop` on its stdin, up to 60 s). It starts in the tray at
+  sign-in.
+- **"Service mode", only when the owner asks:** install.ps1 `-Service` (or
+  answering yes when Install.cmd asks, default no), or the app's "Run as a
+  Windows service" switch, which re-runs install.ps1 elevated. Then the
+  server runs as `NT SERVICE\SentrySixManager`, starts with Windows and
+  keeps converting after sign-out; the app only connects to it.
+- Switching modes changes the service and the data folder's permissions,
+  never the data. Phones and other PCs reach either one the same way.
+
 ## What "1:1" means here
 
 Same pages, same controls, same states, same wording, same layout and look,
