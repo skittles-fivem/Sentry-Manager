@@ -136,16 +136,16 @@ namespace SentrySix.Ui.Aurora
         /// <summary>.glass: translucent panel, hairline border, the top edge highlight and a float shadow (no backdrop blur in WPF).</summary>
         static Grid Glass(UIElement child, CornerRadius r, Thickness pad, string bg)
         {
-            Border shadow = new Border();
+            Border shadow = new RoundBorder();
             shadow.CornerRadius = r;
             shadow.SetResourceReference(Border.BackgroundProperty, bg ?? "glass");
             shadow.Effect = Css.Shadow(24, 60, "rgba(0,0,0,.45)");
-            Border edge = new Border();
+            Border edge = new RoundBorder();
             edge.CornerRadius = r;
             edge.BorderThickness = new Thickness(1);
             edge.SetResourceReference(Border.BorderBrushProperty, "line");
             // inset 0 1px 0 rgba(255,255,255,.16): the lit top edge
-            Border lit = new Border();
+            Border lit = new RoundBorder();
             lit.CornerRadius = r;
             lit.BorderThickness = new Thickness(0, 1, 0, 0);
             lit.BorderBrush = Css.Brush("rgba(255,255,255,.16)");

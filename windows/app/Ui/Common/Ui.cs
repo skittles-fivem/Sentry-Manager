@@ -55,7 +55,7 @@ namespace SentrySix.Ui
 
         public static Border Box(UIElement child, string bgKey, string borderKey, double borderWidth, CornerRadius radius, Thickness padding)
         {
-            Border b = new Border();
+            Border b = new RoundBorder();
             b.Child = child;
             if (bgKey != null) b.SetResourceReference(Border.BackgroundProperty, bgKey);
             if (borderKey != null)
@@ -226,7 +226,7 @@ namespace SentrySix.Ui
         {
             Button b = new Button();
             b.Content = content;
-            FrameworkElementFactory bd = new FrameworkElementFactory(typeof(Border), "bd");
+            FrameworkElementFactory bd = new FrameworkElementFactory(typeof(RoundBorder), "bd");
             bd.SetValue(Border.CornerRadiusProperty, k.Radius);
             bd.SetValue(Border.BorderThicknessProperty, new Thickness(k.BorderWidth));
             bd.SetValue(Border.SnapsToDevicePixelsProperty, true);
@@ -242,7 +242,7 @@ namespace SentrySix.Ui
             {
                 // the shadow from a box under the button (an effect on the button itself would shadow its text)
                 FrameworkElementFactory root = new FrameworkElementFactory(typeof(Grid));
-                FrameworkElementFactory sh = new FrameworkElementFactory(typeof(Border), "sh");
+                FrameworkElementFactory sh = new FrameworkElementFactory(typeof(RoundBorder), "sh");
                 sh.SetValue(Border.CornerRadiusProperty, k.Radius);
                 sh.SetValue(Border.BackgroundProperty, Brushes.Black);
                 sh.SetValue(UIElement.EffectProperty, k.Shadow);

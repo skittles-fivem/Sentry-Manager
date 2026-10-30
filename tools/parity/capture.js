@@ -181,14 +181,17 @@ async function api(ctx, base, method, p, data) {
   return body;
 }
 
-function contextOptions(size) {
+function contextOptions(size, ui) {
   return {
     viewport: { width: size.width, height: size.height },
     deviceScaleFactor: 1,
     isMobile: size.mobile,
     hasTouch: size.mobile,
     ignoreHTTPSErrors: true,
-    colorScheme: 'dark',
+    // Daylight follows the device's light or dark setting; the native app's
+    // default is its light look, so Daylight is compared in light. The other
+    // interfaces have one look.
+    colorScheme: ui === 'daylight' ? 'light' : 'dark',
     reducedMotion: 'reduce',
     locale: 'en-US',
     timezoneId: 'UTC'
@@ -227,7 +230,7 @@ async function setInterface(ctx, base, ui) {
 
 async function shoot(browser, base, ui, pageName, size, file) {
   const spec = PAGES[pageName];
-  const ctx = await browser.newContext(contextOptions(size));
+  const ctx = await browser.newContext(contextOptions(size, ui));
   const errors = [];
   try {
     if (spec.signedIn) await signIn(ctx, base);

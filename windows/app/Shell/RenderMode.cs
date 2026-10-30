@@ -110,7 +110,11 @@ namespace SentrySix.Shell
                 w.Width = width;
                 w.Height = height;
                 w.ResizeMode = ResizeMode.NoResize;
-                w.Content = root;
+                // the page on a canvas, so its size is the one asked for even where the
+                // screen is smaller than the window (Windows clamps a window to the screen)
+                Canvas stage = new Canvas();
+                stage.Children.Add(root);
+                w.Content = stage;
                 w.Show();
                 root.Width = width;
                 root.Height = height;
