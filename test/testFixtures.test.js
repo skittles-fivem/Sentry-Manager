@@ -11,13 +11,17 @@ const path = require('path');
 const { realTmp, realTmpSync, realTmpRoot } = require('./fixtures/tmp');
 
 test('realTmp makes folders under the real temp path when TMPDIR goes through a symlink', async () => {
-  const base = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'sm-fixture-')));
+  // On Windows the native real path (no 8.3 short names, as realTmpRoot
+  // gives it), and os.tmpdir() reads TEMP (then TMP) there, not TMPDIR.
+  const realpath = process.platform === 'win32' ? fs.realpathSync.native : fs.realpathSync;
+  const vars = process.platform === 'win32' ? ['TEMP', 'TMP'] : ['TMPDIR'];
+  const base = realpath(fs.mkdtempSync(path.join(os.tmpdir(), 'sm-fixture-')));
   const real = path.join(base, 'real');
   const link = path.join(base, 'link');
   fs.mkdirSync(real);
   fs.symlinkSync(real, link);
-  const saved = process.env.TMPDIR;
-  process.env.TMPDIR = link;
+  const saved = vars.map((name) => process.env[name]);
+  for (const name of vars) process.env[name] = link;
   try {
     assert.equal(os.tmpdir(), link);
     assert.equal(realTmpRoot(), real);
@@ -30,8 +34,10 @@ test('realTmp makes folders under the real temp path when TMPDIR goes through a 
     assert.match(path.basename(a), /^sm-a-/);
     assert.match(path.basename(b), /^sm-b-/);
   } finally {
-    if (saved === undefined) delete process.env.TMPDIR;
-    else process.env.TMPDIR = saved;
+    vars.forEach((name, i) => {
+      if (saved[i] === undefined) delete process.env[name];
+      else process.env[name] = saved[i];
+    });
     await fsp.rm(base, { recursive: true, force: true });
   }
 });
