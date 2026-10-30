@@ -6,11 +6,17 @@
 // streaming of footage for <video> elements. Callers resolve paths with
 // safePath's real-path guard first; files are opened without following a
 // final symlink and checked again through the open descriptor.
+//
+// On Windows O_NOFOLLOW does not exist: the last name is checked with lstat
+// instead (a symlink or a junction is refused), and the open file is then
+// matched to its path by device and inode (safePath's fdInside). Names are
+// compared without regard to case there, as Windows does.
 
 const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
 const { pipeline } = require('stream');
+const defaultPlatform = require('./platform');
 
 const MIME = {
   '.mp4': 'video/mp4', '.mov': 'video/quicktime', '.mkv': 'video/x-matroska', '.avi': 'video/x-msvideo',
@@ -18,16 +24,24 @@ const MIME = {
   '.txt': 'text/plain; charset=utf-8', '.ass': 'text/plain; charset=utf-8'
 };
 
+const HIDDEN_RE = [/[\\/]\.sentry-recycle-bin([\\/]|$)/, /\.binned$/];
+const HIDDEN_RE_I = HIDDEN_RE.map((re) => new RegExp(re.source, 'i'));
+const WORK_RE = [/^(TEMP-H265-|TEMP-AV1-|BACKUP-)/, /\.sentry-six-.*\.partial$/];
+const WORK_RE_I = WORK_RE.map((re) => new RegExp(re.source, 'i'));
+
 /** Paths that must never be read through the viewer: our bin and converter work files. */
-function hiddenPath(abs) {
-  return /[\\/]\.sentry-recycle-bin([\\/]|$)/.test(abs) || /\.binned$/.test(abs);
+function hiddenPath(abs, platform = defaultPlatform) {
+  // Windows reads .SENTRY-RECYCLE-BIN as the same folder
+  return (platform.name === 'win32' ? HIDDEN_RE_I : HIDDEN_RE).some((re) => re.test(abs));
 }
 
-async function readDir(dirPath) {
+async function readDir(dirPath, platform = defaultPlatform) {
   const entries = await fsp.readdir(dirPath, { withFileTypes: true });
+  const work = platform.name === 'win32' ? WORK_RE_I : WORK_RE;
   return entries
     // symlinks are left out: they could point anywhere in the container
-    .filter((e) => !e.isSymbolicLink() && !hiddenPath(path.join(dirPath, e.name)) && !/^(TEMP-H265-|TEMP-AV1-|BACKUP-)/.test(e.name) && !/\.sentry-six-.*\.partial$/.test(e.name))
+    // (on Windows junctions too: they read as symbolic links)
+    .filter((e) => !e.isSymbolicLink() && !hiddenPath(path.join(dirPath, e.name), platform) && !work.some((re) => re.test(e.name)))
     .map((e) => ({ name: e.name, isDirectory: e.isDirectory(), isFile: e.isFile(), path: path.join(dirPath, e.name) }));
 }
 
@@ -44,16 +58,22 @@ async function stat(p) {
  * Open a regular file for reading without following a symlink at the last
  * step, and make sure the descriptor is still inside the roots.
  */
-async function openConfined(abs, fdInside) {
+async function openConfined(abs, fdInside, platform = defaultPlatform) {
   let fh;
   try {
-    fh = await fsp.open(abs, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+    if (platform.name === 'win32') {
+      // no O_NOFOLLOW: refuse a link or junction by name; a swap after this
+      // check is caught by fdInside comparing the open file with the path
+      const lst = await fsp.lstat(abs);
+      if (lst.isSymbolicLink() || !lst.isFile()) return null;
+    }
+    fh = await fsp.open(abs, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
   } catch {
     return null;
   }
   try {
     const st = await fh.stat();
-    if (!st.isFile() || !(await fdInside(fh.fd))) {
+    if (!st.isFile() || !(await fdInside(fh.fd, abs))) {
       await fh.close();
       return null;
     }

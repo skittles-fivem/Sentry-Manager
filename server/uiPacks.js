@@ -20,6 +20,7 @@ const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
 const { readZip, writeZip, ZipError } = require('./zip');
+const platform = require('./platform');
 
 const KINDS = ['web', 'studio'];
 const MAX_ZIP_BYTES = 64 * 1024 * 1024;
@@ -40,11 +41,15 @@ function cleanText(value, max) {
   return value.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, max);
 }
 
-/** A path inside the pack, or null for one that could leave it. */
+/**
+ * A path inside the pack, or null for one that could leave it. Every name
+ * must also be valid on Windows (no "name:stream", "NUL", "name."), on
+ * Docker too, so a pack made on one server installs on any other.
+ */
 function safeRel(name) {
   if (typeof name !== 'string' || !name || name.length > 300 || name.includes('\0') || name.includes('\\') || name.startsWith('/')) return null;
   const parts = name.split('/');
-  if (parts.some((p) => !p || p === '.' || p === '..' || /^[a-zA-Z]:$/.test(p))) return null;
+  if (parts.some((p) => !p || p === '.' || p === '..' || /^[a-zA-Z]:$/.test(p) || !platform.validName(p))) return null;
   return parts.join('/');
 }
 
@@ -208,9 +213,10 @@ function createUiPacks({ dir, db, log = console, builtinDir = null }) {
           await fsp.writeFile(abs, f.data, { flag: 'wx' });
         }
         await fsp.writeFile(path.join(tmp, 'pack.json'), JSON.stringify(meta, null, 2));
-        await fsp.rename(tmp, path.join(dir, id));
+        // (Windows: retried while an antivirus scan holds a file just written)
+        await platform.renameReplace(tmp, path.join(dir, id));
       } catch (err) {
-        await fsp.rm(tmp, { recursive: true, force: true });
+        await platform.rmRetry(tmp, { recursive: true, force: true });
         if (err.code === 'EEXIST') throw new PackError('The pack has the same file twice.');
         throw err;
       }
@@ -225,14 +231,14 @@ function createUiPacks({ dir, db, log = console, builtinDir = null }) {
     if (typeof id !== 'string' || !ID.test(id) || !readMeta(id)) throw new PackError('No such interface.');
     if (builtin.has(id)) throw new PackError('This interface comes with Sentry Six Manager and cannot be deleted.');
     if (active() === id) db.set('ui-pack', null);
-    await fsp.rm(path.join(dir, id), { recursive: true, force: true });
+    await platform.rmRetry(path.join(dir, id), { recursive: true, force: true });
   }
 
   /** Leftovers of an install a restart cut short. */
   async function tidy() {
     await fsp.mkdir(dir, { recursive: true });
     for (const name of await fsp.readdir(dir)) {
-      if (name.startsWith('.incoming-')) await fsp.rm(path.join(dir, name), { recursive: true, force: true });
+      if (name.startsWith('.incoming-')) await platform.rmRetry(path.join(dir, name), { recursive: true, force: true });
     }
   }
 

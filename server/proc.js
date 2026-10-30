@@ -21,7 +21,9 @@ function run(cmd, args, { timeoutMs = 60000, maxOutput = 4 * 1024 * 1024, input 
 
     let child;
     try {
-      child = spawn(cmd, args, { stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'] });
+      // windowsHide: no console window flashes up for each ffmpeg or tool
+      // the Windows service runs (ignored elsewhere)
+      child = spawn(cmd, args, { stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'], windowsHide: true });
     } catch (error) {
       resolve({ code: -1, stdout, stderr, timedOut, error });
       return;

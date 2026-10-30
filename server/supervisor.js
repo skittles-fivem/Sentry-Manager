@@ -21,6 +21,15 @@
 // files there, but cannot rename or replace root's folders (/data/tls with the
 // CA key, /data/.supervisor with root's own notes).
 
+// Windows has no root supervisor: SentryService.exe is its host (it runs
+// the app, keeps it alive and stops it gracefully). Nothing below would work
+// there (setpriv, mount.cifs, chown), so refuse plainly instead of failing
+// half-way.
+if (process.platform === 'win32') {
+  console.error('[supervisor] This is the Docker entrypoint. Use SentryService.exe on Windows (SentryService.exe run starts it in this window).');
+  process.exit(1);
+}
+
 const fs = require('fs');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');

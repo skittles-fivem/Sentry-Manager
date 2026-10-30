@@ -15,12 +15,21 @@
 // going is never moved. Every rename and delete first checks that its folder
 // really is inside the share (a symlink planted on the share cannot redirect
 // it).
+//
+// On Windows a file another program has open (the Viewer streaming it, an
+// antivirus scan, Explorer making a thumbnail) cannot be moved for a moment.
+// safeFs retries such a move first; one still blocked after that is skipped
+// as "in use" (the recording stays where it was, nothing is split), not
+// reported as a failure, and a retention policy tries it again later.
 
 const crypto = require('crypto');
 const fsp = require('fs/promises');
 const path = require('path');
 const { safeJoin, TYPE_BY_FOLDER } = require('./footage');
-const { renameInside, unlinkInside, rmdirInside, mkdirpInside, rmrfInside } = require('./safeFs');
+const defaultSafeFs = require('./safeFs');
+const defaultPlatform = require('./platform');
+
+const { unlinkInside, rmdirInside } = defaultSafeFs;
 
 const BIN_DIR = '.sentry-recycle-bin';
 const JUNK_RE = /^(\._.+|\.DS_Store|Thumbs\.db|desktop\.ini)$/i;
@@ -60,8 +69,9 @@ async function exists(p) {
 }
 
 class RecycleBin {
-  constructor({ db, vehicles, inventory, jobs, log, isBusy = () => false }) {
-    Object.assign(this, { db, vehicles, inventory, jobs, log, isBusy });
+  /** `platform` and `safeFs` are for tests (a Windows platform, a fake file layer). */
+  constructor({ db, vehicles, inventory, jobs, log, isBusy = () => false, platform = defaultPlatform, safeFs = defaultSafeFs }) {
+    Object.assign(this, { db, vehicles, inventory, jobs, log, isBusy, platform, safeFs });
     this.locks = new Map(); // vehicle id -> tail of its lock chain
   }
 
@@ -125,17 +135,19 @@ class RecycleBin {
             const to = safeJoin(root, f.binRel);
             // safeFs creates the bin folder and moves the file following no
             // symlink out of the share (a swapped directory is refused)
-            await mkdirpInside(root, path.dirname(to));
+            await this.safeFs.mkdirpInside(root, path.dirname(to));
             const size = inv.files.get(f.rel)?.size ?? (await fsp.lstat(from)).size;
-            await renameInside(root, from, to);
+            await this.safeFs.renameInside(root, from, to);
             moved.push({ rel: f.rel, binRel: f.binRel, size });
           }
         } catch (err) {
           // put back whatever moved so a recording is never split
-          for (const m of moved.reverse()) await renameInside(root, safeJoin(root, m.binRel), safeJoin(root, m.rel)).catch(() => {});
-          await rmrfInside(root, safeJoin(root, `${BIN_DIR}/${itemId}`)).catch(() => {});
+          for (const m of moved.reverse()) await this.safeFs.renameInside(root, safeJoin(root, m.binRel), safeJoin(root, m.rel)).catch(() => {});
+          await this.safeFs.rmrfInside(root, safeJoin(root, `${BIN_DIR}/${itemId}`)).catch(() => {});
           this.db.removeBinItem(itemId);
-          result.skipped.push({ id: rec.id, reason: err.code === 'ENOENT' ? 'missing' : 'error', message: err.message });
+          // (Windows) still open in another program after the retries: in use, not an error
+          const reason = err.code === 'ENOENT' ? 'missing' : this.platform.isInUse(err) ? 'in-use' : 'error';
+          result.skipped.push({ id: rec.id, reason, message: err.message });
           return;
         }
         const bytes = moved.reduce((n, m) => n + m.size, 0);
@@ -197,7 +209,7 @@ class RecycleBin {
         };
         await walk(`${BIN_DIR}/${ent.name}`);
         if (!files.length) {
-          await rmrfInside(root, safeJoin(root, `${BIN_DIR}/${ent.name}`)).catch(() => {});
+          await this.safeFs.rmrfInside(root, safeJoin(root, `${BIN_DIR}/${ent.name}`)).catch(() => {});
           continue;
         }
         const first = files[0].rel;
@@ -237,8 +249,8 @@ class RecycleBin {
       }
       try {
         // following no symlink out of the share (safeFs)
-        await mkdirpInside(root, path.dirname(to));
-        await renameInside(root, from, to);
+        await this.safeFs.mkdirpInside(root, path.dirname(to));
+        await this.safeFs.renameInside(root, from, to);
       } catch (err) {
         this.log.warn(`Restore of ${f.rel} refused: ${err.message}`);
         left.push({ ...f, conflict: true });
@@ -268,16 +280,32 @@ class RecycleBin {
     if (item.files.some((f) => f.pending)) throw Object.assign(new Error('This item is still being moved to the Recycle Bin.'), { status: 409 });
     const { root } = this.rootOf(item.vehicleId);
     let bytes = 0;
+    const removedRels = new Set();
     for (const f of item.files) {
       try {
         const target = safeJoin(root, f.binRel);
-        await unlinkInside(root, target);
+        await this.safeFs.unlinkInside(root, target);
         bytes += f.size;
       } catch (err) {
-        if (err.code !== 'ENOENT') throw err;
+        if (err.code === 'ENOENT') {
+          removedRels.add(f.rel);
+          continue;
+        }
+        // (Windows) open in another program even after the retries: the
+        // item stays in the bin with what is left of it; deleting it again
+        // later works
+        if (this.platform.isInUse(err)) {
+          if (removedRels.size) {
+            const left = item.files.filter((x) => !removedRels.has(x.rel));
+            this.db.updateBinFiles(itemId, left, left.reduce((n, x) => n + x.size, 0));
+          }
+          throw Object.assign(new Error(`${f.rel} is in use by another program. Try again in a moment.`), { status: 409, code: 'EBUSY' });
+        }
+        throw err;
       }
+      removedRels.add(f.rel);
     }
-    await rmrfInside(root, safeJoin(root, `${BIN_DIR}/${itemId}`));
+    await this.safeFs.rmrfInside(root, safeJoin(root, `${BIN_DIR}/${itemId}`));
     this.db.removeBinItem(itemId);
     return { bytes };
   }

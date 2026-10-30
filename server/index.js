@@ -15,6 +15,9 @@
 //   - When supervised (the Docker image), this process runs as an
 //     unprivileged user; the root supervisor only mounts shares and keeps
 //     the HTTPS certificate authority.
+//   - On Windows (the native build) SentryService.exe runs this process as
+//     its own service account; what differs from Linux (default folders,
+//     path rules, retries, the share mounter) comes from server/platform.
 
 process.env.UV_THREADPOOL_SIZE = process.env.UV_THREADPOOL_SIZE || '16';
 // the database holds password hashes and SMB passwords: nothing we create is world-readable
@@ -47,7 +50,8 @@ const { parsePowerSettings, priceAt, rateNameAt, isCheapest, PriceError } = requ
 const { createConverterBridge } = require('./converterBridge');
 const { hiddenPath, readDir, stat, sendMedia, readTextConfined } = require('./studioApi');
 const { createRealGuard, isInside } = require('./safePath');
-const { createLocalMounter, createIpcMounter } = require('./mounter');
+const platform = require('./platform');
+const { watchStopLine, windowsAccount, namesValidOnWindows } = require('./platform/runtime');
 const { VERSIONS, DEFAULT_VERSION, securitySummary } = require('./mountSpec');
 const { TlsManager, localTlsSource, supervisorTlsSource, parseHostnames } = require('./tls');
 const { Router, HttpError, sendJson, readJson, readRaw, serveFile } = require('./http');
@@ -65,16 +69,34 @@ const { createSpeedIndex } = require('./speedIndex');
 const APP_ROOT = path.resolve(process.env.APP_ROOT || path.join(__dirname, '..'));
 const SRC = path.join(APP_ROOT, 'src');
 const WEB = path.join(APP_ROOT, 'web');
-const DATA = path.resolve(process.env.DATA_PATH || '/data');
-const RUN_DIR = path.resolve(process.env.RUN_DIR || '/run/sentry-six-manager');
-const FOOTAGE_ROOT = path.resolve(process.env.FOOTAGE_ROOT || '/footage');
+// defaults: /data, /run/sentry-six-manager, /footage, ffmpeg on the PATH in
+// Docker; %ProgramData%\SentrySixManager\... and the bundled ffmpeg.exe on Windows
+const DATA = path.resolve(process.env.DATA_PATH || platform.defaults.data);
+const RUN_DIR = path.resolve(process.env.RUN_DIR || platform.defaults.run);
+const FOOTAGE_ROOT = path.resolve(process.env.FOOTAGE_ROOT || platform.defaults.footage);
 const PORT = Number(process.env.PORT || 9000);
 const HOST = process.env.HOST || '0.0.0.0';
-const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
-const FFPROBE = process.env.FFPROBE_PATH || 'ffprobe';
+const FFMPEG = process.env.FFMPEG_PATH || platform.defaults.ffmpeg;
+const FFPROBE = process.env.FFPROBE_PATH || platform.defaults.ffprobe;
 const TLS_MODE = (process.env.TLS_MODE || 'auto').toLowerCase(); // auto | off
 const TRUST_PROXY = process.env.TRUST_PROXY === 'true';
+// Run by the root supervisor (Docker) over an IPC channel. That one switch
+// stands for three things, kept apart so the Windows service host can have
+// the right ones (none of them: it has no IPC channel, mounts through the
+// helper and keeps its own certificate):
+//   ipcMounter   shares are mounted by the supervisor
+//   ipcTls       the certificate comes from the supervisor
+//   stopChannel  the supervisor asks this process to stop (and its
+//                disconnect means stop)
+// SENTRY_STOP_STDIN=1 (Windows): a "stop" line on stdin is the graceful
+// stop, as SIGTERM is in Docker.
 const SUPERVISED = process.env.SENTRY_SUPERVISED === '1' && typeof process.send === 'function';
+const SWITCHES = Object.freeze({
+  ipcMounter: SUPERVISED,
+  ipcTls: SUPERVISED && Boolean(process.env.SENTRY_TLS_DIR),
+  stopChannel: SUPERVISED,
+  stopStdin: process.env.SENTRY_STOP_STDIN === '1'
+});
 const TRUSTED_HOSTS = (process.env.TRUSTED_HOSTS || '').split(/[\s,]+/).filter(Boolean).map((h) => h.toLowerCase());
 
 const CONVERTER_ACTIVE = new Set(['discovering', 'waiting', 'staging', 'encoding', 'writing-telemetry', 'verifying', 'copying', 'replacing', 'paused', 'paused_network']);
@@ -206,13 +228,13 @@ async function main() {
   if (stoppedJobs) log.info(`${stoppedJobs} job(s) were stopped by the restart; Jobs shows them as interrupted`);
   const notes = new Notifications({ db });
 
-  const mounter = SUPERVISED
-    ? createIpcMounter({ channel: process, footageRoot: FOOTAGE_ROOT })
-    : createLocalMounter({
-      footageRoot: FOOTAGE_ROOT, credDir: RUN_DIR,
-      uid: Number(process.env.PUID ?? process.getuid?.() ?? 0), gid: Number(process.env.PGID ?? process.getgid?.() ?? 0)
-    });
-  const folderRoots = [FOOTAGE_ROOT, ...(process.env.FOLDER_ROOTS || '').split(':').filter(Boolean)];
+  // Docker: over IPC to the supervisor, or mount.cifs here; Windows: the helper
+  const mounter = platform.mounter({
+    ipc: SWITCHES.ipcMounter, channel: process, footageRoot: FOOTAGE_ROOT, credDir: RUN_DIR,
+    uid: Number(process.env.PUID ?? process.getuid?.() ?? 0), gid: Number(process.env.PGID ?? process.getgid?.() ?? 0)
+  });
+  // a PATH-style list: ":" between folders in Docker, ";" on Windows (C:\...)
+  const folderRoots = [FOOTAGE_ROOT, ...(process.env.FOLDER_ROOTS || '').split(platform.listDelimiter).filter(Boolean)];
   // FOOTAGE_PATH comes from the container environment (trusted), not the UI
   if (process.env.FOOTAGE_PATH) folderRoots.push(process.env.FOOTAGE_PATH);
   const protectedDirs = [DATA, APP_ROOT, RUN_DIR];
@@ -229,9 +251,10 @@ async function main() {
   // ---- paths
   // Default place for converted copies ("keep originals" mode); EXTRA_ROOTS adds more.
   fs.mkdirSync(path.join(DATA, 'converted'), { recursive: true });
-  const outputRoots = () => [path.join(DATA, 'converted'), ...(process.env.EXTRA_ROOTS || '').split(':').filter(Boolean)];
+  const outputRoots = () => [path.join(DATA, 'converted'), ...(process.env.EXTRA_ROOTS || '').split(platform.listDelimiter).filter(Boolean)];
   const allowedRoots = () => [...vehicles.roots(), ...outputRoots()];
-  const deny = () => [DATA, APP_ROOT, RUN_DIR, '/proc', '/sys', '/dev', '/etc', '/root', '/run', '/boot'];
+  // the system's own folders and ours (Docker: /proc, /etc, ...; Windows: C:\Windows, Program Files, ...)
+  const deny = () => platform.denyRoots({ data: DATA, appRoot: APP_ROOT, run: RUN_DIR });
   const allowed = createRealGuard(allowedRoots, { deny });
   const studioReadable = createRealGuard(() => [...allowedRoots(), path.join(DATA, 'thumbnails'), path.join(DATA, 'clip-thumbnails'), path.join(DATA, 'exports')], { deny });
 
@@ -241,7 +264,7 @@ async function main() {
       const root = vehicles.rootOf(v);
       let realRoot = root;
       try {
-        realRoot = fs.realpathSync(root);
+        realRoot = platform.realpathSync(root);
       } catch {
         // not reachable
       }
@@ -256,7 +279,7 @@ async function main() {
   const isBusy = (abs) => {
     for (const s of converterJobs.values()) {
       if (!CONVERTER_ACTIVE.has(s.state) || !s.config?.sourceRoot) continue;
-      if ((s.items || []).some((i) => !ITEM_DONE.has(i.state) && i.relativePath && path.join(s.config.sourceRoot, i.relativePath) === abs)) return true;
+      if ((s.items || []).some((i) => !ITEM_DONE.has(i.state) && i.relativePath && platform.samePath(path.join(s.config.sourceRoot, i.relativePath), abs))) return true;
     }
     return false;
   };
@@ -324,7 +347,12 @@ async function main() {
   const UI_COOKIE = 'sm_ui_original';
   const originalOnly = (req) => parseCookies(req.headers.cookie || '')[UI_COOKIE] === '1';
   await uiPacks.tidy().catch((err) => logger.scope('ui').warn(`UI packs folder: ${err.message}`));
+  // the converter's owned-file operations: Docker keeps converterHost's own
+  // default (posixOwnedFs); Windows uses the helper's (null when not built:
+  // then as on Docker without its native helper)
+  const winOwned = platform.name === 'win32' ? platform.ownedFs({ log: logger.scope('converter') }) : null;
   const host = createConverterHost({
+    ...(winOwned ? { owned: winOwned } : {}),
     remoteNodes: {
       list: () => nodes.list(),
       encode: (request) => nodes.encode(request),
@@ -381,10 +409,10 @@ async function main() {
   });
   updates.announce();
   // left over from the old in-app updater: updates now come with the image
-  fs.promises.rm(path.join(DATA, 'app'), { recursive: true, force: true }).catch(() => {});
+  platform.rmRetry(path.join(DATA, 'app'), { recursive: true, force: true }).catch(() => {});
 
   // ---- HTTPS
-  const tlsSource = TLS_MODE === 'off' ? null : SUPERVISED && process.env.SENTRY_TLS_DIR
+  const tlsSource = TLS_MODE === 'off' ? null : SWITCHES.ipcTls
     ? supervisorTlsSource({ dir: process.env.SENTRY_TLS_DIR, channel: process })
     : localTlsSource(new TlsManager({
       dir: path.join(DATA, 'tls'), log: logger.scope('tls'), hostnames: parseHostnames(process.env.TLS_HOSTNAMES || ''),
@@ -487,7 +515,8 @@ async function main() {
       return null;
     }
   };
-  r.add('GET', '/api/auth/me', (req) => ({ user: auth.user(req), needsSetup: auth.needsSetup(), secure: isSecure(req), fingerprint: req.socket?.encrypted ? certFingerprint() : null }), { public: true });
+  // (public: the sign-in page reads it; `deployment` picks its wording, 'docker' or 'windows')
+  r.add('GET', '/api/auth/me', (req) => ({ user: auth.user(req), needsSetup: auth.needsSetup(), secure: isSecure(req), fingerprint: req.socket?.encrypted ? certFingerprint() : null, deployment: platform.deployment }), { public: true });
   // one password check at a time per throttle key (auth.attempt)
   const guarded = async (keys, check) => {
     try {
@@ -570,6 +599,7 @@ async function main() {
 
   r.add('GET', '/api/system', async (req) => ({
     version: buildInfo,
+    deployment: platform.deployment,
     converter: host.runtime ? { ready: true, capabilities: host.runtime.capabilities } : { ready: false, error: host.lastError?.code || null },
     nativeHelper: host.helperAvailable,
     gpu: await detectGpus(),
@@ -593,7 +623,8 @@ async function main() {
     return {
       https: isSecure(req), tlsMode: TLS_MODE, trustProxy: TRUST_PROXY, tls,
       supervised: SUPERVISED, runningAsRoot: process.getuid?.() === 0,
-      currentHost: cleanHost(req), confirmed: auth.recentlyConfirmed(req)
+      currentHost: cleanHost(req), confirmed: auth.recentlyConfirmed(req),
+      ...(platform.name === 'win32' ? windowsAccount() : {})
     };
   });
   r.add('PUT', '/api/security/hostnames', async (req, res, { body, user }) => {
@@ -1228,6 +1259,7 @@ async function main() {
   })();
   r.add('GET', '/api/studio/context', () => ({
     version: appVersion ? `${appVersion} (web)` : 'web',
+    deployment: platform.deployment,
     vehicles: vehicles.list().map((v) => ({ id: v.id, name: v.name, root: vehicles.rootOf(v), timezone: v.timezone })),
     outputRoots: outputRoots()
   }));
@@ -1237,8 +1269,8 @@ async function main() {
     if (!body?.path) return { path: null, parent: null, entries: roots.map((p) => ({ name: vehicles.vehicleForPath(p)?.name || (p === path.join(DATA, 'converted') ? 'Converted copies' : p), path: p, isDirectory: true })) };
     const real = await confined(body.path, allowed);
     const entries = (await readDir(real).catch(() => [])).filter((e) => e.isDirectory && !e.name.startsWith('.'));
-    const realRoots = await Promise.all(roots.map((p) => fs.promises.realpath(p).catch(() => p)));
-    const atRoot = roots.some((p) => path.resolve(p) === real) || realRoots.includes(real);
+    const realRoots = await Promise.all(roots.map((p) => platform.realpath(p).catch(() => p)));
+    const atRoot = roots.some((p) => platform.samePath(path.resolve(p), real)) || realRoots.some((p) => platform.samePath(p, real));
     return { path: real, parent: atRoot ? null : path.dirname(real), entries };
   });
 
@@ -1275,6 +1307,10 @@ async function main() {
         return sendJson(res, 400, { error: 'Bad request' });
       }
       if (p.includes('\0') || p.includes('\\') || path.posix.normalize(p) !== p) return sendJson(res, 400, { error: 'Bad request' });
+      // Windows reads some names as something else: "app.js::$DATA" is the
+      // file's data stream, "app.js." and "APP.JS " are app.js, "NUL" a
+      // device. Such a path never names a file we serve.
+      if (platform.name === 'win32' && !namesValidOnWindows(p, platform)) return sendJson(res, 400, { error: 'Bad request' });
 
       const user = auth.user(req);
       const isApi = p.startsWith('/api/');
@@ -1626,7 +1662,16 @@ async function main() {
   };
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
-  if (SUPERVISED) {
+  if (platform.name === 'win32') {
+    // Ctrl+Break in a console, and the console window being closed
+    // (`SentryService.exe run`); SIGTERM never comes on Windows
+    process.on('SIGBREAK', () => shutdown('SIGBREAK'));
+    process.on('SIGHUP', () => shutdown('SIGHUP'));
+  }
+  // Windows service: the host never kills node for a graceful stop (that is
+  // TerminateProcess, no cleanup); it writes "stop" to stdin instead
+  if (SWITCHES.stopStdin) watchStopLine(process.stdin, () => shutdown('stop requested'));
+  if (SWITCHES.stopChannel) {
     process.on('disconnect', () => shutdown('supervisor gone'));
     // the supervisor renewed the certificate
     process.on('message', (m) => {

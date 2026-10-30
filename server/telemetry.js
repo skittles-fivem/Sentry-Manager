@@ -26,6 +26,7 @@ const path = require('path');
 const vm = require('vm');
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const { limiter } = require('./scanner');
+const platform = require('./platform');
 
 const MAX_FILE = 1024 * 1024 * 1024;
 const MAX_CACHE_FILES = 4000;
@@ -168,7 +169,8 @@ class Telemetry {
         await fsp.mkdir(this.cacheDir, { recursive: true });
         const tmp = `${cached}.${process.pid}.tmp`;
         await fsp.writeFile(tmp, out);
-        await fsp.rename(tmp, cached);
+        // (retried on Windows while another reader holds the cached file)
+        await platform.renameReplace(tmp, cached);
         if (++this.sinceSweep >= 100) this.sweep().catch(() => {});
         return { key, body: out };
       }).finally(() => this.pending.delete(key));
@@ -202,7 +204,7 @@ class Telemetry {
     if (names.length <= MAX_CACHE_FILES) return;
     const stats = await Promise.all(names.map(async (n) => ({ n, t: (await fsp.stat(path.join(this.cacheDir, n)).catch(() => null))?.mtimeMs || 0 })));
     stats.sort((a, b) => a.t - b.t);
-    for (const { n } of stats.slice(0, stats.length - MAX_CACHE_FILES)) await fsp.rm(path.join(this.cacheDir, n), { force: true });
+    for (const { n } of stats.slice(0, stats.length - MAX_CACHE_FILES)) await platform.rmRetry(path.join(this.cacheDir, n), { force: true });
   }
 }
 

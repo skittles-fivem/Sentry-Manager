@@ -3,6 +3,7 @@
 const fsp = require('fs/promises');
 const path = require('path');
 const { classify, localDay, shouldSkipDir, isConverterArtifact } = require('./footage');
+const platform = require('./platform');
 
 /** Tiny promise limiter: at most `max` calls of fn in flight. */
 function limiter(max) {
@@ -50,7 +51,10 @@ async function scanFootage(root, { concurrency = 16, onProgress } = {}) {
       const rel = relDir ? `${relDir}/${ent.name}` : ent.name;
       if (ent.isSymbolicLink()) continue;
       if (ent.isDirectory()) {
-        if (!shouldSkipDir(ent.name)) tasks.push(visit(rel));
+        // also the folders Windows keeps on every volume (System Volume
+        // Information, $RECYCLE.BIN, RECYCLER, Recovery), on every platform:
+        // a USB drive or NAS share written by Windows has them too
+        if (!shouldSkipDir(ent.name) && !platform.isSkipDirName(ent.name)) tasks.push(visit(rel));
         continue;
       }
       if (!ent.isFile()) continue;

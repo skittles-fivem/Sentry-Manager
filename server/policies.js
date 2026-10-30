@@ -3,6 +3,15 @@
 // Retention policies per vehicle: "keep Recent clips N days" etc. A policy
 // only ever MOVES old recordings to the Recycle Bin; protected recordings are
 // skipped, and nothing is deleted until the user empties the bin.
+//
+// On Windows a recording another program has open cannot be moved for a
+// while (the Recycle Bin skips it as "in use"). Such a run is not counted
+// as today's: the policy runs again on the next tick, up to MAX_DEFERRALS
+// times a day, so a clip being watched is moved once it is closed.
+
+const defaultPlatform = require('./platform');
+
+const MAX_DEFERRALS = 30;
 
 const CATEGORIES = ['Recent', 'Sentry', 'Saved', 'Other'];
 
@@ -52,8 +61,19 @@ function selectExpired(recordings, policy, { now = new Date(), timeZone = 'UTC' 
 }
 
 class Policies {
-  constructor({ db, vehicles, inventory, bin, log }) {
-    Object.assign(this, { db, vehicles, inventory, bin, log });
+  constructor({ db, vehicles, inventory, bin, log, platform = defaultPlatform }) {
+    Object.assign(this, { db, vehicles, inventory, bin, log, platform });
+    this.deferrals = new Map(); // vehicle id -> { day, count }: runs put off today
+  }
+
+  /** May today's run of this vehicle's policy be put off once more? */
+  mayDefer(vehicleId, now) {
+    const day = now.toDateString();
+    const d = this.deferrals.get(vehicleId);
+    const count = d && d.day === day ? d.count : 0;
+    if (count >= MAX_DEFERRALS) return false;
+    this.deferrals.set(vehicleId, { day, count: count + 1 });
+    return true;
   }
 
   get(vehicleId) {
@@ -81,12 +101,23 @@ class Policies {
     return { recordings: hit.length, bytes: hit.reduce((n, r) => n + r.bytes, 0), byCategory, ids: hit.map((r) => r.id) };
   }
 
-  async run(vehicleId) {
+  /**
+   * `defer(result)` (the minute tick) answers whether a run that left
+   * recordings "in use" should stay due: the run is then not recorded as
+   * today's, so the next tick tries again.
+   */
+  async run(vehicleId, { defer = () => false } = {}) {
     await this.inventory.scan(vehicleId);
     const { ids } = this.preview(vehicleId);
     const result = ids.length ? await this.bin.trash(vehicleId, ids, { reason: 'policy' }) : { moved: [], skipped: [], bytes: 0 };
     const policy = this.get(vehicleId);
-    this.db.set(`policy:${vehicleId}`, { ...policy, lastRunAt: Date.now(), lastResult: { moved: result.moved.length, skipped: result.skipped.length, bytes: result.bytes } });
+    const inUse = result.skipped.filter((s) => s.reason === 'in-use').length;
+    const lastResult = { moved: result.moved.length, skipped: result.skipped.length, bytes: result.bytes, ...(inUse ? { inUse } : {}) };
+    if (inUse && defer(result)) {
+      this.db.set(`policy:${vehicleId}`, { ...policy, lastResult });
+      return { ...result, deferred: true };
+    }
+    this.db.set(`policy:${vehicleId}`, { ...policy, lastRunAt: Date.now(), lastResult });
     return result;
   }
 
@@ -99,8 +130,13 @@ class Policies {
       const ranToday = p.lastRunAt && new Date(p.lastRunAt).toDateString() === now.toDateString();
       if (hhmm >= p.runAt && !ranToday) {
         try {
-          await this.run(v.id);
+          await this.run(v.id, { defer: () => this.mayDefer(v.id, now) });
         } catch (err) {
+          // (Windows) a file the scan or the move needed was in use: try on the next tick
+          if (this.platform.isInUse(err) && this.mayDefer(v.id, now)) {
+            this.log.info(`Policy for ${v.name} put off: a file is in use (${err.message})`);
+            continue;
+          }
           this.log.warn(`Policy for ${v.name} did not run: ${err.message}`);
           this.db.set(`policy:${v.id}`, { ...p, lastRunAt: Date.now(), lastResult: { error: err.message } });
         }

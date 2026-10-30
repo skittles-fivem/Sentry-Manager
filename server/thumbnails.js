@@ -10,6 +10,7 @@ const fsp = require('fs/promises');
 const path = require('path');
 const { run } = require('./proc');
 const { limiter } = require('./scanner');
+const platform = require('./platform');
 
 class Thumbnails {
   constructor({ dir, ffmpegPath = 'ffmpeg', concurrency = 2 }) {
@@ -37,11 +38,13 @@ class Thumbnails {
         const r2 = await run(this.ffmpegPath, ['-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-protocol_whitelist', 'file', '-i', clipPath,
           '-frames:v', '1', '-vf', 'scale=320:-2', '-q:v', '5', tmp], { timeoutMs: 60000 });
         if (r2.code !== 0) {
-          await fsp.rm(tmp, { force: true });
+          await platform.rmRetry(tmp, { force: true });
           return null;
         }
       }
-      await fsp.rename(tmp, out);
+      // Windows: a page showing the old thumbnail (or an antivirus scan)
+      // can hold the file for a moment; the rename is retried there
+      await platform.renameReplace(tmp, out);
       return out;
     }).finally(() => this.inFlight.delete(out));
     this.inFlight.set(out, p);

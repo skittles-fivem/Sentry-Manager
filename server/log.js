@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const util = require('util');
 const { EventEmitter } = require('events');
+const defaultPlatform = require('./platform');
 
 const LEVELS = { debug: 10, info: 20, warn: 30, error: 40 };
 // the real console, before captureConsole() routes it through a logger
@@ -25,8 +26,10 @@ function redact(text) {
  * downloaded in the Overview's Logs without a shell on the server.
  */
 class Logger extends EventEmitter {
-  constructor({ level = 'info', keep = 1000, silent = false, file = null, maxBytes = 5 * 1024 * 1024 } = {}) {
+  constructor({ level = 'info', keep = 1000, silent = false, file = null, maxBytes = 5 * 1024 * 1024, platform = defaultPlatform } = {}) {
     super();
+    this.platform = platform;
+    this.rotateHeldUntil = 0;
     this.min = LEVELS[level] || LEVELS.info;
     this.keep = keep;
     this.silent = silent;
@@ -92,9 +95,18 @@ class Logger extends EventEmitter {
     if (!this.file) return;
     try {
       const data = `${line}\n`;
-      if (this.fileBytes + data.length > this.maxBytes) {
-        fs.renameSync(this.file, `${this.file}.1`);
-        this.fileBytes = 0;
+      if (this.fileBytes + data.length > this.maxBytes && Date.now() >= this.rotateHeldUntil) {
+        try {
+          // Windows: retried for a moment while another program reads the file
+          this.platform.renameReplaceSync(this.file, `${this.file}.1`);
+          this.fileBytes = 0;
+        } catch (err) {
+          if (this.platform.name !== 'win32') throw err;
+          // Windows: someone has the log open in an editor. Keep writing to
+          // it (a line must not be lost) and try the rotation again later
+          // instead of on every line.
+          this.rotateHeldUntil = Date.now() + 30_000;
+        }
       }
       fs.appendFileSync(this.file, data, { mode: 0o600 });
       this.fileBytes += Buffer.byteLength(data);

@@ -18,6 +18,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
+const defaultPlatform = require('./platform');
 
 const scryptAsync = promisify(crypto.scrypt);
 
@@ -71,8 +72,11 @@ class Auth {
   /**
    * isSecure(req): whether this request reached us over HTTPS.
    * setupFile: where the one-time setup code is written (besides the log).
+   * platform (tests): where the setup code is said to be (the container
+   * log in Docker, the service log and Install.cmd's window on Windows).
    */
-  constructor({ db, log, isSecure = () => false, setupFile = null }) {
+  constructor({ db, log, isSecure = () => false, setupFile = null, platform = defaultPlatform }) {
+    this.platform = platform;
     this.db = db;
     this.log = log;
     this.isSecure = isSecure;
@@ -111,11 +115,25 @@ class Auth {
     const given = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     const want = String(this.code || '').replace(/-/g, '');
     if (!want || given.length !== want.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(want))) {
-      throw Object.assign(new Error('That setup code is not right. It is printed in the container log (docker logs sentry-six-manager).'), { status: 403 });
+      const where = this.platform.deployment === 'windows'
+        ? 'It was shown when Install.cmd finished, and is in %ProgramData%\\SentrySixManager\\data\\setup-code.txt and the service log (data\\logs\\service.log).'
+        : 'It is printed in the container log (docker logs sentry-six-manager).';
+      throw Object.assign(new Error(`That setup code is not right. ${where}`), { status: 403 });
     }
     this.setPassword(username, password);
     this.code = null;
-    if (this.setupFile) fs.rmSync(this.setupFile, { force: true });
+    if (this.setupFile) {
+      if (this.platform.name !== 'win32') fs.rmSync(this.setupFile, { force: true });
+      else {
+        // Windows: the file may be open in an editor for a moment; the
+        // account exists by now, so a leftover file is only noted
+        try {
+          fs.rmSync(this.setupFile, { force: true, maxRetries: 8, retryDelay: 100 });
+        } catch (err) {
+          this.log.warn(`Could not remove ${this.setupFile}: ${err.message}`);
+        }
+      }
+    }
   }
 
   setPassword(username, password) {
