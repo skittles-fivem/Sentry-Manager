@@ -57,6 +57,19 @@ jobs:
       # The ffmpeg the package ships, checked against windows\versions.json.
       # Only this job goes on without a pinned SHA-256 (and says so loudly),
       # so the hash can be read from the log; package refuses to.
+      # the scripts people run are Windows PowerShell 5.1: parse them with it
+      # first, so a syntax slip fails here in seconds, not at install time
+      - name: PowerShell scripts parse (5.1)
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+        run: |
+          $bad = 0
+          foreach ($f in Get-ChildItem windows -Filter *.ps1) {
+            $tokens = $null; $errs = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errs)
+            foreach ($e in $errs) { Write-Host "::error file=windows/$($f.Name),line=$($e.Extent.StartLineNumber)::$($e.Message)"; $bad++ }
+          }
+          if ($bad) { exit 1 }
+          Write-Host "All windows\*.ps1 parse in PowerShell $($PSVersionTable.PSVersion)"
       - name: Pinned ffmpeg
         run: |
           $pin = (Get-Content -Raw -LiteralPath windows/versions.json | ConvertFrom-Json).ffmpeg

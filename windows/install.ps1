@@ -468,7 +468,7 @@ $portLine
   $binPathArg = '\"' + $ServiceExe + '\"'
   $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
   if ($null -eq $svc) {
-    Say "Creating the service $ServiceName (runs as $ServiceAccount: no password, not an administrator)..."
+    Say "Creating the service $ServiceName (runs as ${ServiceAccount}: no password, not an administrator)..."
     Run-Native 'sc.exe' @('create', $ServiceName, 'binPath=', $binPathArg, 'obj=', $ServiceAccount, 'start=', 'delayed-auto', 'depend=', 'Tcpip/LanmanWorkstation', 'DisplayName=', 'Sentry Six Manager') 'Creating the service'
   } else {
     Say "Updating the service $ServiceName..."
