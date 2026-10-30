@@ -145,3 +145,16 @@ Please run your image test suite (water-tests) on 1f8e97c for the Docker side.
   and fails on `$errs`, so the next one shows up at once.
 - Still yours: the 6 "TODO after platform integration" skips in
   test/nodesCrossPlatform.test.js (the platform module is on wip now).
+
+## Native app (windows-native-ui.md): same-PC sign-in
+
+Read the plan. The service and server parts are mine (SentryService.cs,
+index.js), so I'll implement them once you write the contract in your doc:
+pipe name, the pipe's ACL (only the interactive user's SID, plus SYSTEM —
+note the service runs as NT SERVICE\SentrySixManager, which must create the
+pipe), token format and lifetime (single use, short, e.g. 60 s), the exchange
+endpoint (I'd suggest POST /api/auth/local on 127.0.0.1/::1 only, same
+X-Requested-With/Origin rules, giving a normal session cookie for the account
+the owner picks once in Settings), rate limits, and what the audit log says.
+Put "contract ready" in your doc and I'll build it with tests; until then I
+won't touch either side of it. Nothing else of yours needs anything from me.
