@@ -162,6 +162,12 @@ function createWin32Platform({ env = process.env, appRoot, exists = fs.existsSyn
     },
     // FOLDER_ROOTS and EXTRA_ROOTS: like PATH on Windows (":" is in C:\)
     listDelimiter: ';',
+    /** Where folder vehicles may be: the footage root, FOLDER_ROOTS and FOOTAGE_PATH (index.js's list). */
+    folderRoots: (footageRoot) => [
+      footageRoot,
+      ...(envGet(env, 'FOLDER_ROOTS') || '').split(';').filter(Boolean),
+      ...(envGet(env, 'FOOTAGE_PATH') ? [envGet(env, 'FOOTAGE_PATH')] : [])
+    ],
     /** Folders a path may only reach through a root that itself lies inside them. */
     denyRoots: ({ data, appRoot: appDir = app, run } = {}) => [
       envGet(env, 'SystemRoot') || `${systemDrive}\\Windows`,
@@ -176,6 +182,8 @@ function createWin32Platform({ env = process.env, appRoot, exists = fs.existsSyn
       `${systemDrive}\\$Recycle.Bin`,
       `${systemDrive}\\System Volume Information`
     ].filter(Boolean),
+    // none here: index.js adds denyRoots to protectedDirs instead (vehicles.js)
+    systemDirs: () => [],
     samePath,
     isInside,
     validName,
@@ -191,6 +199,8 @@ function createWin32Platform({ env = process.env, appRoot, exists = fs.existsSyn
     isInUse: (err) => RETRY_CODES.has(err?.code) && err.code !== 'ENOTEMPTY',
     skipDirNames,
     isSkipDirName,
+    // index.js also listens for SIGBREAK and SIGHUP and for "stop" on stdin
+    shutdownSignals: ['SIGTERM', 'SIGINT'],
     helper,
     /**
      * Keep the PC from sleeping (on: true) or let it sleep again (false),

@@ -46,8 +46,16 @@ function createLinuxPlatform({ env = process.env, exists = fs.existsSync } = {})
     },
     // FOLDER_ROOTS and EXTRA_ROOTS: a PATH-style list
     listDelimiter: ':',
+    /** Where folder vehicles may be: the footage root, FOLDER_ROOTS and FOOTAGE_PATH (index.js's list). */
+    folderRoots: (footageRoot) => [
+      footageRoot,
+      ...(env.FOLDER_ROOTS || '').split(':').filter(Boolean),
+      ...(env.FOOTAGE_PATH ? [env.FOOTAGE_PATH] : [])
+    ],
     /** Folders a path may only reach through a root that itself lies inside them. */
     denyRoots: ({ data, appRoot, run }) => [data, appRoot, run, '/proc', '/sys', '/dev', '/etc', '/root', '/run', '/boot'],
+    /** The system's own folders no folder vehicle may use (vehicles.js SYSTEM_DIRS). */
+    systemDirs: () => ['/proc', '/sys', '/dev', '/etc', '/root', '/run', '/boot'],
     samePath,
     isInside,
     validName,
@@ -65,6 +73,8 @@ function createLinuxPlatform({ env = process.env, exists = fs.existsSync } = {})
     isInUse: () => false,
     skipDirNames,
     isSkipDirName,
+    // SIGHUP's default (end node with a signal status) stays as it was
+    shutdownSignals: ['SIGTERM', 'SIGINT'],
     /**
      * The SentryHelper.exe client: Windows only. Linux needs no native
      * helper (the supervisor and the renameat2 helper do that work).
