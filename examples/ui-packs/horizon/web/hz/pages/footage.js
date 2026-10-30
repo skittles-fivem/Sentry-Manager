@@ -100,7 +100,7 @@ export default {
             <span class="album-art" aria-hidden="true">${d.thumbId ? `<img alt="" loading="lazy" src="${thumbUrl(v.id, d.thumbId)}">` : ico('film')}</span>
             <span class="album-t"><b>${h(dayName(d.day))}</b><span class="small dim">${count(d.recordings, 'track')} · ${d.minutes} min · ${size(d.bytes)}</span>
               <span class="catbar" aria-hidden="true">${cats.map(([c, n]) => `<i class="c-${h(c)}" style="flex:${n}"></i>`).join('')}</span>
-              <span class="tiny faint">${cats.map(([c, n]) => `${c} ${n}`).join(' · ')}${d.protected ? ` · ${d.protected} protected` : ''} · ${enc}% converted</span>${ix ? `<span class="album-tags">${pill(ix, 'cyan')}</span>` : ''}</span></button>`;
+              <span class="tiny faint">${cats.map(([c, n]) => `${c} ${n}`).join(' · ')}${d.protected ? ` · ${d.protected} protected` : ''} · ${enc}% converted${ix ? ` · <span class="album-ix">${h(ix.toLowerCase())}</span>` : ''}</span></span></button>`;
         }).join('')}
         ${!list.length && !days.error ? '<p class="small dim">No days match these filters.</p>' : ''}`);
     }
