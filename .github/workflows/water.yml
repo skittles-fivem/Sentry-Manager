@@ -42,6 +42,11 @@ jobs:
           try { nvidia-smi --query-gpu=name,driver_version,pci.bus_id --format=csv } catch {}
       - name: Test clips on the PC (read only)
         run: |
+          foreach ($root in [Environment]::GetFolderPath('Desktop'), "$env:USERPROFILE\Desktop", "$env:USERPROFILE\OneDrive\Desktop") {
+            "== $root exists: $(Test-Path -LiteralPath $root)"
+            Get-ChildItem -LiteralPath $root -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'HW|20\d\d-' } | ForEach-Object { "  [$($_.Mode)] $($_.Name)" }
+          }
+          Get-ChildItem $env:USERPROFILE -Directory -Filter 'OneDrive*' | ForEach-Object { "onedrive root: $($_.FullName)" }
           foreach ($d in 'C:\Users\ktmcm\OneDrive\Desktop\2026-10-19 HW3', 'C:\Users\ktmcm\OneDrive\Desktop\2026-07-21 HW4') {
             "== $d"
             if (-not (Test-Path -LiteralPath $d)) { '  (missing)'; continue }
