@@ -25,9 +25,12 @@ function checkId(id) {
   return String(id);
 }
 
-function createLocalMounter({ footageRoot = '/footage', credDir = '/run/sentry-six-manager', uid = 0, gid = 0, runCmd = run } = {}) {
-  const target = (id) => path.join(footageRoot, checkId(id));
-  const credFile = (id) => path.join(credDir, `${checkId(id)}.cred`);
+// `pathMod`: the path rules of the machine mount.cifs runs on. The Linux
+// platform passes path.posix, so its mount points are /footage/<id> even
+// where this file is loaded on another OS (the platform tests).
+function createLocalMounter({ footageRoot = '/footage', credDir = '/run/sentry-six-manager', uid = 0, gid = 0, runCmd = run, pathMod = path } = {}) {
+  const target = (id) => pathMod.join(footageRoot, checkId(id));
+  const credFile = (id) => pathMod.join(credDir, `${checkId(id)}.cred`);
 
   async function mount(id, smb) {
     const dir = target(id);
@@ -36,7 +39,7 @@ function createLocalMounter({ footageRoot = '/footage', credDir = '/run/sentry-s
     await fsp.mkdir(dir, { recursive: true, mode: 0o755 });
     // mount(2) follows symlinks: the mount point must be a plain directory where we expect it
     const st = await fsp.lstat(dir);
-    if (!st.isDirectory() || (await fsp.realpath(dir)) !== path.resolve(dir)) throw Object.assign(new Error(`${dir} is not a plain directory.`), { code: 'BAD_MOUNTPOINT' });
+    if (!st.isDirectory() || (await fsp.realpath(dir)) !== pathMod.resolve(dir)) throw Object.assign(new Error(`${dir} is not a plain directory.`), { code: 'BAD_MOUNTPOINT' });
     await fsp.mkdir(credDir, { recursive: true, mode: 0o700 });
     await fsp.chmod(credDir, 0o700);
     await fsp.writeFile(file, credentialsText(smb), { mode: 0o600 });
@@ -70,7 +73,7 @@ function createLocalMounter({ footageRoot = '/footage', credDir = '/run/sentry-s
  * Mounter for the unprivileged app. `channel` is process (with an IPC
  * channel to the supervisor) or anything with send() and on('message').
  */
-function createIpcMounter({ channel = process, footageRoot = '/footage', timeoutMs = 90000 } = {}) {
+function createIpcMounter({ channel = process, footageRoot = '/footage', timeoutMs = 90000, pathMod = path } = {}) {
   const waiting = new Map();
   channel.on('message', (msg) => {
     if (!msg || msg.type !== 'mount-result' || !waiting.has(msg.requestId)) return;
@@ -102,7 +105,7 @@ function createIpcMounter({ channel = process, footageRoot = '/footage', timeout
     mount: (id, smb) => ask('mount', { id: checkId(id), smb }),
     unmount: (id, { lazy = false } = {}) => ask('unmount', { id: checkId(id), lazy: Boolean(lazy) }),
     forget: (id) => ask('forget', { id: checkId(id) }),
-    target: (id) => path.join(footageRoot, checkId(id))
+    target: (id) => pathMod.join(footageRoot, checkId(id))
   };
 }
 

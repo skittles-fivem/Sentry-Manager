@@ -857,8 +857,17 @@ test('Vehicles: Test connection checks the typed SMB details without saving anyt
     assert.equal(bad.status, 200);
     assert.deepEqual([bad.data.ok, bad.data.stage], [false, 'details']);
     assert.equal((await s.call('POST', '/api/vehicles/test-smb', body({}, { vehicleId: 'no-such-car' }))).status, 404);
-    // a share nobody answers for: a plain "could not connect", never a server error
-    const down = await s.call('POST', '/api/vehicles/test-smb', body({}));
+    // a share nobody answers for: a plain "could not connect", never a server error.
+    // Windows connects on port 445 only, so there another port is a detail it
+    // refuses up front, and the share that is not there is asked for on 445
+    // (this PC's own file server says no straight away).
+    const win = process.platform === 'win32';
+    if (win) {
+      const port = await s.call('POST', '/api/vehicles/test-smb', body({}));
+      assert.deepEqual([port.status, port.data.ok, port.data.stage], [200, false, 'details']);
+      assert.match(port.data.error, /port 445/);
+    }
+    const down = await s.call('POST', '/api/vehicles/test-smb', body(win ? { port: undefined } : {}));
     assert.equal(down.status, 200);
     assert.equal(down.data.ok, false);
     assert.equal(down.data.stage, 'connect');
