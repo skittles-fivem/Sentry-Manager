@@ -110,6 +110,26 @@ function deviceIndex(device) {
   return String(device.index);
 }
 
+// Windows: an Intel or AMD GPU is a Direct3D 11 adapter, named to ffmpeg by
+// its DXGI index (the order Windows lists the adapters in).
+const isD3d11 = (device) => device?.kind === 'd3d11';
+function deviceAdapter(device) {
+  if (!Number.isSafeInteger(device?.adapter) || device.adapter < 0) throw new RangeError('device.adapter must be a non-negative integer');
+  return String(device.adapter);
+}
+
+// The source a zero-copy tier may keep on the GPU: 8-bit 4:2:0 (what the
+// hardware decoders hand over as NV12 without a conversion) with even
+// dimensions. Anything else, or a source not inspected that far, decodes the
+// way it always did. NVENC's own zero-copy tier predates this and is not
+// limited by it.
+const ZERO_COPY_PIXEL_FORMATS = new Set(['yuv420p', 'yuvj420p']);
+function zeroCopySource(video) {
+  if (!video || !ZERO_COPY_PIXEL_FORMATS.has(video.pixFmt)) return false;
+  const even = (value) => Number.isSafeInteger(value) && value > 0 && value % 2 === 0;
+  return even(video.width) && even(video.height);
+}
+
 // holdFrames: a clip that starts before its first keyframe (see leadIn.js)
 // gets the first decodable frame repeated that many times in front, so the
 // encoded file has every frame of the original. tpad clones the frame it is
@@ -126,15 +146,34 @@ function buildEncodeArgs({ codec, encoder, bitrate, quality = null, vaapiDevice 
   const hold = holdFrames > 0 ? [`tpad=start=${holdFrames}:start_mode=clone`] : [];
 
   const args = [];
-  if (encoder.endsWith('_vaapi')) {
+  // Zero-copy input (decodeAccelArgs with zeroCopy) for VA-API, QSV and AMF:
+  // the decoder's frames are already on the encoding GPU, so there is no
+  // device to open and nothing to upload. QSV maps the VA-API or Direct3D 11
+  // frames into its own (the input arguments set up the qs device).
+  const zeroCopyOther = hwFrames && !encoder.endsWith('_nvenc');
+  const d3d11 = isD3d11(device) && (encoder.endsWith('_qsv') || encoder.endsWith('_amf'));
+  if (zeroCopyOther) {
+    if (encoder.endsWith('_qsv')) args.push('-vf', 'hwmap=derive_device=qsv,format=qsv');
+  } else if (encoder.endsWith('_vaapi')) {
     const node = device ? deviceNode(device) : vaapiDevice;
     if (typeof node !== 'string' || node.length === 0) throw new RangeError('vaapiDevice must be a non-empty path');
     args.push('-vaapi_device', node, '-vf', [...hold, 'format=nv12,hwupload'].join(','));
+  } else if (d3d11 && encoder.endsWith('_amf')) {
+    // Windows, AMF on a chosen adapter: AMF opens the system's default
+    // adapter for frames in system memory, so they are uploaded to the
+    // chosen one first and the encoder follows them there.
+    args.push('-init_hw_device', `d3d11va=amfenc:${deviceAdapter(device)}`, '-filter_hw_device', 'amfenc',
+      '-vf', [...hold, 'format=nv12,hwupload'].join(','));
   } else if (hold.length > 0) {
     args.push('-vf', hold.join(','));
   }
-  // A global option: the QSV session opens on this GPU's render node.
-  if (device && encoder.endsWith('_qsv')) args.push('-init_hw_device', `qsv=qsvenc:hw_any,child_device=${deviceNode(device)}`);
+  // A global option: the QSV session opens on this GPU's render node
+  // (Linux) or Direct3D 11 adapter (Windows).
+  if (device && encoder.endsWith('_qsv') && !zeroCopyOther) {
+    args.push('-init_hw_device', d3d11
+      ? `qsv=qsvenc:hw_any,child_device_type=d3d11va,child_device=${deviceAdapter(device)}`
+      : `qsv=qsvenc:hw_any,child_device=${deviceNode(device)}`);
+  }
 
   args.push('-c:v', encoder);
   if (device && encoder.endsWith('_nvenc')) args.push('-gpu', deviceIndex(device));
@@ -143,7 +182,8 @@ function buildEncodeArgs({ codec, encoder, bitrate, quality = null, vaapiDevice 
 
   // GPU-resident input frames (zero-copy decode) are already 8-bit 4:2:0 and
   // cannot pass through a software pixel-format conversion.
-  if (hwFrames) { /* keep frames on the GPU */ }
+  // (frames uploaded for AMF on a chosen adapter are GPU frames as well)
+  if (hwFrames || (d3d11 && encoder.endsWith('_amf'))) { /* keep frames on the GPU */ }
   else if (encoder.endsWith('_qsv')) args.push('-pix_fmt', 'nv12');
   else if (!encoder.endsWith('_vaapi')) args.push('-pix_fmt', 'yuv420p');
 
@@ -167,20 +207,56 @@ function buildEncodeArgs({ codec, encoder, bitrate, quality = null, vaapiDevice 
  * Input arguments that decode on the same GPU family as a hardware encoder.
  * Decoded frames are copied back to system memory, so the encode arguments
  * stay identical with or without them. CPU encoders get no GPU decode.
+ *
+ * zeroCopy: the decoded frames stay in GPU memory and go straight into the
+ * encoder (buildEncodeArgs with hwFrames). NVENC as always; VA-API and QSV on
+ * Linux, AMF and QSV on Windows, each only on the GPU that encodes. null when
+ * the encoder has no such tier here (the caller then decodes the usual way).
  */
 function decodeAccelArgs(encoder, { platform = process.platform, vaapiDevice = '/dev/dri/renderD128', zeroCopy = false, device = null } = {}) {
   if (typeof encoder !== 'string') return null;
   // With a device, the GPU that encodes also decodes.
   const cudaDevice = () => (device ? ['-hwaccel_device', deviceIndex(device)] : []);
-  // Zero-copy: NVDEC frames stay in GPU memory and go straight into NVENC.
-  if (zeroCopy) return encoder.endsWith('_nvenc') ? ['-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda', ...cudaDevice()] : null;
-  const vaapi = () => ['-hwaccel', 'vaapi', '-hwaccel_device', device ? deviceNode(device) : vaapiDevice];
+  const renderNode = () => (device ? deviceNode(device) : vaapiDevice);
+  if (zeroCopy) return zeroCopyArgs(encoder, { platform, cudaDevice, renderNode, device });
+  const vaapi = () => ['-hwaccel', 'vaapi', '-hwaccel_device', renderNode()];
   if (encoder.endsWith('_nvenc')) return ['-hwaccel', 'cuda', ...cudaDevice()];
   if (encoder.endsWith('_videotoolbox')) return ['-hwaccel', 'videotoolbox'];
   if (encoder.endsWith('_vaapi')) return vaapi();
   if (encoder.endsWith('_qsv') || encoder.endsWith('_amf')) {
-    if (platform === 'win32') return ['-hwaccel', 'd3d11va'];
+    if (platform === 'win32') return ['-hwaccel', 'd3d11va', ...(isD3d11(device) ? ['-hwaccel_device', deviceAdapter(device)] : [])];
     if (platform === 'linux') return vaapi();
+  }
+  return null;
+}
+
+// The zero-copy input arguments per encoder (docs/plans/windows.md, section 8).
+function zeroCopyArgs(encoder, { platform, cudaDevice, renderNode, device }) {
+  // NVDEC frames stay in GPU memory and go straight into NVENC.
+  if (encoder.endsWith('_nvenc')) return ['-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda', ...cudaDevice()];
+  if (platform === 'linux') {
+    if (encoder.endsWith('_vaapi')) {
+      return ['-hwaccel', 'vaapi', '-hwaccel_device', renderNode(), '-hwaccel_output_format', 'vaapi'];
+    }
+    // VA-API decodes; QSV maps the same surfaces (qs is derived from va).
+    if (encoder.endsWith('_qsv')) {
+      return ['-init_hw_device', `vaapi=va:${renderNode()}`, '-init_hw_device', 'qsv=qs@va', '-filter_hw_device', 'qs',
+        '-hwaccel', 'vaapi', '-hwaccel_device', 'va', '-hwaccel_output_format', 'vaapi'];
+    }
+    return null;
+  }
+  if (platform === 'win32') {
+    // Without a chosen adapter AMF encodes on the system's default one, which
+    // is where a d3d11va device without an index opens too. QSV picks its
+    // Intel GPU itself, which need not be the default adapter: no zero-copy
+    // for it without a chosen one.
+    const adapter = isD3d11(device) ? deviceAdapter(device) : null;
+    const d3d11 = adapter === null ? 'd3d11va=dx' : `d3d11va=dx:${adapter}`;
+    const input = ['-hwaccel', 'd3d11va', '-hwaccel_device', 'dx', '-hwaccel_output_format', 'd3d11'];
+    if (encoder.endsWith('_amf')) return ['-init_hw_device', d3d11, ...input, '-extra_hw_frames', '16'];
+    if (encoder.endsWith('_qsv') && adapter !== null) {
+      return ['-init_hw_device', d3d11, '-init_hw_device', 'qsv=qs@dx', '-filter_hw_device', 'qs', ...input, '-extra_hw_frames', '8'];
+    }
   }
   return null;
 }
@@ -255,11 +331,18 @@ function encoderIsAdvertised(output, codec) {
 const FAMILY_LABELS = Object.freeze({ h265: 'H.265', av1: 'AV1' });
 const ENCODER_PREFIX = Object.freeze({ h265: 'hevc', av1: 'av1' });
 
-// Hardware encoders worth trying on one GPU (Linux only; other systems have
-// no per-GPU choice): QSV then VA-API on Intel, VA-API on AMD, NVENC on NVIDIA.
+// Hardware encoders worth trying on one GPU: on Linux QSV then VA-API on
+// Intel, VA-API on AMD; on Windows QSV on Intel, AMF on AMD; NVENC on NVIDIA
+// on both. Other systems have no per-GPU choice.
 function deviceCandidates(family, device, platform) {
-  if (platform !== 'linux') return [];
   const prefix = ENCODER_PREFIX[family];
+  if (platform === 'win32') {
+    if (device.kind === 'd3d11' && device.vendor === 'intel') return [`${prefix}_qsv`];
+    if (device.kind === 'd3d11' && device.vendor === 'amd') return [`${prefix}_amf`];
+    if (device.kind === 'nvidia') return [`${prefix}_nvenc`];
+    return [];
+  }
+  if (platform !== 'linux') return [];
   if (device.kind === 'dri' && device.vendor === 'intel') return [`${prefix}_qsv`, `${prefix}_vaapi`];
   if (device.kind === 'dri' && device.vendor === 'amd') return [`${prefix}_vaapi`];
   if (device.kind === 'nvidia') return [`${prefix}_nvenc`];
@@ -385,7 +468,9 @@ function createEncoderPlanner({
     if (selectionCache.has(cacheKey)) return selectionCache.get(cacheKey);
     if (!probe) return null;
     const chosen = Object.freeze({
-      id: device.id, kind: device.kind, node: device.node ?? null, index: device.index ?? null
+      id: device.id, kind: device.kind, node: device.node ?? null, index: device.index ?? null,
+      // (Windows: the Direct3D 11 adapter of an Intel or AMD GPU)
+      ...(device.kind === 'd3d11' ? { adapter: device.adapter ?? null } : {})
     });
     const output = await advertisedEncoders();
     let timedOut = false;
@@ -475,6 +560,8 @@ function decideSizeRetry({
 module.exports = {
   SAFE_VIDEO_BITRATE_FLOORS,
   decodeAccelArgs,
+  zeroCopySource,
+  deviceCandidates,
   RETRY_REASONS,
   buildEncodeArgs,
   probeCandidate,

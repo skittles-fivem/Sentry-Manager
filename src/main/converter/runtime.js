@@ -326,7 +326,19 @@ function parseVideoProbe(result) {
   const codec = codecNames[stream?.codec_name];
   const duration = Number(stream?.duration || parsed?.format?.duration);
   if (!codec || !Number.isFinite(duration) || duration <= 0) throw runtimeError('VIDEO_INSPECTION_FAILED');
-  return { codec, durationSeconds: duration, containerReserveBytes: 0, telemetryReserveBytes: 0 };
+  // The picture format decides whether a zero-copy tier may keep the
+  // decoded frames on the GPU (encoderPlanner's zeroCopySource); unknown is
+  // never zero-copy there.
+  const size = (value) => (Number.isSafeInteger(value) && value > 0 ? value : null);
+  return {
+    codec,
+    durationSeconds: duration,
+    containerReserveBytes: 0,
+    telemetryReserveBytes: 0,
+    pixFmt: typeof stream?.pix_fmt === 'string' && /^[a-z0-9_]{1,32}$/.test(stream.pix_fmt) ? stream.pix_fmt : null,
+    width: size(stream?.width),
+    height: size(stream?.height)
+  };
 }
 
 function createRecoveryInspector({ fs, pathApi }) {
@@ -562,6 +574,8 @@ async function createConverterRuntime(options = {}) {
     platform,
     runCommand: processRunner,
     ...(typeof options.deviceNameOf === 'function' ? { nameOf: options.deviceNameOf } : {}),
+    // Windows: the helper that lists the Direct3D adapters (gpu.list)
+    ...(typeof options.requestHelper === 'function' ? { requestHelper: options.requestHelper } : {}),
     ...(options.deviceDiscovery || {})
   });
   // One lookup at a time: callers while it runs share it, and its answer
@@ -620,14 +634,25 @@ async function createConverterRuntime(options = {}) {
   // CUDA's own order, which the list can only tell when one NVIDIA GPU can
   // (`able` says which can; unknown counts as able). `probe: false`: only a
   // choice made already, else null.
+  // Windows: AMF without an adapter opens the system's default one (DXGI
+  // adapter 0); QSV takes an Intel GPU itself, which the list can only tell
+  // when there is one.
   async function defaultDeviceOf(list, family, { able = () => true, probe = true } = {}) {
     let selected;
     try { selected = await planner.select(family, { probe }); } catch (_) { return null; }
     if (!selected) return null;
     if (selected.hardware !== true) return 'cpu';
-    if (selected.codec.endsWith('_nvenc')) {
-      const nvidia = list.filter((device) => device.kind === 'nvidia' && able(device));
-      return nvidia.length === 1 ? nvidia[0].id : null;
+    const onlyOne = (match) => {
+      const found = list.filter((device) => match(device) && able(device));
+      return found.length === 1 ? found[0].id : null;
+    };
+    if (selected.codec.endsWith('_nvenc')) return onlyOne((device) => device.kind === 'nvidia');
+    if (platform === 'win32') {
+      if (selected.codec.endsWith('_amf')) {
+        return list.find((device) => device.kind === 'd3d11' && device.adapter === 0 && device.vendor === 'amd' && able(device))?.id || null;
+      }
+      if (selected.codec.endsWith('_qsv')) return onlyOne((device) => device.kind === 'd3d11' && device.vendor === 'intel');
+      return null;
     }
     return list.find((device) => device.kind === 'dri' && pathApi.basename(device.node || '') === 'renderD128')?.id || null;
   }
@@ -655,7 +680,7 @@ async function createConverterRuntime(options = {}) {
     runCommand: processRunner
   });
   const probeArgs = (source) => ['-v', 'error', '-select_streams', 'v:0',
-    '-show_entries', 'stream=codec_name,duration:format=duration', '-of', 'json', source];
+    '-show_entries', 'stream=codec_name,duration,pix_fmt,width,height:format=duration', '-of', 'json', source];
   // A busy computer (or a virus scanner checking FFprobe the first time) can
   // make one probe run out of time: that probe is tried once more, longer.
   const inspectVideo = async (_item, source, signal) => {
@@ -726,7 +751,10 @@ async function createConverterRuntime(options = {}) {
     // A lane's GPU, from the devices this container has now.
     resolveDevice,
     // A lane on another server (Nodes): sends the clip there to be encoded.
-    ...(typeof options.remoteNodes?.encode === 'function' ? { remoteEncode: options.remoteNodes.encode, comparePicture } : {}),
+    ...(typeof options.remoteNodes?.encode === 'function' ? { remoteEncode: options.remoteNodes.encode } : {}),
+    // The pictures of a node's encode, and of the first zero-copy encode on
+    // each GPU and codec, are checked against the original's.
+    comparePicture,
     ...(typeof options.remoteNodes?.trusted === 'function' ? { nodeTrusted: options.remoteNodes.trusted } : {}),
     ...(typeof options.remoteNodes?.setSlots === 'function' ? { setNodeSlots: (id, slots) => options.remoteNodes.setSlots(id, slots) } : {}),
     // The device a job without lanes encodes on: its workers and that

@@ -36,7 +36,10 @@ test('without a device every encoder gets exactly today\'s arguments', () => {
   assert.deepEqual(decodeAccelArgs('hevc_qsv', { platform: 'win32' }), ['-hwaccel', 'd3d11va']);
   assert.deepEqual(decodeAccelArgs('hevc_nvenc', { platform: 'linux' }), ['-hwaccel', 'cuda']);
   assert.deepEqual(decodeAccelArgs('hevc_nvenc', { platform: 'linux', zeroCopy: true }), ['-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda']);
-  assert.equal(decodeAccelArgs('hevc_vaapi', { platform: 'linux', zeroCopy: true }), null);
+  // VA-API's zero-copy tier (docs/plans/windows.md, section 8; zeroCopy.test.js)
+  assert.deepEqual(decodeAccelArgs('hevc_vaapi', { platform: 'linux', zeroCopy: true }),
+    ['-hwaccel', 'vaapi', '-hwaccel_device', '/dev/dri/renderD128', '-hwaccel_output_format', 'vaapi']);
+  assert.equal(decodeAccelArgs('hevc_videotoolbox', { platform: 'darwin', zeroCopy: true }), null);
   assert.equal(decodeAccelArgs('libx265', { platform: 'linux' }), null);
 });
 
@@ -60,7 +63,8 @@ test('a chosen GPU: VA-API and QSV on its render node, NVENC by its index', () =
 
   assert.deepEqual(decodeAccelArgs('hevc_vaapi', { platform: 'linux', device: ARC }), ['-hwaccel', 'vaapi', '-hwaccel_device', '/dev/dri/renderD129']);
   assert.deepEqual(decodeAccelArgs('av1_qsv', { platform: 'linux', device: ARC }), ['-hwaccel', 'vaapi', '-hwaccel_device', '/dev/dri/renderD129']);
-  assert.equal(decodeAccelArgs('hevc_qsv', { platform: 'linux', device: ARC, zeroCopy: true }), null, 'no zero-copy tier for QSV');
+  assert.deepEqual(decodeAccelArgs('hevc_qsv', { platform: 'linux', device: ARC, zeroCopy: true }).slice(0, 4),
+    ['-init_hw_device', 'vaapi=va:/dev/dri/renderD129', '-init_hw_device', 'qsv=qs@va'], 'QSV zero-copy on the chosen GPU');
   assert.deepEqual(decodeAccelArgs('hevc_nvenc', { platform: 'linux', device: RTX }), ['-hwaccel', 'cuda', '-hwaccel_device', '1']);
   assert.deepEqual(decodeAccelArgs('hevc_nvenc', { platform: 'linux', device: RTX, zeroCopy: true }),
     ['-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda', '-hwaccel_device', '1']);

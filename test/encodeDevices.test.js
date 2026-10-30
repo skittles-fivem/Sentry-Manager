@@ -178,11 +178,12 @@ test('other systems and a container without GPUs have only the CPU', async () =>
   const m = machine();
   try {
     let asked = false;
-    for (const platform of ['win32', 'darwin']) {
+    // (Windows lists its GPUs through the helper: encodeDevicesWin32.test.js)
+    for (const platform of ['darwin', 'freebsd']) {
       const list = await createDeviceDiscovery({ platform, runCommand: async () => { asked = true; return { status: 0, stdout: '' }; } }).list();
       assert.deepEqual(list.map((d) => d.id), ['cpu']);
     }
-    assert.equal(asked, false, 'nothing is run off Linux');
+    assert.equal(asked, false, 'nothing is run off Linux and Windows');
     const empty = await createDeviceDiscovery({ devRoot: path.join(m.root, 'nothing'), sysRoot: m.sys, platform: 'linux', runCommand: noNvidia }).list();
     assert.deepEqual(empty.map((d) => d.id), ['cpu']);
   } finally {

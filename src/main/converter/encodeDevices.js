@@ -6,12 +6,23 @@
 // trick (/dev/dri/renderD129:/dev/dri/renderD128) and a reboot both change
 // node names, the slot stays. Only ids from this list are ever used; a node
 // path or an NVIDIA index never comes from the browser.
+//
+// On Windows the Intel and AMD GPUs come from the helper's gpu.list (DXGI
+// adapters with their PCI address; docs/plans/windows-helper-protocol.md) as
+// kind 'd3d11' devices with their adapter index and LUID, NVIDIA's from
+// nvidia-smi exactly as on Linux. The ids are the same PCI slots, so a lane
+// saved on one system means the same GPU on the other, and nothing Windows-
+// only (adapter index, LUID) goes on the wire.
 
 const nodeFs = require('fs');
 const nodePath = require('path');
 
 const PCI_SLOT = /^[0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-7]$/i;
 const DRI_VENDORS = Object.freeze({ '0x8086': 'intel', '0x1002': 'amd' });
+// (the vendor ids of PCI, as the helper reports them for DXGI adapters)
+const D3D11_VENDORS = Object.freeze({ 0x8086: 'intel', 0x1002: 'amd' });
+const NVIDIA_VENDOR = 0x10de;
+const MICROSOFT_VENDOR = 0x1414; // the software (WARP / Basic Render) adapters
 const VENDOR_LABELS = Object.freeze({ intel: 'Intel', amd: 'AMD', nvidia: 'NVIDIA' });
 const NVIDIA_TIMEOUT_MS = 10_000;
 // The runner stops nvidia-smi at its timeout but answers only once it has
@@ -41,6 +52,13 @@ function fallbackName(vendor, pci) {
   return `${VENDOR_LABELS[vendor] || 'Unknown'} GPU (${pci})`;
 }
 
+// A vendor id as a number, from 32902, '0x8086' or '8086' (hex)
+function vendorNumber(value) {
+  if (Number.isSafeInteger(value)) return value;
+  const text = String(value ?? '').trim().toLowerCase().replace(/^0x/, '');
+  return /^[0-9a-f]{1,8}$/.test(text) ? parseInt(text, 16) : null;
+}
+
 function createDeviceDiscovery({
   fs = nodeFs,
   pathApi = nodePath,
@@ -50,7 +68,9 @@ function createDeviceDiscovery({
   runCommand,
   statRdev,
   nameOf,
-  nvidiaDeadlineMs = NVIDIA_DEADLINE_MS
+  nvidiaDeadlineMs = NVIDIA_DEADLINE_MS,
+  // Windows: (op, args, options) => the helper's answer (winHelper.request)
+  requestHelper = null
 } = {}) {
   const pfs = fs.promises || fs;
   const rdevOf = statRdev === undefined ? defaultStatRdev(fs) : statRdev;
@@ -153,8 +173,47 @@ function createDeviceDiscovery({
     return devices.sort((left, right) => left.index - right.index);
   }
 
+  // Windows: the Intel and AMD adapters DXGI lists, in its order (adapter 0
+  // is the system's default). NVIDIA's are left to nvidia-smi, software
+  // adapters and adapters without a PCI address (no id to give) are left out.
+  async function d3d11Devices() {
+    if (typeof requestHelper !== 'function') return [];
+    let answer;
+    let timer;
+    try {
+      answer = await Promise.race([
+        Promise.resolve().then(() => requestHelper('gpu.list', {}, { timeoutMs: NVIDIA_TIMEOUT_MS })),
+        new Promise((resolve) => { timer = setTimeout(() => resolve(null), nvidiaDeadlineMs); })
+      ]);
+    } catch (_) { return []; } finally { clearTimeout(timer); }
+    const adapters = Array.isArray(answer?.adapters) ? answer.adapters : [];
+    const devices = [];
+    for (const adapter of adapters) {
+      if (!adapter || adapter.software === true) continue;
+      const vendorId = vendorNumber(adapter.vendorId);
+      if (vendorId === NVIDIA_VENDOR || vendorId === MICROSOFT_VENDOR) continue;
+      const vendor = D3D11_VENDORS[vendorId] || null;
+      const pci = normalizePciSlot(adapter.pci);
+      const index = Number(adapter.index);
+      if (!vendor || !pci || !Number.isSafeInteger(index) || index < 0) continue;
+      // one GPU listed twice (DXGI repeats an adapter on some hybrid laptops)
+      if (devices.some((device) => device.pci === pci)) continue;
+      const name = typeof adapter.name === 'string' && adapter.name.trim() ? adapter.name.trim().slice(0, 128) : fallbackName(vendor, pci);
+      const luid = typeof adapter.luid === 'string' && /^0x[0-9a-f]{1,16}$/i.test(adapter.luid) ? adapter.luid.toLowerCase() : null;
+      devices.push(Object.freeze({
+        id: `pci:${pci}`, kind: 'd3d11', vendor, name, node: null, index: null, pci, adapter: index, luid
+      }));
+    }
+    return devices.sort((left, right) => left.adapter - right.adapter);
+  }
+
   return Object.freeze({
     async list() {
+      if (platform === 'win32') {
+        const d3d11 = await d3d11Devices().catch(() => []);
+        const nvidia = (await nvidiaDevices().catch(() => [])).filter((device) => !d3d11.some((other) => other.id === device.id));
+        return [...d3d11, ...nvidia, CPU_DEVICE];
+      }
       if (platform !== 'linux') return [CPU_DEVICE];
       const dri = await driDevices().catch(() => []);
       const nvidia = (await nvidiaDevices().catch(() => [])).filter((device) => !dri.some((other) => other.id === device.id));
