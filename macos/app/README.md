@@ -1,5 +1,7 @@
 # Sentry Six Manager for Mac (the app)
 
+> **Paused.** Status and how to pick it up: `docs/plans/macos-handoff.md`.
+
 The native Mac app: SwiftUI and AppKit, no web view. It runs the same engine
 (the Node server) the Terminal install runs, as a background service or in
 the user's login. The plan is `docs/plans/macos-app.md`.

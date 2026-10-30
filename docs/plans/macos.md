@@ -1,5 +1,7 @@
 # Native macOS build: contract
 
+> **Paused.** Status, what is left and how to pick it up: `docs/plans/macos-handoff.md`.
+
 The owner asked for a native macOS version of Sentry Six Manager, with no Docker. Docker Desktop on a Mac runs in a Linux VM and cannot use the GPU. The native build uses VideoToolbox, Apple's hardware encoder interface. It pairs with Docker and Windows instances as Nodes, in both directions and in any mix.
 
 **Apple Silicon (arm64) only.** The owner dropped Intel Macs. There is no x86_64 package, no Intel or AMD GPU handling and no Rosetta support. Every Apple Silicon Mac has exactly one GPU with a hardware HEVC encoder, and `-q:v` (constant quality) works on all of them. The installer refuses Intel Macs, and an x86_64 or translated (Rosetta) process refuses to start with a clear message.
