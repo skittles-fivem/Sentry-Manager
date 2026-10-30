@@ -1,5 +1,5 @@
 // Flux charts: small canvas time-series charts with hover readouts. No libraries.
-import { esc, fin } from './core.js';
+import { esc, fin, tod } from './core.js';
 
 export const C = {
   violet: '#a57cff', cyan: '#5fd6ec', green: '#5fdc9a', amber: '#f2c25b', red: '#ff7a6b', pink: '#ff86c4',
@@ -140,7 +140,7 @@ export class TimeChart {
     if (n > 1) {
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      const tf = opts.timeFormat || ((t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      const tf = opts.timeFormat || ((t) => tod(t));
       ctx.fillText(tf(this.times[0]), padL, h - 4);
       ctx.textAlign = 'right';
       ctx.fillText(tf(this.times[n - 1]), padL + pw, h - 4);
@@ -225,7 +225,7 @@ export class TimeChart {
         const v = this.data[s.key]?.[i];
         return `<div><i style="background:${s.color}"></i><span>${esc(s.label)}</span><b>${fin(v) ? esc(opts.format(v)) : '—'}</b></div>`;
       }).join('');
-      this.tip.innerHTML = `<div class="tc-time">${esc(new Date(t).toLocaleTimeString())}</div>${rows}`;
+      this.tip.innerHTML = `<div class="tc-time">${esc(tod(t, true))}</div>${rows}`;
       this.tip.hidden = false;
       const tw = this.tip.offsetWidth;
       const left = xx + 12 + tw > w ? xx - 12 - tw : xx + 12;
@@ -309,7 +309,7 @@ export class HeatStrip {
       const v = this.rows[r][i];
       ctx.strokeStyle = 'rgba(255,255,255,0.8)';
       ctx.strokeRect(i * cw + 0.5, r * rh + 0.5, Math.max(2, cw - 1), Math.max(2, rh - 2));
-      this.tip.innerHTML = `<div class="tc-time">${esc(new Date(this.times[i]).toLocaleTimeString())}</div><div><span>core ${r}</span><b>${fin(v) ? `${Math.round(v)}%` : '—'}</b></div>`;
+      this.tip.innerHTML = `<div class="tc-time">${esc(tod(this.times[i], true))}</div><div><span>core ${r}</span><b>${fin(v) ? `${Math.round(v)}%` : '—'}</b></div>`;
       this.tip.hidden = false;
       const left = this.hover.x + 14 + this.tip.offsetWidth > w ? this.hover.x - 14 - this.tip.offsetWidth : this.hover.x + 14;
       this.tip.style.left = `${Math.max(0, left)}px`;

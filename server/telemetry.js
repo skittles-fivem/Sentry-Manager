@@ -44,6 +44,65 @@ function loadParser(srcRoot) {
   };
 }
 
+/** A record's speed (field 4, float, metres per second), or null. */
+function speedOf(b64) {
+  const buf = Buffer.from(String(b64 || ''), 'base64');
+  let p = 0;
+  const vint = () => {
+    let n = 0;
+    let mul = 1;
+    for (;;) {
+      if (p >= buf.length) throw new RangeError('short');
+      const b = buf[p++];
+      n += (b & 0x7f) * mul;
+      if (!(b & 0x80)) return n;
+      mul *= 128;
+      if (mul > 2 ** 63) throw new RangeError('long');
+    }
+  };
+  try {
+    while (p < buf.length) {
+      const tag = vint();
+      const field = Math.floor(tag / 8);
+      const type = tag % 8;
+      if (type === 5) {
+        if (p + 4 > buf.length) return null;
+        if (field === 4) return buf.readFloatLE(p);
+        p += 4;
+      } else if (type === 0) vint();
+      else if (type === 1) p += 8;
+      else if (type === 2) p += vint();
+      else return null;
+    }
+  } catch { /* a short record */ }
+  return null;
+}
+
+/** One speed a second (the average, m/s; null for a second with none) from a clip's telemetry JSON. */
+function speedsOf(body) {
+  let frames;
+  try {
+    frames = JSON.parse(body).frames;
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(frames) || !frames.length) return null;
+  const sum = [];
+  const n = [];
+  const t0 = Number(frames[0][0]) || 0;
+  for (const [t, rec] of frames) {
+    const v = speedOf(rec);
+    if (v === null || !Number.isFinite(v)) continue;
+    const i = Math.max(0, Math.floor((Number(t) - t0) / 1000));
+    if (i > 7200) break;
+    sum[i] = (sum[i] || 0) + v;
+    n[i] = (n[i] || 0) + 1;
+  }
+  const out = [];
+  for (let i = 0; i < sum.length; i++) out.push(n[i] ? Math.round((sum[i] / n[i]) * 100) / 100 : null);
+  return out.length ? out : null;
+}
+
 /** Read the clip and list [timestampMs, base64 record] for frames with telemetry. */
 async function readRecords(Reader, real, size) {
   const bytes = new Uint8Array(new ArrayBuffer(size));
@@ -118,6 +177,17 @@ class Telemetry {
     return this.pending.get(key);
   }
 
+  /** A clip's speed, one value a second (speedsOf), for the viewer's timeline graph. */
+  async speeds(real) {
+    const { key, body } = await this.forFile(real);
+    this.speedMemo ||= new Map();
+    if (this.speedMemo.has(key)) return this.speedMemo.get(key);
+    const out = speedsOf(body);
+    this.speedMemo.set(key, out);
+    if (this.speedMemo.size > 5000) this.speedMemo.delete(this.speedMemo.keys().next().value);
+    return out;
+  }
+
   /** The clip's telemetry as JSON text, read in a worker thread. */
   read(real, size) {
     return new Promise((resolve, reject) => {
@@ -147,4 +217,4 @@ class Telemetry {
   }
 }
 
-module.exports = { Telemetry };
+module.exports = { Telemetry, speedOf, speedsOf };

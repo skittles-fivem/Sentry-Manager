@@ -1,5 +1,5 @@
 // Settings: vehicles, account, interface (UI packs), updates, security, system, power, appearance.
-import { esc, api, upload, state, current, setVehicle, loadVehicles, bytes, isoish, icon, toast, confirmDialog, busy, fin, store, liveDraw } from '../core.js';
+import { esc, api, upload, state, current, setVehicle, loadVehicles, bytes, isoish, icon, toast, confirmDialog, busy, fin, store, liveDraw, clockPref } from '../core.js';
 import { seg, wireSeg, chip } from '../ui.js';
 
 const TABS = [['vehicles', 'Vehicles'], ['account', 'Account'], ['interface', 'Interface'], ['updates', 'Updates'], ['security', 'Security'], ['system', 'System'], ['power', 'Electricity'], ['appearance', 'Appearance']];
@@ -342,14 +342,21 @@ async function power(box) {
 async function appearance(box) {
   const s = await api('/api/settings');
   const calm = Boolean(s.appearance?.reduceEffects);
+  if (s.appearance) clockPref.h24 = Boolean(s.appearance.clock24);
   box.innerHTML = `<section class="card"><header class="card-h"><h2>Appearance</h2></header>
     <p class="small muted">Flux is dark only. Motion follows your system's reduced-motion setting; you can also turn it down for everyone here.</p>
     <label class="check"><input type="checkbox" id="calm"${calm ? ' checked' : ''}> Reduce effects (no animations or glow, for slower devices)</label>
+    <label class="check"><input type="checkbox" id="clock24"${clockPref.h24 ? ' checked' : ''}> 24-hour clock (for everyone; otherwise times read like 3:10 PM)</label>
     <label class="check"><input type="checkbox" id="dense"${store.get('dense', false) ? ' checked' : ''}> Extra-dense tables in this browser</label>
     <p class="small faint">Keyboard: press <kbd>?</kbd> for every shortcut, <kbd>Ctrl</kbd> <kbd>K</kbd> for the command palette.</p></section>`;
   box.querySelector('#calm').onchange = (e) => busy(null, async () => {
     await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: e.target.checked } });
     document.documentElement.classList.toggle('calm', e.target.checked);
+    toast('Saved.');
+  });
+  box.querySelector('#clock24').onchange = (e) => busy(null, async () => {
+    await api('/api/settings/appearance', { method: 'PUT', body: { clock24: e.target.checked } });
+    clockPref.h24 = e.target.checked;
     toast('Saved.');
   });
   box.querySelector('#dense').onchange = (e) => {

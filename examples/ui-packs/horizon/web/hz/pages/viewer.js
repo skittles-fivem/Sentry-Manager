@@ -1,7 +1,7 @@
 // Viewer: a full-bleed heads-up display. The main camera fills the stage with the
 // car's telemetry drawn over it (speed, gear, blinkers, Autopilot, brake, wheel);
 // the other cameras ride along as picture-in-picture tiles you tap to swap in.
-import { h, ico, api, car, toast, local, ok, dayName, words, mmss, CAMS, CAM_NAME, CAM_TAG } from '../core.js';
+import { h, ico, api, send, car, toast, local, ok, dayName, words, mmss, wall, CAMS, CAM_NAME, CAM_TAG } from '../core.js';
 import { load as loadTel, at as telAt, rate as telRate } from '../telemetry.js';
 
 const FILE_RE = /(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})-([a-z0-9_]+)\.mp4$/i;
@@ -78,6 +78,7 @@ export default {
         </div>
         <div class="vw-bar hud cyan">
           <div class="tl" id="vw-tl" role="slider" tabindex="0" aria-label="Position in the playlist" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <canvas class="tl-spd" id="vw-spd" aria-hidden="true"></canvas><span class="tl-max num" id="vw-spdmax" hidden></span>
             <div class="tl-clips" id="vw-tlc"></div><div class="tl-head" id="vw-tlh"></div>
           </div>
           <div class="transport">
@@ -125,7 +126,7 @@ export default {
         day = d.day;
         list = (await api(`/api/vehicles/${encodeURIComponent(v.id)}/recordings?date=${encodeURIComponent(d.day)}&limit=500`)).recordings;
         recs = [d];
-        $('#vw-title').textContent = `${d.category} · ${d.start.slice(11)}`;
+        $('#vw-title').textContent = `${d.category} · ${wall(d.start)}`;
         $('#vw-sub').textContent = `${dayName(d.day, true)}${d.event ? ` · ${[words(d.event.reason), d.event.city, d.event.street].filter(Boolean).join(' · ')}` : ''}`;
       } else {
         if (!day) {
@@ -144,7 +145,7 @@ export default {
     }
     function drawPick({ list, recId, day }) {
       const sel = $('#vw-pick');
-      sel.innerHTML = `${day ? `<option value="day:${h(day)}"${recId ? '' : ' selected'}>Whole day · ${h(dayName(day))}</option>` : ''}${list.slice().sort((a, b) => String(a.startKey).localeCompare(String(b.startKey))).map((r) => `<option value="${h(r.id)}"${r.id === recId ? ' selected' : ''}>${h(r.start.slice(11))} · ${h(r.category)}${r.eventAt ? ' · event' : ''}</option>`).join('')}`;
+      sel.innerHTML = `${day ? `<option value="day:${h(day)}"${recId ? '' : ' selected'}>Whole day · ${h(dayName(day))}</option>` : ''}${list.slice().sort((a, b) => String(a.startKey).localeCompare(String(b.startKey))).map((r) => `<option value="${h(r.id)}"${r.id === recId ? ' selected' : ''}>${h(wall(r.start))} · ${h(r.category)}${r.eventAt ? ' · event' : ''}</option>`).join('')}`;
       sel.onchange = () => go(sel.value.startsWith('day:') ? `#/viewer?day=${encodeURIComponent(sel.value.slice(4))}` : `#/viewer?rec=${encodeURIComponent(sel.value)}`);
     }
 
@@ -159,8 +160,81 @@ export default {
         if (c.eventAt && c.at && c.eventAt >= c.at && c.eventAt < c.at + lenOf(c) * 1000 + 30000) mark = `<i class="tl-ev" style="left:${Math.min(100, ((c.eventAt - c.at) / 1000 / lenOf(c)) * 100).toFixed(1)}%"></i>`;
         return `<span class="tl-c c-${h(c.cat)}${i === st.i ? ' on' : ''}" style="width:${((lenOf(c) / T) * 100).toFixed(3)}%">${mark}</span>`;
       }).join('');
-      $('#vw-clips').innerHTML = st.clips.map((c, i) => `<li><button type="button" class="clipbtn${i === st.i ? ' on' : ''}" data-clip="${i}"${i === st.i ? ' aria-current="true"' : ''}><span class="num faint">${String(i + 1).padStart(2, '0')}</span><b class="num">${h(c.key.slice(11).replace(/-/g, ':'))}</b><span class="pill ${c.cat === 'Sentry' ? 'org' : c.cat === 'Saved' ? 'grn' : 'cyan'}">${h(c.cat)}</span><span class="num faint small">${ok(c.len) ? mmss(c.len) : ''} · ${Object.keys(c.files).length} cams</span></button></li>`).join('');
+      drawSpeed();
+      $('#vw-clips').innerHTML = st.clips.map((c, i) => `<li><button type="button" class="clipbtn${i === st.i ? ' on' : ''}" data-clip="${i}"${i === st.i ? ' aria-current="true"' : ''}><span class="num faint">${String(i + 1).padStart(2, '0')}</span><b class="num">${h(wall(c.key))}</b><span class="pill ${c.cat === 'Sentry' ? 'org' : c.cat === 'Saved' ? 'grn' : 'cyan'}">${h(c.cat)}</span><span class="num faint small">${ok(c.len) ? mmss(c.len) : ''} · ${Object.keys(c.files).length} cams</span></button></li>`).join('');
     }
+    // ---------- speed over the whole timeline ----------
+    // one speed a second per clip (m/s, null where there is none), read from
+    // the front camera a few clips at a time once playback has started
+    function drawSpeed() {
+      const cv = $('#vw-spd');
+      const w = cv.clientWidth;
+      const hgt = cv.clientHeight;
+      if (!w || !hgt) return;
+      const dpr = window.devicePixelRatio || 1;
+      if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(hgt * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(hgt * dpr); }
+      const g = cv.getContext('2d');
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.clearRect(0, 0, w, hgt);
+      let top = 0;
+      for (const c of st.clips) for (const x of c.spd || []) if (x > top) top = x;
+      const f = st.units === 'mph' ? 2.23694 : 3.6;
+      const lab = $('#vw-spdmax');
+      lab.hidden = !(top > 0);
+      if (!(top > 0)) return;
+      lab.textContent = `top ${Math.round(top * f)} ${st.units === 'mph' ? 'mph' : 'km/h'}`;
+      const T = total() || 1;
+      const scale = Math.max(top, 5);
+      let acc = 0;
+      g.lineWidth = 1.5;
+      g.strokeStyle = '#ff4fd8';
+      g.fillStyle = 'rgba(255, 79, 216, 0.22)';
+      for (const c of st.clips) {
+        const len = lenOf(c);
+        const sp = c.spd;
+        if (sp?.length) {
+          const x0 = (acc / T) * w;
+          const per = (len / T) * w / Math.max(len, sp.length);
+          let run = [];
+          const flush = () => {
+            if (run.length > 1) {
+              g.beginPath();
+              g.moveTo(run[0][0], hgt);
+              for (const [x, y] of run) g.lineTo(x, y);
+              g.lineTo(run[run.length - 1][0], hgt);
+              g.closePath();
+              g.fill();
+              g.beginPath();
+              run.forEach(([x, y], k) => (k ? g.lineTo(x, y) : g.moveTo(x, y)));
+              g.stroke();
+            }
+            run = [];
+          };
+          sp.forEach((x, k) => {
+            if (!ok(x)) { flush(); return; }
+            run.push([x0 + (k + 0.5) * per, hgt - 1 - (Math.abs(x) / scale) * (hgt - 3)]);
+          });
+          flush();
+        }
+        acc += len;
+      }
+    }
+    async function loadSpeeds() {
+      const todo = st.clips.filter((c) => c.files.front && c.spd === undefined);
+      for (let k = 0; k < todo.length && alive; k += 6) {
+        const part = todo.slice(k, k + 6);
+        try {
+          const { speeds } = await send('/api/telemetry/speeds', JSON.stringify({ paths: part.map((c) => c.files.front) }), { 'Content-Type': 'application/json' });
+          part.forEach((c, j) => { c.spd = Array.isArray(speeds?.[j]) ? speeds[j] : null; });
+        } catch {
+          return;
+        }
+        if (alive) drawSpeed();
+      }
+    }
+    const spdSize = new ResizeObserver(() => drawSpeed());
+    spdSize.observe($('#vw-tl'));
+
     $('#vw-clips').addEventListener('click', (e) => {
       const b = e.target.closest('[data-clip]');
       if (b) open(Number(b.dataset.clip), 0, st.playing);
@@ -177,7 +251,7 @@ export default {
       const c = st.clips[st.i];
       if (c?.at) {
         const d = new Date(c.at + t * 1000);
-        $('#h-clock').textContent = d.toISOString().slice(11, 19);
+        $('#h-clock').textContent = wall(d.toISOString().slice(11, 19));
       }
     }
     function seekAll(sec) {
@@ -420,6 +494,7 @@ export default {
       $('#vw-units').textContent = u === 'mph' ? 'mph' : 'km/h';
       $('#h-unit').textContent = u === 'mph' ? 'MPH' : 'KM/H';
       drawHud();
+      drawSpeed();
     }
     stage.addEventListener('click', (e) => {
       const b = e.target.closest('.cam-swap');
@@ -463,7 +538,7 @@ export default {
       info = await build();
     } catch (err) {
       say(`<b>${h(err.message)}</b>`);
-      return { unmount() { alive = false; document.removeEventListener('visibilitychange', onVis); } };
+      return { unmount() { alive = false; spdSize.disconnect(); document.removeEventListener('visibilitychange', onVis); } };
     }
     drawPick(info);
     $('#h-tag').textContent = info.recId ? $('#vw-title').textContent : (info.day ? dayName(info.day) : '');
@@ -479,11 +554,13 @@ export default {
         if (k >= 0) { start = k; off = Math.max(0, (ev.eventAt - st.clips[k].at) / 1000 - 5); }
       }
       await open(start, off, params.get('autoplay') !== '0');
+      loadSpeeds();
     }
 
     return {
       unmount() {
         alive = false;
+        spdSize.disconnect();
         cancelAnimationFrame(raf);
         document.removeEventListener('visibilitychange', onVis);
         document.body.classList.remove('theater-on');

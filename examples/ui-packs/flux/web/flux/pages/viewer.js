@@ -1,6 +1,6 @@
 // Viewer: a six-camera synced player with frame stepping, speed, a playlist
 // timeline, camera layouts and a live telemetry readout.
-import { esc, api, current, icon, toast, store, fin, clock, dayTitle, CAMERAS, CAMERA_LABEL, CAMERA_SHORT, humanize, reducedMotion } from '../core.js';
+import { esc, api, current, icon, toast, store, fin, clock, wall, wallDay, dayTitle, CAMERAS, CAMERA_LABEL, CAMERA_SHORT, humanize, reducedMotion } from '../core.js';
 import { telemetryFor, recordAt, fpsOf } from '../telemetry.js';
 import { TimeChart, C } from '../charts.js';
 import { split, seg, wireSeg, empty } from '../ui.js';
@@ -148,7 +148,7 @@ export default {
         const all = await api(`/api/vehicles/${encodeURIComponent(v.id)}/recordings?date=${encodeURIComponent(d.day)}&limit=500`);
         pickList = all.recordings;
         recs = [d];
-        st.title = `${d.category} · ${d.start}`;
+        st.title = `${d.category} · ${wallDay(d.start)}`;
         $('#vw-sub').textContent = `${d.folder}${d.event ? ` · ${[humanize(d.event.reason), d.event.city, d.event.street].filter(Boolean).join(' · ')}` : ''}`;
       } else {
         let date = day;
@@ -172,7 +172,7 @@ export default {
     function drawPick({ pickList, recId }) {
       const sel = $('#vw-pick');
       const day = pickList[0]?.day;
-      sel.innerHTML = `${day ? `<option value="day:${esc(day)}"${recId ? '' : ' selected'}>Whole day ${esc(day)}</option>` : ''}${pickList.slice().sort((a, b) => String(a.startKey).localeCompare(String(b.startKey))).map((r) => `<option value="${esc(r.id)}"${r.id === recId ? ' selected' : ''}>${esc(r.start.slice(11))} · ${esc(r.category)}${r.eventAt ? ' ★' : ''}</option>`).join('')}`;
+      sel.innerHTML = `${day ? `<option value="day:${esc(day)}"${recId ? '' : ' selected'}>Whole day ${esc(day)}</option>` : ''}${pickList.slice().sort((a, b) => String(a.startKey).localeCompare(String(b.startKey))).map((r) => `<option value="${esc(r.id)}"${r.id === recId ? ' selected' : ''}>${esc(wall(r.start))} · ${esc(r.category)}${r.eventAt ? ' ★' : ''}</option>`).join('')}`;
       sel.onchange = () => {
         const val = sel.value;
         go(val.startsWith('day:') ? `#/viewer?day=${encodeURIComponent(val.slice(4))}` : `#/viewer?rec=${encodeURIComponent(val)}`);
@@ -193,7 +193,7 @@ export default {
         }
         return `<span class="tl-seg cat-${esc(s.category)}${i === st.idx ? ' on' : ''}" style="width:${((durOf(s) / T) * 100).toFixed(3)}%" title="${esc(s.key)}">${mark}</span>`;
       }).join('');
-      $('#vw-segs').innerHTML = st.segs.map((s, i) => `<li><button type="button" class="${i === st.idx ? 'on' : ''}" data-seg="${i}"><span class="num">${String(i + 1).padStart(2, '0')}</span><span class="mono">${esc(s.key.slice(11).replace(/-/g, ':'))}</span><span class="cat ${esc(s.category)}">${esc(s.category)}</span><span class="faint small num">${fin(s.dur) ? clock(s.dur) : ''} · ${Object.keys(s.files).length} cams</span></button></li>`).join('');
+      $('#vw-segs').innerHTML = st.segs.map((s, i) => `<li><button type="button" class="${i === st.idx ? 'on' : ''}" data-seg="${i}"><span class="num">${String(i + 1).padStart(2, '0')}</span><span class="mono">${esc(wall(s.key))}</span><span class="cat ${esc(s.category)}">${esc(s.category)}</span><span class="faint small num">${fin(s.dur) ? clock(s.dur) : ''} · ${Object.keys(s.files).length} cams</span></button></li>`).join('');
       $('#vw-count').textContent = `${st.segs.length} clips · ${clock(total())}`;
     }
     $('#vw-segs').addEventListener('click', (e) => {

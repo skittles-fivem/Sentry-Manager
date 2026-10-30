@@ -1,6 +1,6 @@
 // Horizon shell: the dashboard HUD strip with its radio display, the phone tuner
 // bar and quick-action button, routing, keyboard, live updates and badges.
-import { qs, qsa, h, ico, api, conv, app, car, pickCar, loadCars, loadNotes, bus, toast, sheet, act } from './core.js';
+import { qs, qsa, h, ico, api, conv, app, car, pickCar, loadCars, loadNotes, bus, toast, sheet, act, clockPref } from './core.js';
 
 export const PAGES = [
   { id: 'dashboard', label: 'Dashboard', short: 'Dash', icon: 'dash' },
@@ -287,6 +287,7 @@ qs('#hz-dlg').addEventListener('click', (e) => { if (e.target.id === 'hz-dlg') e
     const s = await api('/api/settings');
     app.power = s.power || null;
     document.documentElement.classList.toggle('calm-ui', Boolean(s.appearance?.reduceEffects));
+    clockPref.h24 = Boolean(s.appearance?.clock24);
   } catch { /* pages show errors */ }
   await Promise.all([loadCars().catch(() => {}), loadNotes().catch(() => {})]);
   drawCarPick();

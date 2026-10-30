@@ -1,7 +1,7 @@
 // Footage: a calendar of days with pictures. Tap a day to see what the car
 // recorded, play it, keep it safe (protect) or move it to the Recycle Bin.
 
-import { api, esc, enc, icon, bytes, plural, dayTitle, dayShort, niceTime, CATEGORY, CODEC, humanize, chip, emptyState, confirmDialog, toast, fail, busy, ago, store, liveDraw } from '../core.js';
+import { api, esc, enc, icon, bytes, plural, dayTitle, dayShort, niceTime, CATEGORY, CODEC, humanize, chip, emptyState, confirmDialog, toast, fail, busy, ago, store, liveDraw, wall } from '../core.js';
 import { state, vehicle, setVehicle, vehiclePicker, loadVehicles } from '../state.js';
 import { go } from '../app.js';
 
@@ -241,7 +241,7 @@ async function filesBody(v, r) {
   const d = await api(`/api/vehicles/${enc(v.id)}/recordings/${enc(r.id)}`);
   const ev = d.event ? `<p class="small"><b>${esc(humanize(d.event.reason) || 'Event')}</b>${d.event.street || d.event.city ? ` · ${esc([d.event.street, d.event.city].filter(Boolean).join(', '))}` : ''}</p>` : '';
   const codecTag = (f) => (!('codec' in f) ? '<span></span>' : !f.codec ? '<span class="muted">checking</span>' : chip(CODEC[f.codec] || f.codec.toUpperCase(), f.codec === 'h264' ? 'grey' : 'teal'));
-  return `${ev}<p class="small muted">Folder: <span class="mono">${esc(d.folder)}</span> · captured ${esc(d.startKey || d.day)} (car’s time)</p>
+  return `${ev}<p class="small muted">Folder: <span class="mono">${esc(d.folder)}</span> · captured ${esc(d.startKey ? `${d.startKey.slice(0, 10)} ${wall(d.startKey)}` : d.day)} (car’s time)</p>
     <ul class="files">${d.files.map((f) => `<li><span title="${esc(f.rel)}">${esc(f.rel.split('/').pop())}</span>${codecTag(f)}<span class="muted">${bytes(f.size)}</span><a class="btn btn-ghost btn-sm" href="/api/media?path=${enc(f.path)}" download>${icon('download')}<span class="sr-only">Download ${esc(f.rel.split('/').pop())}</span></a></li>`).join('')}</ul>`;
 }
 

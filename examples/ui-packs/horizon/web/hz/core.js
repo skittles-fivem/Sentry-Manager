@@ -60,8 +60,20 @@ export function since(ts) {
   if (s < 86400) return `${Math.round(s / 3600)} h ago`;
   return `${Math.round(s / 86400)} d ago`;
 }
-export const stamp = (ts) => (ts ? new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
-export const stampFull = (ts) => (ts ? new Date(ts).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—');
+/** 12- or 24-hour clock, from appearance.clock24 in /api/settings. */
+export const clockPref = { h24: false };
+export const hourOpts = (o = {}) => ({ ...o, hour: clockPref.h24 ? '2-digit' : 'numeric', hour12: !clockPref.h24 });
+export const stamp = (ts) => (ts ? new Date(ts).toLocaleString(undefined, hourOpts({ month: 'short', day: 'numeric', minute: '2-digit' })) : '—');
+export const stampFull = (ts) => (ts ? new Date(ts).toLocaleString(undefined, hourOpts({ year: 'numeric', month: 'short', day: 'numeric', minute: '2-digit', second: '2-digit' })) : '—');
+/** A wall-clock time from car text ("2024-05-01 06:07:45", "…_06-07-45", "06:07:45") in the chosen clock. */
+export function wall(s, secs = true) {
+  const m = /(?:^|[ T_])(\d{1,2})[:-](\d{2})(?:[:-](\d{2}))?$/.exec(String(s || ''));
+  if (!m) return String(s || '');
+  const tail = `:${m[2]}${secs && m[3] ? `:${m[3]}` : ''}`;
+  const hr = Number(m[1]);
+  return clockPref.h24 ? `${String(hr).padStart(2, '0')}${tail}` : `${hr % 12 || 12}${tail} ${hr < 12 ? 'AM' : 'PM'}`;
+}
+export const wallDay = (s) => (s ? `${String(s).slice(0, 10)} ${wall(s)}` : '');
 export const watt = (w) => (ok(w) ? `${w >= 10 ? Math.round(w) : w.toFixed(1)} W` : '—');
 export const wh = (x) => (!ok(x) ? '—' : x < 1000 ? `${x.toFixed(x < 100 ? 1 : 0)} Wh` : `${(x / 1000).toFixed(2)} kWh`);
 export function cash(v, cur = '$') {

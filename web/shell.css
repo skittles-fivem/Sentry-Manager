@@ -82,6 +82,7 @@ p { margin: 0; }
 
 .main { padding: 22px 32px 64px 48px; min-width: 0; }
 .topbar { display: flex; justify-content: space-between; align-items: center; color: var(--text-2); margin-bottom: 40px; font-size: 14px; }
+.top-checks { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 18px; }
 .crumb { color: var(--text-2); }
 .check { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; -webkit-user-select: none; user-select: none; }
 .check input { width: 17px; height: 17px; accent-color: var(--accent); margin: 0; }

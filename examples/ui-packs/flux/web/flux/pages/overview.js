@@ -1,5 +1,5 @@
 // Overview: live telemetry console from /api/stats and /api/stats/history.
-import { esc, api, state, current, bytes, rate, pct, num, watts, energy, money, dur, ago, when, isoish, fin, store, toast, confirmDialog, busy, plural, icon, debounce, liveDraw } from '../core.js';
+import { esc, api, state, current, bytes, rate, pct, num, watts, energy, money, dur, ago, when, isoish, tod, fin, store, toast, confirmDialog, busy, plural, icon, debounce, liveDraw } from '../core.js';
 import { TimeChart, HeatStrip, C, PALETTE, coreBars } from '../charts.js';
 import { split, seg, wireSeg, meter, chip } from '../ui.js';
 
@@ -67,7 +67,7 @@ export default {
     split(el.querySelector('#ov-split'), { id: 'overview', initial: Math.max(560, Math.round((el.clientWidth || 1200) - 380)), min: 480, max: 2400 });
 
     const pctFmt = (v) => `${Math.round(v)}%`;
-    const timeFmt = () => (range === '24h' ? (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null);
+    const timeFmt = () => (range === '24h' ? (t) => tod(t) : null);
     charts.cpu = new TimeChart(el.querySelector('#ch-cpu'), { height: 130, max: 100, format: pctFmt, series: [{ key: 'cpu', label: 'CPU', color: C.violet }, { key: 'ff', label: 'ffmpeg', color: C.cyan, fill: false, dash: [4, 3] }] });
     charts.heat = new HeatStrip(el.querySelector('#ch-heat'), { height: 64 });
     charts.gpu = new TimeChart(el.querySelector('#ch-gpu'), { height: 110, max: 100, format: pctFmt, series: [{ key: 'gpuBusy', label: 'Busy / 3D', color: C.pink }, { key: 'gpuVideo', label: 'Video engine', color: C.cyan }] });

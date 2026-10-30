@@ -1,6 +1,6 @@
 // Footage: days on the left, a dense sortable/filterable recordings table on the right,
 // keyboard bulk selection and a raw-JSON inspector drawer.
-import { esc, api, state, current, bytes, plural, dayTitle, ago, icon, toast, confirmDialog, busy, jsonHtml, debounce, store, CAMERAS, CAMERA_LABEL, CAMERA_SHORT, humanize, liveDraw } from '../core.js';
+import { esc, api, state, current, bytes, plural, dayTitle, ago, icon, toast, confirmDialog, busy, jsonHtml, debounce, store, CAMERAS, CAMERA_LABEL, CAMERA_SHORT, humanize, liveDraw, wall, wallDay } from '../core.js';
 import { split, seg, wireSeg, drawer, empty, chip } from '../ui.js';
 
 const CODEC = { h264: 'H.264', h265: 'H.265', av1: 'AV1', hevc: 'H.265' };
@@ -211,7 +211,7 @@ export default {
         return `<tr data-id="${esc(r.id)}" data-i="${i}" class="${sel ? 'sel' : ''}${i === f.cursor ? ' cur' : ''}" aria-selected="${sel}">
           <td class="cb"><label class="cbl"><input type="checkbox" aria-label="Select ${esc(r.start)}"${sel ? ' checked' : ''}></label></td>
           <td class="thumbc">${r.thumbRel || r.frontRel ? `<img loading="lazy" alt="" src="/api/vehicles/${encodeURIComponent(v.id)}/recordings/${encodeURIComponent(r.id)}/thumbnail">` : ''}</td>
-          <td class="mono nowrap">${esc(r.start || r.day)}<div class="faint small">${r.end && r.end !== r.start ? `→ ${esc(r.end.slice(11))}` : ''}${r.eventAt ? ` · event ${esc(r.eventAt.slice(11))}` : ''}</div></td>
+          <td class="mono nowrap">${esc(r.start ? wallDay(r.start) : r.day)}<div class="faint small">${r.end && r.end !== r.start ? `→ ${esc(wall(r.end))}` : ''}${r.eventAt ? ` · event ${esc(wall(r.eventAt))}` : ''}</div></td>
           <td><span class="cat ${esc(cat)}">${esc(cat)}</span></td>
           <td class="r num">${r.minutes}m</td>
           <td>${camsCell(r)}</td>
@@ -350,7 +350,7 @@ export default {
       await Promise.all([loadRecs(), loadDays()]);
     }
     async function inspect(r) {
-      const d = drawer({ title: `Recording ${r.start}`, wide: true, html: '<div class="loading"><i></i><i></i><i></i></div>' });
+      const d = drawer({ title: `Recording ${wallDay(r.start)}`, wide: true, html: '<div class="loading"><i></i><i></i><i></i></div>' });
       let detail;
       try {
         detail = await api(`/api/vehicles/${encodeURIComponent(v.id)}/recordings/${encodeURIComponent(r.id)}`);
@@ -369,7 +369,7 @@ export default {
           ${r.thumbRel || r.frontRel ? `<img class="insp-thumb" alt="Thumbnail" src="/api/vehicles/${encodeURIComponent(v.id)}/recordings/${encodeURIComponent(r.id)}/thumbnail">` : ''}
           <dl class="kv">
             <dt>id</dt><dd class="mono">${esc(detail.id)}</dd><dt>type</dt><dd>${esc(detail.type)} · ${esc(detail.category)}</dd>
-            <dt>start → end</dt><dd class="mono">${esc(detail.start)} → ${esc(detail.end)}</dd><dt>event at</dt><dd class="mono">${esc(detail.eventAt || '—')}</dd>
+            <dt>start → end</dt><dd class="mono">${esc(wallDay(detail.start))} → ${esc(wallDay(detail.end))}</dd><dt>event at</dt><dd class="mono">${esc(wallDay(detail.eventAt) || '—')}</dd>
             <dt>cameras</dt><dd>${esc(detail.cameras.map((c) => CAMERA_LABEL[c] || c).join(', '))}</dd><dt>size</dt><dd class="num">${bytes(detail.bytes)} · ${detail.fileCount} files · ${detail.clipCount} clips</dd>
             <dt>encoded</dt><dd class="num">${detail.encoded?.encoded ?? 0}/${detail.encoded?.clips ?? 0} clips ${esc((detail.encoded?.codecs || []).map((c) => CODEC[c] || c).join(', '))}</dd>
             <dt>protected</dt><dd>${detail.protected ? 'yes' : 'no'}</dd><dt>folder</dt><dd class="mono small wrap">${esc(detail.folderPath)}</dd>

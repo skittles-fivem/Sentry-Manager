@@ -58,8 +58,21 @@ export function ago(ts) {
   if (s < 86400) return `${Math.round(s / 3600)} h ago`;
   return `${Math.round(s / 86400)} d ago`;
 }
-export const when = (ts) => (ts ? new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
-export const whenFull = (ts) => (ts ? new Date(ts).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—');
+/** 12- or 24-hour clock, from appearance.clock24 in /api/settings. */
+export const clockPref = { h24: false };
+export const hourOpts = (o = {}) => ({ ...o, hour: clockPref.h24 ? '2-digit' : 'numeric', hour12: !clockPref.h24 });
+export const when = (ts) => (ts ? new Date(ts).toLocaleString(undefined, hourOpts({ month: 'short', day: 'numeric', minute: '2-digit' })) : '—');
+export const whenFull = (ts) => (ts ? new Date(ts).toLocaleString(undefined, hourOpts({ year: 'numeric', month: 'short', day: 'numeric', minute: '2-digit', second: '2-digit' })) : '—');
+/** A wall-clock time from car text ("2024-05-01 06:07:45", "…_06-07-45", "06:07:45") in the chosen clock. */
+export function wall(s, secs = true) {
+  const m = /(?:^|[ T_])(\d{1,2})[:-](\d{2})(?:[:-](\d{2}))?$/.exec(String(s || ''));
+  if (!m) return String(s || '');
+  const tail = `:${m[2]}${secs && m[3] ? `:${m[3]}` : ''}`;
+  const hr = Number(m[1]);
+  return clockPref.h24 ? `${String(hr).padStart(2, '0')}${tail}` : `${hr % 12 || 12}${tail} ${hr < 12 ? 'AM' : 'PM'}`;
+}
+/** An hour of the day (0–23) as "3 PM" or "15:00". */
+export const hourName = (hr) => (clockPref.h24 ? `${String(hr).padStart(2, '0')}:00` : `${hr % 12 || 12} ${hr < 12 ? 'AM' : 'PM'}`);
 export const watts = (w) => (fin(w) ? `${w >= 10 ? Math.round(w) : w.toFixed(1)} W` : '—');
 export const energy = (wh) => (fin(wh) ? (wh < 1000 ? `${wh.toFixed(wh < 100 ? 1 : 0)} Wh` : `${(wh / 1000).toFixed(2)} kWh`) : '—');
 export function money(v, cur = '$') {
@@ -78,7 +91,7 @@ export const dayParts = (day) => {
   if (Number.isNaN(d.getTime())) return { wd: '', dd: day, mon: '' };
   return { wd: d.toLocaleDateString(undefined, { weekday: 'short' }), dd: String(d.getDate()), mon: d.toLocaleDateString(undefined, { month: 'short' }) };
 };
-export const timeOf = (stamp) => String(stamp || '').slice(11, 16);
+export const timeOf = (stamp) => (stamp ? wall(stamp, false) : '');
 
 // ---------- toasts ----------
 export function toast(msg, kind = 'ok') {

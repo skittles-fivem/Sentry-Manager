@@ -1,7 +1,7 @@
 // Settings: vehicles (with a guided "add my vehicle"), account, look,
 // interface packs, security, updates, system and the electricity price.
 
-import { api, upload, esc, enc, icon, bytes, plural, when, ago, chip, kv, details, emptyState, confirmDialog, modal, toast, fail, busy, store, fin, liveDraw } from '../core.js';
+import { api, upload, esc, enc, icon, bytes, plural, when, ago, chip, kv, details, emptyState, confirmDialog, modal, toast, fail, busy, store, fin, liveDraw, clockPref } from '../core.js';
 import { state, loadVehicles, shareHealth, setVehicle, vehicleById } from '../state.js';
 import { go, setTheme, currentTheme, signOut } from '../app.js';
 
@@ -246,6 +246,7 @@ async function look({ el }) {
       <div><p class="field" style="margin-bottom:8px">Light or dark</p><div class="seg" role="group" aria-label="Light or dark">${[['auto', 'Follow my device'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => `<button type="button" data-theme-pick="${k}" aria-pressed="${t === k}">${l}</button>`).join('')}</div>
         <p class="muted small" style="margin-top:6px">Saved in this browser.</p></div>
       <label class="switch"><input type="checkbox" id="calm"${calm ? ' checked' : ''}><span>Calm mode: fewer animations, for everyone who signs in</span></label>
+      <label class="switch"><input type="checkbox" id="clock24"${clockPref.h24 ? ' checked' : ''}><span>24-hour clock, for everyone who signs in (otherwise times read like 3:10 PM)</span></label>
       <p class="muted small">Your device’s “reduce motion” setting is always respected as well.</p></div>`;
     el.querySelectorAll('[data-theme-pick]').forEach((b) => { b.onclick = () => { setTheme(b.dataset.themePick); draw(); el.querySelector(`[data-theme-pick="${b.dataset.themePick}"]`)?.focus(); }; });
     el.querySelector('#calm').onchange = async (e) => {
@@ -254,8 +255,15 @@ async function look({ el }) {
       store.set('calm', on);
       try { await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: on } }); toast(on ? 'Calm mode on.' : 'Calm mode off.', { kind: 'good' }); } catch (err) { fail(err); }
     };
+    el.querySelector('#clock24').onchange = async (e) => {
+      const on = e.target.checked;
+      try { await api('/api/settings/appearance', { method: 'PUT', body: { clock24: on } }); clockPref.h24 = on; toast(on ? '24-hour clock on.' : '12-hour clock on.', { kind: 'good' }); } catch (err) { e.target.checked = !on; fail(err); }
+    };
   };
-  if (settings.appearance) document.documentElement.classList.toggle('calm', Boolean(settings.appearance.reduceEffects));
+  if (settings.appearance) {
+    document.documentElement.classList.toggle('calm', Boolean(settings.appearance.reduceEffects));
+    clockPref.h24 = Boolean(settings.appearance.clock24);
+  }
   draw();
 }
 

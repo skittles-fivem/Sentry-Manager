@@ -2,7 +2,7 @@
 // make it big, tap it again for the grid. Big, simple play controls, the
 // driving data under the picture, and keyboard shortcuts.
 
-import { api, esc, enc, icon, bytes, plural, dayTitle, dayShort, niceTime, CATEGORY, chip, emptyState, store, toast, fail, details, clockOf } from '../core.js';
+import { api, esc, enc, icon, bytes, plural, dayTitle, dayShort, niceTime, CATEGORY, chip, emptyState, store, toast, fail, details, clockOf, hourOpts, wall } from '../core.js';
 import { state, vehicle, setVehicle, vehiclePicker, vehicleById } from '../state.js';
 import { go } from '../app.js';
 import { thumbUrl, moveToBin, setProtected } from './footage.js';
@@ -34,7 +34,7 @@ function clockAt(ts, seconds) {
   const [h, m, s] = t.split(':').map(Number);
   const date = new Date(`${d}T00:00:00`);
   date.setHours(h, m, s + Math.floor(seconds));
-  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  return date.toLocaleTimeString([], hourOpts({ minute: '2-digit', second: '2-digit' }));
 }
 
 export async function render(ctx) {
@@ -141,7 +141,7 @@ async function player(ctx, v, day, recId) {
           <button type="button" class="ctl-btn" id="grid" aria-label="Show all cameras">${icon('grid')}</button>
           <button type="button" class="ctl-btn" id="full" aria-label="Full screen">${icon('expand')}</button>
         </div>
-        ${segs.length > 1 ? `<div class="clip-dots" role="group" aria-label="Clips in this recording">${segs.map((s, i) => `<button type="button" class="clip-dot" data-seg="${i}" aria-label="Clip ${i + 1}, ${esc(niceTime(s.ts))}">${esc(s.ts.slice(11, 16))}</button>`).join('')}</div>` : ''}
+        ${segs.length > 1 ? `<div class="clip-dots" role="group" aria-label="Clips in this recording">${segs.map((s, i) => `<button type="button" class="clip-dot" data-seg="${i}" aria-label="Clip ${i + 1}, ${esc(niceTime(s.ts))}">${esc(wall(s.ts, false))}</button>`).join('')}</div>` : ''}
       </div>
     </section>
     <div class="dash" id="dash" aria-label="Driving data"></div>

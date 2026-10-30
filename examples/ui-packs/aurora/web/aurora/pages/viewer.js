@@ -4,7 +4,7 @@
 // All cameras play in sync from /api/media (any subset), clip after clip;
 // the driving data from /api/telemetry shows as a heads-up display.
 
-import { $, $$, esc, icon, api, state, current, setVehicle, vehiclePicker, plural, clock, dayTitle, timeOf, humanize, store, empty, toast, fin } from '../core.js';
+import { $, $$, esc, icon, api, state, current, setVehicle, vehiclePicker, plural, clock, wall, dayTitle, timeOf, humanize, store, empty, toast, fin } from '../core.js';
 import * as tele from '../telemetry.js';
 
 const CAMS = ['front', 'back', 'left_repeater', 'right_repeater', 'left_pillar', 'right_pillar'];
@@ -492,7 +492,7 @@ export default {
         drawnMarks = marks;
       }
       const c = clips[index];
-      q('#clipline').textContent = c ? `Clip ${index + 1} of ${clips.length} · ${c.key.slice(11).replace(/-/g, ':')} · ${plural(camsHere().length, 'camera')}` : '';
+      q('#clipline').textContent = c ? `Clip ${index + 1} of ${clips.length} · ${wall(c.key)} · ${plural(camsHere().length, 'camera')}` : '';
       q('#c-prev').disabled = index <= 0;
       q('#c-next').disabled = index >= clips.length - 1;
       paintHud();

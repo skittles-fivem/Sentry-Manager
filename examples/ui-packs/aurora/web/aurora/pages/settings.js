@@ -2,7 +2,7 @@
 // packs), updates, security, system and the electricity price.
 
 import {
-  $, esc, icon, api, upload, state, loadVehicles, setVehicle, bytes, whenFull, fin, toast, confirmDialog, empty
+  $, esc, icon, api, upload, state, loadVehicles, setVehicle, bytes, whenFull, fin, toast, confirmDialog, empty, clockPref, emit
 } from '../core.js';
 
 const SECTIONS = [
@@ -202,6 +202,8 @@ async function iface(box) {
       <p class="lead">The northern lights behind the glass. Calm draws fewer, slower ribbons (less work for phones); Off keeps a still sky.${reduce ? ' Your device asks for reduced motion, so the sky stays still whatever you pick.' : ''}</p>
       <div class="fx-choice" style="margin-top:14px" role="radiogroup" aria-label="Background effect">${[['full', 'Full', 'flowing aurora, twinkling stars, a shooting star now and then'], ['calm', 'Calm', 'gentler and lighter'], ['off', 'Off', 'a still, painted sky']].map(([k, l, h]) => `<label class="choice"><input type="radio" name="fx" value="${k}"${fx === k ? ' checked' : ''}><b>${l}</b><span>${h}</span></label>`).join('')}</div>
       <div class="fx-choice" style="margin-top:14px" role="radiogroup" aria-label="Glass">${[['chrome', 'Frosted chrome', 'the dock, bars and dialogs blur the sky; windows are tinted glass (smoothest)'], ['frosted', 'Frosted everywhere', 'windows blur the sky too: needs a strong GPU'], ['solid', 'Solid glass', 'no blur at all: the lightest for older devices']].map(([k, l, h]) => `<label class="choice"><input type="radio" name="glass" value="${k}"${glass === k ? ' checked' : ''}><b>${l}</b><span>${h}</span></label>`).join('')}</div></section>
+    <section class="panel"><div class="panel-head"><h2>Clock</h2><span class="muted small">for everyone</span></div>
+      <label class="check" style="margin-top:6px"><input type="checkbox" id="clock24"${clockPref.h24 ? ' checked' : ''}> 24-hour clock (otherwise times read like 3:10 PM)</label></section>
     <section class="panel"><div class="panel-head"><h2>Interface</h2></div>
       <p class="lead">How Sentry Six Manager looks and works for everyone who signs in. <b>Original</b> is the built-in interface; the others are packs you uploaded.</p>
       ${ui.original ? `<div class="note warn" style="margin-top:12px">This browser shows the original interface because you opened <span class="mono">/original</span>${ui.active ? `; everyone else sees <b>${esc(ui.packs.find((x) => x.id === ui.active)?.name || '')}</b>` : ''}. <div class="actions start"><a class="btn sm" href="/original?off=1">Show the chosen interface</a></div></div>` : ''}
@@ -228,6 +230,18 @@ async function iface(box) {
       setLocal('aurora:glass', t.value);
       document.documentElement.classList.toggle('no-blur', t.value === 'solid');
       document.documentElement.classList.toggle('frost-all', t.value === 'frosted');
+      return;
+    }
+    if (t.id === 'clock24') {
+      try {
+        await api('/api/settings/appearance', { method: 'PUT', body: { clock24: t.checked } });
+        clockPref.h24 = t.checked;
+        emit('clock');
+        toast('Saved.');
+      } catch (err) {
+        t.checked = !t.checked;
+        toast(err.message, 'bad');
+      }
       return;
     }
     if (t.id === 'ui-pick') {

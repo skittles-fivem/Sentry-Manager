@@ -900,6 +900,21 @@ async function main() {
     res.end(gzip ? zlib.gzipSync(body) : body);
     return undefined;
   });
+  // speed once a second for up to 40 clips at a time (the viewer's speed graph
+  // over the whole timeline); a clip without telemetry, or out of reach, is null
+  r.add('POST', '/api/telemetry/speeds', async (req, res, { body }) => {
+    const paths = Array.isArray(body?.paths) ? body.paths.filter((p) => typeof p === 'string').slice(0, 40) : [];
+    const speeds = await Promise.all(paths.map(async (p) => {
+      try {
+        const real = await studioReadable.resolve(p);
+        if (!real || hiddenPath(real)) return null;
+        return await telemetry.speeds(real);
+      } catch {
+        return null;
+      }
+    }));
+    return { speeds };
+  });
   r.add('GET', '/api/vehicles/:id/recordings/:rid', async (req, res, { params }) => {
     const v = vehicleOr404(params.id);
     const rec = inventory.recording(v.id, params.rid);
@@ -1086,7 +1101,7 @@ async function main() {
   });
 
   r.add('GET', '/api/settings', () => ({
-    appearance: db.get('appearance', { reduceEffects: false }),
+    appearance: { reduceEffects: false, clock24: false, ...db.get('appearance', {}) },
     power: db.get('power', { currency: '$', mode: 'flat', pricePerKwh: null, defaultPrice: null, rates: [] })
   }));
   // electricity price (one price or a time-of-use plan) for the costs shown
@@ -1102,8 +1117,11 @@ async function main() {
     db.set('power', next);
     return next;
   });
+  // (a field left out keeps its value: clock24 is the 24-hour clock, 12-hour
+  // when off)
   r.add('PUT', '/api/settings/appearance', (req, res, { body }) => {
-    const next = { reduceEffects: Boolean(body?.reduceEffects) };
+    const next = { reduceEffects: false, clock24: false, ...db.get('appearance', {}) };
+    for (const k of ['reduceEffects', 'clock24']) if (body && k in body) next[k] = Boolean(body[k]);
     db.set('appearance', next);
     return next;
   });
@@ -1171,9 +1189,15 @@ async function main() {
       ? { success: false, error: out.skipped[0].reason === 'protected' ? 'This recording is protected.' : out.skipped[0].reason === 'converting' ? 'This recording is being converted right now.' : 'Could not move it to the Recycle Bin.' }
       : { success: true };
   });
-  r.add('GET', '/api/studio/settings', () => db.get('studio-settings', {}));
+  // (the viewer's 12/24-hour clock is the manager's, Settings > Appearance)
+  const clock24 = () => Boolean(db.get('appearance', {}).clock24);
+  r.add('GET', '/api/studio/settings', () => ({ ...db.get('studio-settings', {}), timeFormat: clock24() ? '24h' : '12h' }));
   r.add('POST', '/api/studio/settings', (req, res, { body }) => {
     if (!body || typeof body.key !== 'string' || body.key.length > 100) throw new HttpError(400, 'Invalid setting');
+    if (body.key === 'timeFormat') {
+      db.set('appearance', { reduceEffects: false, ...db.get('appearance', {}), clock24: body.value === '24h' });
+      return { ok: true };
+    }
     const all = db.get('studio-settings', {});
     all[body.key] = body.value;
     db.set('studio-settings', all);

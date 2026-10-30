@@ -44,7 +44,18 @@ export function ago(ts) {
   if (s < 7 * 86400) return `${Math.round(s / 86400)} d ago`;
   return new Date(ts).toLocaleDateString();
 }
-export const when = (ts) => (ts ? new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
+/** 12- or 24-hour clock, from appearance.clock24 in /api/settings. */
+export const clockPref = { h24: false };
+export const hourOpts = (o = {}) => ({ ...o, hour: clockPref.h24 ? '2-digit' : 'numeric', hour12: !clockPref.h24 });
+/** A wall-clock time from car text ("2026-10-25 08:10:02", "…_08-10-02", "08:10:02") in the chosen clock. */
+export function wall(s, secs = true) {
+  const m = /(?:^|[ T_])(\d{1,2})[:-](\d{2})(?:[:-](\d{2}))?$/.exec(String(s || ''));
+  if (!m) return String(s || '');
+  const tail = `:${m[2]}${secs && m[3] ? `:${m[3]}` : ''}`;
+  const hr = Number(m[1]);
+  return clockPref.h24 ? `${String(hr).padStart(2, '0')}${tail}` : `${hr % 12 || 12}${tail} ${hr < 12 ? 'AM' : 'PM'}`;
+}
+export const when = (ts) => (ts ? new Date(ts).toLocaleString([], hourOpts({ month: 'short', day: 'numeric', minute: '2-digit' })) : '—');
 export function duration(ms) {
   if (!fin(ms) || ms < 0) return '—';
   const s = Math.round(ms / 1000);
@@ -63,12 +74,7 @@ export const dayTitle = (day, opts = { weekday: 'long', month: 'long', day: 'num
 export const dayShort = (day) => dayTitle(day, { weekday: 'short', month: 'short', day: 'numeric' });
 /** "08:10" from "2026-10-25 08:10:02" */
 export const hhmm = (s) => (s ? String(s).slice(11, 16) : '');
-export const niceTime = (s) => {
-  if (!s) return '';
-  const [h, m] = String(s).slice(11, 16).split(':').map(Number);
-  const d = new Date(2000, 0, 1, h, m);
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-};
+export const niceTime = (s) => (s ? wall(String(s).slice(0, 16), false) : '');
 export const CATEGORY = {
   Recent: { word: 'Drive', many: 'Drives', tone: 'teal' },
   Sentry: { word: 'Sentry event', many: 'Sentry events', tone: 'amber' },

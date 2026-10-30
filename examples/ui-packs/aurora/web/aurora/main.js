@@ -1,7 +1,7 @@
 // Aurora shell: the sky, the floating dock, glass windows (one per page),
 // live updates from /api/events, badges and keyboard shortcuts.
 
-import { $, $$, esc, icon, api, state, loadVehicles, loadNotes, setVehicle, on, emit, toast, store, infoDialog, motionOK, selecting, liveDraw } from './core.js';
+import { $, $$, esc, icon, api, state, loadVehicles, loadNotes, setVehicle, on, emit, toast, store, infoDialog, motionOK, selecting, liveDraw, clockPref, hourOpts } from './core.js';
 import { createSky } from './sky.js';
 import sky from './pages/sky.js';
 import footage from './pages/footage.js';
@@ -302,11 +302,11 @@ function connect() {
 function tick() {
   const el = $('#clock');
   const d = new Date();
-  el.textContent = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  el.textContent = d.toLocaleTimeString(undefined, hourOpts({ minute: '2-digit' }));
   el.dateTime = d.toISOString();
 }
-tick();
 setInterval(tick, 30000);
+on('clock', tick);
 $('#signout').addEventListener('click', async () => {
   await api('/api/auth/logout', { body: {} }).catch(() => {});
   location.href = '/login';
@@ -357,9 +357,11 @@ renderDock();
   try {
     const s = await api('/api/settings');
     state.power = s.power || null;
+    clockPref.h24 = Boolean(s.appearance?.clock24);
   } catch (err) {
     if (err.status !== 401) toast(err.message, 'bad');
   }
+  tick();
   await Promise.all([loadVehicles().catch(() => {}), loadNotes().catch(() => {})]);
   refreshJobsBadge();
   render();

@@ -1,6 +1,6 @@
 // Footage as a music library: days are albums, recordings are the tracks of a
 // playlist, each with a play button and a duration.
-import { h, ico, api, car, size, count, since, dayName, words, toast, ask, sheet, act, local, segs, onSegs, pill, debounce, CAMS, CAM_NAME, CAM_TAG, CODEC_NAME, paint, liveDraw } from '../core.js';
+import { h, ico, api, car, size, count, since, dayName, words, wall, wallDay, toast, ask, sheet, act, local, segs, onSegs, pill, debounce, CAMS, CAM_NAME, CAM_TAG, CODEC_NAME, paint, liveDraw } from '../core.js';
 
 const CAT_TONE = { Recent: 'cyan', Sentry: 'org', Saved: 'grn', Other: '' };
 const thumbUrl = (vid, rid) => `/api/vehicles/${encodeURIComponent(vid)}/recordings/${encodeURIComponent(rid)}/thumbnail`;
@@ -163,13 +163,13 @@ export default {
       paint($('#ft-tracks'), shown.map((r, i) => {
         const sel = f.sel.has(r.id);
         const have = new Set(r.cameras);
-        const ev = r.eventAt ? ` · event ${r.eventAt.slice(11, 19)}` : '';
+        const ev = r.eventAt ? ` · event ${wall(r.eventAt)}` : '';
         return `<li class="track${sel ? ' sel' : ''}${i === f.cur ? ' cur' : ''}" data-id="${h(r.id)}" data-i="${i}">
           <label class="tk-sel chk"><input type="checkbox" aria-label="Select ${h(r.start)}"${sel ? ' checked' : ''}></label>
           <span class="tk-n num" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>
           <button class="tk-play" type="button" data-act="play" aria-label="Play ${h(r.start)}">${ico('play')}</button>
           <span class="tk-art" aria-hidden="true">${r.thumbRel || r.frontRel ? `<img loading="lazy" alt="" src="${thumbUrl(v.id, r.id)}">` : ''}</span>
-          <span class="tk-t"><b class="num">${h(r.start.slice(11))}<span class="faint"> – ${h((r.end || r.start).slice(11))}</span></b>
+          <span class="tk-t"><b class="num">${h(wall(r.start))}<span class="faint"> – ${h(wall(r.end || r.start))}</span></b>
             <span class="tk-sub small">${pill(r.category, CAT_TONE[r.category] || '')}<span class="dim">${h(f.day ? '' : `${dayName(r.day)} · `)}${h(words(r.type || ''))}${h(ev)}</span>${r.protected ? `<span class="lock" title="Protected">${ico('lock')}<span class="sr-only">Protected</span></span>` : ''}</span></span>
           <span class="tk-cams" aria-label="Cameras: ${h(r.cameras.map((c) => CAM_NAME[c] || c).join(', '))}">${CAMS.map((c) => `<i class="${have.has(c) ? 'on' : ''}">${CAM_TAG[c]}</i>`).join('')}</span>
           <span class="tk-codec">${codec(r)}</span>
@@ -269,10 +269,10 @@ export default {
       let d;
       try { d = await api(`/api/vehicles/${encodeURIComponent(v.id)}/recordings/${encodeURIComponent(r.id)}`); } catch (err) { toast(err.message, 'bad'); return; }
       const ev = d.event;
-      await sheet(`Track ${d.start}`, `
-        <div class="info-top">${r.thumbRel || r.frontRel ? `<img class="info-art" alt="Thumbnail of ${h(d.start)}" src="${thumbUrl(v.id, r.id)}">` : ''}
-          <dl class="kv"><dt>Type</dt><dd>${h(words(d.type))} · ${h(d.category)}</dd><dt>Start → end</dt><dd class="num">${h(d.start)} → ${h(d.end)}</dd>
-            ${d.eventAt ? `<dt>Event at</dt><dd class="num">${h(d.eventAt)}</dd>` : ''}
+      await sheet(`Track ${wallDay(d.start)}`, `
+        <div class="info-top">${r.thumbRel || r.frontRel ? `<img class="info-art" alt="Thumbnail of ${h(wallDay(d.start))}" src="${thumbUrl(v.id, r.id)}">` : ''}
+          <dl class="kv"><dt>Type</dt><dd>${h(words(d.type))} · ${h(d.category)}</dd><dt>Start → end</dt><dd class="num">${h(wallDay(d.start))} → ${h(wallDay(d.end))}</dd>
+            ${d.eventAt ? `<dt>Event at</dt><dd class="num">${h(wallDay(d.eventAt))}</dd>` : ''}
             ${ev ? `<dt>Event</dt><dd>${h([words(ev.reason), ev.city, ev.street].filter(Boolean).join(' · '))}${ev.est_lat ? `<br><span class="mono small">${h(ev.est_lat)}, ${h(ev.est_lon)}</span>` : ''}</dd>` : ''}
             <dt>Cameras</dt><dd>${h(d.cameras.map((c) => CAM_NAME[c] || c).join(', '))}</dd>
             <dt>Size</dt><dd class="num">${size(d.bytes)} · ${count(d.fileCount, 'file')} · ${count(d.clipCount, 'clip')}</dd>

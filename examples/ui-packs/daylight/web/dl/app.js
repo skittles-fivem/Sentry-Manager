@@ -1,7 +1,7 @@
 // Daylight: the shell. Navigation (side bar on wide screens, tab bar on
 // phones), the router, the look switch and live updates from the server.
 
-import { $, $$, api, esc, icon, store, toast, reducedMotion } from './core.js';
+import { $, $$, api, esc, icon, store, toast, reducedMotion, clockPref } from './core.js';
 import { state, emit, on, loadVehicles, loadNotes, loadJobs, unreadCount, binCount } from './state.js';
 
 const ROUTES = {
@@ -241,6 +241,7 @@ document.addEventListener('error', (e) => {
   try {
     const [settings] = await Promise.all([api('/api/settings').catch(() => null), loadVehicles(), loadNotes(), loadJobs()]);
     if (settings?.appearance?.reduceEffects) document.documentElement.classList.add('calm');
+    clockPref.h24 = Boolean(settings?.appearance?.clock24);
     state.power = settings?.power || null;
   } catch (err) {
     if (err?.status !== 401) toast(err.message, { kind: 'bad' });

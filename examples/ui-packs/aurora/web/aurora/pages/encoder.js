@@ -5,7 +5,7 @@
 import '/web/vehicleEncoding.js';
 import {
   $, $$, esc, icon, api, invoke, state, current, footageRoot, bytes, plural, pct, num, dur, when, ago, fin, ring, meter, toast,
-  confirmDialog, openDialog, store, empty, liveDraw, watts
+  confirmDialog, openDialog, store, empty, liveDraw, watts, hourName
 } from '../core.js';
 import { splitDevices, deviceLabel, laneValue, jobLanes, groupMemory, groupBodyId, wireGroups } from '../nodelanes.js';
 import { follow, onBenchmark, streamReady, counts, Pace, ACTIVE, PAUSED, STATE_TEXT, CODEC, PROFILES, GROUPS, explain, apply, refreshCurrent } from '../conv.js';
@@ -333,7 +333,7 @@ export default {
         <div class="form" style="margin-top:16px">
           <label class="field">How often<select class="input" id="a-int">${INTERVALS.map(([m, l]) => `<option value="${m}"${s.intervalMinutes === m ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
           <label class="field">When<select class="input" id="a-win"><option value="any"${winMode === 'any' ? ' selected' : ''}>Any time</option><option value="offpeak"${winMode === 'offpeak' ? ' selected' : ''}>Off-peak electricity hours</option><option value="hours"${winMode === 'hours' ? ' selected' : ''}>Between set hours</option></select></label>
-          ${winMode === 'hours' ? `<label class="field">From<select class="input" id="a-from">${hours.map((h) => `<option value="${h}"${w.startHour === h ? ' selected' : ''}>${String(h).padStart(2, '0')}:00</option>`).join('')}</select></label><label class="field">Until<select class="input" id="a-to">${hours.map((h) => `<option value="${h}"${w.endHour === h ? ' selected' : ''}>${String(h).padStart(2, '0')}:00</option>`).join('')}</select></label>` : ''}
+          ${winMode === 'hours' ? `<label class="field">From<select class="input" id="a-from">${hours.map((h) => `<option value="${h}"${w.startHour === h ? ' selected' : ''}>${esc(hourName(h))}</option>`).join('')}</select></label><label class="field">Until<select class="input" id="a-to">${hours.map((h) => `<option value="${h}"${w.endHour === h ? ' selected' : ''}>${esc(hourName(h))}</option>`).join('')}</select></label>` : ''}
           <label class="check full"><input type="checkbox" id="a-hold"${s.holdManual ? ' checked' : ''}> Also pause conversions I start by hand outside these hours</label>
           <label class="check full"><input type="checkbox" id="a-keep"${s.keepRunning ? ' checked' : ''}> Let a running conversion finish when the hours end</label>
         </div>

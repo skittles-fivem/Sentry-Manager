@@ -18,7 +18,15 @@
     return `${v.toFixed(i === 0 ? 0 : 1)} ${u[i]}`;
   }
   const plural = (n, w) => `${Number(n || 0).toLocaleString()} ${w}${n === 1 ? '' : 's'}`;
-  const when = (ts) => (ts ? new Date(ts).toLocaleString() : '—');
+  // 12-hour clock unless Settings say 24-hour (the topbar's "24-hour clock")
+  const clockPref = { h24: false };
+  const when = (ts) => (ts ? new Date(ts).toLocaleString(undefined, { hour12: !clockPref.h24 }) : '—');
+  // "2026-10-29 15:10:02" (a recording's wall-clock time) on that clock
+  const clockText = (str) => String(str || '').replace(/(\d{1,2}):(\d{2})(:\d{2})?$/, (all, hh, mm, ss = '') => {
+    if (clockPref.h24) return all;
+    const h = Number(hh);
+    return `${h % 12 || 12}:${mm}${ss} ${h < 12 ? 'AM' : 'PM'}`;
+  });
   // how long a job took: 42 s, 12 m 5 s, 8 h 0 m
   function took(ms) {
     const s = Math.max(0, Math.round(ms / 1000));
@@ -154,6 +162,14 @@
   $('reduce-effects').addEventListener('change', (e) => {
     document.documentElement.classList.toggle('reduce-effects', e.target.checked);
     api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: e.target.checked } }).catch(() => {});
+  });
+  $('clock-24').addEventListener('change', (e) => {
+    clockPref.h24 = e.target.checked;
+    api('/api/settings/appearance', { method: 'PUT', body: { clock24: clockPref.h24 } }).catch(() => {});
+    // the Viewer and Encoder read it when they load
+    for (const f of Object.values(frames)) f?.remove?.();
+    for (const k of Object.keys(frames)) delete frames[k];
+    render();
   });
 
   function setBadge(id, text, cls = '') {
@@ -1334,12 +1350,12 @@
     const thumb = (r.thumbRel || r.frontRel)
       ? `<img loading="lazy" alt="" data-fallback="${esc(r.category)}" src="/api/vehicles/${encodeURIComponent(v.id)}/recordings/${encodeURIComponent(r.id)}/thumbnail">`
       : esc(r.category);
-    const range = r.start && r.end && r.end !== r.start ? ` – ${esc(r.end.slice(11))}` : '';
+    const range = r.start && r.end && r.end !== r.start ? ` – ${esc(clockText(r.end.slice(11)))}` : '';
     return `<article class="rec${f.selected.has(r.id) ? ' selected' : ''}" data-id="${esc(r.id)}">
       <div class="rec-top">
         <input type="checkbox" aria-label="Select ${esc(r.start)}"${f.selected.has(r.id) ? ' checked' : ''}>
         <div class="thumb">${thumb}</div>
-        <div class="rec-info"><span class="when">${esc(r.start || r.day)}${range}</span>
+        <div class="rec-info"><span class="when">${esc(r.start ? clockText(r.start) : r.day)}${range}</span>
           <span class="meta"><span class="chip ${chip}">${esc(r.category)}</span>${recEncodedChip(r)}<span>${plural(r.fileCount, 'file')}</span><span>${bytes(r.bytes)}</span>${r.eventAt ? `<span>event ${esc(r.eventAt.slice(11))}</span>` : ''}${r.cameras.length ? `<span>${plural(r.cameras.length, 'camera')}</span>` : ''}${r.protected ? '<span class="chip green">Protected</span>' : ''}</span>
           <span class="orig">Original capture: ${esc(r.startKey ? `${r.startKey.slice(0, 10)}T${r.startKey.slice(11).replace(/-/g, ':')}` : r.day)} · ${esc(r.folder)}</span></div>
         <div class="rec-actions"><button class="btn" data-play>Play recording</button><button class="btn" data-files>${f.expanded.has(r.id) ? 'Hide files' : 'Show files'}</button></div>
@@ -2565,6 +2581,8 @@
       state.power = s.power || null;
       $('reduce-effects').checked = Boolean(s.appearance?.reduceEffects);
       document.documentElement.classList.toggle('reduce-effects', Boolean(s.appearance?.reduceEffects));
+      clockPref.h24 = Boolean(s.appearance?.clock24);
+      $('clock-24').checked = clockPref.h24;
       await Promise.all([loadVehicles(), loadNotes()]);
     } catch {
       // shown by render

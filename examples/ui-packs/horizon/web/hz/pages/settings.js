@@ -1,6 +1,6 @@
 // Settings: the garage (vehicles), account, interface packs, the background
 // effect, updates, security, system and the electricity price.
-import { h, ico, api, send, app, pickCar, loadCars, size, stampFull, toast, ask, act, ok, local, segs, onSegs, pill, panelHead, liveDraw } from '../core.js';
+import { h, ico, api, send, app, pickCar, loadCars, size, stampFull, toast, ask, act, ok, local, segs, onSegs, pill, panelHead, liveDraw, clockPref } from '../core.js';
 
 const TABS = [['vehicles', 'Vehicles', 'car'], ['account', 'Account', 'lock'], ['interface', 'Interface', 'horizon'], ['display', 'Background', 'hud'], ['updates', 'Updates', 'download'], ['security', 'Security', 'shield'], ['system', 'System', 'info'], ['power', 'Electricity', 'bolt']];
 const WEEK = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']];
@@ -198,6 +198,7 @@ async function iface(box) {
 async function display(box) {
   const s = await api('/api/settings').catch(() => ({}));
   const calm = Boolean(s.appearance?.reduceEffects);
+  if (s.appearance) clockPref.h24 = Boolean(s.appearance.clock24);
   const sky = window.HorizonSky;
   const choice = sky?.choice || 'auto';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -217,6 +218,7 @@ async function display(box) {
   <section class="panel hud form">
     ${panelHead(`${ico('gear')}Motion for everyone`)}
     <label class="chk"><input type="checkbox" id="calm"${calm ? ' checked' : ''}> Reduce effects for everyone (no page animations; saved on the server)</label>
+    <label class="chk"><input type="checkbox" id="clock24"${clockPref.h24 ? ' checked' : ''}> 24-hour clock (for everyone; saved on the server)</label>
     <label class="chk"><input type="checkbox" id="units"${local.get('vw.units', 'mph') === 'kmh' ? ' checked' : ''}> Show speed in km/h in the Viewer (this browser)</label>
     <p class="small faint">Keyboard: press <kbd>?</kbd> anywhere for the shortcuts, <kbd>[</kbd> and <kbd>]</kbd> tune to the previous and next page.</p>
   </section>`;
@@ -228,6 +230,11 @@ async function display(box) {
   box.querySelector('#calm').onchange = (e) => act(null, async () => {
     await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: e.target.checked } });
     document.documentElement.classList.toggle('calm-ui', e.target.checked);
+    toast('Saved.');
+  });
+  box.querySelector('#clock24').onchange = (e) => act(null, async () => {
+    await api('/api/settings/appearance', { method: 'PUT', body: { clock24: e.target.checked } });
+    clockPref.h24 = e.target.checked;
     toast('Saved.');
   });
   box.querySelector('#units').onchange = (e) => { local.set('vw.units', e.target.checked ? 'kmh' : 'mph'); toast('Saved.'); };

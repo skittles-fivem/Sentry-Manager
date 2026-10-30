@@ -3,7 +3,7 @@
 // once (per GPU / node), automatic conversion, and a speed test.
 
 import '/web/vehicleEncoding.js';
-import { api, esc, enc, icon, bytes, plural, pct, duration, meter, chip, emptyState, details, kv, confirmDialog, modal, toast, fail, busy, invoke, store, ago, fin, liveDraw } from '../core.js';
+import { api, esc, enc, icon, bytes, plural, pct, duration, meter, chip, emptyState, details, kv, confirmDialog, modal, toast, fail, busy, invoke, store, ago, fin, liveDraw, hourOpts, clockPref } from '../core.js';
 import { state, vehicle, setVehicle, vehiclePicker, vehicleById } from '../state.js';
 import { go } from '../app.js';
 import { splitDevices, deviceLabel, savedLane, jobLanes, groupMemory, groupBodyId, wireGroups } from '../nodelanes.js';
@@ -250,12 +250,12 @@ async function overview(ctx) {
     const ch = mine ? { codec: mine.codec, profile: mine.profileId, quality: mine.qualityLevel || 'balanced', keepOffTarget: mine.keepOffTarget === true, groups: mine.includedGroups, mode: mine.outputMode, verify: mine.verifyMode || 'quick' } : { ...lastChoices(), mode: canReplace() ? lastChoices().mode : 'separate' };
     const win = s.window?.follow === 'off-peak' ? 'offpeak' : s.window ? 'hours' : 'any';
     const hours = Array.from({ length: 24 }, (_, h) => h);
-    const hourName = (h) => new Date(2000, 0, 1, h).toLocaleTimeString([], { hour: 'numeric' });
+    const hourName = (h) => new Date(2000, 0, 1, h).toLocaleTimeString([], hourOpts(clockPref.h24 ? { minute: '2-digit' } : {}));
     const running = st.active && typeof st.active === 'object' ? Object.keys(st.active) : [];
     const statusLine = !s.enabled ? 'Off'
       : st.checking ? 'Checking for new clips…'
         : running.length ? `Converting new clips of ${running.map((r) => vehicleForRoot(r)?.name || 'a vehicle').join(', ')}`
-          : st.nextCheckAt ? `Next check ${new Date(st.nextCheckAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${st.lastCheckAt ? ` · last ${ago(st.lastCheckAt)}${Number.isSafeInteger(st.lastNewFiles) ? `, ${plural(st.lastNewFiles, 'new clip')}` : ''}` : ''}`
+          : st.nextCheckAt ? `Next check ${new Date(st.nextCheckAt).toLocaleTimeString([], hourOpts({ minute: '2-digit' }))}${st.lastCheckAt ? ` · last ${ago(st.lastCheckAt)}${Number.isSafeInteger(st.lastNewFiles) ? `, ${plural(st.lastNewFiles, 'new clip')}` : ''}` : ''}`
             : 'Checks shortly';
     return `<div class="card" id="auto"><div class="row-between"><div><h2>Automatic conversion</h2><p class="muted" style="margin-top:6px">New footage is converted by itself, a little at a time.</p></div>
         <label class="switch"><input type="checkbox" id="auto-on"${on ? ' checked' : ''}${v ? '' : ' disabled'}><span>${v ? `For ${esc(v.name)}` : 'Add a vehicle first'}</span></label></div>

@@ -1,5 +1,5 @@
 // Flux shell: router, sidebar, command palette, keyboard shortcuts, live updates.
-import { $, $$, esc, icon, api, state, store, bus, current, setVehicle, loadVehicles, loadNotes, toast, infoDialog, invoke } from './core.js';
+import { $, $$, esc, icon, api, state, store, bus, current, setVehicle, loadVehicles, loadNotes, toast, infoDialog, invoke, clockPref } from './core.js';
 import overview from './pages/overview.js';
 import footage from './pages/footage.js';
 import viewer from './pages/viewer.js';
@@ -363,6 +363,7 @@ async function signOut() {
     const s = await api('/api/settings');
     state.power = s.power || null;
     document.documentElement.classList.toggle('calm', Boolean(s.appearance?.reduceEffects));
+    clockPref.h24 = Boolean(s.appearance?.clock24);
   } catch { /* shown by the pages */ }
   await Promise.all([loadVehicles().catch(() => {}), loadNotes().catch(() => {})]);
   drawVehiclePicker();
