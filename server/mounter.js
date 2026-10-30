@@ -6,6 +6,9 @@
 //                       (and by the app when it runs as root, e.g. in tests)
 //   createIpcMounter    used by the unprivileged app: asks the supervisor over
 //                       the Node IPC channel
+// On Windows the third one, createWinMounter in platform/smbWin32.js, has the
+// same interface but connects to \\host\share through SentryHelper.exe
+// instead of mounting anything.
 // The mount point is always <footageRoot>/<vehicle id> and is derived here,
 // never taken from the caller, so a request cannot mount over /etc or /data.
 

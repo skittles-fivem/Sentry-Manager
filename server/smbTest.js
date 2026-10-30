@@ -4,12 +4,18 @@
 // details typed in (nothing is saved), says whether the NAS accepted the
 // user name and password, whether Tesla footage is there and whether files
 // can be written, then unmounts and forgets the details again.
+//
+// On Windows nothing is mounted: the Windows mounter's test() has the helper
+// list the share (and write a file) as the typed account under
+// impersonation (smb.test), so a wrong password is refused even while this
+// PC already has a session to that NAS. The answer has the same shape.
 
 const fsp = require('fs/promises');
 const path = require('path');
 const { normalizeSmb } = require('./mountSpec');
-const { explainMountError, checkWritable } = require('./share');
-const { findClipRoot } = require('./vehicles');
+const { explainMountError, explainSmbError, checkWritable, writeHint } = require('./share');
+const { findClipRootAsync, CLIP_FOLDER } = require('./vehicles');
+const { shouldSkipDir } = require('./footage');
 const { tail } = require('./proc');
 
 // the mount point the test uses (<footage root>/<id>); no vehicle may have it
@@ -18,7 +24,11 @@ const TEST_ID = 'x-smb-test';
 // NAS passwords quickly
 const PER_MINUTE = 6;
 
-function createSmbTester({ mounter, vehicles, log = console, now = Date.now }) {
+// how many folders the Windows test lists looking for footage (each is a
+// separate sign-in on the NAS)
+const WIN_MAX_LISTS = 12;
+
+function createSmbTester({ mounter, vehicles, log = console, now = Date.now, platform = process.platform }) {
   let running = false;
   let recent = [];
 
@@ -42,6 +52,13 @@ function createSmbTester({ mounter, vehicles, log = console, now = Date.now }) {
     recent.push(now());
     running = true;
     const started = now();
+    if (platform === 'win32') {
+      try {
+        return await testWin32(smb, started);
+      } finally {
+        running = false;
+      }
+    }
     try {
       let res;
       try {
@@ -64,7 +81,7 @@ function createSmbTester({ mounter, vehicles, log = console, now = Date.now }) {
       } catch (err) {
         return { ok: false, stage: 'read', error: `Connected, but the share could not be read (${err.code || err.message}).`, ms: now() - started };
       }
-      const clips = findClipRoot(root);
+      const clips = await findClipRootAsync(root);
       // every step a save needs (Recycle Bin, Protect, replacing originals),
       // on files of its own that are removed again
       const write = await checkWritable(root);
@@ -81,6 +98,63 @@ function createSmbTester({ mounter, vehicles, log = console, now = Date.now }) {
       await mounter.forget(TEST_ID).catch(() => {});
       running = false;
     }
+  }
+
+  async function testWin32(smb, started) {
+    let res;
+    try {
+      res = await mounter.test(smb, { write: true });
+    } catch (err) {
+      if (err.status === 400 || err.code === 'INVALID_SMB') return { ok: false, stage: 'details', error: err.message };
+      const error = err.code === 'ETIMEDOUT' ? 'The NAS did not answer (is port 445 reachable from this PC?).' : err.message;
+      log.info?.(`SMB test of ${smb.share} as ${smb.username || '(guest)'}: failed (${error})`);
+      return { ok: false, stage: 'connect', error, hint: explainSmbError(err), ms: now() - started };
+    }
+    if (!res || !res.readable) {
+      return { ok: false, stage: 'read', error: 'Connected, but the share could not be read (EACCES).', ms: now() - started };
+    }
+    const entries = Array.isArray(res.entries) ? res.entries : [];
+    const clips = await findClipFolderWin32(smb, entries);
+    const writable = res.writable === true;
+    log.info?.(`SMB test of ${smb.share} as ${smb.username || '(guest)'}: connected${clips !== null ? ', footage found' : ''}${writable ? '' : ', read-only'}`);
+    return {
+      ok: true, entries: entries.length, writable, ms: now() - started,
+      writeProblem: writable ? null : `Read-only for this account: writing a file failed (access denied). ${writeHint('write', 'win32')}`,
+      footage: clips
+    };
+  }
+
+  /**
+   * findClipRoot for the Windows test: the helper lists folders by name
+   * only, so look for the clip folders level by level (TeslaCam first),
+   * listing at most WIN_MAX_LISTS folders. '.' when they are right in the
+   * share, else the relative folder, else null.
+   */
+  async function findClipFolderWin32(smb, topEntries) {
+    let level = [{ rel: [], entries: topEntries }];
+    let lists = 0;
+    for (let depth = 0; depth <= 3 && level.length; depth++) {
+      const hits = level.filter((l) => l.entries.some((n) => CLIP_FOLDER.test(n)));
+      if (hits.length) {
+        const pick = hits.find((l) => /^teslacam$/i.test(l.rel[l.rel.length - 1] || '')) || hits.sort((a, b) => a.rel.join('/').localeCompare(b.rel.join('/')))[0];
+        return pick.rel.join('/') || '.';
+      }
+      const next = [];
+      const candidates = level.flatMap((l) => l.entries.filter((n) => !shouldSkipDir(n, { platform: 'win32' }) && !/\.[a-z0-9]{2,4}$/i.test(n)).map((n) => [...l.rel, n]))
+        .sort((a, b) => Number(/^teslacam$/i.test(b[b.length - 1])) - Number(/^teslacam$/i.test(a[a.length - 1])) || a.join('/').localeCompare(b.join('/')));
+      for (const rel of candidates) {
+        if (lists >= WIN_MAX_LISTS) break;
+        lists++;
+        try {
+          const r = await mounter.test(smb, { write: false, folder: rel.join('\\') });
+          if (r?.readable && Array.isArray(r.entries)) next.push({ rel, entries: r.entries });
+        } catch {
+          // a file, or a folder this account cannot list
+        }
+      }
+      level = next;
+    }
+    return null;
   }
 
   return { test, TEST_ID };

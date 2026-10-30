@@ -5,6 +5,11 @@
 // does the actual mount.cifs, see mounter.js and mountSpec.js), watches it,
 // and remounts if the NAS drops. A folder vehicle is whatever the user
 // mounted into the container and is only health-checked.
+//
+// On Windows the same manager runs with the Windows mounter
+// (platform/smbWin32.js): "mounted" then means "connected to \\host\share",
+// which the mounter's probe() reports instead of /proc/self/mountinfo, and
+// the footage is read straight from \\host\share\folder.
 
 const { EventEmitter } = require('events');
 const fsp = require('fs/promises');
@@ -46,6 +51,31 @@ function findMount(mountinfo, mountPoint) {
   return found;
 }
 
+/**
+ * How a ShareManager learns what is mounted at a root on Linux: the
+ * topmost mount there in /proc/self/mountinfo, or null.
+ */
+function mountinfoProbe(mountinfoPath = '/proc/self/mountinfo') {
+  return async (root) => {
+    try {
+      return findMount(await fsp.readFile(mountinfoPath, 'utf8'), root);
+    } catch {
+      return null;
+    }
+  };
+}
+
+// Hints both platforms give in the same words.
+const SMB_HINTS = {
+  auth: 'Permission denied: the server rejected the user name or password (check them and the Domain field)',
+  notFound: 'The share was not found on the server. It must look like //server/share (optionally //server/share/folder).',
+  noSmb3: 'Server unreachable, or it does not speak SMB 3. Check the address; on the NAS, set the minimum SMB version to SMB 3 (SMB 1/2 are not allowed here).',
+  encryption: 'The server refused an encrypted SMB 3 session. On the NAS turn on SMB 3 encryption (Synology: Control Panel > File Services > SMB > Advanced; Samba: server smb encrypt = desired), or pick SMB 3.0 if it does not offer 3.1.1. Turning encryption off for this vehicle keeps signing, but lets others on the network see the footage.',
+  olderDialect: 'If the NAS does not support SMB 3.1.1, choose SMB 3.0 for this vehicle.',
+  unreachable: (from) => `Could not reach the SMB server. Check the IP/hostname and that port 445 is open from ${from}.`,
+  resolve: 'Could not resolve the server name. Use the NAS IP address in SMB_SHARE (//192.168.1.10/share).'
+};
+
 /** Map mount.cifs errors to something a person can act on. */
 function explainMountError(output) {
   const s = String(output || '');
@@ -57,19 +87,48 @@ function explainMountError(output) {
     return 'The container is not allowed to mount. Add cap_add: [SYS_ADMIN, DAC_READ_SEARCH] (see docker-compose.yml).';
   }
   if (code === 13 || /Permission denied/i.test(s)) {
-    return 'Permission denied: the server rejected the user name or password (check them and the Domain field), or on AppArmor hosts (Ubuntu) the container needs security_opt: apparmor:unconfined.';
+    return `${SMB_HINTS.auth}, or on AppArmor hosts (Ubuntu) the container needs security_opt: apparmor:unconfined.`;
   }
-  if (code === 2) return 'The share was not found on the server. It must look like //server/share (optionally //server/share/folder).';
-  if (code === 112) return 'Server unreachable, or it does not speak SMB 3. Check the address; on the NAS, set the minimum SMB version to SMB 3 (SMB 1/2 are not allowed here).';
-  if (code === 95 || code === 5) return 'The server refused an encrypted SMB 3 session. On the NAS turn on SMB 3 encryption (Synology: Control Panel > File Services > SMB > Advanced; Samba: server smb encrypt = desired), or pick SMB 3.0 if it does not offer 3.1.1. Turning encryption off for this vehicle keeps signing, but lets others on the network see the footage.';
-  if (code === 22) return 'The server rejected a mount option. If the NAS does not support SMB 3.1.1, choose SMB 3.0 for this vehicle.';
+  if (code === 2) return SMB_HINTS.notFound;
+  if (code === 112) return SMB_HINTS.noSmb3;
+  if (code === 95 || code === 5) return SMB_HINTS.encryption;
+  if (code === 22) return `The server rejected a mount option. ${SMB_HINTS.olderDialect}`;
   if (code === 113 || code === 111 || code === 110 || /timed out|No route|refused/i.test(s)) {
-    return 'Could not reach the SMB server. Check the IP/hostname and that port 445 is open from the Docker host.';
+    return SMB_HINTS.unreachable('the Docker host');
   }
   if (/resolve|bad UNC|could not resolve/i.test(s)) {
-    return 'Could not resolve the server name. Use the NAS IP address in SMB_SHARE (//192.168.1.10/share).';
+    return SMB_HINTS.resolve;
   }
   if (code === 16) return 'Mount point is busy (something is already mounted there).';
+  return null;
+}
+
+/**
+ * The Windows counterpart of explainMountError: a hint for an error from
+ * the helper's smb.connect / smb.test (err.code and err.winerr, see
+ * docs/plans/windows-helper-protocol.md), in Docker's words where the
+ * cause is the same.
+ */
+function explainSmbError(err) {
+  const code = err?.code;
+  const winerr = Number(err?.winerr);
+  if (code === 'EAUTH') return `${SMB_HINTS.auth}.`;
+  if (code === 'ESESSION' || winerr === 1219) {
+    return 'Windows allows only one account per server: this PC is already connected to that NAS with a different user name (another vehicle, or a drive mapped in Windows). Use the same account for every vehicle on this NAS, or reach it by its IP address for one vehicle and by its name for the other.';
+  }
+  if (code === 'EGUEST' || winerr === 1272) {
+    return 'The NAS would only let this account in as a guest, and a guest session cannot be encrypted or signed. Check the user name and password, and that the account exists on the NAS.';
+  }
+  // 67: the server answered but has no share by that name
+  if (winerr === 67) return SMB_HINTS.notFound;
+  if (code === 'EHOSTUNREACH' || winerr === 53 || winerr === 1203 || winerr === 1231 || winerr === 64) {
+    return SMB_HINTS.unreachable('this PC');
+  }
+  if (code === 'EACCES') return 'Access denied: the NAS account has no access to this share. Give it at least read access on the NAS.';
+  if (code === 'ETIMEDOUT') return SMB_HINTS.unreachable('this PC');
+  if (code === 'EHELPER' || code === 'ENOHELPER') {
+    return 'SentryHelper.exe is not running. Run Install.cmd again to repair the installation; service.log in the data folder says why it stopped.';
+  }
   return null;
 }
 
@@ -85,6 +144,8 @@ const WRITE_STEPS = {
 };
 const WRITE_HINTS = {
   write: 'The NAS account has read-only access to this share: give it write access (and check PUID/PGID).',
+  // (Windows has no PUID/PGID: the service account reaches the share as the NAS account)
+  writeWin32: 'The NAS account has read-only access to this share: give it write access.',
   rename: 'The NAS refuses to rename a file over another. On a Mac sharing the folder, or with Samba\'s "vfs objects" such as fruit or recycle, renames over a file can be refused.',
   utime: 'The NAS does not let this account change file dates, which keeps an original\'s date when it is replaced. Give the account full control of the share (on Windows/NTFS: Modify, or "Write attributes").',
   remove: 'The NAS account can create files but not delete them: give it delete rights on the share.'
@@ -94,7 +155,7 @@ const WRITE_HINTS = {
  * { ok, step, error, hint, renameOverwrite } for the folder `root`: every
  * step of a real save, on two files of its own that are removed again.
  */
-async function checkWritable(root, { timeoutMs = FS_TIMEOUT_MS } = {}) {
+async function checkWritable(root, { timeoutMs = FS_TIMEOUT_MS, platform = process.platform } = {}) {
   const a = path.join(root, '.sentry-six-manager-check-a');
   const b = path.join(root, '.sentry-six-manager-check-b');
   let step = 'write';
@@ -132,13 +193,23 @@ async function checkWritable(root, { timeoutMs = FS_TIMEOUT_MS } = {}) {
     const denied = err.code === 'EACCES' || err.code === 'EPERM' || err.code === 'EROFS';
     return {
       ok: false, step: WRITE_STEPS[step], error: err.message, renameOverwrite,
-      hint: denied || step !== 'write' ? WRITE_HINTS[step] || null : null
+      hint: denied || step !== 'write' ? writeHint(step, platform) : null
     };
   }
 }
 
+function writeHint(step, platform = process.platform) {
+  if (step === 'write' && platform === 'win32') return WRITE_HINTS.writeWin32;
+  return WRITE_HINTS[step] || null;
+}
+
 class ShareManager extends EventEmitter {
-  constructor({ config, log, mounter = null, mountinfoPath = '/proc/self/mountinfo', id = 'default' }) {
+  /**
+   * probe(root) says what is mounted at root ({ fsType, source, ... } or
+   * null). Default: the mounter's own probe when it has one (Windows),
+   * else /proc/self/mountinfo (Linux, as always).
+   */
+  constructor({ config, log, mounter = null, mountinfoPath = '/proc/self/mountinfo', probe = null, id = 'default', platform = process.platform }) {
     super();
     this.config = config;
     this.id = id;
@@ -147,6 +218,8 @@ class ShareManager extends EventEmitter {
     this.log = log;
     this.mounter = mounter;
     this.mountinfoPath = mountinfoPath;
+    this.platform = platform;
+    this.probe = probe || (typeof mounter?.probe === 'function' ? (root, opts) => mounter.probe(root, opts) : mountinfoProbe(mountinfoPath));
     this.mode = this.smb.share ? 'smb' : 'local';
     if (this.mode === 'smb' && !mounter) throw new Error('An SMB vehicle needs a mounter.');
     this.mountedByUs = false;
@@ -231,7 +304,7 @@ class ShareManager extends EventEmitter {
 
   async currentMount() {
     try {
-      return findMount(await fsp.readFile(this.mountinfoPath, 'utf8'), this.root);
+      return (await this.probe(this.root, { mode: this.mode })) || null;
     } catch {
       return null;
     }
@@ -260,7 +333,8 @@ class ShareManager extends EventEmitter {
     const message = res.notFound
       ? 'mount command not found (cifs-utils is missing from the image).'
       : res.timedOut ? 'mount timed out (server not answering on port 445?)' : tail(output, 3) || `mount exited with ${res.code}`;
-    this.fail(`Mount failed: ${message}`, explainMountError(output));
+    // (the Windows mounter has no mount.cifs output to read: it gives the hint itself)
+    this.fail(`Mount failed: ${message}`, res.hint !== undefined ? res.hint : explainMountError(output));
     this.nextMountAt = Date.now() + this.backoffMs;
     this.backoffMs = Math.min(this.backoffMs * 2, 10 * 60 * 1000);
     return false;
@@ -297,7 +371,9 @@ class ShareManager extends EventEmitter {
       st.readable = false;
       st.writable = null;
       if (this.mode === 'local' && err.code === 'ENOENT') {
-        this.fail(`${this.root} does not exist.`, 'Mount your footage at this path (volumes: - /path/to/TeslaCam:/footage) or set SMB_SHARE.');
+        this.fail(`${this.root} does not exist.`, this.platform === 'win32'
+          ? 'Create this folder, or choose the folder that holds your footage in the vehicle\'s settings (or connect the vehicle to an SMB share).'
+          : 'Mount your footage at this path (volumes: - /path/to/TeslaCam:/footage) or set SMB_SHARE.');
       } else if (this.mode === 'local' || st.mounted) {
         this.fail(`Cannot read ${this.root}: ${err.message}`, null);
       }
@@ -305,7 +381,8 @@ class ShareManager extends EventEmitter {
       return;
     }
 
-    if (this.mode === 'local' && !st.mounted) {
+    // (Windows has no container disk to warn about: a folder is just a folder)
+    if (this.mode === 'local' && !st.mounted && this.platform !== 'win32') {
       st.warning = `Nothing is mounted at ${this.root}, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for ${this.root}.`;
     }
     if (this.mode === 'smb' && !st.mounted) {
@@ -340,7 +417,7 @@ class ShareManager extends EventEmitter {
   async writeCheck() {
     const st = this.state;
     st.writeCheckedAt = Date.now();
-    const r = await checkWritable(this.root);
+    const r = await checkWritable(this.root, { platform: this.platform });
     if (r.renameOverwrite !== null) st.renameOverwrite = r.renameOverwrite;
     if (r.ok) {
       if (st.writable === false) this.log.info('Share is writable again.');
@@ -379,4 +456,4 @@ class ShareManager extends EventEmitter {
   }
 }
 
-module.exports = { ShareManager, findMount, explainMountError, withTimeout, checkWritable };
+module.exports = { ShareManager, findMount, mountinfoProbe, explainMountError, explainSmbError, SMB_HINTS, withTimeout, checkWritable, writeHint };

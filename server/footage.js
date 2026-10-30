@@ -20,6 +20,10 @@ const TYPE_BY_FOLDER = {
 
 // Folders that are never descended into (NAS recycle bins, metadata, ours).
 const SKIP_DIRS = new Set(['#recycle', '#snapshot', '$recycle.bin', 'system volume information', 'lost+found']);
+// and on Windows also the system folders at the top of a drive (older
+// Recycle Bins, the recovery partition's folder), which a folder vehicle on
+// a whole drive would otherwise walk into and be refused
+const SKIP_DIRS_WIN32 = new Set(['recycler', 'recovery']);
 
 // Files the converter owns while it works (src/main/converter/staging.js):
 // never list, trash or delete them from the manager.
@@ -33,9 +37,10 @@ function isValidDay(day) {
   return date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
 }
 
-function shouldSkipDir(name) {
+function shouldSkipDir(name, { platform = process.platform } = {}) {
   if (!name || name.startsWith('.') || name.startsWith('@')) return true;
-  return SKIP_DIRS.has(name.toLowerCase());
+  const lower = name.toLowerCase();
+  return SKIP_DIRS.has(lower) || (platform === 'win32' && SKIP_DIRS_WIN32.has(lower));
 }
 
 function clipTypeFor(segments) {

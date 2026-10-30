@@ -114,4 +114,75 @@ function securitySummary(smb) {
     : `${VERSIONS[smb.version] || smb.version}, signed (not encrypted: someone on the network could see the footage, but not change it)`;
 }
 
-module.exports = { VERSIONS, DEFAULT_VERSION, parseShare, normalizeSmb, credentialsText, mountArgs, securitySummary };
+// ---- Windows (see platform/smbWin32.js)
+//
+// Windows has no mount.cifs: the helper connects to \\host\share and the
+// vehicle's footage is read straight from \\host\share\folder. Windows
+// cannot be told which dialect or protection to use for one connection, so
+// after connecting the helper reports what was negotiated and it is checked
+// here against what the vehicle asks for, just as mount.cifs would refuse.
+
+const SMB_PORT = 445;
+
+/** Dialect text as Windows reports it ("3.1.1", "3.02", "2.1") -> [major, minor, patch]. */
+function dialectParts(value) {
+  const parts = String(value || '').trim().split('.');
+  if (!parts[0] || parts.some((p) => !/^\d{1,2}$/.test(p))) return null;
+  const out = [Number(parts[0])];
+  for (const p of parts.slice(1)) {
+    // "3.02" is 3.0.2: a two-digit part holds minor and patch
+    if (p.length === 2) out.push(Number(p[0]), Number(p[1]));
+    else out.push(Number(p));
+  }
+  while (out.length < 3) out.push(0);
+  return out.slice(0, 3);
+}
+
+function dialectAtLeast(value, min) {
+  const a = dialectParts(value);
+  const b = dialectParts(min);
+  if (!a || !b) return false;
+  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] > b[i];
+  return true;
+}
+
+/** The lowest dialect a vehicle's version setting accepts ('3' = 3.0 or newer). */
+function minDialect(version) {
+  return version === '3' ? '3.0' : version;
+}
+
+/**
+ * How Windows reaches a validated SMB source: the UNC of the share (what
+ * the helper connects to and Windows' one-account-per-server rule counts),
+ * the folder below it the vehicle reads, and the server and share names
+ * the helper's status reports use. Ports other than 445 are refused: a
+ * deviceless connection on another port needs Windows 11 24H2 APIs.
+ */
+function winConnection(smbInput) {
+  const smb = normalizeSmb(smbInput, smbInput);
+  if (smb.port && smb.port !== SMB_PORT) {
+    throw bad(`SMB on port ${smb.port} is not supported on Windows: Windows connects to file shares on port 445 only. Clear the port, or make the NAS answer on 445.`);
+  }
+  const parsed = parseShare(smb.share);
+  // an IPv6 address has its own spelling in a UNC path
+  const server = /^\[.*\]$/.test(parsed.host)
+    ? `${parsed.host.slice(1, -1).replace(/:/g, '-').replace(/%/g, 's')}.ipv6-literal.net`
+    : parsed.host;
+  const unc = `\\\\${server}\\${parsed.share}`;
+  return {
+    smb,
+    server,
+    share: parsed.share,
+    unc,
+    root: [unc, ...parsed.folder].join('\\'),
+    folder: parsed.folder,
+    source: `//${parsed.host}/${parsed.share}`,
+    // who the connection is made as (Windows allows one account per server)
+    account: smb.domain ? `${smb.domain}\\${smb.username}` : smb.username
+  };
+}
+
+module.exports = {
+  VERSIONS, DEFAULT_VERSION, SMB_PORT, parseShare, normalizeSmb, credentialsText, mountArgs, securitySummary,
+  dialectParts, dialectAtLeast, minDialect, winConnection
+};
