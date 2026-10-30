@@ -40,6 +40,13 @@ final class APIClientTests: XCTestCase {
         XCTAssertEqual(post.bodyString, "{}")
     }
 
+    func testLocalSignInSettingSendsNullForTheOldestAccount() throws {
+        let body = try XCTUnwrap(API.setLocalSignIn(enabled: true, user: nil).body)
+        XCTAssertEqual(try JSON.decode([String: JSONValue].self, from: body), ["enabled": .bool(true), "user": .null])
+        let named = try XCTUnwrap(API.setLocalSignIn(enabled: false, user: "admin").body)
+        XCTAssertEqual(try JSON.decode([String: JSONValue].self, from: named), ["enabled": .bool(false), "user": .string("admin")])
+    }
+
     func testPathParametersArePercentEncoded() {
         XCTAssertEqual(API.recording("a/b c", "x?y#z").path, "/api/vehicles/a%2Fb%20c/recordings/x%3Fy%23z")
         XCTAssertEqual(API.days("v", category: "Sentry", offset: 30, limit: 30, date: "2025-06-01").pathAndQuery,

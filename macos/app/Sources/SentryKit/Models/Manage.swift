@@ -186,7 +186,14 @@ public struct LocalSignInSetting: Codable, Sendable, Equatable {
 
 public struct LocalSignInSettingBody: Codable, Sendable {
     public var enabled: Bool
+    /// nil goes out as null: the oldest account (2.6), not "unchanged"
     public var user: String?
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(enabled, forKey: .enabled)
+        try c.encode(user, forKey: .user)
+    }
 }
 
 /// GET /api/updates
