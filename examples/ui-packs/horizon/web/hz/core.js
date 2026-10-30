@@ -413,9 +413,13 @@ export const WIN_UPDATE = 'Run update.ps1 as administrator, or download the late
 export const CPU_NA_WINDOWS = 'CPU watts show only when Windows has an energy meter for the processor (most PCs don\'t). NVIDIA GPU watts show when the card reports them.';
 export const where = { deployment: null };
 export const onWindows = () => where.deployment === 'windows';
-export const whereRunning = fetch('/api/info', { credentials: 'same-origin' })
+// The pages that wait for it (Settings) wait 3 seconds at most: a server that
+// does not answer gets Docker's words rather than a blank section, and the
+// answer still counts for whatever is drawn after it arrives.
+const askedWhere = fetch('/api/info', { credentials: 'same-origin' })
   .then((r) => (r.ok ? r.json() : {}))
   .then((info) => { if (typeof info?.deployment === 'string') where.deployment = info.deployment; return where.deployment; }, () => null);
+export const whereRunning = Promise.race([askedWhere, new Promise((resolve) => { setTimeout(resolve, 3000, null); })]);
 /** The server's own words on how to update (/api/updates how, plain text) as one sentence, or ''. */
 export function toldHow(u) {
   const how = typeof u?.how === 'string' ? u.how.trim() : '';

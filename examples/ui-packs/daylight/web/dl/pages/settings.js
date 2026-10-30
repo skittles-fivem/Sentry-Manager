@@ -421,7 +421,7 @@ async function system({ el }) {
   let mode = p.mode === 'tou' ? 'tou' : 'flat';
   const gpuText = (g) => {
     if (!g) return '';
-    const list = [...(g.nvidia || []).map((x) => `${esc(x.name)} (driver ${esc(x.driver)})`), ...(g.gpus || []).filter((x) => x.vendor !== 'nvidia').map((x) => (x.virtual ? `${esc(x.name)} (not a real GPU, not used)` : `${esc(x.name || x.vendorName)}${x.passedThrough ? (x.encodes ? ` · converts ${esc(Object.entries(x.encodes).filter(([, y]) => y).map(([k]) => k.toUpperCase()).join(', ') || 'nothing')}` : '') : ' · not passed into the container'}`))];
+    const list = [...(g.nvidia || []).map((x) => `${esc(x.name)} (driver ${esc(x.driver)})`), ...(g.gpus || []).filter((x) => x.vendor !== 'nvidia').map((x) => (x.virtual ? `${esc(x.name)} (not a real GPU, not used)` : `${esc(x.name || x.vendorName)}${x.passedThrough ? (x.encodes ? ` · converts ${esc(Object.entries(x.encodes).filter(([, y]) => y).map(([k]) => k.toUpperCase()).join(', ') || 'nothing')}` : '') : (onWindows() || sys?.deployment === 'windows' ? ' · not usable for encoding' : ' · not passed into the container')}`))];
     return list.length ? list.join('<br>') : 'None. Conversions use the processor.';
   };
   el.innerHTML = `<div class="stack">

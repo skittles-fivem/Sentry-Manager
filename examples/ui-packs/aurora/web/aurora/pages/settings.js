@@ -358,11 +358,12 @@ async function security(box) {
 // ---------- System ----------
 async function system(box) {
   const [sys] = await Promise.all([api('/api/system'), whereRunning]);
+  const win = onWindows() || sys.deployment === 'windows';
   state.system = sys;
   const caps = sys.converter?.capabilities || {};
   const g = sys.gpu || { gpus: [], nvidia: [], hints: [] };
   const gpus = [...(g.nvidia || []).map((x) => `${/^nvidia\b/i.test(x.name || '') ? '' : 'NVIDIA '}${esc(x.name)} (driver ${esc(x.driver)})`),
-    ...(g.gpus || []).filter((x) => x.vendor !== 'nvidia').map((x) => (x.virtual ? `${esc(x.name)} · ${esc(x.node)} · not a GPU` : `${esc(x.name || x.vendorName)} · ${esc(x.node)}${x.passedThrough ? (x.encodes ? ` · encodes ${Object.entries(x.encodes).filter(([, y]) => y).map(([k]) => k.toUpperCase()).join(', ') || 'nothing'}` : '') : ' · not passed into the container'}`))];
+    ...(g.gpus || []).filter((x) => x.vendor !== 'nvidia').map((x) => (x.virtual ? `${esc(x.name)} · ${esc(x.node)} · not a GPU` : `${esc(x.name || x.vendorName)} · ${esc(x.node)}${x.passedThrough ? (x.encodes ? ` · encodes ${Object.entries(x.encodes).filter(([, y]) => y).map(([k]) => k.toUpperCase()).join(', ') || 'nothing'}` : '') : (win ? ' · not usable for encoding' : ' · not passed into the container')}`))];
   const v = sys.version || {};
   box.innerHTML = `<section class="panel"><div class="panel-head"><h2>System</h2></div><dl class="kv">
     <dt>Version</dt><dd class="mono">${esc(v.version || v.sha || 'development')}${v.builtAt ? ` · ${esc(String(v.builtAt).slice(0, 10))}` : ''}</dd>
@@ -370,9 +371,9 @@ async function system(box) {
     <dt>Safe rename helper</dt><dd>${sys.nativeHelper ? 'installed' : 'missing (link + unlink fallback)'}</dd>
     <dt>GPUs</dt><dd>${gpus.length ? gpus.join('<br>') : 'none visible (the CPU encoders are used)'}</dd>
     ${(g.hints || []).length ? `<dt>GPU hints</dt><dd>${g.hints.map(esc).join('<br>')}</dd>` : ''}
-    <dt>Data ${onWindows() || sys.deployment === 'windows' ? 'folder' : 'volume'} free</dt><dd>${bytes(sys.dataFree)}</dd>
+    <dt>Data ${win ? 'folder' : 'volume'} free</dt><dd>${bytes(sys.dataFree)}</dd>
     <dt>Server time zone</dt><dd>${esc(sys.timezone)}</dd>
-    <dt>HTTPS</dt><dd>${sys.security?.https ? 'on' : 'off'} · TLS mode ${esc(sys.security?.tlsMode || '')}${sys.security?.supervised ? ' · supervised' : ''}</dd></dl></section>`;
+    <dt>HTTPS</dt><dd>${sys.security?.https ? 'on' : 'off'} · TLS mode ${esc(sys.security?.tlsMode || '')}${sys.security?.supervised && !win ? ' · supervised' : ''}</dd></dl></section>`;
 }
 
 // ---------- Electricity ----------

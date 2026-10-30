@@ -266,11 +266,15 @@ async function security(box) {
 // ---------- system ----------
 async function system(box) {
   const [sys, ctx] = await Promise.all([api('/api/system'), api('/api/stats').catch(() => ({})), whereRunning]);
-  const vol = onWindows() || sys.deployment === 'windows' ? 'data folder' : 'data volume';
+  const win = onWindows() || sys.deployment === 'windows';
+  const vol = win ? 'data folder' : 'data volume';
   const dataVol = (ctx.filesystems || []).find((f) => !f.vehicle)?.path;
+  // a Windows data folder is a C:\ path: its converted folder is joined with \ (and the
+  // service is not run by the Docker supervisor, so that clause is left out)
+  const sep = win && /\\/.test(dataVol || '') && !(dataVol || '').includes('/') ? '\\' : '/';
   state.system = sys;
   const caps = sys.converter?.capabilities || {};
-  const gpus = [...(sys.gpu?.nvidia || []).map((g) => `${g.name} (driver ${g.driver})`), ...(sys.gpu?.gpus || []).filter((g) => g.vendor !== 'nvidia').map((g) => `${g.name || g.vendorName} · ${g.node}${g.virtual ? ' · not a GPU' : g.passedThrough ? (g.encodes ? ` · encodes ${Object.entries(g.encodes).filter(([, x]) => x).map(([k]) => k.toUpperCase()).join(', ') || 'nothing'}` : '') : ' · not passed into the container'}`)];
+  const gpus = [...(sys.gpu?.nvidia || []).map((g) => `${g.name} (driver ${g.driver})`), ...(sys.gpu?.gpus || []).filter((g) => g.vendor !== 'nvidia').map((g) => `${g.name || g.vendorName} · ${g.node}${g.virtual ? ' · not a GPU' : g.passedThrough ? (g.encodes ? ` · encodes ${Object.entries(g.encodes).filter(([, x]) => x).map(([k]) => k.toUpperCase()).join(', ') || 'nothing'}` : '') : (win ? ' · not usable for encoding' : ' · not passed into the container')}`)];
   box.innerHTML = `<section class="card"><header class="card-h"><h2>System</h2></header><dl class="kv">
     <dt>version</dt><dd class="mono">${esc(ctx.host?.version || sys.version?.sha || 'dev')}</dd>
     <dt>converter</dt><dd>${sys.converter?.ready ? `ready · replace originals ${esc(caps.replacement)} · cleanup ${esc(caps.ownershipCleanup)} · publication ${esc(caps.separatePublication)}` : `not ready (${esc(sys.converter?.error || 'starting')})`}</dd>
@@ -278,9 +282,9 @@ async function system(box) {
     <dt>GPUs</dt><dd>${gpus.length ? gpus.map(esc).join('<br>') : 'none visible (the CPU encoders are used)'}</dd>
     ${(sys.gpu?.hints || []).length ? `<dt>GPU hints</dt><dd class="small">${sys.gpu.hints.map(esc).join('<br>')}</dd>` : ''}
     <dt>${vol} free</dt><dd class="num">${bytes(sys.dataFree)}</dd>
-    <dt>${vol}</dt><dd class="mono small">${esc(dataVol || '—')}</dd><dt>converted copies</dt><dd class="mono small">${esc(dataVol ? `${dataVol}/converted` : '—')}</dd>
+    <dt>${vol}</dt><dd class="mono small">${esc(dataVol || '—')}</dd><dt>converted copies</dt><dd class="mono small">${esc(dataVol ? `${dataVol}${sep}converted` : '—')}</dd>
     <dt>server time zone</dt><dd>${esc(sys.timezone)}</dd>
-    <dt>HTTPS</dt><dd>${sys.security?.https ? 'on' : 'off'} · TLS mode ${esc(sys.security?.tlsMode)} · ${sys.security?.supervised ? 'supervised' : 'not supervised'}${fin(sys.security?.uid) ? ` · uid ${sys.security.uid}` : ''}</dd>
+    <dt>HTTPS</dt><dd>${sys.security?.https ? 'on' : 'off'} · TLS mode ${esc(sys.security?.tlsMode)}${win ? '' : ` · ${sys.security?.supervised ? 'supervised' : 'not supervised'}`}${fin(sys.security?.uid) ? ` · uid ${sys.security.uid}` : ''}</dd>
   </dl></section>`;
 }
 

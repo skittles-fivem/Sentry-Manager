@@ -348,7 +348,7 @@
     ? `the install window or <code>${esc(WIN_LOGS)}</code>`
     : 'the container log (<code>docker logs sentry-six-manager</code>)');
   // ---- deployment wording: end ----
-  const fin =(n) => typeof n === 'number' && Number.isFinite(n);
+  const fin = (n) => typeof n === 'number' && Number.isFinite(n);
   const clampPct = (n) => Math.max(0, Math.min(100, Math.round((fin(n) ? n : 0) * 10) / 10));
   const SIZE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
   const sizeUnit = (b) => {
@@ -2067,7 +2067,7 @@
       html += `<div class="card" data-section="system"><h2>System</h2><dl class="kv" style="margin-top:16px">
         <dt>Converter</dt><dd>${sys.converter.ready ? `ready · replace originals ${esc(caps.replacement)} · cleanup ${esc(caps.ownershipCleanup)}` : `not ready (${esc(sys.converter.error || 'starting')})`}</dd>
         <dt>Safe rename helper</dt><dd>${sys.nativeHelper ? 'installed' : 'missing (link + unlink fallback)'}</dd>
-        <dt>GPUs</dt><dd>${sys.gpu.gpus.length || sys.gpu.nvidia.length ? [...sys.gpu.nvidia.map((g) => `${/^nvidia\b/i.test(g.name || '') ? '' : 'NVIDIA '}${esc(g.name)} (driver ${esc(g.driver)})`), ...sys.gpu.gpus.filter((g) => g.vendor !== 'nvidia').map((g) => (g.virtual ? `${esc(g.name)} · ${esc(g.node)} · not a GPU, not used for encoding` : `${esc(g.name || g.vendorName)} · ${esc(g.node)}${g.passedThrough ? (g.encodes ? ` · encodes ${Object.entries(g.encodes).filter(([, x]) => x).map(([k]) => k.toUpperCase()).join(', ') || 'nothing'}` : '') : ' · not passed into the container'}`))].join('<br>') : 'none visible (the CPU encoders are used)'}</dd>
+        <dt>GPUs</dt><dd>${sys.gpu.gpus.length || sys.gpu.nvidia.length ? [...sys.gpu.nvidia.map((g) => `${/^nvidia\b/i.test(g.name || '') ? '' : 'NVIDIA '}${esc(g.name)} (driver ${esc(g.driver)})`), ...sys.gpu.gpus.filter((g) => g.vendor !== 'nvidia').map((g) => (g.virtual ? `${esc(g.name)} · ${esc(g.node)} · not a GPU, not used for encoding` : `${esc(g.name || g.vendorName)} · ${esc(g.node)}${g.passedThrough ? (g.encodes ? ` · encodes ${Object.entries(g.encodes).filter(([, x]) => x).map(([k]) => k.toUpperCase()).join(', ') || 'nothing'}` : '') : (onWindows(sys.deployment || state.deployment) ? ' · not usable for encoding' : ' · not passed into the container')}`))].join('<br>') : 'none visible (the CPU encoders are used)'}</dd>
         ${sys.gpu.hints.length ? `<dt>GPU hints</dt><dd>${sys.gpu.hints.map(esc).join('<br>')}</dd>` : ''}
         <dt>Data ${onWindows(sys.deployment || state.deployment) ? 'folder' : 'volume'} free</dt><dd>${bytes(sys.dataFree)}</dd>
         <dt>Server time zone</dt><dd>${esc(sys.timezone)}</dd></dl></div>`;

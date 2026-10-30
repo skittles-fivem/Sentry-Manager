@@ -12,6 +12,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
+const harness = require('./deploymentWordingHarness');
+const { continueTemplate, fingerprintFallback, DOCKER_LOG } = require('../server/continueWording');
+
+// the drawings below show times: the snapshots were made in UTC
+process.env.TZ = 'UTC';
 
 const REPO = path.join(__dirname, '..');
 const read = (rel) => fs.readFileSync(path.join(REPO, rel), 'utf8');
@@ -21,25 +26,12 @@ const COMMAND_HTML = '<code>docker compose pull &amp;&amp; docker compose up -d<
 const WIN_UPDATE = 'Run update.ps1 as administrator, or download the latest release and run Install.cmd.';
 const WIN_LOGS = '%ProgramData%\\SentrySixManager\\data\\logs\\service.log';
 
-// A function of app.js by name: from "  function name(" to its closing brace
-// at the same indent (app.js is one browser script; these parts have no DOM).
-function fnSource(src, name) {
-  const start = src.indexOf(`\n  function ${name}(`);
-  assert.ok(start > 0, `app.js has ${name}()`);
-  const end = src.indexOf('\n  }\n', start);
-  return src.slice(start, end + 5);
-}
-
-function appParts(state = { deployment: null, system: null }) {
+function appParts(state) {
   const app = read('web/app.js');
   const start = app.indexOf('// ---- server monitor: drawing');
   const end = app.indexOf('// ---- server monitor: end of drawing ----');
-  assert.ok(start > 0 && end > start, 'the drawing block is marked in app.js');
   assert.ok(app.indexOf('// ---- deployment wording') > start && app.indexOf('// ---- deployment wording: end ----') < end, 'the wording is inside the drawing block');
-  const helpers = ['esc', 'plural'].map((name) => app.match(new RegExp(`\\n  const ${name} = .*;\\n`))[0]).join('');
-  const cards = ['updatesCard', 'serviceAccount', 'securityCard', 'vehicleForm', 'logsPart'].map((n) => fnSource(app, n)).join('');
-  return new Function('state', 'when', 'logs', `${helpers}${app.slice(start, end)}${cards}
-    return { serverBody, updatesCard, securityCard, vehicleForm, logsPart, toldHow, printedIn };`)(state, (t) => `at ${t}`, { all: false, html: '', tallest: 0 });
+  return harness.appParts(app, state);
 }
 
 const UPDATES = {
@@ -161,9 +153,10 @@ function coreBlock(pack) {
 test('packs: one deployment block in every core.js, Docker until the server says Windows', async () => {
   const block = coreBlock('flux');
   for (const pack of Object.keys(PACKS)) assert.equal(coreBlock(pack), block, `${pack} has the same block`);
+  const load = (fetch, setTimeout = () => {}) => new Function('fetch', 'setTimeout', `${block.replace(/^export /gm, '')}; return { where, onWindows, whereRunning, toldHow, WIN_UPDATE, WIN_LOGS };`)(fetch, setTimeout);
   const run = async (answer) => {
     const fetch = async () => (answer === null ? { ok: false } : { ok: true, json: async () => answer });
-    const m = new Function('fetch', `${block.replace(/^export /gm, '')}; return { where, onWindows, whereRunning, toldHow, WIN_UPDATE, WIN_LOGS };`)(fetch);
+    const m = load(fetch);
     assert.equal(m.onWindows(), false, 'Docker words until the answer is in');
     await m.whereRunning;
     return m;
@@ -175,6 +168,19 @@ test('packs: one deployment block in every core.js, Docker until the server says
   assert.equal(m.WIN_UPDATE, WIN_UPDATE);
   assert.equal(m.WIN_LOGS, WIN_LOGS);
   assert.equal(m.toldHow({ how: 'Run update.ps1' }), 'Run update.ps1.');
+
+  // a server that never answers holds Settings up for 3 seconds at most,
+  // and an answer that comes later still counts
+  let late;
+  let timer;
+  const slow = load(() => new Promise((resolve) => { late = resolve; }), (fn, ms, value) => { timer = { fn, ms, value }; });
+  assert.equal(timer.ms, 3000);
+  timer.fn(timer.value);
+  assert.equal(await slow.whereRunning, null);
+  assert.equal(slow.onWindows(), false);
+  late({ ok: true, json: async () => ({ deployment: 'windows' }) });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(slow.onWindows(), true);
 });
 
 test('packs: the Docker sentences are unchanged and each has its Windows branch', () => {
@@ -244,4 +250,68 @@ test('built-in sign-in page: Docker\'s words stay in login.html; login.js swaps 
   const js = read('web/login.js');
   assert.match(js, /const windows = info\?\.deployment === 'windows';\n  if \(windows\) \{/);
   assert.ok(js.includes("`This is the first start. Enter the setup code from ${windows ? 'the install window' : 'the container log'}, then choose the user name and password that protect this Sentry Six Manager.`"));
+});
+
+// Docker's drawing against snapshots made from the code before the Windows
+// wording (commit 7d1e6f7) with the same harness: app.js's monitor, update,
+// security, vehicle and log parts, and the four packs' Settings sections.
+const SNAPSHOT = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'deploymentWording-docker.json'), 'utf8'));
+const realToldHow = (u) => {
+  const how = typeof u?.how === 'string' ? u.how.trim() : '';
+  return how ? (/[.!?]$/.test(how) ? how : `${how}.`) : '';
+};
+
+test('app.js on Docker draws exactly what it drew before the Windows wording', (t) => {
+  const now = harness.drawApp(read('web/app.js'), sample, 'docker');
+  assert.deepEqual(Object.keys(now), Object.keys(SNAPSHOT.app));
+  // the monitor's numbers are written in this machine's language: the
+  // snapshot is in English, so elsewhere only the other parts are compared
+  const english = Intl.NumberFormat().resolvedOptions().locale === 'en-US';
+  if (!english) t.diagnostic('not en-US: the monitor pages are not compared');
+  for (const [k, html] of Object.entries(SNAPSHOT.app)) {
+    if (!english && k.startsWith('serverBody/')) continue;
+    assert.equal(now[k], html, k);
+  }
+});
+
+test('packs on Docker draw their Settings sections exactly as before; on Windows without Docker\'s words', async () => {
+  const docker = await harness.drawPacks((rel) => read(rel), { onWindows: () => false, toldHow: realToldHow, WIN_UPDATE });
+  assert.deepEqual(Object.keys(docker), Object.keys(SNAPSHOT.packs));
+  for (const [k, html] of Object.entries(SNAPSHOT.packs)) assert.equal(docker[k], html, k);
+
+  const windows = await harness.drawPacks((rel) => read(rel), { onWindows: () => true, toldHow: realToldHow, WIN_UPDATE });
+  for (const [k, html] of Object.entries(windows)) {
+    assert.doesNotMatch(html, /docker|compose|container|supervis/i, k);
+    if (k.includes('/updates/on')) assert.ok(html.includes(WIN_UPDATE), k);
+  }
+});
+
+const PACK_SYSTEM_WINDOWS = { deployment: 'windows', converter: { ready: true, capabilities: {} }, gpu: { gpus: [], nvidia: [] }, dataFree: 1, timezone: 'UTC', security: { https: true, tlsMode: 'auto', supervised: false } };
+test('flux and horizon: the converted folder of a Windows data folder is joined with a backslash', async () => {
+  for (const pack of ['flux', 'horizon']) {
+    const src = read(`examples/ui-packs/${harness.SECTIONS[pack].dir}/pages/settings.js`);
+    const answers = { '/api/system': PACK_SYSTEM_WINDOWS, '/api/stats': { filesystems: [{ path: 'C:\\ProgramData\\SentrySixManager\\data' }] } };
+    const win = await harness.packSections(pack, src, answers, { onWindows: () => true }).system();
+    // the stub esc() prints its argument as JSON, so each backslash shows doubled
+    assert.ok(win.includes('C:\\\\ProgramData\\\\SentrySixManager\\\\data\\\\converted'), `${pack}: ${win.match(/.{0,40}converted.{0,60}/g)}`);
+    const docker = await harness.packSections(pack, src, { ...answers, '/api/stats': { filesystems: [{ path: '/data' }] } }).system();
+    assert.ok(docker.includes('/data/converted'), pack);
+  }
+});
+
+// The plain-HTTP continue page (web/continue.html) cannot ask /api/info, so
+// the server fills in where the fingerprint is printed (server/continueWording.js).
+test('continue page: Docker\'s page as it is; Windows points at the install window and service.log', () => {
+  const html = read('web/continue.html');
+  assert.equal(html.split(DOCKER_LOG).length, 2, 'continue.html has the container log line once');
+  assert.equal(continueTemplate(html, 'docker'), html);
+  assert.equal(continueTemplate(html, 'linux'), html);
+  assert.equal(continueTemplate(html, undefined), html);
+  const win = continueTemplate(html, 'windows');
+  assert.doesNotMatch(win, DOCKER_WORDS);
+  assert.ok(win.includes(`which is also in the install window or <code>${WIN_LOGS}</code>:</p>`));
+  assert.ok(win.includes('{{FINGERPRINT}}') && win.includes('{{HTTPS_URL}}'), 'the other placeholders are left for the server');
+  assert.equal(fingerprintFallback('docker'), 'shown in the container log');
+  assert.equal(fingerprintFallback(undefined), 'shown in the container log');
+  assert.doesNotMatch(fingerprintFallback('windows'), DOCKER_WORDS);
 });
