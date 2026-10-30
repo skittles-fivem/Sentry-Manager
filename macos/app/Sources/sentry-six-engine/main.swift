@@ -26,11 +26,16 @@ func homeFolder() -> String {
     return String(cString: dir)
 }
 
-func makeFolder(_ path: String, mode: Int) {
+func makeFolder(_ path: String, mode: Int, enforce: Bool = false) {
     var st = stat()
     if lstat(path, &st) == 0 {
         // a link or a file where a folder belongs: stop rather than follow it
         guard (st.st_mode & S_IFMT) == S_IFDIR else { die("\(path) is not a folder") }
+        // our own folders keep their mode: run/ guards the sign-in socket
+        if enforce {
+            guard st.st_uid == getuid() else { die("\(path) is not this user's own folder") }
+            if Int(st.st_mode & 0o7777) != mode { _ = chmod(path, mode_t(mode)) }
+        }
         return
     }
     if mkdir(path, mode_t(mode)) != 0 && errno != EEXIST { die("cannot make \(path): \(String(cString: strerror(errno)))") }
@@ -67,7 +72,7 @@ let paths = agent.paths
 // 1. the folders: 0700, public/ 0755
 let library = "\(paths.home)/Library"
 for p in [library, "\(library)/Application Support", "\(library)/Logs"] { makeFolder(p, mode: 0o700) }
-for f in paths.folders { makeFolder(f.path, mode: f.mode) }
+for f in paths.folders { makeFolder(f.path, mode: f.mode, enforce: true) }
 
 // 2. run/tmp, the engine's TMPDIR, starts empty
 emptyFolder(paths.tmp)

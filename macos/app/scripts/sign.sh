@@ -29,6 +29,8 @@ cmd_keychain() {
   [ -n "${DEVELOPER_ID_P12:-}" ] && [ -n "${DEVELOPER_ID_P12_PASSWORD:-}" ] && [ -n "${APPLE_TEAM_ID:-}" ] || fail "the signing secrets are not set"
   tmp=${RUNNER_TEMP:-${TMPDIR:-/tmp}}
   p12=$(mktemp "$tmp/devid.XXXXXX")
+  # the decoded certificate and key never outlive this step, even on a failure
+  trap "rm -f $(printf '%q' "$p12")" EXIT
   pass=$(openssl rand -hex 24)
   printf '%s' "$DEVELOPER_ID_P12" | base64 --decode > "$p12"
   security delete-keychain "$KEYCHAIN" >/dev/null 2>&1 || true

@@ -31,7 +31,9 @@ struct SentrySixManagerApp: App {
         .windowResizability(.contentSize)
 
         MenuBarExtra {
-            MenuBarContent(conversions: nil, needsSetup: service.setupCode != nil, criticalUpdateURL: nil)
+            // needsSetup comes from /api/auth/me once the shell is signed in;
+            // until then the item stays, so the code can always be fetched
+            MenuBarContent(conversions: nil, needsSetup: service.mode != nil, criticalUpdateURL: nil)
                 .environment(service)
         } label: {
             Image(systemName: "shield")

@@ -159,7 +159,7 @@ final class InstallScriptTests: XCTestCase {
         XCTAssertEqual(InstallScript.uninstallDaemon(removeData: true), "'/bin/bash' '/Library/SentrySixManager/uninstall.sh' '--remove-data'")
         XCTAssertEqual(InstallScript.uninstallDaemon(removeData: false), "'/bin/bash' '/Library/SentrySixManager/uninstall.sh'")
         let a = InstallScript.appleScript("echo 'hi' \"there\"", prompt: "Your \"password\".")
-        XCTAssertTrue(a.hasPrefix("do shell script \"/bin/bash -c 'echo '\\\\''hi'\\\\'' \\\"there\\\"' 2>&1\" with prompt "), a)
+        XCTAssertTrue(a.hasPrefix("do shell script \"/bin/bash -c 'echo '\\\\''hi'\\\\'' \\\"there\\\"'\" with prompt "), a)
         XCTAssertTrue(a.hasSuffix(" with prompt \"Your \\\"password\\\".\" with administrator privileges without altering line endings"), a)
     }
 

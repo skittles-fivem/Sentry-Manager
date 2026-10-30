@@ -102,9 +102,9 @@ const commands = {
 
   mount() {},
 
-  // numeric and symbolic modes are real; ACL changes (+a, -a) are only logged
+  // numeric and symbolic modes are real; ACL changes (+a, -a, -N) are only logged
   chmod(args) {
-    if (args.some((a) => a === '+a' || a.startsWith('+a') || a === '-a')) return;
+    if (args.some((a) => a === '+a' || a.startsWith('+a') || a === '-a' || a === '-N')) return;
     process.exit(real('chmod', args));
   },
 

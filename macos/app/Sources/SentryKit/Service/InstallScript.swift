@@ -128,9 +128,11 @@ public enum InstallScript {
 
     /// Wraps a step for `do shell script ... with administrator privileges`:
     /// bash runs it, and it is an AppleScript string literal. `prompt` is the
-    /// line macOS shows in its password window.
+    /// line macOS shows in its password window. stderr stays apart: when a
+    /// step fails, do shell script makes stderr the error's text, so the
+    /// step's own words ("The app's files were changed...") reach the user.
     public static func appleScript(_ script: String, prompt: String) -> String {
-        "do shell script \(appleScriptLiteral("/bin/bash -c " + ShellQuote.word(script) + " 2>&1")) with prompt \(appleScriptLiteral(prompt)) with administrator privileges without altering line endings"
+        "do shell script \(appleScriptLiteral("/bin/bash -c " + ShellQuote.word(script))) with prompt \(appleScriptLiteral(prompt)) with administrator privileges without altering line endings"
     }
 
     /// What osascript's answer means: the output, Cancel, or the error's own words.

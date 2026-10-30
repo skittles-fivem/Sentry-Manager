@@ -54,8 +54,10 @@ main() {
     launchctl bootout "system/$LABEL" 2>/dev/null || true
   fi
   rm -f "$PLIST" "$NEWSYSLOG" "$PATHS_D"
-  # the Mac app's two folders: engine.json and the sign-in socket
+  # the Mac app's two folders: engine.json and the sign-in socket (and the
+  # list of who may enter the latter, which went with its access entries)
   rm -rf "$PUBLIC" "$LOCAL"
+  rm -f "$STATE/local-signin-users"
   rm -rf "$PROG" "$PROG.new" "$PROG.old" "$PROG.failed"
   say "Removed the program from /Library/SentrySixManager"
 

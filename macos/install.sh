@@ -227,6 +227,11 @@ copy_from_dir() {
   mkdir -p "$PROG.new"
   chmod 0755 "$PROG.new"
   cp -R "$d/." "$PROG.new/" || fail "could not copy $d"
+  # the MANIFEST checked the bytes, not the metadata the user's copy carried:
+  # no access list may let anyone write here once root owns it
+  chmod -R -N "$PROG.new" 2>/dev/null || true
+  if ls -leR "$PROG.new" 2>/dev/null | grep -Eq '^ *[0-9]+: '; then fail "$d has access lists that cannot be removed: refusing it"; fi
+  xattr -dr com.apple.quarantine "$PROG.new" 2>/dev/null || true
   say "Copied the app's engine from $d"
   check_new
 }
@@ -241,7 +246,8 @@ check_new() {
   if grep -q 'DYLD_' "$PROG.new/$LABEL.plist"; then fail "the package's launchd job sets DYLD_ variables: refusing it"; fi
   # nothing in the program folder is writable by the service account
   chown -R root:wheel "$PROG.new"
-  chmod -R go-w "$PROG.new"
+  # and nothing runs as root by its set-id bit
+  chmod -R go-w,ug-s "$PROG.new"
   # node's Developer ID signature and our helper's own; ffmpeg's is left as
   # Jellyfin made it (an ad hoc signature cannot be checked against anyone)
   codesign --verify "$PROG.new/node/bin/node" || fail "node's code signature does not verify: refusing the package"
@@ -366,6 +372,8 @@ ensure_state() {
   chmod 0644 "$PATHS_D"
   # beside the state root, not in it: nothing private becomes readable
   dir_as "$SVC_UID:wheel" 0755 "$PUBLIC"
+  # a new folder has no access entries yet: the list starts empty with it
+  if [ ! -d "$LOCAL" ]; then rm -f "$LOCAL_USERS"; fi
   dir_as "$SVC_UID:wheel" 0700 "$LOCAL"
   [ -e "$LOCAL_USERS" ] || : > "$LOCAL_USERS"
   chown root:wheel "$LOCAL_USERS"

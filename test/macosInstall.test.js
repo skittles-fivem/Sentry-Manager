@@ -629,9 +629,13 @@ test('--from-dir: a staged folder installs as a tarball does, with the public an
   users.Users.anna = { UniqueID: '501' };
   fs.writeFileSync(path.join(sb.fake, 'dscl.json'), JSON.stringify(users));
   const dir = stagedDir(sb, { version: '3.0.0' });
+  // the user's copy may carry a set-id bit or an access list: neither stays
+  fs.chmodSync(path.join(dir, 'bin', 'sentry-fsops'), 0o6755);
   const r = fromDir(sb, dir, ['--local-user', 'anna'], { FAKE_SETUP_CODE: 'ABCDE-FGHIJ-KLMNO' });
   assert.equal(r.status, 0, r.out);
   assert.equal(version(sb), '3.0.0');
+  assert.equal(fs.statSync(path.join(sb.prog, 'bin', 'sentry-fsops')).mode & 0o7777, 0o755);
+  assert.ok(calls(sb).some((c) => c.cmd === 'chmod' && c.args.join(' ') === `-R -N ${sb.prog}.new`), 'access lists cleared');
   assert.match(r.stdout, /Copied the app's engine from /);
   assert.match(r.stdout, /^SETUP-CODE: ABCDE-FGHIJ-KLMNO$/m);
   assert.match(r.stdout, /^ {2}Setup code: ABCDE-FGHIJ-KLMNO$/m);
@@ -762,8 +766,15 @@ test('the CLI: local-signin list, allow and remove; uninstall removes the app\'s
   assert.deepEqual(calls(sb).filter((c) => c.cmd === 'chmod' && c.args[0] === '-a').map((c) => c.args), [['-a', 'user:anna allow search', local]]);
   assert.match(run(sb, cli, ['local-signin', 'list']).stdout, /^Nobody/m);
   assert.match(run(sb, cli, ['local-signin', 'what']).stderr, /usage: sudo sentry-six-manager local-signin list/);
+  assert.equal(run(sb, cli, ['local-signin', 'allow', 'anna']).status, 0);
   const r = run(sb, path.join(sb.prog, 'uninstall.sh'));
   assert.equal(r.status, 0, r.out);
   assert.equal(fs.existsSync(local), false);
   assert.equal(fs.existsSync(path.join(sb.root, 'Library/Application Support/SentrySixManager Public')), false);
+  // the list went with the folder's access entries: installed again, anna is let in again
+  assert.equal(fs.existsSync(path.join(sb.state, 'local-signin-users')), false);
+  clearCalls(sb);
+  assert.equal(install(sb, makePackage(sb, { version: '2.0.0' }), { SUDO_USER: 'anna' }).status, 0);
+  assert.deepEqual(calls(sb).filter((c) => c.cmd === 'chmod' && c.args[0] === '+a').map((c) => c.args), [['+a', 'user:anna allow search', local]]);
+  assert.equal(fs.readFileSync(path.join(sb.state, 'local-signin-users'), 'utf8'), 'anna\n');
 });
