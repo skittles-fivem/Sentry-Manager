@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
 const { spawn, spawnSync } = require('child_process');
 
 const REPO = path.join(__dirname, '..');
@@ -35,9 +36,9 @@ const { parseMp4, findBoxes } = require(path.join(REPO, 'src/main/converter/mp4'
 const HELPER = process.env.SENTRY_NOREPLACE_RENAME || path.join(REPO, 'build', 'noreplace-rename');
 const encoders = spawnSync('ffmpeg', ['-hide_banner', '-encoders']).stdout?.toString() || '';
 const has = (name) => new RegExp(`\\s${name}\\s`).test(encoders);
-const needsFfmpeg = has('libx264') && has('libx265') ? false : 'needs ffmpeg with libx264 and libx265';
-const needsRuntime = needsFfmpeg || (fs.existsSync(HELPER) ? false : 'needs build/noreplace-rename');
-const needsAv1 = needsRuntime || (has('libsvtav1') ? false : 'needs ffmpeg with libsvtav1');
+const needsFfmpeg = needsTool(has('libx264') && has('libx265'), 'needs ffmpeg with libx264 and libx265');
+const needsRuntime = needsFfmpeg || linuxOnly(RENAME_HELPER) || needsTool(fs.existsSync(HELPER), 'needs build/noreplace-rename');
+const needsAv1 = needsRuntime || needsTool(has('libsvtav1'), 'needs ffmpeg with libsvtav1');
 
 const telemetryFor = (frames, gapAt = null) => Array.from({ length: frames }, (_, n) => (n === gapAt ? null : Buffer.from([0x20, n & 0xff, n >> 8])));
 
@@ -455,7 +456,7 @@ test('replace mode, AV1: a lead-in clip converts with every frame kept and its t
 // must convert with exactly the expected frames, each at its original time.
 const realClips = (process.env.LEADIN_CLIPS || '').split(/[,;]/).map((entry) => entry.trim()).filter(Boolean);
 test('real clips (opt-in): every frame kept at its original time, verified, replaced', {
-  skip: realClips.length === 0 ? 'set LEADIN_CLIPS to run' : (fs.existsSync(HELPER) ? false : 'needs noreplace-rename'), timeout: 3_600_000
+  skip: realClips.length === 0 ? 'set LEADIN_CLIPS to run' : (linuxOnly(RENAME_HELPER) || needsTool(fs.existsSync(HELPER), 'needs noreplace-rename')), timeout: 3_600_000
 }, async (t) => {
   const codec = process.env.LEADIN_CODEC || 'h265';
   const { base, root } = makeBase();

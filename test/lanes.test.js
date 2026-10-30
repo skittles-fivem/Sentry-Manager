@@ -11,6 +11,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
 const { normalizeLanes, lanesTotal, DEVICE_ID, LANES, nodeKeyOf, nodeDeviceOf } = require('../src/main/converter/contracts');
 const { createJobStore } = require('../src/main/converter/jobStore');
 const { createEncoderPlanner } = require('../src/main/converter/encoderPlanner');
@@ -687,7 +688,7 @@ async function benchmarkFootage(dir) {
   return path.join(dir, 'footage', 'TeslaCam');
 }
 
-test('benchmark: every GPU runs alone with its own lanes, in order; a codec it cannot encode is unsupported, not run on the CPU', { skip: !hasFfmpeg && 'needs ffmpeg', timeout: 120_000 }, async () => {
+test('benchmark: every GPU runs alone with its own lanes, in order; a codec it cannot encode is unsupported, not run on the CPU', { skip: needsTool(hasFfmpeg, 'needs ffmpeg'), timeout: 120_000 }, async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-lanes-bench-'));
   try {
     const sourceRoot = await benchmarkFootage(dir);
@@ -963,7 +964,7 @@ child.on('exit', (code, signal) => process.exit(signal ? 1 : code));
   return { script, calls: () => (fs.existsSync(log) ? fs.readFileSync(log, 'utf8').trim().split('\n').map((line) => JSON.parse(line)) : []) };
 }
 
-test('end to end: a lanes job encodes each clip on its lane\'s GPU through the real runtime', { skip: !canConvert && 'needs ffmpeg and build/noreplace-rename', timeout: 180_000 }, async () => {
+test('end to end: a lanes job encodes each clip on its lane\'s GPU through the real runtime', { skip: linuxOnly(RENAME_HELPER) || needsTool(canConvert, 'needs ffmpeg and build/noreplace-rename'), timeout: 180_000 }, async () => {
   const { createConverterRuntime } = require('../src/main/converter/runtime');
   const { createPosixOwnedFs } = require('../server/posixOwnedFs');
   const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');

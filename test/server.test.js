@@ -11,6 +11,7 @@ const fsp = require('fs/promises');
 const net = require('net');
 const os = require('os');
 const path = require('path');
+const { linuxOnly, needsTool } = require('./fixtures/platformSkip');
 const { spawn, spawnSync, execFileSync } = require('child_process');
 
 const REPO = path.join(__dirname, '..');
@@ -385,7 +386,7 @@ test('Studio is served with the web shim; converter bridge enforces Quick and al
   }
 });
 
-test('the viewer gets a clip\'s telemetry from the server, read off the main thread', { skip: !hasFfmpeg && 'ffmpeg missing', timeout: 120000 }, async () => {
+test('the viewer gets a clip\'s telemetry from the server, read off the main thread', { skip: needsTool(hasFfmpeg, 'ffmpeg missing'), timeout: 120000 }, async () => {
   const dir = await tmp();
   const root = path.join(dir, 'footage');
   await makeFootage(root);
@@ -459,7 +460,7 @@ test('the Encoder tab is a page of its own: the converter with the shim, its ske
   assert.equal(new URL(studioUrl('viewer'), 'http://x').pathname, '/studio/index.html');
 });
 
-test('the supervisor only runs the app from the image, never code left in /data', { timeout: 120000 }, async () => {
+test('the supervisor only runs the app from the image, never code left in /data', { skip: linuxOnly('the root supervisor (Windows runs the app as a service)'), timeout: 120000 }, async () => {
   const dir = await tmp();
   await makeFootage(path.join(dir, 'footage'));
   // what the old in-app updater left behind, or what anyone who can write /data could plant

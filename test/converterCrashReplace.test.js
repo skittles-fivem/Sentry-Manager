@@ -10,8 +10,9 @@
 
 const test = require('node:test');
 const { crashAndRecover, assertRecovered, available } = require('./fixtures/crashPoints');
+const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
 
-const skip = available() ? false : 'needs ffmpeg and build/noreplace-rename';
+const skip = linuxOnly(RENAME_HELPER) || needsTool(available(), 'needs ffmpeg and build/noreplace-rename');
 
 const CASES = [
   // before the clip's save: its private files are removed and it starts over

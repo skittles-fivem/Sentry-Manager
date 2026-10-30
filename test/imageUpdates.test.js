@@ -7,7 +7,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { needsTool } = require('./fixtures/platformSkip');
+const { execFileSync, spawnSync } = require('child_process');
 const { ImageUpdates, parseChallenge, cleanCritical, criticalFromFile } = require('../server/imageUpdates');
 
 const IMAGE = 'ghcr.io/owner/sentry-six-manager';
@@ -234,7 +235,10 @@ test('the first check after a start comes within minutes, then every 12 hours', 
   assert.equal(reg.calls.length, n, 'not again until 12 hours later');
 });
 
-test('CRITICAL_UPDATE.txt is read the same way by the build and the server', () => {
+// the workflow step is a bash script (Git Bash on Windows)
+const hasBash = spawnSync('bash', ['--version']).status === 0;
+
+test('CRITICAL_UPDATE.txt is read the same way by the build and the server', { skip: needsTool(hasBash, 'needs bash') }, () => {
   const repo = path.join(__dirname, '..');
   const file = fs.readFileSync(path.join(repo, 'CRITICAL_UPDATE.txt'), 'utf8');
   // the committed file is well formed: a level, and a reason when it is above 0

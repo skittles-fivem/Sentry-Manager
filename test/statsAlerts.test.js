@@ -4,7 +4,11 @@
 // after 30 s back under a lower mark, passed on once per raise; a NAS that
 // hangs shows as slow, then unreachable, without holding anything up.
 
-const test = require('node:test');
+const { skipAll, linuxOnly } = require('./fixtures/platformSkip');
+
+// The Linux server monitor, on fake /proc and /sys trees; Windows has its own
+// (server/stats/platform/win32.js) and its own tests.
+const test = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
 const assert = require('node:assert/strict');
 const { Alerts } = require('../server/stats/alerts');
 const M = require('./fixtures/stats/machines');

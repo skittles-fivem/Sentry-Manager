@@ -14,6 +14,9 @@ const http2 = require('http2');
 const net = require('net');
 const os = require('os');
 const path = require('path');
+const { linuxOnly, notOnWindows, needsTool } = require('./fixtures/platformSkip');
+const { writeNodeTool } = require('./fixtures/nodeTool');
+const { dirLink } = require('./fixtures/dirLink');
 const { spawn, spawnSync } = require('child_process');
 const { normalizeSmb, mountArgs, parseShare } = require('../server/mountSpec');
 const { createRealGuard } = require('../server/safePath');
@@ -26,6 +29,7 @@ const REPO = path.join(__dirname, '..');
 const SERVER = path.join(REPO, 'server', 'index.js');
 const HELPER = path.join(__dirname, '..', 'build', 'noreplace-rename');
 const hasOpenssl = spawnSync('openssl', ['version']).status === 0;
+const needsOpenssl = needsTool(hasOpenssl, 'needs openssl');
 const tmp = (p = 'sm-sec-') => fsp.mkdtemp(path.join(os.tmpdir(), p));
 const quiet = { info() {}, warn() {}, error() {} };
 
@@ -92,7 +96,7 @@ async function startServer(dir, env) {
   return { port, child, stop, output: () => output };
 }
 
-test('HTTPS, the setup code, cookies and password confirmation', { skip: !hasOpenssl, timeout: 120000 }, async () => {
+test('HTTPS, the setup code, cookies and password confirmation', { skip: needsOpenssl, timeout: 120000 }, async () => {
   const dir = await tmp();
   await fsp.mkdir(path.join(dir, 'footage/TeslaCam/RecentClips'), { recursive: true });
   let s = await startServer(dir, {});
@@ -213,7 +217,12 @@ test('HTTPS, the setup code, cookies and password confirmation', { skip: !hasOpe
   }
 });
 
-test('symlinks on a share never lead outside it', { timeout: 60000 }, async () => {
+// Windows: a file symlink needs admin rights or Developer Mode, O_NOFOLLOW does
+// not exist and /, /etc are Linux's; folder links (junctions there) are covered
+// by the Recycle Bin and safeFs tests below.
+const fileLinks = notOnWindows('file symlinks, O_NOFOLLOW and the Linux root folders');
+
+test('symlinks on a share never lead outside it', { skip: fileLinks, timeout: 60000 }, async () => {
   const dir = await tmp();
   const T = path.join(dir, 'footage/TeslaCam');
   await fsp.mkdir(path.join(T, 'RecentClips'), { recursive: true });
@@ -303,7 +312,7 @@ test('cookie parsing tolerates stray cookies and ignores duplicates', () => {
   assert.deepEqual(parseCookies('other=100%; sm_session=abc; sm_session=evil'), { other: '100%', sm_session: 'abc' });
 });
 
-test('the real-path guard: symlinked roots, the deny list, and a file swapped after the check', async () => {
+test('the real-path guard: symlinked roots, the deny list, and a file swapped after the check', { skip: fileLinks }, async () => {
   const dir = await fsp.realpath(await tmp());
   const footage = path.join(dir, 'footage');
   const data = path.join(dir, 'data');
@@ -344,14 +353,15 @@ test('the real-path guard: symlinked roots, the deny list, and a file swapped af
   }
 });
 
-test('the HTTPS CA cannot vouch for names outside its constraints', { skip: !hasOpenssl, timeout: 60000 }, async () => {
+test('the HTTPS CA cannot vouch for names outside its constraints', { skip: needsOpenssl, timeout: 60000 }, async () => {
   const dir = await tmp();
   try {
     const t = new TlsManager({ dir: path.join(dir, 'tls'), log: quiet, hostnames: ['192.168.1.50', 'nas.local'] });
     await t.ensure();
     const ca = path.join(dir, 'tls/ca.crt');
     assert.equal(spawnSync('openssl', ['verify', '-CAfile', ca, path.join(dir, 'tls/server.crt')]).status, 0);
-    assert.equal(fs.statSync(path.join(dir, 'tls/ca.key')).mode & 0o777, 0o600);
+    // POSIX modes; on Windows the key is kept private by the folder's ACL
+    if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(dir, 'tls/ca.key')).mode & 0o777, 0o600);
     // sign a certificate for a public site with the CA key, as a thief would
     const run = (args) => assert.equal(spawnSync('openssl', args, { cwd: dir }).status, 0, args.join(' '));
     run(['req', '-new', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes', '-keyout', 'evil.key', '-subj', '/CN=bank.example.com', '-out', 'evil.csr']);
@@ -444,7 +454,7 @@ test('Recycle Bin: protecting a recording while a trash run is going keeps it', 
 
 const canSeparate = process.getuid?.() === 0 && spawnSync('setpriv', ['--version']).status === 0;
 
-test('the supervisor runs the app unprivileged and keeps mounts and the CA to itself', { skip: !canSeparate || !hasOpenssl, timeout: 120000 }, async () => {
+test('the supervisor runs the app unprivileged and keeps mounts and the CA to itself', { skip: linuxOnly('the root supervisor: setpriv, mount.cifs and /proc') || (!canSeparate && 'needs root and setpriv') || needsOpenssl, timeout: 120000 }, async () => {
   const dir = await tmp();
   await fsp.chmod(dir, 0o755);
   const footage = path.join(dir, 'footage');
@@ -458,11 +468,12 @@ test('the supervisor runs the app unprivileged and keeps mounts and the CA to it
   // a fake mount that records how root called it
   const bin = path.join(dir, 'bin');
   await fsp.mkdir(bin);
-  await fsp.writeFile(path.join(bin, 'mount'), `#!/bin/sh\necho "uid=$(id -u) $*" >> ${dir}/mount.log\nexit 32\n`, { mode: 0o755 });
+  writeNodeTool(bin, 'mount', `fs.appendFileSync(${JSON.stringify(path.join(dir, 'mount.log'))}, 'uid=' + process.getuid() + ' ' + joined + '\\n');
+process.exit(32);`);
   const port = await freePort();
   const sup = spawn(process.execPath, [path.join(REPO, 'server/supervisor.js')], {
     env: {
-      ...process.env, PATH: `${bin}:${process.env.PATH}`, PORT: String(port), HOST: '127.0.0.1', DATA_PATH: path.join(dir, 'data'),
+      ...process.env, PATH: `${bin}${path.delimiter}${process.env.PATH}`, PORT: String(port), HOST: '127.0.0.1', DATA_PATH: path.join(dir, 'data'),
       FOOTAGE_PATH: footage, FOOTAGE_ROOT: path.join(dir, 'mnt'), RUN_DIR: path.join(dir, 'run-root'), SENTRY_APP_TLS_DIR: path.join(dir, 'run-app/tls'),
       PUID: '1000', PGID: '1000', UI_PASSWORD: 'correct horse', SENTRY_NOREPLACE_RENAME: HELPER, LOG_LEVEL: 'info', TZ: 'UTC'
     },
@@ -549,7 +560,7 @@ test('Recycle Bin: a folder swapped for a symlink mid-move cannot redirect it ou
         swapped = true;
         const dir = path.join(root, path.dirname(rel));
         await fsp.rm(dir, { recursive: true, force: true });
-        await fsp.symlink(outside, dir);
+        await dirLink(outside, dir);
       }
       return out;
     };
@@ -580,7 +591,7 @@ test('safeFs: rename, unlink, mkdir -p, rmdir and rm -r never follow a symlink o
     await renameInside(root, path.join(root, 'a/b/f.mp4'), path.join(root, 'bin/x/f.binned'));
     assert.equal(await fsp.readFile(path.join(root, 'bin/x/f.binned'), 'utf8'), 'clip');
     // a folder that is a symlink out of the share: every operation is refused
-    await fsp.symlink(outside, path.join(root, 'a/link'));
+    await dirLink(outside, path.join(root, 'a/link'));
     const escape = { code: 'ELINKESCAPE' };
     await assert.rejects(renameInside(root, path.join(root, 'a/link/secret'), path.join(root, 'bin/x/stolen')), escape);
     await assert.rejects(renameInside(root, path.join(root, 'bin/x/f.binned'), path.join(root, 'a/link/planted')), escape);
@@ -592,7 +603,7 @@ test('safeFs: rename, unlink, mkdir -p, rmdir and rm -r never follow a symlink o
     assert.deepEqual(await fsp.readdir(outside), ['secret']);
     assert.equal(await fsp.readFile(path.join(outside, 'secret'), 'utf8'), 'SECRET');
     // rm -r of a tree holding a symlink removes the link, never what it points at
-    await fsp.symlink(outside, path.join(root, 'bin/x/inner-link'));
+    await dirLink(outside, path.join(root, 'bin/x/inner-link'));
     await rmrfInside(root, path.join(root, 'bin'));
     assert.equal(fs.existsSync(path.join(root, 'bin')), false);
     assert.equal(await fsp.readFile(path.join(outside, 'secret'), 'utf8'), 'SECRET');

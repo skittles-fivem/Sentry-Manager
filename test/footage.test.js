@@ -2,6 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('path');
 const { classify, isValidDay, safeJoin, shouldSkipDir, isConverterArtifact } = require('../server/footage');
 
 test('classifies RecentClips by the Tesla filename date', () => {
@@ -48,10 +49,11 @@ test('validates days', () => {
 });
 
 test('safeJoin refuses to leave the root', () => {
-  assert.equal(safeJoin('/footage', 'TeslaCam/a.mp4'), '/footage/TeslaCam/a.mp4');
-  assert.throws(() => safeJoin('/footage', '../etc/passwd'));
-  assert.throws(() => safeJoin('/footage', '/etc/passwd'));
-  assert.throws(() => safeJoin('/footage', 'x/../../footage2/a'));
+  const root = path.resolve('/footage'); // /footage, or C:\footage on Windows
+  assert.equal(safeJoin(root, 'TeslaCam/a.mp4'), path.join(root, 'TeslaCam', 'a.mp4'));
+  assert.throws(() => safeJoin(root, '../etc/passwd'));
+  assert.throws(() => safeJoin(root, '/etc/passwd'));
+  assert.throws(() => safeJoin(root, 'x/../../footage2/a'));
 });
 
 test('skips NAS system folders and hides converter work files', () => {

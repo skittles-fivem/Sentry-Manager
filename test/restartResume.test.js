@@ -10,11 +10,13 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { writeNodeTool } = require('./fixtures/nodeTool');
+const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
 const { spawnSync } = require('child_process');
 const { open, HELPER } = require('./fixtures/replaceCrash');
 const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
 
-const skip = spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER) ? false : 'needs ffmpeg and build/noreplace-rename';
+const skip = linuxOnly(RENAME_HELPER) || needsTool(spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER), 'needs ffmpeg and build/noreplace-rename');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function footage(base, clips = 4) {
@@ -31,12 +33,11 @@ async function footage(base, clips = 4) {
 // ffprobe that stops at the third clip until released: the worker is then
 // between clips (nothing staged, nothing half written).
 function holdingProbe(base) {
-  const script = path.join(base, 'ffprobe-hold.sh');
-  fs.writeFileSync(script, `#!/bin/sh
-case "$*" in *07-42-00-front*) [ -f "${base}/released" ] || { touch "${base}/reached"; while [ ! -f "${base}/released" ]; do sleep 0.05; done; } ;; esac
-exec ffprobe "$@"
-`, { mode: 0o755 });
-  return script;
+  const released = JSON.stringify(path.join(base, 'released'));
+  return writeNodeTool(base, 'ffprobe-hold.js', `if (joined.includes('07-42-00-front') && !fs.existsSync(${released})) {
+  fs.writeFileSync(${JSON.stringify(path.join(base, 'reached'))}, '');
+  until(() => fs.existsSync(${released}), () => exec('ffprobe', args));
+} else exec('ffprobe', args);`);
 }
 
 async function until(fn, ms = 60_000) {

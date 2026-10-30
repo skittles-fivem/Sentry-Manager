@@ -9,6 +9,7 @@ const fs = require('fs');
 const fsp = require('fs/promises');
 const os = require('os');
 const path = require('path');
+const { needsTool } = require('./fixtures/platformSkip');
 const { runConverterBenchmark } = require('../src/main/converter/benchmark');
 
 async function setup() {
@@ -218,7 +219,7 @@ test('the meter is stopped when a level is cancelled', async () => {
 
 const hasFfmpeg = require('child_process').spawnSync('ffmpeg', ['-version']).status === 0;
 
-test('the runtime hands its power meter to the benchmark', { skip: !hasFfmpeg && 'needs ffmpeg', timeout: 120_000 }, async () => {
+test('the runtime hands its power meter to the benchmark', { skip: needsTool(hasFfmpeg, 'needs ffmpeg'), timeout: 120_000 }, async () => {
   const { createConverterRuntime } = require('../src/main/converter/runtime');
   const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
   const { spawn } = require('child_process');
@@ -272,7 +273,7 @@ test('the runtime hands its power meter to the benchmark', { skip: !hasFfmpeg &&
 
 // A mostly converted archive: thousands of H.265 clips are scanned first, and
 // the one original left is the newest, in another folder. The benchmark still finds it.
-test('the benchmark finds the originals left anywhere in a mostly converted archive', { skip: !hasFfmpeg && 'needs ffmpeg', timeout: 180_000 }, async () => {
+test('the benchmark finds the originals left anywhere in a mostly converted archive', { skip: needsTool(hasFfmpeg, 'needs ffmpeg'), timeout: 180_000 }, async () => {
   const { createConverterRuntime } = require('../src/main/converter/runtime');
   const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
   const { spawn, spawnSync } = require('child_process');

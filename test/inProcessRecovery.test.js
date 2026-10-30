@@ -11,10 +11,11 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
 const { spawnSync } = require('child_process');
 const { makeBase, open, CLIP, HELPER } = require('./fixtures/replaceCrash');
 
-const skip = spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER) ? false : 'needs ffmpeg and build/noreplace-rename';
+const skip = linuxOnly(RENAME_HELPER) || needsTool(spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER), 'needs ffmpeg and build/noreplace-rename');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // The first two moves onto the clip's name fail: the converted file's, then

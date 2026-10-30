@@ -11,6 +11,7 @@ const fs = require('fs');
 const fsp = require('fs/promises');
 const os = require('os');
 const path = require('path');
+const { needsTool } = require('./fixtures/platformSkip');
 const { spawnSync } = require('child_process');
 const { readMp4VideoCodec, readVideoSampleEntry, codecForSampleEntry } = require('../src/main/converter/mp4Header');
 const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
@@ -18,7 +19,7 @@ const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
 const encoderList = spawnSync('ffmpeg', ['-hide_banner', '-encoders']).stdout?.toString() || '';
 const hasEncoder = (name) => new RegExp(`\\s${name.replace(/[-]/g, '\\-')}\\s`).test(encoderList);
 const av1Encoder = ['libsvtav1', 'libaom-av1'].find(hasEncoder) || null;
-const noFfmpeg = encoderList ? false : 'needs ffmpeg';
+const noFfmpeg = needsTool(Boolean(encoderList), 'needs ffmpeg');
 
 function encode(file, encoder, extra = [], source = 'testsrc2=size=320x240:rate=12:duration=1') {
   const result = spawnSync('ffmpeg', [
@@ -84,7 +85,7 @@ test('a Tesla-style H.264 original reads as avc1 and is kept', { skip: noFfmpeg,
   assert.equal(await readMp4VideoCodec(file, { size: fs.statSync(file).size }), 'h264');
 });
 
-test('H.264 and H.265 with the moov at the end or the start', { skip: noFfmpeg || !hasEncoder('libx265') && 'needs libx265', timeout: 60_000 }, async () => {
+test('H.264 and H.265 with the moov at the end or the start', { skip: noFfmpeg || needsTool(hasEncoder('libx265'), 'needs libx265'), timeout: 60_000 }, async () => {
   const cases = [
     ['libx264', [], 'avc1', 'h264', 'end'],
     ['libx264', ['-movflags', '+faststart'], 'avc1', 'h264', 'start'],
@@ -101,7 +102,7 @@ test('H.264 and H.265 with the moov at the end or the start', { skip: noFfmpeg |
   }
 });
 
-test('AV1 reads as av01', { skip: noFfmpeg || !av1Encoder && 'needs an AV1 encoder (libsvtav1 or libaom-av1)', timeout: 120_000 }, async () => {
+test('AV1 reads as av01', { skip: noFfmpeg || needsTool(Boolean(av1Encoder), 'needs an AV1 encoder (libsvtav1 or libaom-av1)'), timeout: 120_000 }, async () => {
   for (const extra of [[], ['-movflags', '+faststart']]) {
     const file = encode(path.join(dir, `av1-${extra.length}.mp4`), av1Encoder, extra);
     assert.equal(await readVideoSampleEntry(file), 'av01');

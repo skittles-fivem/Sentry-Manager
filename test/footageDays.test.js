@@ -8,13 +8,14 @@ const assert = require('node:assert/strict');
 const fsp = require('fs/promises');
 const os = require('os');
 const path = require('path');
+const { needsTool } = require('./fixtures/platformSkip');
 const { spawnSync } = require('child_process');
 const { videoCodec } = require('../server/mp4codec');
 const { buildRecordings, summarizeDays } = require('../server/inventory');
 
 const encoders = spawnSync('ffmpeg', ['-hide_banner', '-encoders']).stdout?.toString() || '';
 
-test('the video codec comes from the MP4 header, wherever the moov box is', { skip: !encoders, timeout: 60000 }, async () => {
+test('the video codec comes from the MP4 header, wherever the moov box is', { skip: needsTool(Boolean(encoders), 'needs ffmpeg'), timeout: 60000 }, async () => {
   const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'sm-codec-'));
   try {
     const cases = [['libx264', 'h264', []], ['libx264', 'h264', ['-movflags', '+faststart']], ['libx265', 'h265', []], ['libsvtav1', 'av1', []]];

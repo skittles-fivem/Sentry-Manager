@@ -16,6 +16,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
 const { spawn, spawnSync } = require('child_process');
 
 const ARC = Object.freeze({ id: 'pci:0000:03:00.0', kind: 'dri', vendor: 'intel', name: 'Intel Arc A380', node: '/dev/dri/renderD129', index: null, pci: '0000:03:00.0' });
@@ -155,7 +156,7 @@ async function makeFootage(dir) {
   return fs.realpathSync(path.join(dir, 'footage', 'TeslaCam'));
 }
 
-test('two GPUs end to end: devices, a lane each, live lanes, a benchmark per GPU', { skip: !canConvert && 'needs ffmpeg and build/noreplace-rename', timeout: 300_000 }, async () => {
+test('two GPUs end to end: devices, a lane each, live lanes, a benchmark per GPU', { skip: linuxOnly(RENAME_HELPER) || needsTool(canConvert, 'needs ffmpeg and build/noreplace-rename'), timeout: 300_000 }, async () => {
   const { createConverterRuntime } = require('../src/main/converter/runtime');
   const { createConverterBridge } = require('../server/converterBridge');
   const { createPosixOwnedFs } = require('../server/posixOwnedFs');

@@ -6,8 +6,9 @@
 
 const test = require('node:test');
 const { crashAndRecover, assertRecovered, available } = require('./fixtures/crashPoints');
+const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
 
-const skip = available() ? false : 'needs ffmpeg and build/noreplace-rename';
+const skip = linuxOnly(RENAME_HELPER) || needsTool(available(), 'needs ffmpeg and build/noreplace-rename');
 
 for (const [label, point, networkMode = 'direct'] of [
   ['the encode', 'encode'],

@@ -9,11 +9,13 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { writeNodeTool } = require('./fixtures/nodeTool');
+const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
 const { spawnSync } = require('child_process');
 const { open, HELPER } = require('./fixtures/replaceCrash');
 const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
 
-const skip = spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER) ? false : 'needs ffmpeg and build/noreplace-rename';
+const skip = linuxOnly(RENAME_HELPER) || needsTool(spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER), 'needs ffmpeg and build/noreplace-rename');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ffmpeg that marks each encode while it runs (and takes a moment), so the
@@ -21,11 +23,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function trackingFfmpeg(base) {
   const running = path.join(base, 'running');
   fs.mkdirSync(running);
-  const script = path.join(base, 'ffmpeg-track.sh');
-  fs.writeFileSync(script, `#!/bin/sh
-case "$*" in *-progress*) touch "${running}/$$"; sleep 1.5; ffmpeg "$@"; s=$?; rm -f "${running}/$$"; exit $s ;; esac
-exec ffmpeg "$@"
-`, { mode: 0o755 });
+  const script = writeNodeTool(base, 'ffmpeg-track.js', `if (joined.includes('-progress')) {
+  const mark = path.join(${JSON.stringify(running)}, String(process.pid));
+  fs.writeFileSync(mark, '');
+  setTimeout(() => run('ffmpeg', args, (status) => { fs.rmSync(mark, { force: true }); process.exit(status); }), 1500);
+} else exec('ffmpeg', args);`);
   return { script, count: () => fs.readdirSync(running).length };
 }
 

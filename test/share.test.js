@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
+const { linuxOnly } = require('./fixtures/platformSkip');
 const { ShareManager, findMount, explainMountError } = require('../server/share');
 const { createLocalMounter } = require('../server/mounter');
 const os = require('os');
@@ -51,7 +52,11 @@ function makeShare({ root, mountinfo, smbShare = '', runCmd, credDir }) {
   });
 }
 
-test('SMB mode mounts the share, writes a 0600 credentials file and passes the write test', async () => {
+// mount.cifs, its credentials file and /proc/self/mountinfo: Windows connects
+// shares through its helper instead
+const mountCifs = linuxOnly('mount.cifs and /proc/self/mountinfo');
+
+test('SMB mode mounts the share, writes a 0600 credentials file and passes the write test', { skip: mountCifs }, async () => {
   const dir = await tmpDir();
   const root = path.join(dir, 'footage');
   const mountinfo = path.join(dir, 'mountinfo');
@@ -96,7 +101,7 @@ test('SMB mode mounts the share, writes a 0600 credentials file and passes the w
   }
 });
 
-test('SMB mount failure reports the error, a hint, and backs off', async () => {
+test('SMB mount failure reports the error, a hint, and backs off', { skip: mountCifs }, async () => {
   const dir = await tmpDir();
   const root = path.join(dir, 'footage');
   const mountinfo = path.join(dir, 'mountinfo');
@@ -121,7 +126,7 @@ test('SMB mount failure reports the error, a hint, and backs off', async () => {
   }
 });
 
-test('local mode health-checks a plain folder and warns when nothing is mounted', async () => {
+test('local mode health-checks a plain folder and warns when nothing is mounted', { skip: mountCifs }, async () => {
   const dir = await tmpDir();
   const root = path.join(dir, 'footage');
   const mountinfo = path.join(dir, 'mountinfo');

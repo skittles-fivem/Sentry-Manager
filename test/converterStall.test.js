@@ -9,6 +9,8 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { writeNodeTool } = require('./fixtures/nodeTool');
+const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
 const { spawn, spawnSync } = require('child_process');
 
 const REPO = path.join(__dirname, '..');
@@ -20,7 +22,7 @@ const { RETRYABLE } = require(path.join(REPO, 'server/converterHost'));
 
 const HELPER = path.join(REPO, 'build', 'noreplace-rename');
 const canConvert = spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER);
-const skip = canConvert ? false : 'needs ffmpeg and build/noreplace-rename';
+const skip = linuxOnly(RENAME_HELPER) || needsTool(canConvert, 'needs ffmpeg and build/noreplace-rename');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let fixtures = null;
@@ -233,8 +235,8 @@ test('a share that drops to its empty mount folder is waited for, not read as de
 test('a frozen encode is stopped and the job goes on', { skip, timeout: 120_000 }, async () => {
   // An ffmpeg that never reports progress for one clip, as with a hung GPU.
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stall-ff-'));
-  const wrapper = path.join(dir, 'ffmpeg');
-  fs.writeFileSync(wrapper, '#!/bin/sh\ncase "$*" in *-43-00-front*pipe:1*) exec sleep 600;; esac\nexec ffmpeg "$@"\n', { mode: 0o755 });
+  const wrapper = writeNodeTool(dir, 'ffmpeg', `if (/-43-00-front.*pipe:1/s.test(joined)) setTimeout(() => {}, 600_000);
+else exec('ffmpeg', args);`);
   const env = await setup({ concurrency: 2, events: 2, ffmpegPath: wrapper, encodeStallMs: 2000 });
   try {
     const jobId = await env.runtime.service.start(env.config);

@@ -11,10 +11,11 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
 const { spawnSync } = require('child_process');
 const { makeBase, open, CLIP, HELPER } = require('./fixtures/replaceCrash');
 
-const skip = spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER) ? false : 'needs ffmpeg and build/noreplace-rename';
+const skip = linuxOnly(RENAME_HELPER) || needsTool(spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER), 'needs ffmpeg and build/noreplace-rename');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const codec = (file) => String(spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', file]).stdout).trim();

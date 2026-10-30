@@ -9,11 +9,12 @@ const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
 const { createFileTransaction } = require('../src/main/converter/staging');
 const { createPosixOwnedFs } = require('../server/posixOwnedFs');
 
 const HELPER = path.join(__dirname, '..', 'build', 'noreplace-rename');
-const skip = fs.existsSync(HELPER) ? false : 'needs build/noreplace-rename';
+const skip = linuxOnly(RENAME_HELPER) || needsTool(fs.existsSync(HELPER), 'needs build/noreplace-rename');
 const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 
 function setup() {

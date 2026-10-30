@@ -5,7 +5,11 @@
 // conversion job (with where the job stood when measuring began), and the
 // benchmark's power meter.
 
-const test = require('node:test');
+const { skipAll, linuxOnly } = require('./fixtures/platformSkip');
+
+// The Linux server monitor, on fake /proc and /sys trees; Windows has its own
+// (server/stats/platform/win32.js) and its own tests.
+const test = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');

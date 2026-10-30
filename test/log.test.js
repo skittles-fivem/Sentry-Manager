@@ -72,14 +72,18 @@ test('Clear moves the logs into logs/archive/ and loses nothing; only its own na
   assert.equal(text, before, 'every line on disk at the moment of Clear is kept, in order');
   assert.match(text, /line 7 /);
   assert.equal(text.includes('hunter2'), false, 'still masked');
-  assert.equal((fs.statSync(path.join(path.dirname(file), 'archive', name)).mode & 0o777), 0o600);
+  // POSIX modes; on Windows the data folder's permissions keep it private
+  if (process.platform !== 'win32') assert.equal((fs.statSync(path.join(path.dirname(file), 'archive', name)).mode & 0o777), 0o600);
   assert.deepEqual(logger.archives().map((a) => a.name), [name]);
   logger.scope('t').info('after');
   assert.equal(logger.recent().length, 1);
   for (const bad of ['../manager.log', 'manager.log', `${name}/../../x`, '/etc/passwd']) assert.equal(await logger.archiveText(bad), null, bad);
-  // a link planted under an archive name is not followed
-  const planted = 'manager-2020-01-01T00-00-00-000Z.log';
-  fs.symlinkSync('/etc/hostname', path.join(path.dirname(file), 'archive', planted));
-  assert.equal(await logger.archiveText(planted), null);
+  // a link planted under an archive name is not followed (not on Windows: a
+  // file symlink needs admin rights or Developer Mode there)
+  if (process.platform !== 'win32') {
+    const planted = 'manager-2020-01-01T00-00-00-000Z.log';
+    fs.symlinkSync('/etc/hostname', path.join(path.dirname(file), 'archive', planted));
+    assert.equal(await logger.archiveText(planted), null);
+  }
   assert.equal(new Logger({ silent: true, file: tmpFile() }).archive(), null, 'nothing to keep: no empty archive');
 });

@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
 const { spawn, spawnSync } = require('child_process');
 
 const REPO = path.join(__dirname, '..');
@@ -33,9 +34,9 @@ const { createMidGopTeslaH264Fixture, runProcess } = require('./fixtures/ffmpegF
 const HELPER = process.env.SENTRY_NOREPLACE_RENAME || path.join(REPO, 'build', 'noreplace-rename');
 const encoders = spawnSync('ffmpeg', ['-hide_banner', '-encoders']).stdout?.toString() || '';
 const has = (name) => new RegExp(`\\s${name}\\s`).test(encoders);
-const needsFfmpeg = has('libx264') && has('libx265') ? false : 'needs ffmpeg with libx264 and libx265';
-const needsRuntime = needsFfmpeg || (fs.existsSync(HELPER) ? false : 'needs build/noreplace-rename');
-const needsAv1 = needsRuntime || (has('libsvtav1') ? false : 'needs ffmpeg with libsvtav1');
+const needsFfmpeg = needsTool(has('libx264') && has('libx265'), 'needs ffmpeg with libx264 and libx265');
+const needsRuntime = needsFfmpeg || linuxOnly(RENAME_HELPER) || needsTool(fs.existsSync(HELPER), 'needs build/noreplace-rename');
+const needsAv1 = needsRuntime || needsTool(has('libsvtav1'), 'needs ffmpeg with libsvtav1');
 
 const telemetryFor = (frames, gapsAt = []) => Array.from({ length: frames }, (_, n) => (gapsAt.includes(n) ? null : Buffer.from([0x20, n & 0xff, n >> 8])));
 const sha = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');

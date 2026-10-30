@@ -12,6 +12,7 @@ const fsp = require('fs/promises');
 const http2 = require('http2');
 const os = require('os');
 const path = require('path');
+const { needsTool } = require('./fixtures/platformSkip');
 const { spawnSync } = require('child_process');
 const { TlsManager } = require('../server/tls');
 const { createNodeWorker } = require('../server/nodeWorker');
@@ -23,6 +24,7 @@ const { isWsl } = require('../server/stats/host');
 const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
 
 const hasTools = spawnSync('openssl', ['version']).status === 0 && spawnSync('ffmpeg', ['-version']).status === 0;
+const needsTools = needsTool(hasTools, 'needs openssl and ffmpeg');
 const quiet = { info() {}, warn() {}, error() {} };
 const memDb = () => {
   const m = new Map();
@@ -138,7 +140,7 @@ test('a job\'s energy includes a node converting its clips, and only then', () =
   assert.ok(Math.abs(again.summary(2000).byJob.job1.nodeWh - node) < 0.002);
 });
 
-test('a real node reports its power over the pinned connection; an older node is unknown', { skip: !hasTools, timeout: 120_000 }, async () => {
+test('a real node reports its power over the pinned connection; an older node is unknown', { skip: needsTools, timeout: 120_000 }, async () => {
   const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'sm-nodepower-'));
   let watts = 150;
   const w = await startWorker(path.join(dir, 'a'), { power: () => powerReport({ at: Date.now(), power: { cpuW: 50, gpuW: watts - 50, totalW: watts, todayWh: 10, weekWh: 40 }, gpus: [{ name: 'RTX 3060', powerW: watts - 50 }] }) });

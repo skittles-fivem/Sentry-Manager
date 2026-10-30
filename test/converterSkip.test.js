@@ -12,6 +12,8 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { writeNodeTool } = require('./fixtures/nodeTool');
+const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
 const { spawn, spawnSync } = require('child_process');
 
 const REPO = path.join(__dirname, '..');
@@ -25,7 +27,7 @@ const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
 
 const HELPER = path.join(REPO, 'build', 'noreplace-rename');
 const encoders = spawnSync('ffmpeg', ['-hide_banner', '-encoders']).stdout?.toString() || '';
-const skip = /\slibx265\s/.test(encoders) && fs.existsSync(HELPER) ? false : 'needs ffmpeg with libx265 and build/noreplace-rename';
+const skip = linuxOnly(RENAME_HELPER) || needsTool(/\slibx265\s/.test(encoders) && fs.existsSync(HELPER), 'needs ffmpeg with libx265 and build/noreplace-rename');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // One original (Tesla-style H.264) and one converted clip (H.265, as the
@@ -262,8 +264,8 @@ test('activeEncodes reports each running ffmpeg with its live numbers', { skip, 
   const clip = path.join(root, 'RecentClips', `${stamp(0)}-front.mp4`);
   fs.copyFileSync(original, clip);
   // An encode at the clip's own pace that reports often, so it can be watched.
-  const wrapper = path.join(base, 'ffmpeg');
-  fs.writeFileSync(wrapper, '#!/bin/sh\ncase "$*" in *"pipe:1 -nostats -f mp4"*) exec ffmpeg -re -stats_period 0.2 "$@";; esac\nexec ffmpeg "$@"\n', { mode: 0o755 });
+  const wrapper = writeNodeTool(base, 'ffmpeg', `if (joined.includes('pipe:1 -nostats -f mp4')) exec('ffmpeg', ['-re', '-stats_period', '0.2', ...args]);
+else exec('ffmpeg', args);`);
   const env = await openRuntime(base, { ffmpegPath: wrapper });
   try {
     assert.deepStrictEqual(env.runtime.activeEncodes(), []);

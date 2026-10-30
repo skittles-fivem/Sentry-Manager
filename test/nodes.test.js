@@ -13,6 +13,7 @@ const fsp = require('fs/promises');
 const http2 = require('http2');
 const os = require('os');
 const path = require('path');
+const { needsTool } = require('./fixtures/platformSkip');
 const { spawnSync } = require('child_process');
 const { TlsManager } = require('../server/tls');
 const { createNodeWorker, parseJobSettings, pairText, hmac, normalizeCode } = require('../server/nodeWorker');
@@ -20,6 +21,7 @@ const { createNodes, parseAddress } = require('../server/nodes');
 const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
 
 const hasTools = spawnSync('openssl', ['version']).status === 0 && spawnSync('ffmpeg', ['-version']).status === 0;
+const needsTools = needsTool(hasTools, 'needs openssl and ffmpeg');
 const quiet = { info() {}, warn() {}, error() {} };
 const memDb = () => {
   const m = new Map();
@@ -67,7 +69,7 @@ test('encode settings are fixed choices; ffmpeg arguments are never taken', () =
   ]) assert.equal(parseJobSettings(typeof bad === 'string' ? bad : JSON.stringify(bad)), null, JSON.stringify(bad));
 });
 
-test('pairing, a changed certificate, tokens and a real remote encode', { skip: !hasTools, timeout: 180_000 }, async () => {
+test('pairing, a changed certificate, tokens and a real remote encode', { skip: needsTools, timeout: 180_000 }, async () => {
   const dir = await tmp();
   const material = await certs(dir, 'worker-tls');
   let w = await startWorker(dir, material);
@@ -218,7 +220,7 @@ const { EventEmitter } = require('events');
 const crypto = require('crypto');
 const tls = require('tls');
 
-test('picture check: real encodes pass even shifted by some frames; black, frozen or other footage does not', { skip: !hasTools, timeout: 120_000 }, async () => {
+test('picture check: real encodes pass even shifted by some frames; black, frozen or other footage does not', { skip: needsTools, timeout: 120_000 }, async () => {
   // synthetic frames: a moving gradient
   const frames = (n, f) => Buffer.concat(Array.from({ length: n }, (_, k) => Buffer.from(Array.from({ length: W * H }, (_, i) => f(k, i % W, Math.floor(i / W)) & 255))));
   const moving = (k, x, y) => (x * 3 + y * 2 + k * 5) + ((x * y + k) % 7);
@@ -252,7 +254,7 @@ test('picture check: real encodes pass even shifted by some frames; black, froze
   }
 });
 
-test('picture check on a long clip: a few random stretches, chosen after the encode; a fake fails wherever they fall', { skip: !hasTools, timeout: 300_000 }, async () => {
+test('picture check on a long clip: a few random stretches, chosen after the encode; a fake fails wherever they fall', { skip: needsTools, timeout: 300_000 }, async () => {
   const dir = await tmp();
   try {
     const source = path.join(dir, 'src.mp4');
@@ -409,7 +411,7 @@ test('a node lane is sent 15 clips ahead of its conversions at once', async () =
   }
 });
 
-test('the worker refuses anything but an MP4, limits wrong pairing codes per address, and a node cannot hang the main', { skip: !hasTools, timeout: 120_000 }, async () => {
+test('the worker refuses anything but an MP4, limits wrong pairing codes per address, and a node cannot hang the main', { skip: needsTools, timeout: 120_000 }, async () => {
   const dir = await tmp();
   const material = await certs(dir, 'worker-tls');
   const w = await startWorker(dir, material);
@@ -554,7 +556,7 @@ test('a node can be marked trusted (off by default); the converter asks per clip
   assert.equal(nodes.trusted('node:nope'), false);
 });
 
-test('benchmark: real clips lent to a real node, timed per level, encodes deleted, footage untouched', { skip: !hasTools, timeout: 300_000 }, async () => {
+test('benchmark: real clips lent to a real node, timed per level, encodes deleted, footage untouched', { skip: needsTools, timeout: 300_000 }, async () => {
   const dir = await tmp();
   const material = await certs(dir, 'worker-tls');
   const w = await startWorker(dir, material);
@@ -650,7 +652,7 @@ test('the picture check decodes on this server\'s GPU, and on the CPU when the G
   assert.deepEqual(calls.map((a) => a.includes('-hwaccel')), [false], 'no GPU: the CPU');
 });
 
-test('clips sent ahead wait on the node for a free slot, and all of them convert', { skip: !hasTools, timeout: 300_000 }, async () => {
+test('clips sent ahead wait on the node for a free slot, and all of them convert', { skip: needsTools, timeout: 300_000 }, async () => {
   const dir = await tmp();
   const material = await certs(dir, 'worker-tls');
   const w = await startWorker(dir, material);
@@ -688,7 +690,7 @@ test('clips sent ahead wait on the node for a free slot, and all of them convert
   }
 });
 
-test('a node is sent at most two clips at a time, however many are sent ahead', { skip: !hasTools, timeout: 300_000 }, async () => {
+test('a node is sent at most two clips at a time, however many are sent ahead', { skip: needsTools, timeout: 300_000 }, async () => {
   const dir = await tmp();
   const material = await certs(dir, 'worker-tls');
   const w = await startWorker(dir, material);
@@ -878,7 +880,7 @@ test('a node encodes on the device asked for: its GPU (GPU decode first, then wi
   }
 });
 
-test('a node\'s GPUs and CPU: a lane each on the main, slots per device, a real encode on each, an unknown device refused', { skip: !hasTools, timeout: 300_000 }, async () => {
+test('a node\'s GPUs and CPU: a lane each on the main, slots per device, a real encode on each, an unknown device refused', { skip: needsTools, timeout: 300_000 }, async () => {
   const dir = await tmp();
   const material = await certs(dir, 'worker-tls');
   let w = await startDeviceWorker(dir, material);
@@ -993,7 +995,7 @@ test('a node\'s GPUs and CPU: a lane each on the main, slots per device, a real 
   }
 });
 
-test('an older node (no devices listed) is one lane, as before, and gets the old single number', { skip: !hasTools, timeout: 120_000 }, async () => {
+test('an older node (no devices listed) is one lane, as before, and gets the old single number', { skip: needsTools, timeout: 120_000 }, async () => {
   const dir = await tmp();
   const material = await certs(dir, 'worker-tls');
   const w = await startWorker(dir, material);
@@ -1019,7 +1021,7 @@ test('an older node (no devices listed) is one lane, as before, and gets the old
   }
 });
 
-test('two devices of one node still share its two uploads at a time, its trust and its Vehicles first list', { skip: !hasTools, timeout: 300_000 }, async () => {
+test('two devices of one node still share its two uploads at a time, its trust and its Vehicles first list', { skip: needsTools, timeout: 300_000 }, async () => {
   const dir = await tmp();
   const material = await certs(dir, 'worker-tls');
   const w = await startDeviceWorker(dir, material);

@@ -1,14 +1,17 @@
 'use strict';
 
-const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('crypto');
 const fs = require('fs');
 const fsp = require('fs/promises');
 const os = require('os');
 const path = require('path');
+const { linuxOnly, needsTool, skipAll, RENAME_HELPER } = require('./fixtures/platformSkip');
 const { spawn, spawnSync, execFileSync } = require('child_process');
 const { createPosixOwnedFs, createNoReplaceRename } = require('../server/posixOwnedFs');
+
+// renameat2 and the POSIX owned-files adapter; Windows has its own adapter
+const test = skipAll(linuxOnly(RENAME_HELPER));
 
 const REPO = path.join(__dirname, '..');
 const HELPER_SRC = path.join(__dirname, '..', 'native', 'noreplace-rename.c');
@@ -34,7 +37,7 @@ async function identity(file) {
 
 const adapters = () => createPosixOwnedFs({ helperPath: HELPER });
 
-test('remove deletes only the exact recorded file', { skip: !helperBuilt && 'no C compiler' }, async () => {
+test('remove deletes only the exact recorded file', { skip: needsTool(helperBuilt, 'no C compiler') }, async () => {
   const dir = await tmp();
   try {
     const { removeOwned } = adapters();
@@ -60,7 +63,7 @@ test('remove deletes only the exact recorded file', { skip: !helperBuilt && 'no 
   }
 });
 
-test('remove refuses symlinks and honours the guard', { skip: !helperBuilt && 'no C compiler' }, async () => {
+test('remove refuses symlinks and honours the guard', { skip: needsTool(helperBuilt, 'no C compiler') }, async () => {
   const dir = await tmp();
   try {
     const { removeOwned } = adapters();
@@ -91,7 +94,7 @@ test('remove refuses symlinks and honours the guard', { skip: !helperBuilt && 'n
   }
 });
 
-test('promote never replaces and only moves the verified source', { skip: !helperBuilt && 'no C compiler' }, async () => {
+test('promote never replaces and only moves the verified source', { skip: needsTool(helperBuilt, 'no C compiler') }, async () => {
   const dir = await tmp();
   try {
     const { renameExclusive } = adapters();
@@ -123,7 +126,7 @@ test('promote never replaces and only moves the verified source', { skip: !helpe
   }
 });
 
-test('identity-only checks: device, inode, size and the recorded modification time, no read; without the time the full check', { skip: !helperBuilt && 'no C compiler' }, async () => {
+test('identity-only checks: device, inode, size and the recorded modification time, no read; without the time the full check', { skip: needsTool(helperBuilt, 'no C compiler') }, async () => {
   const dir = await tmp();
   try {
     const { removeOwned, renameExclusive } = adapters();
@@ -183,7 +186,7 @@ test('without the helper, promotion falls back to link + unlink', async () => {
   }
 });
 
-test('the real converter replaces originals in place with telemetry intact', { skip: (!hasFfmpeg && 'ffmpeg missing') || (!helperBuilt && 'no C compiler'), timeout: 600000 }, async () => {
+test('the real converter replaces originals in place with telemetry intact', { skip: needsTool(hasFfmpeg, 'ffmpeg missing') || needsTool(helperBuilt, 'no C compiler'), timeout: 600000 }, async () => {
   const { createConverterRuntime } = require(path.join(REPO, 'src/main/converter/runtime'));
   const { createEncoderPlanner } = require(path.join(REPO, 'src/main/converter/encoderPlanner'));
   const { createTeslaH264Fixture } = require(path.join(REPO, 'test/fixtures/ffmpegFixtures'));
@@ -245,7 +248,7 @@ test('the real converter replaces originals in place with telemetry intact', { s
   }
 });
 
-test('a file written to while the adapter hashes it is a mismatch, even if the bytes it read were right', { skip: !helperBuilt && 'no C compiler' }, async () => {
+test('a file written to while the adapter hashes it is a mismatch, even if the bytes it read were right', { skip: needsTool(helperBuilt, 'no C compiler') }, async () => {
   const dir = await tmp();
   const originalOpen = fsp.open;
   try {

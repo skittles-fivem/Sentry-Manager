@@ -12,6 +12,7 @@ const path = require('path');
 const crypto = require('crypto');
 const assert = require('node:assert/strict');
 const { spawn, spawnSync } = require('child_process');
+const { writeNodeTool } = require('./nodeTool');
 
 
 const REPO = path.join(__dirname, '..', '..');
@@ -181,10 +182,10 @@ function proxiedFs(point) {
   return wrapped;
 }
 
+// The real tool, after `body` (JavaScript, see nodeTool.js) had its say: body
+// either ends the script itself or falls through to the real tool.
 function toolWrapper(base, name, body) {
-  const script = path.join(base, `${name}-crash.sh`);
-  fs.writeFileSync(script, `#!/bin/sh\n${body}\nexec ${name} "$@"\n`, { mode: 0o755 });
-  return script;
+  return writeNodeTool(base, `${name}-crash.js`, `${body}\nexec(${JSON.stringify(name)}, args);`);
 }
 
 // The runtime as server/converterHost.js composes it, with the kill point's hooks.
@@ -214,13 +215,23 @@ async function open(base, { point = null, concurrency = 1, mode = 'replace', net
     checkPath: async (target) => fs.promises.access(target).then(() => true, () => false)
   };
   if (hooks.ffmpeg || hooks.ffprobeKill || hooks.hold) process.on('SIGUSR2', die);
+  // an encode (it reports on -progress) or the verification's probe signals
+  // the converter (its parent) to die there, and fails itself
+  const signalParent = (match) => `if (joined.includes(${JSON.stringify(match)})) { process.kill(process.ppid, 'SIGUSR2'); process.exit(1); }`;
+  // an encode waits until the test writes BASE/release, and gives up when the
+  // converter (its parent) is gone; anything else runs at once
+  const holdUntilReleased = `until(() => {
+  if (!joined.includes('-progress') || fs.existsSync(${JSON.stringify(path.join(base, 'release'))})) return true;
+  try { process.kill(process.ppid, 0); } catch (_) { process.exit(1); }
+  return false;
+}, () => exec('ffmpeg', args));`;
   const ffmpegPath = hooks.ffmpeg
-    ? toolWrapper(base, 'ffmpeg', 'case "$*" in *-progress*) kill -USR2 $PPID; exit 1;; esac')
+    ? toolWrapper(base, 'ffmpeg', signalParent('-progress'))
     : hooks.hold
-      ? toolWrapper(base, 'ffmpeg', `case "$*" in *-progress*) while [ ! -f "${base}/release" ]; do kill -0 $PPID 2>/dev/null || exit 1; sleep 0.05; done;; esac`)
+      ? writeNodeTool(base, 'ffmpeg-crash.js', holdUntilReleased)
       : 'ffmpeg';
   const ffprobePath = hooks.ffprobeKill
-    ? toolWrapper(base, 'ffprobe', 'case "$*" in *sentry-six-verification-*) kill -USR2 $PPID; exit 1;; esac') : 'ffprobe';
+    ? toolWrapper(base, 'ffprobe', signalParent('sentry-six-verification-')) : 'ffprobe';
   const storeFactory = (options) => {
     const store = (factories?.createJobStore || createJobStore)(options);
     if (!hooks.beforeWrite && !hooks.afterWrite) return store;
