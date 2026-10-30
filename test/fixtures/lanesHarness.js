@@ -22,7 +22,14 @@ const ADVERTISED = ['libx265', 'libsvtav1', 'hevc_nvenc', 'av1_nvenc', 'hevc_qsv
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function until(fn, ms = 10_000) {
+// How long a test waits for something it expects (clips started, a job
+// finished) before calling it a failure. On Linux these come within a second;
+// a Windows runner busy with the real-ffmpeg end-to-end tests next to it
+// writes and flushes each job file far slower (one clip has taken over 10 s
+// there), so the wait is generous. A test that passes never waits it out.
+const PATIENCE_MS = 60_000;
+
+async function until(fn, ms = PATIENCE_MS) {
   const end = Date.now() + ms;
   while (Date.now() < end) {
     if (await fn()) return true;
@@ -205,7 +212,7 @@ function createHarness(options = {}) {
   const releaseAll = () => { for (const entry of held()) entry.finish(0); };
   const encodes = () => spawned.filter((entry) => entry.args.includes('pipe:1'));
 
-  async function finishJob(id, ms = 10_000) {
+  async function finishJob(id, ms = PATIENCE_MS) {
     let done = false;
     const idle = service.whenIdle(id).then(() => { done = true; });
     const end = Date.now() + ms;
