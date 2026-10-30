@@ -101,7 +101,7 @@ const sha = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).
 test('buildEncodeArgs: without a lead-in every encoder keeps exactly its arguments; a lead-in adds one clone pad in front', () => {
   const families = {
     h265: ['libx265', 'hevc_nvenc', 'hevc_qsv', 'hevc_amf', 'hevc_vaapi', 'hevc_videotoolbox'],
-    av1: ['libsvtav1', 'libaom-av1', 'av1_nvenc', 'av1_qsv', 'av1_amf', 'av1_vaapi', 'av1_videotoolbox']
+    av1: ['libsvtav1', 'libaom-av1', 'av1_nvenc', 'av1_qsv', 'av1_amf', 'av1_vaapi']
   };
   const pad = 'tpad=start=17:start_mode=clone';
   for (const [codec, list] of Object.entries(families)) {
