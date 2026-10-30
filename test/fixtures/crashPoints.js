@@ -7,7 +7,7 @@
 // then starts the converter again on the same folders and checks the result.
 
 const fs = require('fs');
-const os = require('os');
+const { realTmpSync } = require('./tmp');
 const path = require('path');
 const crypto = require('crypto');
 const assert = require('node:assert/strict');
@@ -33,7 +33,7 @@ let template = null;
 async function clipTemplate() {
   if (template && fs.existsSync(template)) return template;
   const { createTeslaH264Fixture } = require('./ffmpegFixtures');
-  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-crash-clip-'));
+  const folder = realTmpSync('sm-crash-clip-');
   template = path.join(folder, 'clip.mp4');
   await createTeslaH264Fixture({
     ffmpegPath: 'ffmpeg', outputPath: template, durationSeconds: 2, frameRate: 12, size: '320x240', spatialNoise: 4,
@@ -44,7 +44,7 @@ async function clipTemplate() {
 }
 
 async function makeBase(clips = 1) {
-  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-crash-'));
+  const base = realTmpSync('sm-crash-');
   const folder = path.join(base, 'footage', EVENT);
   fs.mkdirSync(folder, { recursive: true });
   const source = await clipTemplate();

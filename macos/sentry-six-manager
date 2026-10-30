@@ -1,0 +1,269 @@
+#!/bin/bash
+# sentry-six-manager: Sentry Six Manager's service on this Mac.
+#
+#   sentry-six-manager status              is it running, and where
+#   sudo sentry-six-manager logs [-f] [-n N] [--service]
+#   sudo sentry-six-manager setup-code     the one-time code for the first sign-in
+#   sudo sentry-six-manager start | stop | restart
+#   sudo sentry-six-manager run            in this Terminal, as the service account (service stopped)
+#   sudo sentry-six-manager allow-folder <folder> [--write]
+#   sudo sentry-six-manager update [--release <tag>]
+#   sudo sentry-six-manager uninstall [--remove-data]
+#
+# install.sh puts /Library/SentrySixManager/bin on PATH (/etc/paths.d).
+# bash 3.2 (macOS's own) is enough.
+
+set -euo pipefail
+
+LABEL=io.github.skittles-fivem.sentry-six-manager
+SVC=_sentrysix
+WAIT=${SENTRY_WAIT_SECONDS:-60}
+
+ROOT=${SENTRY_ROOT:-}
+ROOT=${ROOT%/}
+PROG="$ROOT/Library/SentrySixManager"
+STATE="$ROOT/Library/Application Support/SentrySixManager"
+LOGDIR="$ROOT/Library/Logs/SentrySixManager"
+PLIST="$ROOT/Library/LaunchDaemons/$LABEL.plist"
+
+say() { printf '%s\n' "$*"; }
+fail() { printf 'sentry-six-manager: %s\n' "$*" >&2; exit 1; }
+
+need_root() {
+  [ "$(id -u)" = 0 ] || fail "run it with sudo: sudo sentry-six-manager $1"
+}
+
+usage() {
+  cat <<'EOF'
+usage: sentry-six-manager <command>
+  status                      is it running, and where
+  logs [-f] [-n N] [--service]  the app's log (--service: what launchd caught)
+  setup-code                  the one-time code for the first sign-in
+  start | stop | restart      the service
+  run                         run it in this Terminal as the service account
+  allow-folder <folder> [--write]
+                              let the service read (and with --write, change) a folder
+  update [--release <tag>]    install the newest release
+  uninstall [--remove-data]   remove it (data stays unless --remove-data)
+All but status need sudo.
+EOF
+}
+
+loaded() { launchctl print "system/$LABEL" >/dev/null 2>&1; }
+running() { launchctl print "system/$LABEL" 2>/dev/null | grep -Eq '^[[:space:]]*state = running'; }
+
+# A setting from manager.env (the last line for it wins), without quotes.
+setting() { # setting <KEY>
+  awk -F= -v k="$1" '$0 ~ "^[[:space:]]*" k "[[:space:]]*=" { v = $2 } END { print v }' "$STATE/manager.env" 2>/dev/null | tr -d ' "'\''\r' || true
+}
+
+port() {
+  local p
+  p=$(setting PORT)
+  case "$p" in ''|*[!0-9]*) p=9000 ;; esac
+  printf '%s\n' "$p"
+}
+
+# https, or http with TLS_MODE=off (behind a reverse proxy)
+scheme() {
+  case "$(setting TLS_MODE | tr 'A-Z' 'a-z')" in off) printf 'http\n' ;; *) printf 'https\n' ;; esac
+}
+
+answers() {
+  [ "$(curl -fsS --max-time 3 "http://127.0.0.1:$(port)/healthz" 2>/dev/null || true)" = ok ]
+}
+
+wait_stopped() {
+  local i=0
+  while running && [ "$i" -lt $((WAIT + 10)) ]; do sleep 1; i=$((i + 1)); done
+  ! running
+}
+
+wait_answers() {
+  local i=0
+  while [ "$i" -lt "$WAIT" ]; do
+    answers && return 0
+    sleep 1
+    i=$((i + 1))
+  done
+  return 1
+}
+
+# ---- commands ------------------------------------------------------------------
+
+cmd_status() {
+  local info version sha state pid code host
+  [ -d "$PROG" ] || fail "Sentry Six Manager is not installed"
+  info="$PROG/app/BUILD_INFO.json"
+  version=$(sed -nE 's/^[[:space:]]*"version": *"([^"]*)".*/\1/p' "$info" 2>/dev/null | head -n 1 || true)
+  sha=$(sed -nE 's/^[[:space:]]*"sha": *"([0-9a-f]{7}).*/\1/p' "$info" 2>/dev/null | head -n 1 || true)
+  say "Sentry Six Manager ${version:-?} (${sha:-?}) in /Library/SentrySixManager"
+  if ! loaded; then
+    say "Service: not loaded (sudo sentry-six-manager start)"
+    return 3
+  fi
+  state=$(launchctl print "system/$LABEL" 2>/dev/null || true)
+  pid=$(printf '%s\n' "$state" | awk -F' = ' '$1 ~ /^[[:space:]]*pid$/ { print $2; exit }')
+  code=$(printf '%s\n' "$state" | awk -F' = ' '$1 ~ /^[[:space:]]*last exit code$/ { print $2; exit }')
+  if running; then
+    say "Service: running as $SVC${pid:+ (pid $pid)}"
+  else
+    say "Service: stopped${code:+ (last exit code $code)}"
+  fi
+  if answers; then
+    host=$(scutil --get LocalHostName 2>/dev/null || true)
+    say "Answers on port $(port)${host:+: $(scheme)://$host.local:$(port)}"
+  else
+    say "Does not answer on port $(port)"
+    return 1
+  fi
+}
+
+cmd_logs() {
+  local follow="" lines=200 file="$STATE/data/logs/manager.log"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -f) follow=1; shift ;;
+      -n) [ $# -ge 2 ] || fail "-n needs a number"; lines=$2; shift 2 ;;
+      --service) file="$LOGDIR/service.log"; shift ;;
+      *) fail "logs: unknown option $1" ;;
+    esac
+  done
+  case "$lines" in ''|*[!0-9]*) fail "-n needs a number" ;; esac
+  [ -f "$file" ] || fail "there is no log yet ($file)"
+  if [ -n "$follow" ]; then exec tail -n "$lines" -F "$file"; fi
+  tail -n "$lines" "$file"
+}
+
+cmd_setup_code() {
+  local f="$STATE/data/setup-code.txt"
+  if [ -s "$f" ]; then
+    say "Setup code: $(tr -cd 'A-Za-z0-9-' < "$f")"
+  else
+    say "No setup code: the account is already set up."
+  fi
+}
+
+cmd_start() {
+  if ! loaded; then
+    [ -f "$PLIST" ] || fail "the launchd job is missing: run the installer again"
+    launchctl enable "system/$LABEL"
+    launchctl bootstrap system "$PLIST"
+  elif ! running; then
+    launchctl kickstart "system/$LABEL"
+  fi
+  if wait_answers; then say "Started"; else fail "started, but it does not answer: sudo sentry-six-manager logs"; fi
+}
+
+# A clean stop exits 0, so launchd leaves it stopped (until the next boot).
+cmd_stop() {
+  loaded || { say "Not running"; return 0; }
+  running || { say "Not running"; return 0; }
+  launchctl kill TERM "system/$LABEL"
+  if wait_stopped; then say "Stopped"; else fail "it did not stop"; fi
+}
+
+# Not kickstart -k: stop cleanly first, then start.
+cmd_restart() {
+  cmd_stop
+  cmd_start
+}
+
+# The service's own command line and environment, read from the installed
+# plist, in this Terminal: for looking at a problem. The service must be
+# stopped (both would want the same port and data).
+cmd_run() {
+  local -a cmd
+  local x
+  cmd=()
+  [ -f "$PLIST" ] || fail "the launchd job is missing: run the installer again"
+  if running; then fail "the service is running: sudo sentry-six-manager stop first"; fi
+  while IFS= read -r -d '' x; do cmd[${#cmd[@]}]=$x; done < <(plutil -convert json -o - "$PLIST" | "$PROG/node/bin/node" -e '
+    let s = "";
+    process.stdin.on("data", (d) => { s += d; }).on("end", () => {
+      const p = JSON.parse(s);
+      const env = Object.entries(p.EnvironmentVariables || {}).map(([k, v]) => `${k}=${v}`);
+      process.stdout.write([...env, ...p.ProgramArguments].map((a) => `${a}\0`).join(""));
+    });')
+  [ "${#cmd[@]}" -gt 0 ] || fail "could not read $PLIST"
+  cd /
+  umask 027
+  ulimit -n 8192 2>/dev/null || true
+  exec sudo -u "$SVC" env -i "${cmd[@]}"
+}
+
+# Gives _sentrysix read access (and with --write, change access) to a folder
+# and everything already in it; new files inherit it. macOS privacy
+# protection (TCC) still wins over this for Desktop, Documents, Downloads and
+# some drives: those need Full Disk Access for
+# /Library/SentrySixManager/node/bin/node (System Settings > Privacy &
+# Security), or the footage elsewhere.
+cmd_allow_folder() {
+  local dir="" write=0 real low ace anc
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --write) write=1; shift ;;
+      -*) fail "allow-folder: unknown option $1" ;;
+      *) [ -z "$dir" ] || fail "allow-folder takes one folder"; dir=$1; shift ;;
+    esac
+  done
+  [ -n "$dir" ] || fail "usage: sudo sentry-six-manager allow-folder <folder> [--write]"
+  [ -d "$dir" ] || fail "$dir is not a folder"
+  real=$(cd "$dir" && pwd -P)
+  # macOS disks usually ignore case: /system is /System
+  low=$(printf '%s' "$real" | tr 'A-Z' 'a-z')
+  case "$low" in
+    /|/system|/system/*|/library|/library/*|/private|/private/*|/usr|/usr/*|/bin|/bin/*|/sbin|/sbin/*|/dev|/dev/*|/etc|/etc/*|/var|/var/*|/opt|/opt/*|/users|/applications|/applications/*|/volumes)
+      fail "$real is a system folder: give the service a footage folder (a drive under /Volumes, or a folder in /Users/Shared)" ;;
+    /users/shared|/users/shared/*) ;;
+    # not a whole home folder, nor its Library (keychains, mail, browser data)
+    /users/*/library|/users/*/library/*)
+      fail "$real is in someone's Library: give the service only a footage folder" ;;
+    /users/*/*) ;;
+    /users/*)
+      fail "$real is someone's whole home folder: give the service only the footage folder inside it" ;;
+  esac
+  ace="user:$SVC allow list,search,readattr,readextattr,readsecurity,file_inherit,directory_inherit"
+  if [ "$write" = 1 ]; then
+    ace="user:$SVC allow list,search,readattr,readextattr,readsecurity,add_file,add_subdirectory,delete_child,write,append,writeattr,writeextattr,delete,file_inherit,directory_inherit"
+  fi
+  # -R: the folder's entry alone is inherited only by files made later
+  chmod -R +a "$ace" "$real"
+  if [ "$write" = 1 ]; then say "$SVC may now read and change $real"; else say "$SVC may now read $real"; fi
+  # every folder above it must let the account through
+  anc=$(dirname "$real")
+  while [ "$anc" != / ]; do
+    if ! sudo -u "$SVC" test -x "$anc" 2>/dev/null; then
+      say "Note: $SVC cannot go through $anc, so it still cannot reach $real."
+      say "  sudo chmod +a \"user:$SVC allow search\" \"$anc\""
+    fi
+    anc=$(dirname "$anc")
+  done
+  if ! sudo -u "$SVC" test -r "$real" 2>/dev/null; then
+    say "Note: $SVC still cannot read $real. macOS privacy protection may block it: give"
+    say "  /Library/SentrySixManager/node/bin/node Full Disk Access (System Settings > Privacy & Security)."
+  fi
+  say "For a folder vehicle, add it to FOLDER_ROOTS in $STATE/manager.env, then: sudo sentry-six-manager restart"
+}
+
+main() {
+  local cmd=${1:-}
+  [ $# -eq 0 ] || shift
+  case "$cmd" in
+    status) cmd_status "$@" ;;
+    logs) need_root logs; cmd_logs "$@" ;;
+    setup-code) need_root setup-code; cmd_setup_code ;;
+    start) need_root start; cmd_start ;;
+    stop) need_root stop; cmd_stop ;;
+    restart) need_root restart; cmd_restart ;;
+    run) need_root run; cmd_run ;;
+    allow-folder) need_root allow-folder; cmd_allow_folder "$@" ;;
+    update) need_root update; exec /bin/bash "$PROG/update.sh" "$@" ;;
+    uninstall) need_root uninstall; exec /bin/bash "$PROG/uninstall.sh" "$@" ;;
+    -h|--help|help) usage ;;
+    '') usage >&2; exit 2 ;;
+    *) usage >&2; fail "unknown command $cmd" ;;
+  esac
+}
+
+main "$@"

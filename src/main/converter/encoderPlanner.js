@@ -20,7 +20,8 @@ const CANDIDATES = Object.freeze({
   }),
   av1: Object.freeze({
     win32: Object.freeze(['av1_nvenc', 'av1_qsv', 'av1_amf']),
-    darwin: Object.freeze(['av1_videotoolbox']),
+    // FFmpeg has no AV1 VideoToolbox encoder, so a Mac encodes AV1 on the CPU.
+    darwin: Object.freeze([]),
     linux: Object.freeze(['av1_nvenc', 'av1_qsv', 'av1_amf', 'av1_vaapi']),
     cpu: Object.freeze(['libsvtav1', 'libaom-av1'])
   })

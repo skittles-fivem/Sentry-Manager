@@ -13,6 +13,7 @@
 // the inode again there before unlinking (and puts it back on a mismatch).
 // Promotion uses renameat2(RENAME_NOREPLACE) via a tiny native helper; on SMB
 // the CIFS client sends that as a server-side rename that never replaces.
+// On macOS the helper is sentry-fsops rename-excl (renameatx_np RENAME_EXCL).
 
 const crypto = require('crypto');
 const fs = require('fs');
@@ -22,6 +23,8 @@ const { execFile } = require('child_process');
 
 const DEFAULT_HELPER = '/usr/local/bin/noreplace-rename';
 const HASH_CHUNK = 4 * 1024 * 1024;
+// Helper answers that mean "no atomic no-replace rename here": try a link.
+const LINK_FALLBACK = Object.freeze(['EINVAL', 'ENOSYS', 'EOPNOTSUPP', 'ENOTSUP']);
 
 function validPath(p) {
   return typeof p === 'string' && path.isAbsolute(p) && !p.includes('\0');
@@ -104,13 +107,18 @@ async function openVerified(target, expected, { identityOnly = false } = {}) {
   }
 }
 
-function createNoReplaceRename({ helperPath = process.env.SENTRY_NOREPLACE_RENAME || DEFAULT_HELPER, timeoutMs = 60000 } = {}) {
+// The helper's argv. Linux runs noreplace-rename FROM TO; the macOS helper
+// (native/darwin/sentry-fsops.c) takes a subcommand first:
+// argsFor: (from, to) => ['rename-excl', from, to].
+const defaultArgsFor = (from, to) => [from, to];
+
+function createNoReplaceRename({ helperPath = process.env.SENTRY_NOREPLACE_RENAME || DEFAULT_HELPER, timeoutMs = 60000, argsFor = defaultArgsFor } = {}) {
   const available = fs.existsSync(helperPath);
   /** Resolves on success; rejects with err.code = the errno name. */
   async function rename(from, to) {
     if (!available) throw errorWithCode('noreplace-rename helper is not installed', 'ENOSYS');
     await new Promise((resolve, reject) => {
-      execFile(helperPath, [from, to], { timeout: timeoutMs }, (err, stdout) => {
+      execFile(helperPath, argsFor(from, to), { timeout: timeoutMs }, (err, stdout) => {
         if (!err) return resolve();
         const code = String(stdout || '').trim() || (err.killed ? 'ETIMEDOUT' : 'EIO');
         reject(errorWithCode(`rename ${from} -> ${to} failed: ${code}`, code));
@@ -130,7 +138,10 @@ function createPosixOwnedFs(options = {}) {
       return;
     } catch (err) {
       // Filesystems without RENAME_NOREPLACE support report EINVAL / ENOSYS.
-      if (!['EINVAL', 'ENOSYS', 'EOPNOTSUPP'].includes(err.code)) throw err;
+      // macOS reports ENOTSUP (45, not EOPNOTSUPP's 102) for no RENAME_EXCL.
+      // On Linux both are 95 and noreplace-rename prints only EOPNOTSUPP, so
+      // ENOTSUP never comes from it there.
+      if (!LINK_FALLBACK.includes(err.code)) throw err;
     }
     await fsp.link(from, to); // EEXIST if taken: never replaces
     await fsp.unlink(from);
@@ -229,4 +240,4 @@ function createPosixOwnedFs(options = {}) {
   return { removeOwned, renameExclusive, helperAvailable: noReplace.available !== false };
 }
 
-module.exports = { createPosixOwnedFs, createNoReplaceRename, openVerified };
+module.exports = { createPosixOwnedFs, createNoReplaceRename, openVerified, LINK_FALLBACK };

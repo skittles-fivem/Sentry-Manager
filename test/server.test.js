@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const fsp = require('fs/promises');
 const net = require('net');
-const os = require('os');
+const { realTmp } = require('./fixtures/tmp');
 const path = require('path');
 const { linuxOnly, needsTool } = require('./fixtures/platformSkip');
 const { spawn, spawnSync, execFileSync } = require('child_process');
@@ -104,7 +104,7 @@ async function startServer(dir, env = {}) {
 }
 
 async function tmp() {
-  return fsp.mkdtemp(path.join(os.tmpdir(), 'sm-server-'));
+  return realTmp('sm-server-');
 }
 
 async function waitFor(fn, ms = 20000) {

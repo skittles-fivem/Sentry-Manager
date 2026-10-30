@@ -14,7 +14,7 @@ const DEVICES = { none: null, arc: ARC, radeon: RADEON, rtx: RTX };
 
 const ENCODERS = {
   h265: ['hevc_nvenc', 'hevc_qsv', 'hevc_amf', 'hevc_vaapi', 'hevc_videotoolbox', 'libx265'],
-  av1: ['av1_nvenc', 'av1_qsv', 'av1_amf', 'av1_vaapi', 'av1_videotoolbox', 'libsvtav1', 'libaom-av1']
+  av1: ['av1_nvenc', 'av1_qsv', 'av1_amf', 'av1_vaapi', 'libsvtav1', 'libaom-av1']
 };
 const RATES = { bitrate: { bitrate: 1_234_567 }, high: { quality: 'high' }, balanced: { quality: 'balanced' }, small: { quality: 'small' } };
 

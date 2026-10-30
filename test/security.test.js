@@ -12,7 +12,7 @@ const fsp = require('fs/promises');
 const https = require('https');
 const http2 = require('http2');
 const net = require('net');
-const os = require('os');
+const { realTmp } = require('./fixtures/tmp');
 const path = require('path');
 const { linuxOnly, notOnWindows, needsTool, tlsUsesOpenssl } = require('./fixtures/platformSkip');
 const { writeNodeTool } = require('./fixtures/nodeTool');
@@ -32,7 +32,7 @@ const hasOpenssl = spawnSync('openssl', ['version']).status === 0;
 const needsOpenssl = needsTool(hasOpenssl, 'needs openssl');
 // the server's own certificates: openssl on Linux, made in Node on Windows
 const needsTlsTool = tlsUsesOpenssl() ? needsOpenssl : false;
-const tmp = (p = 'sm-sec-') => fsp.mkdtemp(path.join(os.tmpdir(), p));
+const tmp = (p = 'sm-sec-') => realTmp(p);
 const quiet = { info() {}, warn() {}, error() {} };
 
 function freePort() {
