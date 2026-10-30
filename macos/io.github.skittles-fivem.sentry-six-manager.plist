@@ -60,6 +60,11 @@
 		<!-- the log goes to data/logs/manager.log; service.log gets only crashes -->
 		<key>SENTRY_CONSOLE</key>
 		<string>off</string>
+		<!-- the Mac app: engine.json (public) and the same-Mac sign-in socket -->
+		<key>PUBLIC_INFO_PATH</key>
+		<string>/Library/Application Support/SentrySixManager Public/engine.json</string>
+		<key>LOCAL_SIGNIN_SOCKET</key>
+		<string>/Library/Application Support/SentrySixManager Local/signin.sock</string>
 	</dict>
 	<key>RunAtLoad</key>
 	<true/>

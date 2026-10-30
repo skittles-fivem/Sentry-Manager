@@ -5,6 +5,12 @@
 #   sudo bash install.sh --from SentrySixManager-<ver>-<sha>-macos-arm64.tar.gz [--sums SHA256SUMS]
 #   sudo bash install.sh --release macos-v<ver>-<sha>
 #
+# The Mac app runs it once through the administrator prompt, on a copy of
+# its own engine it has already staged and checked (docs/plans/macos-app.md 3.4):
+#
+#   bash install.sh --from-dir <staged dir> --service-mode daemon
+#                   [--local-user <name>] [--import-data <data dir>] [--update]
+#
 # It downloads the newest macos-v* release over HTTPS (or takes --from),
 # checks its SHA-256 before anything in it is used, installs it to
 # /Library/SentrySixManager, keeps settings and data in
@@ -35,11 +41,21 @@ LOGDIR="$ROOT/Library/Logs/SentrySixManager"
 PLIST="$ROOT/Library/LaunchDaemons/$LABEL.plist"
 NEWSYSLOG="$ROOT/etc/newsyslog.d/sentry-six-manager.conf"
 PATHS_D="$ROOT/etc/paths.d/sentry-six-manager"
+# engine.json for the Mac app (public: certificates, port, version)
+PUBLIC="$ROOT/Library/Application Support/SentrySixManager Public"
+# the same-Mac sign-in socket's folder: only the allowed Mac users get in
+LOCAL="$ROOT/Library/Application Support/SentrySixManager Local"
+LOCAL_USERS="$STATE/local-signin-users"
 FIREWALL=/usr/libexec/ApplicationFirewall/socketfilterfw
 
 FROM=""
 SUMS=""
 TAG=""
+FROM_DIR=""
+SERVICE_MODE=""
+LOCAL_USER=""
+LOCAL_USER_SET=0
+IMPORT_DATA=""
 UPDATE=0
 WORK=""
 # set once the new version is in place and not yet known to answer
@@ -50,6 +66,7 @@ fail() { printf 'install.sh: %s\n' "$*" >&2; exit 1; }
 
 usage() {
   say "usage: sudo bash install.sh [--from <tarball> [--sums <SHA256SUMS>]] [--release <tag>] [--update]"
+  say "       (the Mac app) bash install.sh --from-dir <dir> --service-mode daemon [--local-user <name>] [--import-data <dir>] [--update]"
 }
 
 # ---- checks ------------------------------------------------------------------
@@ -197,6 +214,26 @@ extract() { # extract <tarball name>
   mkdir -p "$PROG.new"
   chmod 0755 "$PROG.new"
   tar -xzf "$tarball" -C "$PROG.new" || fail "could not unpack $1"
+  check_new
+}
+
+# The Mac app's staged copy of its engine (root-owned, its MANIFEST already
+# checked by the app's admin step) into $PROG.new.
+copy_from_dir() {
+  local d=$FROM_DIR
+  [ -d "$d" ] && [ ! -L "$d" ] || fail "--from-dir $d is not a folder"
+  if [ -n "$(find "$d" -type l -print 2>/dev/null | head -n 1)" ]; then fail "$d has links in it: refusing it"; fi
+  rm -rf "$PROG.new"
+  mkdir -p "$PROG.new"
+  chmod 0755 "$PROG.new"
+  cp -R "$d/." "$PROG.new/" || fail "could not copy $d"
+  say "Copied the app's engine from $d"
+  check_new
+}
+
+# A whole package, nothing in it writable by the service account, signatures that verify.
+check_new() {
+  local f
   for f in node/bin/node ffmpeg/ffmpeg ffmpeg/ffprobe bin/sentry-fsops bin/sentry-six-manager \
     app/server/index.js app/BUILD_INFO.json install.sh update.sh uninstall.sh "$LABEL.plist" newsyslog.conf manager.env.example; do
     [ -f "$PROG.new/$f" ] || fail "the package has no $f: refusing it"
@@ -327,6 +364,77 @@ ensure_state() {
   printf '%s\n' /Library/SentrySixManager/bin > "$PATHS_D"
   chown root:wheel "$PATHS_D"
   chmod 0644 "$PATHS_D"
+  # beside the state root, not in it: nothing private becomes readable
+  dir_as "$SVC_UID:wheel" 0755 "$PUBLIC"
+  dir_as "$SVC_UID:wheel" 0700 "$LOCAL"
+  [ -e "$LOCAL_USERS" ] || : > "$LOCAL_USERS"
+  chown root:wheel "$LOCAL_USERS"
+  chmod 0644 "$LOCAL_USERS"
+  trusted_hosts_loopback
+}
+
+# The Mac app connects to 127.0.0.1: a TRUSTED_HOSTS list in manager.env
+# without it would refuse the app, so it is added (once, at the end).
+trusted_hosts_loopback() {
+  local th
+  th=$(setting TRUSTED_HOSTS)
+  [ -n "$th" ] || return 0
+  case ",$(printf '%s' "$th" | tr ' ' ','),"  in *,127.0.0.1,*) return 0 ;; esac
+  printf '\n# added by install.sh: the Sentry Six Manager app on this Mac connects to 127.0.0.1\nTRUSTED_HOSTS=%s,127.0.0.1\n' "$th" >> "$STATE/manager.env"
+  say "Added 127.0.0.1 to TRUSTED_HOSTS in $STATE/manager.env (the app on this Mac connects there)"
+}
+
+# ---- same-Mac sign-in: who may enter the socket's folder ------------------------
+
+# A real Mac user (uid 501 or above) by short name, or nothing.
+mac_user_ok() { # mac_user_ok <name>
+  local uid
+  printf '%s' "$1" | grep -Eq '^[A-Za-z0-9_][A-Za-z0-9_.-]{0,254}$' || return 1
+  uid=$(dscl . -read "/Users/$1" UniqueID 2>/dev/null | awk '$1 == "UniqueID:" { print $2 }' || true)
+  case "$uid" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$uid" -ge 501 ]
+}
+
+# One ACL entry on the folder (macOS stores it by the user's GUID) and a
+# line in the list the CLI shows. Added once; the others stay.
+allow_local_user() { # allow_local_user <name>
+  mac_user_ok "$1" || fail "$1 is not a user on this Mac"
+  grep -qxF "$1" "$LOCAL_USERS" 2>/dev/null && return 0
+  chmod +a "user:$1 allow search" "$LOCAL"
+  printf '%s\n' "$1" >> "$LOCAL_USERS"
+  say "$1 can sign in to the app on this Mac without a password"
+}
+
+# --local-user, or for a Terminal install the one who ran sudo; nobody else
+# (the password still works)
+local_signin_users() {
+  local who=""
+  if [ "$LOCAL_USER_SET" = 1 ]; then
+    who=$LOCAL_USER
+  elif [ -n "${SUDO_USER:-}" ] && mac_user_ok "$SUDO_USER"; then
+    who=$SUDO_USER
+  fi
+  [ -z "$who" ] || allow_local_user "$who"
+}
+
+# ---- data from the app's "in your login" mode ---------------------------------
+
+# Copied in only when the service has no data of its own yet; never overwritten.
+import_data() {
+  local src=$IMPORT_DATA n
+  [ -n "$src" ] || return 0
+  [ -d "$src" ] && [ ! -L "$src" ] || fail "--import-data $src is not a folder"
+  n=$({ ls -A "$STATE/data" | grep -vx '.metadata_never_index' || true; } | wc -l | tr -d ' ')
+  if [ "$n" != 0 ]; then
+    say "The service already has its own data in $STATE/data: kept it; $src was not copied."
+    return 0
+  fi
+  ditto "$src" "$STATE/data" || fail "could not copy $src"
+  # nothing from a user's folder may point elsewhere once the service owns it
+  find "$STATE/data" -type l -exec rm -f {} + 2>/dev/null || true
+  chown -R "$SVC_UID:$SVC_GID" "$STATE/data"
+  chmod -R go-rwx "$STATE/data"
+  say "Copied the data from $src (accounts, vehicles, policies, the Recycle Bin index and the certificates)"
 }
 
 # ---- the service -------------------------------------------------------------------
@@ -460,6 +568,8 @@ print_welcome() {
   [ -z "$ip" ] || say "    or $web://$ip:$p"
   if [ -s "$STATE/data/setup-code.txt" ]; then
     say "  Setup code: $(tr -cd 'A-Za-z0-9-' < "$STATE/data/setup-code.txt")"
+    # for the Mac app, which reads it from this output (and keeps it in memory only)
+    [ -z "$SERVICE_MODE" ] || say "SETUP-CODE: $(tr -cd 'A-Za-z0-9-' < "$STATE/data/setup-code.txt")"
   else
     say "  No setup code: the account is already set up."
   fi
@@ -493,10 +603,16 @@ main() {
       --sums) [ $# -ge 2 ] || fail "--sums needs a file"; SUMS=$2; shift 2 ;;
       --release) [ $# -ge 2 ] || fail "--release needs a tag"; TAG=$2; shift 2 ;;
       --update) UPDATE=1; shift ;;
+      --from-dir) [ $# -ge 2 ] || fail "--from-dir needs a folder"; FROM_DIR=$2; shift 2 ;;
+      --service-mode) [ $# -ge 2 ] || fail "--service-mode needs daemon"; SERVICE_MODE=$2; shift 2 ;;
+      --local-user) [ $# -ge 2 ] || fail "--local-user needs a name"; LOCAL_USER=$2; LOCAL_USER_SET=1; shift 2 ;;
+      --import-data) [ $# -ge 2 ] || fail "--import-data needs a folder"; IMPORT_DATA=$2; shift 2 ;;
       -h|--help) usage; exit 0 ;;
       *) usage >&2; fail "unknown option $1" ;;
     esac
   done
+  case "$SERVICE_MODE" in ''|daemon) ;; *) fail "--service-mode takes daemon (the app runs \"in your login\" itself)" ;; esac
+  if [ -n "$FROM_DIR" ] && { [ -n "$FROM" ] || [ -n "$TAG" ]; }; then fail "--from-dir cannot go with --from or --release"; fi
   check_root
   check_apple_silicon
   check_not_rosetta
@@ -505,15 +621,21 @@ main() {
 
   WORK=$(mktemp -d "${TMPDIR:-/tmp}/sentry-six-install.XXXXXX")
   trap on_exit EXIT
-  name=$(fetch)
-  verify "$name"
-  extract "$name"
+  if [ -n "$FROM_DIR" ]; then
+    copy_from_dir
+  else
+    name=$(fetch)
+    verify "$name"
+    extract "$name"
+  fi
 
   ensure_account
   ensure_state
+  local_signin_users
 
   # the swap: the running version stops only now, and stays as .old
   stop_service
+  import_data
   rm -rf "$PROG.old"
   if [ -d "$PROG" ]; then mv "$PROG" "$PROG.old"; SWAPPED=1; fi
   mv "$PROG.new" "$PROG"

@@ -237,12 +237,15 @@ function createDarwinPlatform({
       data, appDir, run,
       // the state root holds manager.env (the passwords) beside data/ and run/
       STATE_ROOT,
+      // the Mac app in the user's login: that user's own state folder (its manager.env)
+      env.SERVICE_MODE === 'agent' && data ? P.dirname(data) : null,
       appDir ? P.dirname(appDir) : null,
       '/System', '/Library', '/private', '/usr', '/bin', '/sbin', '/dev', '/cores', '/opt', '/Users'
     ].filter(Boolean),
     /** The system's own folders no folder vehicle may overlap (DATA and RUN_DIR come from protectedDirs). */
     systemDirs: () => ['/System', '/private', '/usr', '/bin', '/sbin', '/dev', '/cores', '/opt', '/Applications',
-      PROGRAM_ROOT, P.join(STATE_ROOT, 'manager.env')],
+      PROGRAM_ROOT, P.join(STATE_ROOT, 'manager.env'),
+      ...(env.SERVICE_MODE === 'agent' && env.DATA_PATH ? [P.join(P.dirname(P.resolve(env.DATA_PATH)), 'manager.env')] : [])],
     samePath,
     isInside,
     validName,

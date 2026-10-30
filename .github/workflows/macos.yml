@@ -11,9 +11,19 @@ name: macOS
 #     runner has passwordless sudo), checks the web UI over HTTPS, the
 #     service account, a restart after a crash, a clean stop, the Rosetta
 #     refusal, then uninstalls and checks nothing is left.
+#   - sentrykit-linux: the Mac app's SentryKit library and its tests on
+#     Linux, with the pinned Swift toolchain: it must stay Linux-safe.
+#   - app: SentryKit's tests on the Mac too, the no-WebKit check, then
+#     macos/app/scripts/build-app.sh makes "Sentry Six Manager.app" and its
+#     .dmg (Developer ID and notarized when the signing secrets exist, ad
+#     hoc and named -unsigned otherwise).
+#   - app-check: the dmg's app finds, pins and asks a service installed
+#     from the tarball (--check).
+#   - parity-mac: the side-by-side capture against the web pages, once
+#     tools/parity/ is there (wip and by hand only).
 #   - publish: on a push to main only, a macos-v* GitHub Release with the
-#     tarball, SHA256SUMS and release.json, never marked latest (that one is
-#     Windows').
+#     tarball, the dmg, SHA256SUMS and release.json, never marked latest
+#     (that one is Windows').
 # Docker-only and Windows-only changes do not run it, and it never touches
 # ghcr.io. Never on pull requests: nobody else's code runs here with this
 # repository's token.
@@ -284,8 +294,189 @@ jobs:
             sudo tail -n 200 "$f" 2>/dev/null || echo '(none)'
           done
 
+  sentrykit-linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # checked against macos/app/swift-toolchain.json before it is unpacked
+      - name: Swift (pinned)
+        run: |
+          pin() { node -p "require('./macos/app/swift-toolchain.json').$1"; }
+          url=$(pin url)
+          want=$(pin sha256)
+          [[ "$url" == https://download.swift.org/* ]] || { echo "::error::swift-toolchain.json: the url must be on download.swift.org"; exit 1; }
+          [[ "$want" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::swift-toolchain.json: the sha256 is not a SHA-256"; exit 1; }
+          curl -fsSL --proto '=https' -o "$RUNNER_TEMP/swift.tar.gz" "$url"
+          got=$(sha256sum "$RUNNER_TEMP/swift.tar.gz" | cut -d' ' -f1)
+          [ "$got" = "$want" ] || { echo "::error::the Swift download does not match its pinned SHA-256 (expected $want, got $got)"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/swift"
+          tar -xzf "$RUNNER_TEMP/swift.tar.gz" -C "$RUNNER_TEMP/swift" --strip-components=1
+          rm -f "$RUNNER_TEMP/swift.tar.gz"
+          echo "$RUNNER_TEMP/swift/usr/bin" >> "$GITHUB_PATH"
+
+      - name: SentryKit on Linux
+        working-directory: macos/app
+        run: |
+          swift --version
+          swift build
+          swift test
+
+  app:
+    needs: test
+    runs-on: macos-15
+    timeout-minutes: 120
+    outputs:
+      dmg: ${{ steps.made.outputs.dmg }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: SentryKit on the Mac
+        working-directory: macos/app
+        run: |
+          swift --version
+          swift build
+          swift test
+
+      # also run on Linux over the sources by test/macosApp.test.js
+      - name: No WebKit in the sources
+        run: bash macos/app/scripts/check-no-webkit.sh
+
+      # The secrets reach this step only. Without all five the build is
+      # signed ad hoc and the dmg is named -unsigned.
+      - name: Build the app and the dmg
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          DEVELOPER_ID_P12: ${{ secrets.DEVELOPER_ID_P12 }}
+          DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+        run: bash macos/app/scripts/build-app.sh --out dist-app
+
+      - name: Remove the build keychain
+        if: always()
+        run: bash macos/app/scripts/sign.sh cleanup
+
+      - name: What was made
+        id: made
+        run: |
+          shopt -s nullglob
+          dmgs=(dist-app/SentrySixManager-*-macos-arm64*.dmg)
+          [ "${#dmgs[@]}" = 1 ] || { echo "::error::expected one dmg in dist-app, found ${#dmgs[@]}"; exit 1; }
+          (cd dist-app && shasum -a 256 -c SHA256SUMS.dmg)
+          echo "dmg=$(basename "${dmgs[0]}")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos-app
+          path: dist-app/
+          if-no-files-found: error
+          retention-days: 14
+
+      # last, so a warning does not hold back the dmg above
+      - name: Zero warnings in Swift 6 mode
+        working-directory: macos/app
+        run: swift build -c release --arch arm64 -Xswiftc -warnings-as-errors
+
+  app-check:
+    needs: [package, app]
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      TARBALL: ${{ needs.package.outputs.tarball }}
+      DMG: ${{ needs.app.outputs.dmg }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: macos-package
+          path: dist
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: macos-app
+          path: dist-app
+
+      # the Terminal install writes engine.json too (its plist sets PUBLIC_INFO_PATH)
+      - name: Install the service
+        run: sudo bash macos/install.sh --from "dist/$TARBALL" --sums dist/SHA256SUMS
+
+      - name: The app finds, pins and asks it
+        run: |
+          mnt="$RUNNER_TEMP/dmg"
+          hdiutil attach -nobrowse -readonly -mountpoint "$mnt" "dist-app/$DMG"
+          [ -L "$mnt/Applications" ] || { echo "::error::the dmg has no Applications link"; exit 1; }
+          ditto "$mnt/Sentry Six Manager.app" "$RUNNER_TEMP/Sentry Six Manager.app"
+          hdiutil detach "$mnt"
+          for i in $(seq 1 30); do
+            [ -f "/Library/Application Support/SentrySixManager Public/engine.json" ] && break
+            sleep 2
+          done
+          "$RUNNER_TEMP/Sentry Six Manager.app/Contents/MacOS/Sentry Six Manager" --check
+
+      - name: Uninstall
+        if: always()
+        run: sudo /Library/SentrySixManager/bin/sentry-six-manager uninstall --remove-data || true
+
+  # The side-by-side check (docs/plans/macos-app.md 11.4). It fails only on
+  # a crash or a missing capture, never on a pixel difference.
+  parity-mac:
+    needs: app
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/wip'
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - id: tool
+        run: if [ -f tools/parity/run.js ]; then echo "here=1" >> "$GITHUB_OUTPUT"; else echo "::notice::tools/parity/ is not there yet; skipped"; fi
+
+      - uses: actions/setup-node@v7
+        if: steps.tool.outputs.here == '1'
+        with:
+          node-version: 24
+
+      - uses: actions/download-artifact@v8
+        if: steps.tool.outputs.here == '1'
+        with:
+          name: macos-app
+          path: dist-app
+
+      - name: Capture both sides
+        if: steps.tool.outputs.here == '1'
+        run: |
+          mnt="$RUNNER_TEMP/dmg"
+          hdiutil attach -nobrowse -readonly -mountpoint "$mnt" dist-app/*.dmg
+          ditto "$mnt/Sentry Six Manager.app" "$RUNNER_TEMP/Sentry Six Manager.app"
+          hdiutil detach "$mnt"
+          node tools/parity/run.js --platform mac --app "$RUNNER_TEMP/Sentry Six Manager.app"
+
+      - uses: actions/upload-artifact@v7
+        if: steps.tool.outputs.here == '1'
+        with:
+          name: parity-mac
+          path: |
+            tools/parity/out/mac/
+            tools/parity/report/mac/
+          if-no-files-found: error
+          retention-days: 14
+
   publish:
-    needs: [package, install-check]
+    needs: [package, install-check, app, app-check]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -297,6 +488,21 @@ jobs:
           name: macos-package
           path: dist
 
+      # the dmg beside the tarball, and its line in the one SHA256SUMS
+      - uses: actions/download-artifact@v8
+        with:
+          name: macos-app
+          path: dist-app
+
+      - name: Add the dmg
+        env:
+          DMG: ${{ needs.app.outputs.dmg }}
+        run: |
+          [[ "$DMG" =~ ^SentrySixManager-[A-Za-z0-9._+-]+-macos-arm64(-unsigned)?\.dmg$ ]] || { echo "::error::no usable dmg name"; exit 1; }
+          (cd dist-app && sha256sum -c SHA256SUMS.dmg)
+          cp "dist-app/$DMG" dist/
+          cat dist-app/SHA256SUMS.dmg >> dist/SHA256SUMS
+
       # A final release (update notices and update.sh read final macos-v*
       # releases only), never --latest: that is Windows' release. A release
       # with all three files (a re-run) is left as it was; one left a draft
@@ -306,6 +512,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARBALL: ${{ needs.package.outputs.tarball }}
+          DMG: ${{ needs.app.outputs.dmg }}
           VERSION: ${{ needs.package.outputs.version }}
           SHORT: ${{ needs.package.outputs.short }}
         run: |
@@ -314,12 +521,12 @@ jobs:
           sha256sum -c SHA256SUMS
           tag="macos-v$VERSION-$SHORT"
           if have="$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft,assets 2>/dev/null)"; then
-            if jq -e --arg t "$TARBALL" '(.isDraft | not) and ([.assets[].name] as $n | [$t, "SHA256SUMS", "release.json"] | all(. as $f | $n | index($f)))' <<<"$have" >/dev/null; then
+            if jq -e --arg t "$TARBALL" --arg d "$DMG" '(.isDraft | not) and ([.assets[].name] as $n | [$t, $d, "SHA256SUMS", "release.json"] | all(. as $f | $n | index($f)))' <<<"$have" >/dev/null; then
               echo "::notice::Release $tag already exists; left as it is"
               exit 0
             fi
             echo "::notice::Release $tag is a draft or short of a file; finishing it"
-            gh release upload "$tag" "$TARBALL" SHA256SUMS release.json --repo "$GITHUB_REPOSITORY" --clobber
+            gh release upload "$tag" "$TARBALL" "$DMG" SHA256SUMS release.json --repo "$GITHUB_REPOSITORY" --clobber
             gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --latest=false
             exit 0
           fi
@@ -328,7 +535,12 @@ jobs:
           {
             echo "Sentry Six Manager $VERSION for macOS (Apple Silicon, M1 and later), built from $GITHUB_SHA."
             echo
-            echo "Install or upgrade: open Terminal and run"
+            case "$DMG" in
+              *-unsigned.dmg) echo "The app ($DMG, not signed yet): open the dmg, drag the app to Applications, open it once, then System Settings › Privacy & Security › Open Anyway." ;;
+              *) echo "The app: open $DMG and drag Sentry Six Manager to Applications." ;;
+            esac
+            echo
+            echo "Without the app: open Terminal and run"
             echo
             echo '    curl -fsSL https://raw.githubusercontent.com/'"$GITHUB_REPOSITORY"'/main/macos/install.sh | sudo bash'
             echo
@@ -336,7 +548,7 @@ jobs:
             echo "Intel Macs are not supported. Check the download against SHA256SUMS."
             if [ "$level" != 0 ] && [ -n "$reason" ]; then echo; echo "Critical update (level $level): $reason"; fi
           } > notes.md
-          gh release create "$tag" "$TARBALL" SHA256SUMS release.json \
+          gh release create "$tag" "$TARBALL" "$DMG" SHA256SUMS release.json \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "Sentry Six Manager $VERSION for macOS ($SHORT)" \

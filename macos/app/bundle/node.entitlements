@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  node only (re-signed for notarization, docs/plans/macos-app.md 10.2).
+  V8 compiles JavaScript to machine code at run time, which the hardened
+  runtime allows only with these two. Node.js's own release signature
+  carries them as well, plus four this build leaves out on purpose:
+    get-task-allow                      lets debuggers attach; notarization refuses it
+    disable-library-validation          only for native addons; the server has none (node:sqlite)
+    allow-dyld-environment-variables    nothing sets DYLD_ (install.sh refuses a plist that does)
+    disable-executable-page-protection  wider than unsigned executable memory, not needed
+  Whether node runs with just these two is a check on a Mac.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+	<true/>
+</dict>
+</plist>

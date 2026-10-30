@@ -76,8 +76,10 @@ class Auth {
    * log in Docker, the service log and Install.cmd's window on Windows,
    * the setup-code command on a Mac).
    */
-  constructor({ db, log, isSecure = () => false, setupFile = null, platform = defaultPlatform }) {
+  constructor({ db, log, isSecure = () => false, setupFile = null, platform = defaultPlatform, channel = null }) {
     this.platform = platform;
+    // BUILD_INFO's channel: 'macos-app' adds the menu bar to the setup-code text
+    this.channel = channel;
     this.db = db;
     this.log = log;
     this.isSecure = isSecure;
@@ -119,7 +121,7 @@ class Auth {
       const where = this.platform.deployment === 'windows'
         ? 'It was shown when Install.cmd finished, and is in %ProgramData%\\SentrySixManager\\data\\setup-code.txt and the service log (data\\logs\\service.log).'
         : this.platform.deployment === 'macos'
-          ? 'It was shown when the install finished. To see it again, run sudo sentry-six-manager setup-code in Terminal.'
+          ? `It was shown when the install finished. To see it again, run sudo sentry-six-manager setup-code in Terminal.${this.channel === 'macos-app' ? ' Or choose Setup code in the Sentry Six Manager menu bar.' : ''}`
           : 'It is printed in the container log (docker logs sentry-six-manager).';
       throw Object.assign(new Error(`That setup code is not right. ${where}`), { status: 403 });
     }

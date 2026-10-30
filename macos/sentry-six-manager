@@ -7,6 +7,7 @@
 #   sudo sentry-six-manager start | stop | restart
 #   sudo sentry-six-manager run            in this Terminal, as the service account (service stopped)
 #   sudo sentry-six-manager allow-folder <folder> [--write]
+#   sudo sentry-six-manager local-signin list | allow <name> | remove <name>
 #   sudo sentry-six-manager update [--release <tag>]
 #   sudo sentry-six-manager uninstall [--remove-data]
 #
@@ -25,6 +26,8 @@ PROG="$ROOT/Library/SentrySixManager"
 STATE="$ROOT/Library/Application Support/SentrySixManager"
 LOGDIR="$ROOT/Library/Logs/SentrySixManager"
 PLIST="$ROOT/Library/LaunchDaemons/$LABEL.plist"
+LOCAL="$ROOT/Library/Application Support/SentrySixManager Local"
+LOCAL_USERS="$STATE/local-signin-users"
 
 say() { printf '%s\n' "$*"; }
 fail() { printf 'sentry-six-manager: %s\n' "$*" >&2; exit 1; }
@@ -43,6 +46,8 @@ usage: sentry-six-manager <command>
   run                         run it in this Terminal as the service account
   allow-folder <folder> [--write]
                               let the service read (and with --write, change) a folder
+  local-signin list | allow <name> | remove <name>
+                              Mac users who sign in to the app without a password
   update [--release <tag>]    install the newest release
   uninstall [--remove-data]   remove it (data stays unless --remove-data)
 All but status need sudo.
@@ -246,6 +251,39 @@ cmd_allow_folder() {
   say "For a folder vehicle, add it to FOLDER_ROOTS in $STATE/manager.env, then: sudo sentry-six-manager restart"
 }
 
+# Who may enter the same-Mac sign-in socket's folder: one ACL entry each
+# (docs/plans/macos-app.md 2.6), and the list install.sh keeps beside it.
+cmd_local_signin() {
+  local op=${1:-} name=${2:-} uid
+  [ -d "$LOCAL" ] || fail "same-Mac sign-in is not set up here: install the service again"
+  case "$op" in
+    list)
+      if [ -s "$LOCAL_USERS" ]; then cat "$LOCAL_USERS"; else say "Nobody: every Mac user signs in with the password."; fi ;;
+    allow|remove)
+      [ -n "$name" ] || fail "usage: sudo sentry-six-manager local-signin $op <name>"
+      printf '%s' "$name" | grep -Eq '^[A-Za-z0-9_][A-Za-z0-9_.-]{0,254}$' || fail "$name is not a Mac user name"
+      if [ "$op" = allow ]; then
+        uid=$(dscl . -read "/Users/$name" UniqueID 2>/dev/null | awk '$1 == "UniqueID:" { print $2 }' || true)
+        case "$uid" in ''|*[!0-9]*) fail "$name is not a user on this Mac" ;; esac
+        [ "$uid" -ge 501 ] || fail "$name is not a person's account on this Mac"
+        if grep -qxF "$name" "$LOCAL_USERS" 2>/dev/null; then say "$name can already sign in without a password"; return 0; fi
+        chmod +a "user:$name allow search" "$LOCAL"
+        printf '%s\n' "$name" >> "$LOCAL_USERS"
+        say "$name can now sign in to the app on this Mac without a password"
+      else
+        # the entry may be gone already (the account was removed)
+        chmod -a "user:$name allow search" "$LOCAL" 2>/dev/null || true
+        if [ -f "$LOCAL_USERS" ]; then
+          grep -vxF "$name" "$LOCAL_USERS" > "$LOCAL_USERS.new" || true
+          mv "$LOCAL_USERS.new" "$LOCAL_USERS"
+          chmod 0644 "$LOCAL_USERS"
+        fi
+        say "$name now signs in with the password"
+      fi ;;
+    *) fail "usage: sudo sentry-six-manager local-signin list | allow <name> | remove <name>" ;;
+  esac
+}
+
 main() {
   local cmd=${1:-}
   [ $# -eq 0 ] || shift
@@ -258,6 +296,7 @@ main() {
     restart) need_root restart; cmd_restart ;;
     run) need_root run; cmd_run ;;
     allow-folder) need_root allow-folder; cmd_allow_folder "$@" ;;
+    local-signin) need_root local-signin; cmd_local_signin "$@" ;;
     update) need_root update; exec /bin/bash "$PROG/update.sh" "$@" ;;
     uninstall) need_root uninstall; exec /bin/bash "$PROG/uninstall.sh" "$@" ;;
     -h|--help|help) usage ;;

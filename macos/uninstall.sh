@@ -26,6 +26,8 @@ LOGDIR="$ROOT/Library/Logs/SentrySixManager"
 PLIST="$ROOT/Library/LaunchDaemons/$LABEL.plist"
 NEWSYSLOG="$ROOT/etc/newsyslog.d/sentry-six-manager.conf"
 PATHS_D="$ROOT/etc/paths.d/sentry-six-manager"
+PUBLIC="$ROOT/Library/Application Support/SentrySixManager Public"
+LOCAL="$ROOT/Library/Application Support/SentrySixManager Local"
 
 say() { printf '%s\n' "$*"; }
 fail() { printf 'uninstall.sh: %s\n' "$*" >&2; exit 1; }
@@ -52,6 +54,8 @@ main() {
     launchctl bootout "system/$LABEL" 2>/dev/null || true
   fi
   rm -f "$PLIST" "$NEWSYSLOG" "$PATHS_D"
+  # the Mac app's two folders: engine.json and the sign-in socket
+  rm -rf "$PUBLIC" "$LOCAL"
   rm -rf "$PROG" "$PROG.new" "$PROG.old" "$PROG.failed"
   say "Removed the program from /Library/SentrySixManager"
 

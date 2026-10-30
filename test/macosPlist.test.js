@@ -136,6 +136,9 @@ test('the environment: fixed paths only, nothing manager.env should set, no DYLD
     PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
     UV_THREADPOOL_SIZE: '16',
     SENTRY_CONSOLE: 'off',
+    // the Mac app (docs/plans/macos-app.md 2.3, 2.6): beside the state root, not in it
+    PUBLIC_INFO_PATH: '/Library/Application Support/SentrySixManager Public/engine.json',
+    LOCAL_SIGNIN_SOCKET: '/Library/Application Support/SentrySixManager Local/signin.sock',
   });
   // the variables set here win over manager.env: PORT, TZ and the rest stay settable
   for (const k of ['PORT', 'HOST', 'TZ', 'TLS_MODE', 'PUID', 'PGID', 'SENTRY_SUPERVISED']) assert.ok(!(k in job.EnvironmentVariables), k);

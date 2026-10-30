@@ -67,7 +67,7 @@ test('fullDiskAccess: opened is yes, EPERM is no, anything else unknown', () => 
   assert.equal(fullDiskAccess({ openSync: fail('EPERM') }), false);
   assert.equal(fullDiskAccess({ openSync: fail('ENOENT') }), null);
   assert.equal(fullDiskAccess({ openSync: fail('EACCES') }), null);
-  assert.deepEqual(darwinAccount({ openSync: fail('EPERM') }), { account: '_sentrysix', elevated: false, fullDiskAccess: false });
+  assert.deepEqual(darwinAccount({ env: {}, openSync: fail('EPERM') }), { account: '_sentrysix', elevated: false, fullDiskAccess: false, runMode: 'daemon' });
 });
 
 test('SENTRY_CONSOLE=off keeps log lines off the console; unset changes nothing', async () => {

@@ -1,9 +1,10 @@
-# Sentry Six Manager for the Mac (app)
+# Sentry Six Manager for Mac (the app)
 
-The native Mac app: a SwiftUI and AppKit client of the engine (the same Node
-server the Terminal install runs). The plan is `docs/plans/macos-app.md`.
+The native Mac app: SwiftUI and AppKit, no web view. It runs the same engine
+(the Node server) the Terminal install runs, as a background service or in
+the user's login. The plan is `docs/plans/macos-app.md`.
 
-## What is here
+## Layout
 
 - `Sources/SentryKit/`: the data layer every interface uses. It has no
   AppKit, SwiftUI, AVFoundation, MapKit or Security, so it builds and tests
@@ -23,23 +24,43 @@ server the Terminal install runs). The plan is `docs/plans/macos-app.md`.
   - `Format/`, `Strings/`: the web's formatters and sentences.
   - `Interfaces/`: which interface shows, page lists, routes, settings.
   - `ViewModels/`: one `@Observable` model per page, shared by all five skins.
-- `Sources/SentrySixManager/`: the app itself. Only built on a Mac.
+- `Sources/sentry-six-engine/`: the "in your login" launcher the
+  LaunchAgent starts. It works out the user's paths and execs node.
+- `Sources/SentrySixManager/`: the app (macOS only).
 - `Tests/SentryKitTests/`: XCTest, on Linux and macOS.
   - `Fixtures/api/`: real server answers and event streams, written by
     `Tests/fixtures-gen/dump-api.js`.
   - `Fixtures/format-expected.json`: the web formatters' own output, written
     by `Tests/fixtures-gen/format.js`.
   - `Fixtures/certs/`: a test CA and certificate with their fingerprints.
+- `bundle/`: Info.plist, the entitlements and the LaunchAgent's plist.
+- `scripts/`: `build-app.sh` makes the `.app` and the `.dmg`; `sign.sh`,
+  `notarize.sh` and `dmg.sh` are its steps; `check-no-webkit.sh` keeps
+  WebKit out.
 
 ## Build and test
 
-On a Mac (the app and the library):
+On Linux (SentryKit and the launcher only):
 
     cd macos/app && swift build && swift test
 
-On Linux only SentryKit and its tests build; the app target is left out:
+On an Apple Silicon Mac with Xcode:
 
-    cd macos/app && swift build && swift test
+    bash macos/app/scripts/build-app.sh
+
+It builds the engine with `macos/build.sh --channel macos-app`, signs it,
+writes the engine's `MANIFEST.sha256`, compiles the app with that
+manifest's SHA-256 in it, then signs, notarizes and makes the dmg. With the
+five signing secrets in the environment (`APPLE_ID`, `APPLE_TEAM_ID`,
+`APPLE_APP_PASSWORD`, `DEVELOPER_ID_P12`, `DEVELOPER_ID_P12_PASSWORD`) it
+signs with Developer ID and notarizes; without them it signs ad hoc and
+names the dmg `...-unsigned.dmg`.
+
+To open an unsigned build: open the dmg, drag the app to Applications, open
+it once, then System Settings › Privacy & Security › Open Anyway.
+
+`test/macosApp.test.js` runs `build-app.sh` on Linux with stand-ins for
+Xcode's tools.
 
 ## The fixtures
 

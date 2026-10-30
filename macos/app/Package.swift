@@ -3,19 +3,26 @@
 //
 // SentryKit is the app's data layer: models, the API client, pinning rules,
 // event streams, telemetry, playback decisions, view models and formatting.
-// It builds and tests on Linux too. The app target (SwiftUI, AppKit,
-// AVFoundation, MapKit) exists only when building on a Mac.
+// It builds and tests on Linux too, as does sentry-six-engine, the "in your
+// login" launcher. The app target (SwiftUI, AppKit, AVFoundation, MapKit,
+// ServiceManagement) exists only when building on a Mac.
 
 import PackageDescription
 
 var products: [Product] = [
     .library(name: "SentryKit", targets: ["SentryKit"]),
+    .executable(name: "sentry-six-engine", targets: ["sentry-six-engine"]),
 ]
 
 var targets: [Target] = [
     .target(
         name: "SentryKit",
         path: "Sources/SentryKit"
+    ),
+    .executableTarget(
+        name: "sentry-six-engine",
+        dependencies: ["SentryKit"],
+        path: "Sources/sentry-six-engine"
     ),
     .testTarget(
         name: "SentryKitTests",

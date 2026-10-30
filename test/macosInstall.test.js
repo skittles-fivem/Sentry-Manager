@@ -147,12 +147,12 @@ test('the scripts stay within macOS\'s bash 3.2', () => {
 });
 
 test('nothing in macos/ is for Intel Macs', () => {
-  // every file, the app's folders too (not Swift's own build output)
-  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
-    if (e.isDirectory()) return e.name === '.build' || e.name === '.swiftpm' ? [] : walk(path.join(dir, e.name));
-    return [path.join(dir, e.name)];
+  // the Mac app's folder too (not its build output)
+  const files = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
+    if (e.isDirectory()) return ['.build', '.swiftpm', 'dist'].includes(e.name) ? [] : files(path.join(d, e.name));
+    return [path.join(d, e.name)];
   });
-  for (const f of walk(MACOS)) {
+  for (const f of files(MACOS)) {
     const text = fs.readFileSync(f, 'utf8');
     assert.doesNotMatch(text, /darwin-x64|mac64-|x86_64|macos-x64|\bx64\b/i, path.relative(MACOS, f));
   }
@@ -608,4 +608,162 @@ test('the CLI: status, stop, start, setup-code, allow-folder', { skip: !hasTar &
   fs.writeFileSync(path.join(sb.state, 'manager.env'), 'TLS_MODE=off\nPORT=9100\n');
   assert.equal(launchd(sb).running, true);
   assert.match(run(sb, cli, ['status'], { FAKE_UID: '501' }).stdout, /Answers on port 9100: http:\/\/Test-Mac\.local:9100/);
+});
+
+// ---- the Mac app's admin step (docs/plans/macos-app.md 3.4)
+
+// The app's engine as its admin step stages it: the package laid out as a folder.
+function stagedDir(sb, opts) {
+  const pkg = makePackage(sb, opts);
+  const dir = path.join(sb.base, `staged-${opts?.version || 'x'}`);
+  fs.mkdirSync(dir, { recursive: true });
+  const r = spawnSync('tar', ['-xzf', pkg.tarball, '-C', dir]);
+  assert.equal(r.status, 0, String(r.stderr));
+  return dir;
+}
+const fromDir = (sb, dir, extra = [], env = {}) => run(sb, path.join(MACOS, 'install.sh'), ['--from-dir', dir, '--service-mode', 'daemon', ...extra], env);
+
+test('--from-dir: a staged folder installs as a tarball does, with the public and local folders and a SETUP-CODE line', { skip: !hasTar && 'needs tar' }, () => {
+  const sb = sandbox();
+  const users = dscl(sb);
+  users.Users.anna = { UniqueID: '501' };
+  fs.writeFileSync(path.join(sb.fake, 'dscl.json'), JSON.stringify(users));
+  const dir = stagedDir(sb, { version: '3.0.0' });
+  const r = fromDir(sb, dir, ['--local-user', 'anna'], { FAKE_SETUP_CODE: 'ABCDE-FGHIJ-KLMNO' });
+  assert.equal(r.status, 0, r.out);
+  assert.equal(version(sb), '3.0.0');
+  assert.match(r.stdout, /Copied the app's engine from /);
+  assert.match(r.stdout, /^SETUP-CODE: ABCDE-FGHIJ-KLMNO$/m);
+  assert.match(r.stdout, /^ {2}Setup code: ABCDE-FGHIJ-KLMNO$/m);
+  // no tarball, no download
+  assert.ok(!calls(sb).some((c) => c.cmd === 'curl' && !/healthz/.test(line(c))));
+  const pub = path.join(sb.root, 'Library/Application Support/SentrySixManager Public');
+  const local = path.join(sb.root, 'Library/Application Support/SentrySixManager Local');
+  assert.equal(mode(pub), '0755');
+  assert.equal(mode(local), '0700');
+  const acl = calls(sb).filter((c) => c.cmd === 'chmod' && c.args[0] === '+a');
+  assert.deepEqual(acl.map((c) => c.args), [['+a', 'user:anna allow search', local]]);
+  assert.equal(fs.readFileSync(path.join(sb.state, 'local-signin-users'), 'utf8'), 'anna\n');
+  // the plist the app's engine brings has both paths
+  const plist = fs.readFileSync(path.join(sb.root, `Library/LaunchDaemons/${LABEL}.plist`), 'utf8');
+  assert.match(plist, /SentrySixManager Public\/engine\.json/);
+  assert.match(plist, /SentrySixManager Local\/signin\.sock/);
+
+  // again (Update the service): the same user is not added twice
+  clearCalls(sb);
+  const again = fromDir(sb, stagedDir(sb, { version: '3.1.0' }), ['--local-user', 'anna', '--update']);
+  assert.equal(again.status, 0, again.out);
+  assert.equal(version(sb), '3.1.0');
+  assert.equal(calls(sb).filter((c) => c.cmd === 'chmod' && c.args[0] === '+a').length, 0);
+  assert.equal(fs.readFileSync(path.join(sb.state, 'local-signin-users'), 'utf8'), 'anna\n');
+});
+
+test('the Terminal install: no SETUP-CODE line; the sudo user is allowed when a real user, nobody otherwise', { skip: !hasTar && 'needs tar' }, () => {
+  const sb = sandbox();
+  const users = dscl(sb);
+  users.Users.bob = { UniqueID: '502' };
+  fs.writeFileSync(path.join(sb.fake, 'dscl.json'), JSON.stringify(users));
+  const r = install(sb, makePackage(sb), { FAKE_SETUP_CODE: 'ABCDE-FGHIJ-KLMNO', SUDO_USER: 'bob' });
+  assert.equal(r.status, 0, r.out);
+  assert.doesNotMatch(r.stdout, /SETUP-CODE:/);
+  assert.equal(fs.readFileSync(path.join(sb.state, 'local-signin-users'), 'utf8'), 'bob\n');
+  // a system account (uid under 501) or root: nobody
+  const sb2 = sandbox();
+  assert.equal(install(sb2, makePackage(sb2), { SUDO_USER: '_www' }).status, 0);
+  assert.equal(fs.readFileSync(path.join(sb2.state, 'local-signin-users'), 'utf8'), '');
+  assert.equal(calls(sb2).filter((c) => c.cmd === 'chmod' && c.args[0] === '+a').length, 0);
+});
+
+test('--from-dir refuses a folder with links or missing files, and options that do not go together', { skip: !hasTar && 'needs tar' }, () => {
+  const sb = sandbox();
+  const dir = stagedDir(sb, { version: '3.0.0' });
+  fs.symlinkSync('/etc/passwd', path.join(dir, 'app', 'link'));
+  const r = fromDir(sb, dir);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /has links in it: refusing it/);
+  assert.equal(fs.existsSync(sb.prog), false);
+  fs.rmSync(path.join(dir, 'app', 'link'));
+  fs.rmSync(path.join(dir, 'bin', 'sentry-fsops'));
+  const r2 = fromDir(sb, dir);
+  assert.match(r2.stderr, /the package has no bin\/sentry-fsops: refusing it/);
+  assert.equal(fs.existsSync(sb.prog), false);
+  assert.match(fromDir(sb, dir, ['--from', 'x.tar.gz']).stderr, /--from-dir cannot go with --from or --release/);
+  assert.match(run(sb, path.join(MACOS, 'install.sh'), ['--from-dir', dir, '--service-mode', 'agent']).stderr, /--service-mode takes daemon/);
+  assert.match(fromDir(sb, path.join(sb.base, 'nope')).stderr, /is not a folder/);
+  const users = dscl(sb);
+  fs.writeFileSync(path.join(sb.fake, 'dscl.json'), JSON.stringify(users));
+  assert.match(fromDir(sb, stagedDir(sb, { version: '3.0.1' }), ['--local-user', 'nobody-here']).stderr, /nobody-here is not a user on this Mac/);
+  assert.match(fromDir(sb, stagedDir(sb, { version: '3.0.2' }), ['--local-user', "a'b"]).stderr, /is not a user on this Mac/);
+});
+
+test('--import-data: copied into an empty data folder and handed to the service; an existing one is kept', { skip: !hasTar && 'needs tar' }, () => {
+  const sb = sandbox();
+  const mine = path.join(sb.base, 'home-data');
+  fs.mkdirSync(path.join(mine, 'tls'), { recursive: true });
+  fs.writeFileSync(path.join(mine, 'manager.db'), 'mine');
+  fs.writeFileSync(path.join(mine, 'tls', 'ca.crt'), 'ca');
+  fs.symlinkSync('/etc/passwd', path.join(mine, 'stray-link'));
+  const r = fromDir(sb, stagedDir(sb, { version: '3.0.0' }), ['--import-data', mine]);
+  assert.equal(r.status, 0, r.out);
+  assert.match(r.stdout, /Copied the data from /);
+  assert.equal(fs.readFileSync(path.join(sb.state, 'data', 'manager.db'), 'utf8'), 'mine');
+  assert.equal(fs.readFileSync(path.join(sb.state, 'data', 'tls', 'ca.crt'), 'utf8'), 'ca');
+  assert.equal(fs.existsSync(path.join(sb.state, 'data', 'stray-link')), false);
+  assert.equal(mode(path.join(sb.state, 'data', 'manager.db')).slice(2), '00');
+  // copied while the service was stopped, before the new version started
+  const c = calls(sb);
+  assert.ok(indexOf(c, /^ditto /) < indexOf(c, /^launchctl bootstrap /));
+  // the user's own copy stays
+  assert.ok(fs.existsSync(path.join(mine, 'manager.db')));
+
+  // the service has data now: never overwritten
+  fs.writeFileSync(path.join(mine, 'manager.db'), 'newer');
+  const again = fromDir(sb, stagedDir(sb, { version: '3.0.1' }), ['--import-data', mine]);
+  assert.equal(again.status, 0, again.out);
+  assert.match(again.stdout, /already has its own data .*: kept it/);
+  assert.equal(fs.readFileSync(path.join(sb.state, 'data', 'manager.db'), 'utf8'), 'mine');
+});
+
+test('TRUSTED_HOSTS without 127.0.0.1 gets it added once; a list with it, or none, is left alone', { skip: !hasTar && 'needs tar' }, () => {
+  const sb = sandbox();
+  fs.mkdirSync(sb.state, { recursive: true });
+  fs.writeFileSync(path.join(sb.state, 'manager.env'), 'TRUSTED_HOSTS=nas.local, mac.lan\n');
+  assert.equal(install(sb, makePackage(sb)).status, 0);
+  const env = fs.readFileSync(path.join(sb.state, 'manager.env'), 'utf8');
+  assert.match(env, /\nTRUSTED_HOSTS=nas\.local,mac\.lan,127\.0\.0\.1\n$/);
+  assert.equal(install(sb, makePackage(sb, { version: '2.0.0' })).status, 0);
+  assert.equal(fs.readFileSync(path.join(sb.state, 'manager.env'), 'utf8'), env);
+  const sb2 = sandbox();
+  assert.equal(install(sb2, makePackage(sb2)).status, 0);
+  assert.doesNotMatch(fs.readFileSync(path.join(sb2.state, 'manager.env'), 'utf8'), /^TRUSTED_HOSTS=/m);
+});
+
+test('the CLI: local-signin list, allow and remove; uninstall removes the app\'s folders', { skip: !hasTar && 'needs tar' }, () => {
+  const sb = sandbox();
+  const users = dscl(sb);
+  users.Users.anna = { UniqueID: '501' };
+  fs.writeFileSync(path.join(sb.fake, 'dscl.json'), JSON.stringify(users));
+  assert.equal(install(sb, makePackage(sb)).status, 0);
+  const cli = path.join(sb.prog, 'bin/sentry-six-manager');
+  const local = path.join(sb.root, 'Library/Application Support/SentrySixManager Local');
+  assert.match(run(sb, cli, ['local-signin', 'list'], { FAKE_UID: '501' }).stderr, /run it with sudo/);
+  assert.match(run(sb, cli, ['local-signin', 'list']).stdout, /^Nobody: every Mac user signs in with the password\.$/m);
+  clearCalls(sb);
+  const allow = run(sb, cli, ['local-signin', 'allow', 'anna']);
+  assert.equal(allow.status, 0, allow.out);
+  assert.deepEqual(calls(sb).filter((c) => c.cmd === 'chmod').map((c) => c.args), [['+a', 'user:anna allow search', local]]);
+  assert.equal(run(sb, cli, ['local-signin', 'list']).stdout, 'anna\n');
+  assert.match(run(sb, cli, ['local-signin', 'allow', 'anna']).stdout, /already/);
+  assert.match(run(sb, cli, ['local-signin', 'allow', '_www']).stderr, /not a person's account/);
+  assert.match(run(sb, cli, ['local-signin', 'allow', 'ghost']).stderr, /not a user on this Mac/);
+  assert.match(run(sb, cli, ['local-signin', 'allow', '../x']).stderr, /not a Mac user name/);
+  clearCalls(sb);
+  assert.equal(run(sb, cli, ['local-signin', 'remove', 'anna']).status, 0);
+  assert.deepEqual(calls(sb).filter((c) => c.cmd === 'chmod' && c.args[0] === '-a').map((c) => c.args), [['-a', 'user:anna allow search', local]]);
+  assert.match(run(sb, cli, ['local-signin', 'list']).stdout, /^Nobody/m);
+  assert.match(run(sb, cli, ['local-signin', 'what']).stderr, /usage: sudo sentry-six-manager local-signin list/);
+  const r = run(sb, path.join(sb.prog, 'uninstall.sh'));
+  assert.equal(r.status, 0, r.out);
+  assert.equal(fs.existsSync(local), false);
+  assert.equal(fs.existsSync(path.join(sb.root, 'Library/Application Support/SentrySixManager Public')), false);
 });
