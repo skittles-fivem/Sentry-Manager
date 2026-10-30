@@ -17,6 +17,11 @@
 // TLS_CERT_FILE / TLS_KEY_FILE use your own certificate instead (for example
 // from Let's Encrypt). TLS_MODE=off serves plain HTTP, only for running
 // behind a reverse proxy that does HTTPS (set TRUST_PROXY=true there).
+//
+// On Docker the certificates are made with the openssl command. Windows has
+// no openssl, so there x509.js makes the same certificates in-process with
+// node:crypto (same names, lifetimes, extensions and constraints). Either one
+// can renew a certificate made by the other.
 
 const crypto = require('crypto');
 const fs = require('fs');
@@ -25,6 +30,7 @@ const net = require('net');
 const os = require('os');
 const path = require('path');
 const { run, tail } = require('./proc');
+const x509 = require('./x509');
 
 // The certificate stays the same for over two years: a device that tapped
 // "Continue" past the browser's warning trusts exactly this certificate, so
@@ -32,6 +38,8 @@ const { run, tail } = require('./proc');
 // Apple accepts on devices that install the certificate authority (the
 // 398-day rule only applies to publicly trusted certificates).
 const LEAF_DAYS = 825;
+const CA_DAYS = 3650;
+const ORG = 'Sentry Six Manager';
 const RENEW_BEFORE_MS = 30 * 24 * 3600 * 1000;
 const LOCAL_DNS = ['localhost', 'local', 'lan', 'home', 'home.arpa', 'internal', 'localdomain'];
 const PRIVATE_V4 = [
@@ -86,6 +94,15 @@ async function openssl(args, input) {
   return res;
 }
 
+/** A new P-256 key written as PKCS#8 PEM (what openssl genpkey writes), readable only by us. */
+async function writeNewKey(file) {
+  const { privateKey, pem } = x509.generateKey();
+  await fsp.rm(file, { force: true });
+  await fsp.writeFile(file, pem, { mode: 0o600 });
+  await fsp.chmod(file, 0o600);
+  return privateKey;
+}
+
 function fingerprint(pem) {
   try {
     return new crypto.X509Certificate(pem).fingerprint256;
@@ -106,8 +123,11 @@ function certInfo(pem) {
 }
 
 class TlsManager {
-  constructor({ dir, log, hostnames = [], certFile = null, keyFile = null }) {
+  constructor({ dir, log, hostnames = [], certFile = null, keyFile = null, platform = process.platform }) {
     this.dir = dir;
+    this.platform = platform;
+    // Windows: certificates from x509.js, never the openssl command
+    this.inProcess = platform === 'win32';
     this.log = log;
     this.extraHostnames = hostnames;
     this.ownCert = certFile && keyFile ? { certFile, keyFile } : null;
@@ -189,22 +209,44 @@ class TlsManager {
     ].join(',');
     const id = crypto.randomBytes(4).toString('hex');
     const tmpKey = `${this.files.caKey}.tmp`;
-    await openssl(['genpkey', '-algorithm', 'EC', '-pkeyopt', 'ec_paramgen_curve:P-256', '-out', tmpKey]);
-    await fsp.chmod(tmpKey, 0o600);
-    await openssl(['req', '-x509', '-new', '-key', tmpKey, '-sha256', '-days', '3650',
-      '-subj', `/O=Sentry Six Manager/CN=Sentry Six Manager local CA ${id}`,
-      '-addext', 'basicConstraints=critical,CA:TRUE,pathlen:0',
-      '-addext', 'keyUsage=critical,keyCertSign,cRLSign',
-      '-addext', `nameConstraints=critical,${constraints}`,
-      '-out', `${this.files.caCrt}.tmp`]);
+    if (this.inProcess) {
+      const key = await writeNewKey(tmpKey);
+      await fsp.writeFile(`${this.files.caCrt}.tmp`, x509.createCa({
+        key, days: CA_DAYS, subject: [['O', ORG], ['CN', `${ORG} local CA ${id}`]],
+        permittedDns: [...LOCAL_DNS, ...extraDns], permittedIp: [...PRIVATE_V4, ...PRIVATE_V6]
+      }));
+    } else {
+      await openssl(['genpkey', '-algorithm', 'EC', '-pkeyopt', 'ec_paramgen_curve:P-256', '-out', tmpKey]);
+      await fsp.chmod(tmpKey, 0o600);
+      await openssl(['req', '-x509', '-new', '-key', tmpKey, '-sha256', '-days', String(CA_DAYS),
+        '-subj', `/O=${ORG}/CN=${ORG} local CA ${id}`,
+        '-addext', 'basicConstraints=critical,CA:TRUE,pathlen:0',
+        '-addext', 'keyUsage=critical,keyCertSign,cRLSign',
+        '-addext', `nameConstraints=critical,${constraints}`,
+        '-out', `${this.files.caCrt}.tmp`]);
+    }
     await fsp.rename(tmpKey, this.files.caKey);
     await fsp.rename(`${this.files.caCrt}.tmp`, this.files.caCrt);
     await fsp.writeFile(path.join(this.dir, 'ca-names.json'), JSON.stringify(extraDns));
     await fsp.rm(this.files.crt, { force: true });
-    this.log?.warn('Created a new HTTPS certificate authority. Install /data/tls/ca.crt on your devices (Settings > Security) to trust the page.');
+    const where = this.platform === 'win32' ? this.files.caCrt : '/data/tls/ca.crt';
+    this.log?.warn(`Created a new HTTPS certificate authority. Install ${where} on your devices (Settings > Security) to trust the page.`);
   }
 
   async issueLeaf(names) {
+    const cn = names.find((n) => !net.isIP(n)) || 'localhost';
+    const tmpKey = `${this.files.key}.tmp`;
+    if (this.inProcess) {
+      const key = await writeNewKey(tmpKey);
+      const [caCert, caKey] = await Promise.all([fsp.readFile(this.files.caCrt), fsp.readFile(this.files.caKey)]);
+      await fsp.writeFile(`${this.files.crt}.tmp`, x509.issueLeaf({
+        publicKey: key, subject: [['O', ORG], ['CN', cn]], names, caCert, caKey, days: LEAF_DAYS
+      }));
+      await fsp.rename(tmpKey, this.files.key);
+      await fsp.rename(`${this.files.crt}.tmp`, this.files.crt);
+      this.log?.info(`Issued the HTTPS certificate for ${names.join(', ')}`);
+      return;
+    }
     const san = names.map((n) => (net.isIP(n) ? `IP:${n}` : `DNS:${n}`)).join(',');
     const ext = path.join(this.dir, 'server.ext');
     await fsp.writeFile(ext, [
@@ -213,11 +255,10 @@ class TlsManager {
       'extendedKeyUsage=serverAuth',
       `subjectAltName=${san}`
     ].join('\n'));
-    const tmpKey = `${this.files.key}.tmp`;
     const csr = path.join(this.dir, 'server.csr');
     await openssl(['genpkey', '-algorithm', 'EC', '-pkeyopt', 'ec_paramgen_curve:P-256', '-out', tmpKey]);
     await fsp.chmod(tmpKey, 0o600);
-    await openssl(['req', '-new', '-key', tmpKey, '-subj', `/O=Sentry Six Manager/CN=${names.find((n) => !net.isIP(n)) || 'localhost'}`, '-out', csr]);
+    await openssl(['req', '-new', '-key', tmpKey, '-subj', `/O=${ORG}/CN=${cn}`, '-out', csr]);
     await openssl(['x509', '-req', '-in', csr, '-CA', this.files.caCrt, '-CAkey', this.files.caKey,
       '-set_serial', `0x${crypto.randomBytes(16).toString('hex')}`, '-days', String(LEAF_DAYS), '-sha256',
       '-extfile', ext, '-out', `${this.files.crt}.tmp`]);
