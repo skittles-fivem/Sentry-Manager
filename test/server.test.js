@@ -852,7 +852,12 @@ test('Vehicles: Test connection checks the typed SMB details without saving anyt
   try {
     assert.equal((await s.call('POST', '/api/vehicles/test-smb', body({}))).status, 401, 'sign in first');
     await s.call('POST', '/api/auth/login', { username: 'admin', password: 'correct horse' });
-    const before = (await s.call('GET', '/api/vehicles')).data;
+    // What a vehicle has saved, without what the server finds out about it as
+    // it runs (the share's status, the footage scan, the bin): a slower test
+    // (Windows asks port 445, which can take seconds) lets the first scan and
+    // write check land in between, and those are not something the test saved.
+    const saved = async () => (await s.call('GET', '/api/vehicles')).data.vehicles.map(({ id, name, timezone, source, root, studioRoot, security, policy }) => ({ id, name, timezone, source, root, studioRoot, security, policy }));
+    const before = await saved();
     const bad = await s.call('POST', '/api/vehicles/test-smb', body({ share: 'not a share' }));
     assert.equal(bad.status, 200);
     assert.deepEqual([bad.data.ok, bad.data.stage], [false, 'details']);
@@ -872,7 +877,7 @@ test('Vehicles: Test connection checks the typed SMB details without saving anyt
     assert.equal(down.data.ok, false);
     assert.equal(down.data.stage, 'connect');
     assert.equal(typeof down.data.error, 'string');
-    assert.deepEqual((await s.call('GET', '/api/vehicles')).data, before, 'nothing saved');
+    assert.deepEqual(await saved(), before, 'nothing saved');
     // the test's mount point is never a vehicle's id
     const added = await s.call('POST', '/api/vehicles', { name: 'X SMB Test', source: { type: 'path', path: path.join(dir, 'footage') } });
     if (added.status === 200) assert.notEqual(added.data.id, 'x-smb-test');

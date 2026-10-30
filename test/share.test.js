@@ -47,12 +47,15 @@ function makeShare({ root, mountinfo, smbShare = '', runCmd, credDir }) {
   };
   // the same mounter the root supervisor uses, with mount/umount faked
   const mounter = createLocalMounter({ footageRoot: path.dirname(root), credDir, uid: 1000, gid: 1000, runCmd });
+  // the Linux share manager on any OS: the mount table is a file of
+  // /proc/self/mountinfo lines, so local mode runs on Windows too
   return new ShareManager({
-    config, log: new Logger({ silent: true }).scope('share'), mounter: smbShare ? mounter : null, mountinfoPath: mountinfo, id: path.basename(root)
+    config, log: new Logger({ silent: true }).scope('share'), mounter: smbShare ? mounter : null, mountinfoPath: mountinfo, id: path.basename(root), platform: 'linux'
   });
 }
 
-// mount.cifs, its credentials file and /proc/self/mountinfo: Windows connects
+// mount.cifs and its credentials file: it takes a POSIX mount point (a
+// Windows folder is refused before anything runs), and Windows connects
 // shares through its helper instead
 const mountCifs = linuxOnly('mount.cifs and /proc/self/mountinfo');
 
@@ -126,7 +129,7 @@ test('SMB mount failure reports the error, a hint, and backs off', { skip: mount
   }
 });
 
-test('local mode health-checks a plain folder and warns when nothing is mounted', { skip: mountCifs }, async () => {
+test('local mode health-checks a plain folder and warns when nothing is mounted', async () => {
   const dir = await tmpDir();
   const root = path.join(dir, 'footage');
   const mountinfo = path.join(dir, 'mountinfo');
