@@ -20,7 +20,8 @@ const {
   SAFE_VIDEO_BITRATE_FLOORS,
   buildEncodeArgs,
   calculateInitialBitrate,
-  decideSizeRetry
+  decideSizeRetry,
+  zeroCopySource
 } = require('./encoderPlanner');
 const { leadInHoldFrames } = require('./leadIn');
 
@@ -317,15 +318,36 @@ function createConverterJobService(deps) {
     if (purpose === 'verify' && (verifyDecodeFallbacks.get(decodeKey(encoder)) || 0) >= VERIFY_DECODE_FALLBACK_LIMIT) return null;
     return accelArgs(encoder);
   }
+  // Zero-copy (GPU frames kept on the GPU) is turned off for a GPU and codec
+  // only after it failed this many times where GPU decoding then worked: one
+  // odd clip does not cost every later clip the faster path.
+  const ZERO_COPY_FAILURE_LIMIT = 3;
+  const zeroCopyFailures = new Map();
+  // The first zero-copy encode on each GPU and codec (VA-API, QSV and AMF)
+  // has its pictures checked against the original's, as a node's are: a
+  // driver that hands the encoder the wrong surfaces still makes a file that
+  // verifies. Once one matched, the others are trusted. NVENC's zero-copy is
+  // proven and not checked.
+  const zeroCopyChecked = new Set();
+  const pictureCheckedZeroCopy = (encoder) => typeof deps.comparePicture === 'function'
+    && /_(vaapi|qsv|amf)$/.test(encoder?.codec || '');
+  function noteZeroCopyFailure(key) {
+    const failures = (zeroCopyFailures.get(key) || 0) + 1;
+    zeroCopyFailures.set(key, failures);
+    if (failures >= ZERO_COPY_FAILURE_LIMIT) encodeDecodeBroken.add(key);
+  }
   // Encode decode tiers, fastest first: GPU frames kept on the GPU (zero-copy),
   // then GPU decode, then (implicitly, after the list) CPU decode. A clip
   // whose lead-in frames are held (leadIn.js) skips zero-copy: the frame
   // repeat runs on system-memory frames, and a failure there must not rule
-  // zero-copy out for the clips that start on a keyframe.
-  function encodeDecodeTiers(encoder, { zeroCopy = true } = {}) {
+  // zero-copy out for the clips that start on a keyframe. VA-API, QSV and
+  // AMF keep frames on the GPU only for 8-bit 4:2:0 sources with even
+  // dimensions (video: what inspectVideo read); NVENC as it always did.
+  function encodeDecodeTiers(encoder, { zeroCopy = true, video = null } = {}) {
     if (encoder?.hardware !== true || encoder.remote === true || typeof deps.decodeAccel !== 'function') return [];
+    const fits = String(encoder.codec || '').endsWith('_nvenc') || zeroCopySource(video);
     return [
-      ...(zeroCopy ? [{ key: `${decodeKey(encoder)}:zero-copy`, args: accelArgs(encoder, { zeroCopy: true }) }] : []),
+      ...(zeroCopy && fits ? [{ key: `${decodeKey(encoder)}:zero-copy`, args: accelArgs(encoder, { zeroCopy: true }) }] : []),
       { key: `${decodeKey(encoder)}:gpu`, args: accelArgs(encoder) }
     ].filter((tier) => tier.args && !encodeDecodeBroken.has(tier.key));
   }
@@ -1823,7 +1845,7 @@ function createConverterJobService(deps) {
     let underSourceCount = 0;
     let attempts = currentItem(runtime, item.id)?.attempts || 0;
     let latestOwnership = staged.ownership;
-    let encodeTiers = encodeDecodeTiers(selected, { zeroCopy: holdFrames === 0 });
+    let encodeTiers = encodeDecodeTiers(selected, { zeroCopy: holdFrames === 0, video: inspected });
     const failedTiers = [];
     let decodeTierRetry = false;
 
@@ -1899,7 +1921,7 @@ function createConverterJobService(deps) {
           if (ownLanesOff(runtime)) throw serviceError('NODE_ENCODE_FAILED');
           fromNode = true;
           selected = await localEncoder(codec);
-          encodeTiers = encodeDecodeTiers(selected, { zeroCopy: holdFrames === 0 });
+          encodeTiers = encodeDecodeTiers(selected, { zeroCopy: holdFrames === 0, video: inspected });
           usedCpuFallback = selected.hardware !== true;
           continue;
         }
@@ -1910,9 +1932,12 @@ function createConverterJobService(deps) {
         }
         throw Object.assign(new Error('encode failed'), { code: 'ENCODER_FAILED' });
       }
-      // A slower decode tier fixed what a faster one broke: stop offering those.
+      // A slower decode tier fixed what a faster one broke: stop offering
+      // those (zero-copy after its third such failure).
       for (const key of failedTiers.splice(0)) {
-        if (key.startsWith(`${decodeKey(selected)}:`)) encodeDecodeBroken.add(key);
+        if (!key.startsWith(`${decodeKey(selected)}:`)) continue;
+        if (key.endsWith(':zero-copy')) noteZeroCopyFailure(key);
+        else encodeDecodeBroken.add(key);
       }
       let adopted = await staging.adoptEncodeOutput({
         jobId: runtime.manifest.id,
@@ -1959,6 +1984,35 @@ function createConverterJobService(deps) {
       setOwnership(runtime, item.id, composeOwnership(ownershipFor(runtime, item.id), adopted));
       timing.mark('metadata');
       await itemPatch(runtime, item.id, {}, { state: 'verifying', activeItemId: item.id });
+      // The first zero-copy encode on this GPU and codec: its pictures must
+      // match the original's. One that does not is thrown away and encoded
+      // again with GPU decoding (frames through system memory, the way it
+      // always worked), and zero-copy is not used on that GPU and codec
+      // again. A check that could not decode counts as one zero-copy failure.
+      const zeroCopyKey = usedTier?.key?.endsWith(':zero-copy') ? usedTier.key : null;
+      if (zeroCopyKey && !zeroCopyChecked.has(zeroCopyKey) && pictureCheckedZeroCopy(selected)) {
+        const same = await deps.comparePicture({ source: staged.source, candidate: adopted.path, signal, durationSeconds: inspected.durationSeconds })
+          .catch(() => ({ ok: false, reason: 'compare-failed' }));
+        timing.mark('picture');
+        if (signal.aborted || runtime.stopRequested || runtime.cancelRequested) throw serviceError('CANCELLED');
+        if (same?.ok) {
+          zeroCopyChecked.add(zeroCopyKey);
+        } else {
+          const undecided = same?.reason === 'decode-failed' || same?.reason === 'compare-failed';
+          console.warn(`[CONVERTER] The zero-copy encode (${selected.codec}) does not show the original's pictures; encoding it again with GPU decoding${undecided ? '' : ', and no more zero-copy on this GPU'}:`,
+            item.relativePath, JSON.stringify(same || {}).slice(0, 200));
+          const cleanup = await cleanupOwnership(runtime, item.id, adopted);
+          if (cleanup.cleaned === false) {
+            setOwnership(runtime, item.id, composeOwnership(ownershipFor(runtime, item.id), adopted));
+            throw Object.assign(new Error('cleanup pending'), { code: 'OWNED_CLEANUP_FAILED' });
+          }
+          if (undecided) noteZeroCopyFailure(zeroCopyKey);
+          else encodeDecodeBroken.add(zeroCopyKey);
+          encodeTiers = encodeTiers.filter((tier) => tier.key !== zeroCopyKey);
+          decodeTierRetry = true;
+          continue;
+        }
+      }
       // Encoded on another server (Nodes): its pictures must match the
       // original's before anything else is checked or saved. One that does
       // not is thrown away and the clip is encoded here instead.
@@ -1988,7 +2042,7 @@ function createConverterJobService(deps) {
           check.release?.();
           check.release = null;
           selected = await localEncoder(codec);
-          encodeTiers = encodeDecodeTiers(selected, { zeroCopy: holdFrames === 0 });
+          encodeTiers = encodeDecodeTiers(selected, { zeroCopy: holdFrames === 0, video: inspected });
           usedCpuFallback = selected.hardware !== true;
           continue;
         }
@@ -2097,7 +2151,7 @@ function createConverterJobService(deps) {
           check.release?.();
           check.release = null;
           selected = await localEncoder(codec);
-          encodeTiers = encodeDecodeTiers(selected, { zeroCopy: holdFrames === 0 });
+          encodeTiers = encodeDecodeTiers(selected, { zeroCopy: holdFrames === 0, video: inspected });
           usedCpuFallback = selected.hardware !== true;
           continue;
         }
