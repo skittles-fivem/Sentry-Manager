@@ -11,6 +11,10 @@
 // instead (a symlink or a junction is refused), and the open file is then
 // matched to its path by device and inode (safePath's fdInside). Names are
 // compared without regard to case there, as Windows does.
+//
+// On macOS the file is opened with O_NOFOLLOW_ANY (no symlink anywhere in
+// the path) and matched to its path by device and inode. The bin and work
+// files are hidden whatever their case (APFS usually ignores it).
 
 const fs = require('fs');
 const fsp = require('fs/promises');
@@ -29,15 +33,17 @@ const HIDDEN_RE_I = HIDDEN_RE.map((re) => new RegExp(re.source, 'i'));
 const WORK_RE = [/^(TEMP-H265-|TEMP-AV1-|BACKUP-)/, /\.sentry-six-.*\.partial$/];
 const WORK_RE_I = WORK_RE.map((re) => new RegExp(re.source, 'i'));
 
+// Windows (and a case-insensitive Mac) reads .SENTRY-RECYCLE-BIN as the same folder
+const anyCase = (platform) => platform.name === 'win32' || platform.name === 'darwin';
+
 /** Paths that must never be read through the viewer: our bin and converter work files. */
 function hiddenPath(abs, platform = defaultPlatform) {
-  // Windows reads .SENTRY-RECYCLE-BIN as the same folder
-  return (platform.name === 'win32' ? HIDDEN_RE_I : HIDDEN_RE).some((re) => re.test(abs));
+  return (anyCase(platform) ? HIDDEN_RE_I : HIDDEN_RE).some((re) => re.test(abs));
 }
 
 async function readDir(dirPath, platform = defaultPlatform) {
   const entries = await fsp.readdir(dirPath, { withFileTypes: true });
-  const work = platform.name === 'win32' ? WORK_RE_I : WORK_RE;
+  const work = anyCase(platform) ? WORK_RE_I : WORK_RE;
   return entries
     // symlinks are left out: they could point anywhere in the container
     // (on Windows junctions too: they read as symbolic links)
@@ -67,7 +73,8 @@ async function openConfined(abs, fdInside, platform = defaultPlatform) {
       const lst = await fsp.lstat(abs);
       if (lst.isSymbolicLink() || !lst.isFile()) return null;
     }
-    fh = await fsp.open(abs, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+    // macOS: the platform's flags add O_NOFOLLOW_ANY
+    fh = await fsp.open(abs, platform.openNoFollowFlags ?? (fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0)));
   } catch {
     return null;
   }

@@ -21,6 +21,12 @@
 // both as symbolic links), and retries an operation another program briefly
 // blocks (a sharing violation: an antivirus scan, a thumbnail being made)
 // through the platform's retryFs.
+//
+// macOS has no /proc either. There every operation is made on the folder's
+// real path, after the same lstat walk, and the folder it lands in is first
+// opened with O_NOFOLLOW_ANY (no symlink anywhere in the path) and matched
+// to its path by device and inode (an inode of 0 is refused). The same pin,
+// with O_NOFOLLOW only, is used on Linux when /proc is missing.
 
 const fs = require('fs');
 const fsp = require('fs/promises');
@@ -45,12 +51,21 @@ const procPath = (dirFh, name) => `/proc/self/fd/${dirFh.fd}/${name}`;
 /**
  * The helpers, for one platform. `haveProc` (tests) says whether the
  * /proc descriptor walk is used; `checkLinks` whether the fallback walks
- * the components with lstat (Windows; on Linux the fallback is unchanged).
+ * the components with lstat (Windows and macOS). Without /proc, on Linux
+ * and macOS, each folder is also pinned before anything is done in it.
  */
-function createSafeFs({ platform = defaultPlatform, haveProc = HAVE_PROC, checkLinks = platform.name === 'win32' } = {}) {
+function createSafeFs({
+  platform = defaultPlatform, haveProc = HAVE_PROC,
+  checkLinks = platform.name === 'win32' || platform.name === 'darwin'
+} = {}) {
   const isInside = (abs, root) => platform.isInside(root, abs);
   // a folder that is really not empty is an answer, not a lock to wait out
   const noNotEmpty = { codes: new Set(['EBUSY', 'EPERM', 'EACCES']) };
+  // names Windows would read differently are refused there (a Mac allows them)
+  const checkNames = checkLinks && platform.name !== 'darwin';
+  // without /proc (macOS, a Linux without it): pin each folder before acting in it
+  const pin = !haveProc && platform.name !== 'win32';
+  const dirFlags = (platform.openNoFollowFlags ?? (O_RDONLY | O_NOFOLLOW)) | O_DIRECTORY;
 
   /** The components of `target` below `root`, or throw if it is not inside root. */
   function partsInside(realRoot, target) {
@@ -61,7 +76,7 @@ function createSafeFs({ platform = defaultPlatform, haveProc = HAVE_PROC, checkL
     const parts = rel.split(path.sep);
     if (parts.some((p) => p === '' || p === '.' || p === '..')) throw escape(target);
     // Windows: a name it would read differently (file:stream, NUL, "name.")
-    if (checkLinks && parts.some((p) => !platform.validName(p))) throw escape(target);
+    if (checkNames && parts.some((p) => !platform.validName(p))) throw escape(target);
     return parts;
   }
 
@@ -71,6 +86,7 @@ function createSafeFs({ platform = defaultPlatform, haveProc = HAVE_PROC, checkL
    * { create } makes missing components as it goes (mkdir -p, symlink-safe).
    */
   async function openDirInside(root, dirAbs, { create = false } = {}) {
+    if (pin) return openDirByPath(root, dirAbs, { create });
     const realRoot = await fsp.realpath(root);
     const parts = partsInside(realRoot, dirAbs);
     let dir = await fsp.open(realRoot, O_RDONLY | O_DIRECTORY);
@@ -95,6 +111,77 @@ function createSafeFs({ platform = defaultPlatform, haveProc = HAVE_PROC, checkL
       return out;
     } finally {
       if (dir) await dir.close().catch(() => {});
+    }
+  }
+
+  /**
+   * Open the folder `abs` without following a symlink (macOS: anywhere in
+   * the path) and check the open folder is the one its path names now.
+   */
+  async function openPinned(abs, target = abs) {
+    let fh;
+    try {
+      fh = await fsp.open(abs, dirFlags);
+    } catch (err) {
+      if (err.code === 'ELOOP' || err.code === 'ENOTDIR') throw escape(target);
+      throw err;
+    }
+    try {
+      const open = await fh.stat({ bigint: true });
+      const named = await fsp.lstat(abs, { bigint: true });
+      if (!open.isDirectory() || named.isSymbolicLink() || open.ino === 0n
+          || open.dev !== named.dev || open.ino !== named.ino) throw escape(target);
+      return fh;
+    } catch (err) {
+      await fh.close().catch(() => {});
+      throw err;
+    }
+  }
+
+  // `target` (written below the root as given, or below its real path) as
+  // a path below the real root: the one the pinned opens can use.
+  async function realInside(root, target) {
+    const realRoot = await platform.realpath(root);
+    const parts = partsInside(walkBase(root, realRoot, target), target);
+    return { realRoot, parts, abs: parts.length ? path.join(realRoot, ...parts) : realRoot };
+  }
+
+  /** openDirInside without /proc: each component opened and pinned in turn. */
+  async function openDirByPath(root, dirAbs, { create = false } = {}) {
+    const { realRoot, parts } = await realInside(root, dirAbs);
+    let cur = realRoot;
+    let dir = await openPinned(cur, dirAbs);
+    try {
+      for (const part of parts) {
+        cur = path.join(cur, part);
+        let next;
+        try {
+          next = await openPinned(cur, dirAbs);
+        } catch (err) {
+          if (!create || err.code !== 'ENOENT') throw err;
+          await fsp.mkdir(cur).catch((e) => { if (e.code !== 'EEXIST') throw e; });
+          next = await openPinned(cur, dirAbs);
+        }
+        await dir.close();
+        dir = next;
+      }
+      const out = dir;
+      dir = null;
+      return out;
+    } finally {
+      if (dir) await dir.close().catch(() => {});
+    }
+  }
+
+  /** Run `op(abs)` on `target`'s real path with its folder pinned (no /proc). */
+  async function inPinnedParent(root, target, op) {
+    await assertParentReal(root, target);
+    const { abs } = await realInside(root, target);
+    const dir = await openPinned(path.dirname(abs), target);
+    try {
+      return await op(abs);
+    } finally {
+      await dir.close().catch(() => {});
     }
   }
 
@@ -151,6 +238,16 @@ function createSafeFs({ platform = defaultPlatform, haveProc = HAVE_PROC, checkL
 
   /** Rename within one share, following no symlink on either side. */
   async function renameInside(root, fromAbs, toAbs) {
+    if (pin) {
+      await assertParentReal(root, toAbs);
+      const { abs: to } = await realInside(root, toAbs);
+      const toDir = await openPinned(path.dirname(to), toAbs);
+      try {
+        return await inPinnedParent(root, fromAbs, (from) => platform.retryFs(() => fsp.rename(from, to)));
+      } finally {
+        await toDir.close().catch(() => {});
+      }
+    }
     if (!haveProc) {
       await assertParentReal(root, fromAbs);
       await assertParentReal(root, toAbs);
@@ -171,6 +268,7 @@ function createSafeFs({ platform = defaultPlatform, haveProc = HAVE_PROC, checkL
 
   /** Unlink a file within a share, following no symlink. */
   async function unlinkInside(root, targetAbs) {
+    if (pin) return inPinnedParent(root, targetAbs, (abs) => platform.retryFs(() => fsp.unlink(abs)));
     if (!haveProc) {
       await assertParentReal(root, targetAbs);
       return platform.retryFs(() => fsp.unlink(targetAbs));
@@ -185,6 +283,7 @@ function createSafeFs({ platform = defaultPlatform, haveProc = HAVE_PROC, checkL
 
   /** rmdir a directory within a share, following no symlink. */
   async function rmdirInside(root, targetAbs) {
+    if (pin) return inPinnedParent(root, targetAbs, (abs) => platform.retryFs(() => fsp.rmdir(abs), noNotEmpty));
     if (!haveProc) {
       await assertParentReal(root, targetAbs);
       return platform.retryFs(() => fsp.rmdir(targetAbs), noNotEmpty);
@@ -226,12 +325,45 @@ function createSafeFs({ platform = defaultPlatform, haveProc = HAVE_PROC, checkL
   }
 
   /**
+   * Without /proc on macOS (or Linux): the same removal, with every folder
+   * pinned while it is read and every entry removed through a pinned
+   * parent. A symlink is unlinked, never entered.
+   */
+  async function rmrfPinned(root, given) {
+    let abs;
+    try {
+      await assertParentReal(root, given);
+      ({ abs } = await realInside(root, given));
+    } catch (err) {
+      if (err.code === 'ENOENT' || err.code === 'ELINKESCAPE') return;
+      throw err;
+    }
+    const st = await fsp.lstat(abs).catch(() => null);
+    if (!st) return;
+    if (!st.isDirectory()) return void (await unlinkInside(root, abs).catch(() => {}));
+    // a folder that cannot be pinned (swapped for a link just now) is left alone
+    const self = await openPinned(abs).catch(() => null);
+    if (!self) return;
+    let names;
+    try {
+      names = await fsp.readdir(abs).catch(() => []);
+    } finally {
+      await self.close().catch(() => {});
+    }
+    for (const name of names) await rmrfPinned(root, path.join(abs, name));
+    await rmdirInside(root, abs).catch(() => {});
+  }
+
+  /**
    * Remove a file or directory tree inside a share, following no symlink: a
    * symlink entry is unlinked (never entered), so a swapped interior directory
    * cannot redirect the removal outside the share. Missing is not an error.
    */
   async function rmrfInside(root, targetAbs) {
-    if (!haveProc && checkLinks) return rmrfByPath(root, targetAbs);
+    // without /proc the descriptor walk below cannot run: it used to report
+    // success and remove nothing (the Recycle Bin on a Mac)
+    if (pin) return rmrfPinned(root, targetAbs);
+    if (!haveProc) return rmrfByPath(root, targetAbs);
     const parent = path.dirname(targetAbs);
     const name = path.basename(targetAbs);
     let dir;
@@ -265,6 +397,12 @@ function createSafeFs({ platform = defaultPlatform, haveProc = HAVE_PROC, checkL
 
   /** mkdir -p a directory inside a share, creating no component through a symlink. */
   async function mkdirpInside(root, dirAbs) {
+    if (pin) {
+      await assertParentReal(root, dirAbs);
+      const dir = await openDirByPath(root, dirAbs, { create: true });
+      await dir.close();
+      return;
+    }
     if (!haveProc) {
       await assertParentReal(root, dirAbs);
       if (checkLinks) await assertNoLinks(walkBase(root, await platform.realpath(root), dirAbs), dirAbs);

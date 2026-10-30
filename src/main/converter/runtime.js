@@ -408,6 +408,9 @@ function createRecoveryInspector({ fs, pathApi }) {
   };
 }
 
+// macOS file systems that live on another computer
+const DARWIN_NETWORK_TYPES = new Set(['smbfs', 'nfs', 'afpfs', 'webdav']);
+
 function createVolumeInfo(options = {}) {
   if (!options.fs || typeof options.fs.statfs !== 'function') throw new TypeError('statfs is required');
   const pathApi = options.pathApi || nodePath;
@@ -418,6 +421,12 @@ function createVolumeInfo(options = {}) {
       ? nodePath.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
       : 'powershell.exe');
   const cache = new Map();
+  // macOS: statfs's f_type is an index there, never a Linux magic number, so
+  // a volume is asked for its name and MNT_LOCAL instead (sentry-fsops
+  // volinfo when the host hands it in, else the /sbin/mount table)
+  const describeVolume = typeof options.describeVolume === 'function' ? options.describeVolume : null;
+  const mountPath = options.mountPath || '/sbin/mount';
+  let mountTable = null;
   const networkTypes = new Set([
     0x6969n, // NFS
     0xff534d42n, // CIFS
@@ -435,7 +444,60 @@ function createVolumeInfo(options = {}) {
     return available > BigInt(Number.MAX_SAFE_INTEGER) ? Number.MAX_SAFE_INTEGER : Number(available);
   }
 
+  async function nearestReal(target) {
+    let cursor = pathApi.resolve(target);
+    for (;;) {
+      try {
+        return await options.fs.realpath(cursor);
+      } catch (error) {
+        const parent = pathApi.dirname(cursor);
+        if (parent === cursor || !['ENOENT', 'ENOTDIR'].includes(error?.code)) throw error;
+        cursor = parent;
+      }
+    }
+  }
+
+  // The mount a path is on, from /sbin/mount (getmntinfo without waiting, so
+  // a dead server never blocks it): { fsType, local } or null. Read at most
+  // every 2 s: shares come and go.
+  async function darwinMountOf(target) {
+    if (typeof runCommand !== 'function') return null;
+    if (!mountTable || Date.now() - mountTable.at >= 2_000) {
+      const result = await runCommand(mountPath, [], { shell: false, timeoutMs: 15_000 });
+      if (!result || result.status !== 0 || result.error || result.timedOut || result.outputLimitExceeded) return null;
+      mountTable = { at: Date.now(), text: String(result.stdout || '') };
+    }
+    const real = String(await nearestReal(target)).normalize('NFC');
+    let best = null;
+    for (const line of mountTable.text.split('\n')) {
+      // //user@nas/TeslaCam on /Volumes/TeslaCam (smbfs, nodev, nosuid, mounted by me)
+      const match = /^.+? on (\/.*) \(([^()]*)\)$/.exec(line.trim());
+      if (!match) continue;
+      const mountPoint = match[1].normalize('NFC');
+      const inside = mountPoint === '/' || real === mountPoint || real.startsWith(`${mountPoint}/`);
+      if (!inside || (best && best.mountPoint.length > mountPoint.length)) continue;
+      const parts = match[2].split(',').map((part) => part.trim());
+      best = { mountPoint, fsType: parts[0], local: parts.includes('local') };
+    }
+    return best;
+  }
+
+  async function classifyDarwin(target) {
+    let volume = null;
+    if (describeVolume) {
+      const info = await describeVolume(pathApi.resolve(target)).catch(() => null);
+      if (info && typeof info.fstype === 'string' && typeof info.local === 'boolean') {
+        volume = { fsType: info.fstype, local: info.local };
+      }
+    }
+    if (!volume) volume = await darwinMountOf(target).catch(() => null);
+    if (!volume) return null;
+    const remote = !volume.local || DARWIN_NETWORK_TYPES.has(volume.fsType);
+    return { remote, certain: true };
+  }
+
   async function classifyPath(target) {
+    if (platform === 'darwin') return classifyDarwin(target);
     if (platform === 'win32') {
       if (typeof runCommand !== 'function') return null;
       const root = pathApi.parse(pathApi.resolve(target)).root;
@@ -677,7 +739,9 @@ async function createConverterRuntime(options = {}) {
     fs: pfs,
     pathApi,
     platform,
-    runCommand: processRunner
+    runCommand: processRunner,
+    // macOS: sentry-fsops volinfo (the host's platform.volumeInfo)
+    ...(typeof options.describeVolume === 'function' ? { describeVolume: options.describeVolume } : {})
   });
   const probeArgs = (source) => ['-v', 'error', '-select_streams', 'v:0',
     '-show_entries', 'stream=codec_name,duration,pix_fmt,width,height:format=duration', '-of', 'json', source];

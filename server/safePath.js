@@ -10,7 +10,10 @@
 // compare and fs.realpath, exactly as before; on Windows a case-insensitive
 // compare that refuses \\?\ and \\.\ paths, the native realpath (true case,
 // no 8.3 short names, junctions followed), and names Windows would read
-// differently (file.mp4:stream, NUL, "name.") refused.
+// differently (file.mp4:stream, NUL, "name.") refused. On macOS names are
+// compared after NFC, deny checks also without regard to case (APFS is
+// usually case-insensitive), and an open file is matched to its path by
+// device and inode, as on Windows (there is no /proc there either).
 
 const fs = require('fs');
 const fsp = require('fs/promises');
@@ -89,10 +92,12 @@ async function sameFileIdentity(fh, real) {
  */
 function createRealGuard(getRoots, {
   deny = () => [], platform = defaultPlatform,
-  fdCheck = platform.name === 'win32' ? 'identity' : 'proc',
+  fdCheck = platform.name === 'win32' || platform.name === 'darwin' ? 'identity' : 'proc',
   checkNames = platform.name === 'win32'
 } = {}) {
   const inside = (abs, root) => platform.isInside(root, abs);
+  // macOS: over-matching a deny entry only refuses more, so it folds case
+  const insideDenied = (abs, d) => platform.isInside(d, abs, { deny: true });
 
   async function realOrNull(p) {
     try {
@@ -121,7 +126,7 @@ function createRealGuard(getRoots, {
   async function allowedIn(real, roots) {
     const denied = (await Promise.all(deny().map(async (d) => (await realOrNull(d)) || path.resolve(d))));
     return roots.some((root) => inside(real, root)
-      && denied.every((d) => !inside(real, d) || inside(root, d)));
+      && denied.every((d) => !insideDenied(real, d) || inside(root, d)));
   }
 
   async function resolve(p, { mustExist = true } = {}) {
