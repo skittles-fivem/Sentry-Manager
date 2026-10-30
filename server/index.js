@@ -269,7 +269,7 @@ async function main() {
   const smbTester = createSmbTester({ mounter, vehicles, log: logger.scope('vehicles'), platform: platform.name });
   vehicles.bootstrapFromEnv();
   let speedIndex = null;
-  const inventory = new Inventory({ vehicles, db, log: logger.scope('inventory'), onChange: () => { announce('inventory'); speedIndex?.kick(); } });
+  const inventory = new Inventory({ vehicles, db, log: logger.scope('inventory'), onChange: () => announce('inventory'), onScanned: () => speedIndex?.kick() });
   const thumbs = new Thumbnails({ dir: path.join(DATA, 'thumbnails'), ffmpegPath: FFMPEG });
   const telemetry = new Telemetry({ srcRoot: SRC, cacheDir: path.join(DATA, 'telemetry'), log: logger.scope('telemetry') });
   // every front clip's speed, a value a second, indexed in the background for the Viewer's speed graph
@@ -918,12 +918,16 @@ async function main() {
     return list;
   };
   // Footage by day: the day cards (their recordings come from /recordings?date=)
-  r.add('GET', '/api/vehicles/:id/days', (req, res, { params, query }) => {
+  r.add('GET', '/api/vehicles/:id/days', async (req, res, { params, query }) => {
     vehicleOr404(params.id);
     const inv = inventory.get(params.id);
     const days = inventory.days(params.id, filtered(params.id, query));
     const offset = Math.max(0, Number(query.offset) || 0);
     const limit = Math.min(100, Math.max(1, Number(query.limit) || 30));
+    // how much of each day the speed index has read (the "Indexed" tag)
+    const shown = days.slice(offset, offset + limit);
+    const idx = await speedIndex.progress(params.id, shown.map((d) => d.day)).catch(() => ({}));
+    for (const d of shown) d.speedIndex = idx[d.day] || { clips: 0, indexed: 0 };
     return {
       total: days.length, recordings: days.reduce((n, d) => n + d.recordings, 0), offset, limit,
       scannedAt: inv?.scannedAt || null, scanning: Boolean(inv?.scanning), error: inv?.lastError || null,
@@ -990,6 +994,12 @@ async function main() {
     const root = vehicles.rootOf(v);
     const byRel = await speedIndex.day(v.id, String(query.date || ''));
     return { speeds: Object.fromEntries(Object.entries(byRel).map(([rel, sp]) => [path.join(root, rel), sp])) };
+  });
+  // "Index speeds" on the Footage page: start a pass now, and how far it is
+  r.add('GET', '/api/speeds/status', () => speedIndex.status());
+  r.add('POST', '/api/speeds/index', () => {
+    speedIndex.kick();
+    return speedIndex.status();
   });
   // ... and up to 40 clips the index has not reached yet, read now (and indexed);
   // a clip without telemetry, or out of reach, is null

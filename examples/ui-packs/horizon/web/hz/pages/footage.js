@@ -2,6 +2,30 @@
 // playlist, each with a play button and a duration.
 import { h, ico, api, car, size, count, since, dayName, words, wall, wallDay, toast, ask, sheet, act, local, segs, onSegs, pill, debounce, CAMS, CAM_NAME, CAM_TAG, CODEC_NAME, paint, liveDraw } from '../core.js';
 
+// "Index speeds": start the speed graph's index now; the button shows how far it is
+async function followIndex(b, start) {
+  if (!b || b.dataset.following) return;
+  b.dataset.following = '1';
+  const label = b.innerHTML;
+  try {
+    let s = start ? await api('/api/speeds/index', { body: {} }) : await api('/api/speeds/status');
+    const was = s.running;
+    while (s.running && b.isConnected) {
+      b.disabled = true;
+      b.textContent = s.total ? `Indexing ${s.done.toLocaleString()} / ${s.total.toLocaleString()}` : 'Indexing…';
+      await new Promise((r) => setTimeout(r, 3000));
+      s = await api('/api/speeds/status');
+    }
+    if (b.isConnected && (start || was)) toast(s.last ? `Speeds indexed for ${s.last.toLocaleString()} clip${s.last === 1 ? '' : 's'}.` : 'Every clip is indexed already.');
+  } catch (err) {
+    if (start) toast(err.message);
+  } finally {
+    b.innerHTML = label;
+    b.disabled = false;
+    delete b.dataset.following;
+  }
+}
+
 const CAT_TONE = { Recent: 'cyan', Sentry: 'org', Saved: 'grn', Other: '' };
 const thumbUrl = (vid, rid) => `/api/vehicles/${encodeURIComponent(vid)}/recordings/${encodeURIComponent(rid)}/thumbnail`;
 const dur = (min) => `${Math.floor(min)}:00`;
@@ -24,7 +48,7 @@ export default {
     el.innerHTML = `
       <section class="ptitle hud">
         <div><h1 class="chrome">Footage</h1><p id="ft-sum">${h(v.name)} · loading the library…</p></div>
-        <div class="pacts"><button class="btn" type="button" id="ft-scan">${ico('refresh')}Refresh inventory</button><a class="btn" href="#/encoder?new=1">${ico('engine')}Convert</a></div>
+        <div class="pacts"><button class="btn" type="button" id="ft-scan">${ico('refresh')}Refresh inventory</button><button class="btn" type="button" id="ft-index" title="Read every clip's speed now, for the Viewer's speed graph">${ico('hud')}Index speeds</button><a class="btn" href="#/encoder?new=1">${ico('engine')}Convert</a></div>
       </section>
       <section class="hud panel ft-filters" aria-label="Filters">
         <div class="row">
@@ -94,11 +118,13 @@ export default {
         ${list.map((d) => {
           const cats = Object.entries(d.byCategory || {});
           const enc = d.clips ? Math.round((d.encoded / d.clips) * 100) : 0;
+          // the speed graph's index for this day
+          const ix = (d.speedIndex?.indexed ? (d.speedIndex.indexed >= d.speedIndex.clips ? 'Indexed' : `Indexed ${d.speedIndex.indexed}/${d.speedIndex.clips}`) : '');
           return `<button type="button" class="album${f.day === d.day ? ' on' : ''}" data-day="${h(d.day)}" aria-pressed="${f.day === d.day}">
             <span class="album-art" aria-hidden="true">${d.thumbId ? `<img alt="" loading="lazy" src="${thumbUrl(v.id, d.thumbId)}">` : ico('film')}</span>
             <span class="album-t"><b>${h(dayName(d.day))}</b><span class="small dim">${count(d.recordings, 'track')} · ${d.minutes} min · ${size(d.bytes)}</span>
               <span class="catbar" aria-hidden="true">${cats.map(([c, n]) => `<i class="c-${h(c)}" style="flex:${n}"></i>`).join('')}</span>
-              <span class="tiny faint">${cats.map(([c, n]) => `${c} ${n}`).join(' · ')}${d.protected ? ` · ${d.protected} protected` : ''} · ${enc}% converted</span></span></button>`;
+              <span class="tiny faint">${cats.map(([c, n]) => `${c} ${n}`).join(' · ')}${d.protected ? ` · ${d.protected} protected` : ''} · ${enc}% converted${ix ? ` · <span class="album-ix">${h(ix.toLowerCase())}</span>` : ''}</span></span></button>`;
         }).join('')}
         ${!list.length && !days.error ? '<p class="small dim">No days match these filters.</p>' : ''}`);
     }
@@ -297,6 +323,8 @@ export default {
     $('#ft-prot').onchange = (e) => { f.prot = e.target.checked; loadRecs(); };
     $('#ft-q').addEventListener('input', debounce((e) => { f.q = e.target.value; f.cur = 0; drawTracks(); }, 120));
     $('#ft-scan').onclick = (e) => act(e.currentTarget, async () => { await api(`/api/vehicles/${encodeURIComponent(v.id)}/scan`, { body: {} }); toast('Refreshing the inventory. Jobs shows the progress.'); });
+    $('#ft-index').onclick = (e) => followIndex(e.currentTarget, true);
+    followIndex($('#ft-index'), false);
 
     await Promise.all([loadDays(), loadRecs()]);
 

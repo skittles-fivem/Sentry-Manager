@@ -3,6 +3,30 @@
 import { esc, api, state, current, bytes, plural, dayTitle, ago, icon, toast, confirmDialog, busy, jsonHtml, debounce, store, CAMERAS, CAMERA_LABEL, CAMERA_SHORT, humanize, liveDraw, wall, wallDay } from '../core.js';
 import { split, seg, wireSeg, drawer, empty, chip } from '../ui.js';
 
+// "Index speeds": start the speed graph's index now; the button shows how far it is
+async function followIndex(b, start) {
+  if (!b || b.dataset.following) return;
+  b.dataset.following = '1';
+  const label = b.innerHTML;
+  try {
+    let s = start ? await api('/api/speeds/index', { body: {} }) : await api('/api/speeds/status');
+    const was = s.running;
+    while (s.running && b.isConnected) {
+      b.disabled = true;
+      b.textContent = s.total ? `Indexing ${s.done.toLocaleString()} / ${s.total.toLocaleString()}` : 'Indexing…';
+      await new Promise((r) => setTimeout(r, 3000));
+      s = await api('/api/speeds/status');
+    }
+    if (b.isConnected && (start || was)) toast(s.last ? `Speeds indexed for ${s.last.toLocaleString()} clip${s.last === 1 ? '' : 's'}.` : 'Every clip is indexed already.');
+  } catch (err) {
+    if (start) toast(err.message);
+  } finally {
+    b.innerHTML = label;
+    b.disabled = false;
+    delete b.dataset.following;
+  }
+}
+
 const CODEC = { h264: 'H.264', h265: 'H.265', av1: 'AV1', hevc: 'H.265' };
 const COLS = [
   ['start', 'Start'], ['category', 'Type'], ['minutes', 'Dur'], ['cameras', 'Cams'], ['fileCount', 'Files'], ['bytes', 'Size'], ['enc', 'Codec'], ['protected', '']
@@ -37,6 +61,7 @@ export default {
         <div><h1>Footage <span class="muted h-sub">${esc(v.name)}</span></h1><p class="muted small" id="fo-sum">Loading…</p></div>
         <div class="phead-actions">
           <button class="btn" type="button" id="fo-scan">${icon('refresh')}Refresh inventory</button>
+          <button class="btn" type="button" id="fo-index" title="Read every clip's speed now, for the Viewer's speed graph">${icon('refresh')}Index speeds</button>
           <a class="btn cyan" href="#/encoder?new=1">${icon('encoder')}Review conversion</a>
         </div>
       </div>
@@ -112,11 +137,13 @@ export default {
         ${list.map((d) => {
           const cats = Object.entries(d.byCategory || {});
           const encP = d.clips ? (d.encoded / d.clips) * 100 : 0;
+          const ix = (d.speedIndex?.indexed ? (d.speedIndex.indexed >= d.speedIndex.clips ? 'Indexed' : `Indexed ${d.speedIndex.indexed}/${d.speedIndex.clips}`) : '');
           return `<div class="day${f.date === d.day ? ' on' : ''}" data-day="${esc(d.day)}" role="button" tabindex="0" aria-pressed="${f.date === d.day}">
             <div class="day-top"><b>${esc(dayTitle(d.day))}</b><span class="num small">${bytes(d.bytes)}</span></div>
             <div class="daybar" title="${esc(cats.map(([c, n]) => `${c}: ${n}`).join(', '))}">${cats.map(([c, n]) => `<i class="cat-${esc(c)}" style="flex:${n}"></i>`).join('')}</div>
             <div class="small muted num">${plural(d.recordings, 'rec')} · ${d.minutes} min · ${d.cameras} cams${d.protected ? ` · ${d.protected} ${icon('lock', 'ico xs')}` : ''}</div>
             <div class="enc-line"><span class="enc-track"><span style="width:${encP.toFixed(1)}%"></span></span><span class="small faint num">${d.encoded}/${d.clips} encoded</span></div>
+            ${ix ? `<div><span class="chip violet" title="Speeds read for the Viewer's speed graph">${ix}</span></div>` : ''}
             <div class="day-actions">
               <button class="btn sm" type="button" data-play-day="${esc(d.day)}" aria-label="Play ${esc(d.day)}">${icon('play')}Play</button>
               <button class="btn sm" type="button" data-del-day="${esc(d.day)}">Delete day</button>
@@ -402,6 +429,8 @@ export default {
     $('#fo-prot').onchange = (e) => { f.prot = e.target.checked; loadRecs(); };
     $('#fo-text').addEventListener('input', debounce((e) => { f.text = e.target.value; f.cursor = 0; drawTable(); }, 100));
     $('#fo-scan').onclick = (e) => busy(e.currentTarget, async () => { await api(`/api/vehicles/${encodeURIComponent(v.id)}/scan`, { body: {} }); toast('Refreshing the inventory… Jobs shows the progress.'); });
+    $('#fo-index').onclick = (e) => followIndex(e.currentTarget, true);
+    followIndex($('#fo-index'), false);
 
     await Promise.all([loadDays(), loadRecs()]);
 

@@ -7,6 +7,30 @@ import {
   $, $$, esc, icon, api, current, vehiclePicker, bytes, plural, dayParts, dayTitle, timeOf, humanize, toast, confirmDialog, empty, loadVehicles
 } from '../core.js';
 
+// "Index speeds": start the speed graph's index now; the button shows how far it is
+async function followIndex(b, start) {
+  if (!b || b.dataset.following) return;
+  b.dataset.following = '1';
+  const label = b.innerHTML;
+  try {
+    let s = start ? await api('/api/speeds/index', { body: {} }) : await api('/api/speeds/status');
+    const was = s.running;
+    while (s.running && b.isConnected) {
+      b.disabled = true;
+      b.textContent = s.total ? `Indexing ${s.done.toLocaleString()} / ${s.total.toLocaleString()}` : 'Indexing…';
+      await new Promise((r) => setTimeout(r, 3000));
+      s = await api('/api/speeds/status');
+    }
+    if (b.isConnected && (start || was)) toast(s.last ? `Speeds indexed for ${s.last.toLocaleString()} clip${s.last === 1 ? '' : 's'}.` : 'Every clip is indexed already.');
+  } catch (err) {
+    if (start) toast(err.message);
+  } finally {
+    b.innerHTML = label;
+    b.disabled = false;
+    delete b.dataset.following;
+  }
+}
+
 const PAGE = 30;
 const CATS = [['all', 'All'], ['Recent', 'Drives'], ['Sentry', 'Sentry'], ['Saved', 'Saved'], ['Other', 'Other']];
 const CAT_CHIP = { Recent: 'teal', Sentry: 'magenta', Saved: 'green', Other: 'violet' };
@@ -20,10 +44,11 @@ function frame(v, d, on) {
   const p = dayParts(d.day);
   const cats = Object.entries(d.byCategory || {}).filter(([, n]) => n);
   const enc = d.encodedRecordings ? (d.encodedRecordings === d.recordings ? 'all encoded' : `${d.encodedRecordings}/${d.recordings} encoded`) : '';
+  const ix = (d.speedIndex?.indexed ? (d.speedIndex.indexed >= d.speedIndex.clips ? 'Indexed' : `Indexed ${d.speedIndex.indexed}/${d.speedIndex.clips}`) : '');
   return `<button class="frame${on ? ' on' : ''}" type="button" data-day="${esc(d.day)}" aria-pressed="${on}" aria-label="${esc(dayTitle(d.day))}: ${plural(d.recordings, 'recording')}, ${esc(bytes(d.bytes))}">
     <div class="frame-pic">${d.thumbId ? `<img class="thumb-img" loading="lazy" alt="" src="${thumb(v, d.thumbId)}">` : ''}<div class="frame-date"><b>${esc(p.dd)}</b><span>${esc(p.mon)} · ${esc(p.wd)}</span></div></div>
     <div class="frame-info"><span class="frame-cats">${cats.map(([c, n]) => `<span class="chip ${CAT_CHIP[c] || ''}" style="padding:1px 8px;font-size:12px"><i class="dot cat-${esc(c)}"></i>${n}</span>`).join('')}</span>
-      <span class="muted">${d.minutes} min · ${esc(bytes(d.bytes))}${d.protected ? ` · ${d.protected} protected` : ''}${enc ? ` · ${enc}` : ''}</span></div>
+      <span class="muted">${d.minutes} min · ${esc(bytes(d.bytes))}${d.protected ? ` · ${d.protected} protected` : ''}${enc ? ` · ${enc}` : ''}</span>${ix ? `<span class="chip violet" style="padding:1px 8px;font-size:12px;align-self:flex-start" title="Speeds read for the Viewer's speed graph">${esc(ix)}</span>` : ''}</div>
   </button>`;
 }
 
@@ -65,7 +90,7 @@ export default {
   async mount(ctx) {
     const { body, actions } = ctx;
     const v = current();
-    actions.innerHTML = `${vehiclePicker()}${v ? `<button class="btn" type="button" id="rescan">${icon('refresh')} Refresh</button><a class="btn" href="#/encoder">${icon('orbit')} Convert</a>` : ''}`;
+    actions.innerHTML = `${vehiclePicker()}${v ? `<button class="btn" type="button" id="rescan">${icon('refresh')} Refresh</button><button class="btn" type="button" id="speed-index" title="Read every clip's speed now, for the Viewer's speed graph">${icon('refresh')} Index speeds</button><a class="btn" href="#/encoder">${icon('orbit')} Convert</a>` : ''}`;
     if (!v) {
       body.innerHTML = empty('No vehicle yet', 'Add one in Settings to see its footage.', `<a class="btn primary" href="#/settings/vehicles/new">${icon('plus')} Add a vehicle</a>`);
       return {};
@@ -313,6 +338,8 @@ export default {
         $(`.frame[data-day="${CSS.escape(next.day)}"]`, strip)?.focus();
       }
     });
+    $('#speed-index', actions)?.addEventListener('click', (e) => followIndex(e.currentTarget, true));
+    followIndex($('#speed-index', actions), false);
     $('#rescan', actions)?.addEventListener('click', async () => {
       try {
         await api(`/api/vehicles/${encodeURIComponent(v.id)}/scan`, { body: {} });

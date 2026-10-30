@@ -25,6 +25,10 @@ const SAMPLE_MIN_SECONDS = 20;
 const SAMPLE_COUNT = 3;
 const SAMPLE_SECONDS = 3;
 const SAMPLE_MARGIN_SECONDS = 1.5;
+// and kept this far from the clip's start and end, where an encode may
+// rightly lack frames (lead-in frames left out, the last frame Tesla's edit
+// list drops): a stretch there found them "missing" and failed a good encode
+const SAMPLE_EDGE_SECONDS = 2;
 
 // SSIM over 8x8 blocks (the usual constants for 8-bit pictures), averaged
 const C1 = (0.01 * 255) ** 2;
@@ -134,10 +138,10 @@ async function comparePictures({ source, candidate, signal, decode, durationSeco
   // from a little earlier and longer, as its frames may sit a little off the
   // original's (lead-in frames, edit lists).
   if (Number.isFinite(durationSeconds) && durationSeconds >= SAMPLE_MIN_SECONDS) {
-    const span = durationSeconds - SAMPLE_SECONDS;
+    const span = durationSeconds - SAMPLE_SECONDS - 2 * SAMPLE_EDGE_SECONDS;
     // one stretch in each part of the clip, somewhere random in that part,
     // all decoded at once
-    const starts = Array.from({ length: SAMPLE_COUNT }, (_, n) => Math.round(((n + random()) / SAMPLE_COUNT) * span * 100) / 100);
+    const starts = Array.from({ length: SAMPLE_COUNT }, (_, n) => Math.round((SAMPLE_EDGE_SECONDS + ((n + random()) / SAMPLE_COUNT) * span) * 100) / 100);
     let results;
     try {
       results = await Promise.all(starts.map(async (start) => {

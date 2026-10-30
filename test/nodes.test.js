@@ -276,6 +276,11 @@ test('picture check on a long clip: a few random stretches, chosen after the enc
       assert.equal(r.ok, true, `${path.basename(candidate)}: ${JSON.stringify(r)}`);
       assert.equal(r.sampled, 3, 'three stretches');
       assert.ok(decoded.every(([, start, length]) => Number.isFinite(start) && length <= 6), 'only stretches are decoded');
+      // wherever the stretches fall: the first at the very start, the last at the very end
+      for (const edge of [0, 0.999]) {
+        const e = await comparePictures({ source, candidate, decode, durationSeconds: 30, random: () => edge });
+        assert.equal(e.ok, true, `${path.basename(candidate)} at ${edge}: ${JSON.stringify(e)}`);
+      }
     }
     // a fake with the right pictures only in its first ten seconds fails, in any of several tries
     const fake = enc('fake.mp4', ['-i', source, '-vf', 'drawbox=enable=gte(t\\,10):t=fill:c=black']);

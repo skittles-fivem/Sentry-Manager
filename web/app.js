@@ -1243,6 +1243,7 @@
         <button class="btn" id="sel-unprotect"${selRecs.some((r) => r.protected) ? '' : ' disabled'}>Unprotect</button>
         <button class="btn" id="sel-clear"${sel.length ? '' : ' disabled'}>Clear selection</button>
         <button class="btn green" id="sel-review" type="button">Review conversion</button>
+        <button class="btn" id="speed-index" type="button" title="Read every clip's speed now, for the Viewer's speed graph">Index speeds</button>
       </div></div>`;
     if (!data.days.length) {
       html += `<div class="empty">${data.error ? esc(data.error) : data.scanning ? 'Scanning the share…' : 'No recordings match. Try another category or date, or refresh the inventory.'}</div>`;
@@ -1267,6 +1268,8 @@
     $('sel-protect').onclick = () => protect(v, [...f.selected], true);
     $('sel-unprotect').onclick = () => protect(v, [...f.selected], false);
     $('sel-review').onclick = () => reviewConversion(v);
+    $('speed-index').onclick = (e) => followIndex(e.currentTarget, true);
+    followIndex($('speed-index'), false);
     page.querySelectorAll('.day').forEach((el) => {
       const day = el.dataset.day;
       el.querySelector('[data-toggle]').onclick = () => { if (f.open.has(day)) f.open.delete(day); else f.open.add(day); render(); };
@@ -1296,11 +1299,43 @@
   const minutesText = (m) => (m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`);
   const dayTitle = (day) => new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
 
+  /** "Index speeds": start the speed graph's index now; the button shows how far it is. */
+  async function followIndex(b, start) {
+    if (!b || b.dataset.following) return;
+    b.dataset.following = '1';
+    const label = b.textContent;
+    try {
+      let s = start ? await api('/api/speeds/index', { body: {} }) : await api('/api/speeds/status');
+      const was = s.running;
+      while (s.running && b.isConnected) {
+        b.disabled = true;
+        b.textContent = s.total ? `Indexing ${s.done.toLocaleString()} / ${s.total.toLocaleString()}` : 'Indexing…';
+        await new Promise((r) => setTimeout(r, 3000));
+        s = await api('/api/speeds/status');
+      }
+      if (b.isConnected && (start || was)) toast(s.last ? `Speeds indexed for ${s.last.toLocaleString()} clip${s.last === 1 ? '' : 's'}.` : 'Every clip is indexed already.');
+    } catch (err) {
+      if (start) toast(err.message, true);
+    } finally {
+      b.textContent = label;
+      b.disabled = false;
+      delete b.dataset.following;
+    }
+  }
+
   /** The blue "Encoded" badge of a day: every recording, or how many of them. */
   function dayEncodedChip(d) {
     if (!d.encodedRecordings) return '';
     const label = d.encodedRecordings === d.recordings ? 'Encoded' : `Encoded ${d.encodedRecordings}/${d.recordings}`;
     return `<span class="chip blue" title="${esc(`${d.encoded} of ${d.clips} clips are H.265 or AV1`)}"><span class="cdot"></span>${label}</span>`;
+  }
+
+  /** The purple "Indexed" badge: the day's speeds are read for the Viewer's speed graph. */
+  function dayIndexedChip(d) {
+    const x = d.speedIndex;
+    if (!x?.indexed) return '';
+    const label = x.indexed >= x.clips ? 'Indexed' : `Indexed ${x.indexed}/${x.clips}`;
+    return `<span class="chip violet" title="${esc(`Speed read from ${x.indexed} of ${x.clips} front-camera clips for the Viewer's speed graph`)}"><span class="cdot"></span>${label}</span>`;
   }
 
   function dayCard(v, d) {
@@ -1318,7 +1353,7 @@
         <div class="day-thumb">${thumb}<span class="count">${plural(d.recordings, 'recording')}</span></div>
         <div class="day-info">
           <span class="date">${esc(dayTitle(d.day))}</span>
-          <span class="row">${cat('Recent', '', 'drive')}${cat('Sentry', 'amber', 'Sentry event')}${cat('Saved', 'green', 'Saved event')}${cat('Other', '', 'other')}${dayEncodedChip(d)}${d.protected ? `<span class="chip green">${d.protected} protected</span>` : ''}</span>
+          <span class="row">${cat('Recent', '', 'drive')}${cat('Sentry', 'amber', 'Sentry event')}${cat('Saved', 'green', 'Saved event')}${cat('Other', '', 'other')}${dayEncodedChip(d)}${dayIndexedChip(d)}${d.protected ? `<span class="chip green">${d.protected} protected</span>` : ''}</span>
           <span class="meta">${minutesText(d.minutes)}${d.cameras ? ` · ${plural(d.cameras, 'camera')}` : ''} · ${bytes(d.bytes)}${d.unknown ? ' · checking which clips are encoded…' : ''}</span>
         </div>
         <div class="day-actions">

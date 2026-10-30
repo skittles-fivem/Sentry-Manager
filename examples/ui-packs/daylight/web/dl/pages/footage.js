@@ -5,6 +5,30 @@ import { api, esc, enc, icon, bytes, plural, dayTitle, dayShort, niceTime, CATEG
 import { state, vehicle, setVehicle, vehiclePicker, loadVehicles } from '../state.js';
 import { go } from '../app.js';
 
+// "Index speeds": start the speed graph's index now; the button shows how far it is
+async function followIndex(b, start) {
+  if (!b || b.dataset.following) return;
+  b.dataset.following = '1';
+  const label = b.innerHTML;
+  try {
+    let s = start ? await api('/api/speeds/index', { body: {} }) : await api('/api/speeds/status');
+    const was = s.running;
+    while (s.running && b.isConnected) {
+      b.disabled = true;
+      b.textContent = s.total ? `Indexing ${s.done.toLocaleString()} / ${s.total.toLocaleString()}` : 'Indexing…';
+      await new Promise((r) => setTimeout(r, 3000));
+      s = await api('/api/speeds/status');
+    }
+    if (b.isConnected && (start || was)) toast(s.last ? `Speeds indexed for ${s.last.toLocaleString()} clip${s.last === 1 ? '' : 's'}.` : 'Every clip is indexed already.');
+  } catch (err) {
+    if (start) toast(err.message);
+  } finally {
+    b.innerHTML = label;
+    b.disabled = false;
+    delete b.dataset.following;
+  }
+}
+
 export const thumbUrl = (vid, rid) => `/api/vehicles/${enc(vid)}/recordings/${enc(rid)}/thumbnail`;
 const DAYS_PAGE = 30;
 const CATS = [['all', 'Everything'], ['Recent', 'Drives'], ['Sentry', 'Sentry'], ['Saved', 'Saved'], ['Other', 'Other']];
@@ -133,7 +157,7 @@ function dayCard(v, d) {
     <div class="thumb">${d.thumbId ? `<img class="thumb-img" loading="lazy" alt="" src="${thumbUrl(v.id, d.thumbId)}">` : icon('film')}
       <span class="thumb-badge">${plural(d.recordings, 'recording')}</span><span class="play-over">${icon('playOutline')}</span></div>
     <div class="dc-body"><span class="dc-title">${esc(dayTitle(d.day, { weekday: 'long', month: 'short', day: 'numeric' }))}</span>
-      <div class="row">${catChips(d)}${d.protected ? chip(`${d.protected} protected`, 'good', 'lock') : ''}${d.encodedRecordings ? chip(d.encodedRecordings === d.recordings ? 'Converted' : `${d.encodedRecordings}/${d.recordings} converted`, 'teal', 'sparkle') : ''}</div>
+      <div class="row">${catChips(d)}${d.protected ? chip(`${d.protected} protected`, 'good', 'lock') : ''}${d.encodedRecordings ? chip(d.encodedRecordings === d.recordings ? 'Converted' : `${d.encodedRecordings}/${d.recordings} converted`, 'teal', 'sparkle') : ''}${d.speedIndex?.indexed ? chip(d.speedIndex.indexed >= d.speedIndex.clips ? 'Speed indexed' : `Speed indexed ${d.speedIndex.indexed}/${d.speedIndex.clips}`, 'violet') : ''}</div>
       <span class="dc-meta">${d.minutes} min of video · ${bytes(d.bytes)}</span></div></a>`;
 }
 
@@ -180,7 +204,7 @@ async function renderDays(ctx, v) {
         : emptyState({ art: 'film', title: view$.category === 'all' && !view$.onlyProtected ? 'No footage yet' : 'Nothing matches', text: view$.category === 'all' && !view$.onlyProtected ? `Once ${esc(v.name)} records something, it shows up here.` : 'Try another filter.', action: view$.category !== 'all' || view$.onlyProtected ? '<button class="btn btn-soft" type="button" id="reset-filter">Show everything</button>' : '' });
     view.innerHTML = `<div class="page">
       <div class="page-head"><div><h1>Footage</h1><p class="lede">${plural(data.total, 'day')} · ${plural(data.recordings, 'recording')}${data.scannedAt ? ` · up to date as of ${ago(data.scannedAt)}` : ''}${data.scanning ? ' · looking for new footage…' : ''}</p></div>
-        <div class="head-actions">${vehiclePicker()}<button class="btn" type="button" id="scan">${icon('refresh')} <span>Refresh</span></button></div></div>
+        <div class="head-actions">${vehiclePicker()}<button class="btn" type="button" id="scan">${icon('refresh')} <span>Refresh</span></button><button class="btn" type="button" id="speed-index" title="Read every clip's speed now, for the Viewer's speed graph">${icon('refresh')} <span>Index speeds</span></button></div></div>
       <div class="toolbar"><div class="filter-chips" role="group" aria-label="Show">
         ${CATS.map(([k, label]) => `<button type="button" class="filter-chip" data-cat="${k}" aria-pressed="${view$.category === k}">${label}</button>`).join('')}
         <button type="button" class="filter-chip" id="only-prot" aria-pressed="${view$.onlyProtected}">${icon('lock')} Protected</button></div></div>
@@ -206,6 +230,8 @@ async function renderDays(ctx, v) {
     view.querySelector('#reset-filter')?.addEventListener('click', () => { view$.category = 'all'; view$.onlyProtected = false; refresh(); });
     const scan = (b) => busy(b, () => api(`/api/vehicles/${enc(v.id)}/scan`, { body: {} }).then(() => toast('Looking for new footage…'), fail));
     view.querySelector('#scan').onclick = (e) => scan(e.currentTarget);
+    view.querySelector('#speed-index').onclick = (e) => followIndex(e.currentTarget, true);
+    followIndex(view.querySelector('#speed-index'), false);
     view.querySelector('#scan2')?.addEventListener('click', (e) => scan(e.currentTarget));
     view.querySelector('#older')?.addEventListener('click', () => { shown += DAYS_PAGE; refresh(); });
     view.querySelectorAll('[data-month]').forEach((b) => { b.onclick = () => { if (b.dataset.month) { view$.month = b.dataset.month; draw(); view.querySelector('.cal [data-month]')?.focus(); } }; });

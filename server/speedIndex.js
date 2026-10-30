@@ -25,6 +25,8 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
   let running = null;
   let again = false;
   let stopped = false;
+  // where the running pass is, for the Footage page's "Index speeds"
+  const progress_ = { running: false, done: 0, total: 0, day: null, finishedAt: null, last: 0 };
 
   const fileOf = (vid, day) => path.join(dir, String(vid).replace(/[^\w-]/g, '_'), `${day}.json`);
 
@@ -81,21 +83,33 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
   }
 
   async function pass() {
-    let done = 0;
+    // what is left to read, so the log can say how far along it is
+    const todo = [];
     for (const v of vehicles.list()) {
       const root = vehicles.rootOf(v);
       if (!root) continue;
       for (const c of fronts(v.id)) {
-        if (stopped) return done;
-        const data = await load(c.vid, c.day);
-        const had = data[c.rel];
-        if (had && had[0] === c.size && had[1] === c.mtimeMs) continue;
-        while (!idle() && !stopped) await new Promise((r) => setTimeout(r, 2000));
-        data[c.rel] = [c.size, c.mtimeMs, await speedsFor(path.join(root, c.rel), c.size)];
-        dirty.add(`${c.vid}/${c.day}`);
-        if (++done % 25 === 0) await flush();
-        if (pauseMs) await new Promise((r) => setTimeout(r, pauseMs));
+        const had = (await load(c.vid, c.day))[c.rel];
+        if (!(had && had[0] === c.size && had[1] === c.mtimeMs)) todo.push({ ...c, root });
       }
+    }
+    if (todo.length) log?.info(`Speed index: ${todo.length} clip(s) to read, newest days first`);
+    let done = 0;
+    Object.assign(progress_, { done: 0, total: todo.length, day: null });
+    const started = Date.now();
+    for (const c of todo) {
+      if (stopped) return done;
+      while (!idle() && !stopped) await new Promise((r) => setTimeout(r, 2000));
+      const data = await load(c.vid, c.day);
+      data[c.rel] = [c.size, c.mtimeMs, await speedsFor(path.join(c.root, c.rel), c.size)];
+      dirty.add(`${c.vid}/${c.day}`);
+      Object.assign(progress_, { done: done + 1, day: c.day });
+      if (++done % 25 === 0) await flush();
+      if (done % 250 === 0 && done < todo.length) {
+        const left = Math.round(((Date.now() - started) / done) * (todo.length - done) / 60000);
+        log?.info(`Speed index: ${done} of ${todo.length} clips (now on ${c.day}, about ${left} min left)`);
+      }
+      if (pauseMs) await new Promise((r) => setTimeout(r, pauseMs));
     }
     await flush();
     return done;
@@ -104,17 +118,19 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
   /** Index what is new; again after this pass if more changed meanwhile. */
   function kick() {
     if (running) { again = true; return running; }
+    progress_.running = true;
     running = (async () => {
       do {
         again = false;
         try {
           const n = await pass();
-          if (n) log?.info(`Speed index: ${n} clip(s) indexed`);
+          if (n) log?.info(`Speed index: done, ${n} clip(s) indexed`);
+          progress_.last = n;
         } catch (err) {
           log?.warn(`Speed index: ${err.message}`);
         }
       } while (again && !stopped);
-    })().finally(() => { running = null; });
+    })().finally(() => { running = null; Object.assign(progress_, { running: false, finishedAt: Date.now() }); });
     return running;
   }
 
@@ -130,6 +146,22 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
     return out;
   }
 
+  /** How far each day is indexed: { day: { clips, indexed } } (front-camera clips). */
+  async function progress(vid, list) {
+    const per = {};
+    for (const f of inventory.get(vid)?.files?.values() || []) {
+      if (f.kind !== 'clip' || f.camera !== 'front' || !(f.size > 0) || !list.includes(f.day)) continue;
+      (per[f.day] ||= { clips: 0, indexed: 0, files: [] }).clips++;
+      per[f.day].files.push(f);
+    }
+    for (const [d, p] of Object.entries(per)) {
+      const data = await load(vid, d);
+      p.indexed = p.files.filter((f) => { const had = data[f.rel]; return had && had[0] === f.size && had[1] === Math.round(f.mtimeMs); }).length;
+      delete p.files;
+    }
+    return per;
+  }
+
   /** Index one clip now (the viewer asked for it before the background got there). */
   async function clip(vid, rel, real, size, mtimeMs) {
     const f = inventory.get(vid)?.files?.get(rel);
@@ -143,7 +175,7 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
     return sp;
   }
 
-  return { kick, day, clip, flush, stop() { stopped = true; } };
+  return { kick, day, clip, progress, status: () => ({ ...progress_ }), flush, stop() { stopped = true; } };
 }
 
 module.exports = { createSpeedIndex };
