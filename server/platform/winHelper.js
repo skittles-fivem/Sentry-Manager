@@ -116,8 +116,13 @@ function createWinHelper({
     fn(p);
   }
 
-  function failAll(err) {
-    for (const id of [...pending.keys()]) settle(id, (p) => p.reject(helperError(scrub(err.message, p.secrets), err.code, err.winerr)));
+  // Rejects what is pending; with `only`, just the requests given to that
+  // helper process (one that stopped must not take a newer one's down).
+  function failAll(err, only) {
+    for (const [id, entry] of [...pending]) {
+      if (only && entry.proc !== only.proc) continue;
+      settle(id, (p) => p.reject(helperError(scrub(err.message, p.secrets), err.code, err.winerr)));
+    }
   }
 
   function onLine(line, state) {
@@ -168,7 +173,7 @@ function createWinHelper({
           ready = null;
         }
         reject(err);
-        failAll(err);
+        failAll(err, { proc: proc || null });
         try { proc?.kill(); } catch { /* already gone */ }
       };
       state.onHello = (msg) => {
@@ -229,9 +234,21 @@ function createWinHelper({
         if (line) warn(scrub(line, [...pending.values()].flatMap((p) => p.secrets)));
       }
     });
-    proc.stdin.on('error', () => { /* EPIPE when it died; 'exit' handles it */ });
+    proc.stdin.on('error', () => { /* EPIPE when it died; 'close' handles it */ });
     proc.on('error', (err) => onExit(null, err));
-    proc.on('exit', (code, signal) => onExit(code ?? signal));
+    // 'close', not 'exit': node can report the exit before it has read the
+    // last of stdout, and an answer the helper wrote just before it stopped
+    // (a big perf.sample, say) would be lost. 'close' comes after the streams
+    // have ended, so every line has been handed to onLine by then.
+    proc.on('close', (code, signal) => onExit(code ?? signal));
+    // Once it has exited no new request is given to it (they start a fresh
+    // helper); the ones it already has wait for 'close' and their answers.
+    proc.on('exit', () => {
+      if (child === proc) {
+        child = null;
+        ready = null;
+      }
+    });
 
     function onExit(how, err) {
       if (state.exited) return;
@@ -253,7 +270,7 @@ function createWinHelper({
         warn(err ? `could not run: ${err.code || err.message}` : `stopped unexpectedly (${how}); it restarts on the next request`);
       }
       state.failStart?.(reason);
-      failAll(reason);
+      failAll(reason, { proc: proc || null });
     }
   }
 
@@ -270,7 +287,7 @@ function createWinHelper({
     const id = nextId++;
     const secrets = secretsOf(args);
     return new Promise((resolve, reject) => {
-      const entry = { resolve, reject, secrets, op, timer: null, cleanup: null };
+      const entry = { resolve, reject, secrets, op, timer: null, cleanup: null, proc: null };
       entry.timer = setTimeout(() => settle(id, (p) => {
         warn(`${op} timed out after ${reqTimeout} ms`);
         p.reject(helperError(`The Windows helper did not answer ${op} within ${Math.round(reqTimeout / 1000)} s.`, 'ETIMEDOUT'));
@@ -283,12 +300,16 @@ function createWinHelper({
       pending.set(id, entry);
 
       if (!child) start();
+      // the request belongs to this helper process; if it stops, only its
+      // own requests fail
+      const proc = child;
+      entry.proc = proc;
       const sendWhenReady = ready;
       if (!sendWhenReady) return; // the start failed at once; failAll rejected it
       sendWhenReady.then(() => {
-        if (!pending.has(id) || !child) return; // timed out, aborted or crashed meanwhile
+        if (!pending.has(id) || child !== proc) return; // timed out, aborted, or it stopped (its 'close' rejects this)
         try {
-          child.stdin.write(`${JSON.stringify({ id, op, args })}\n`);
+          proc.stdin.write(`${JSON.stringify({ id, op, args })}\n`);
         } catch (err) {
           settle(id, (p) => p.reject(helperError(`Could not write to the Windows helper (${err.code || 'error'}).`, 'EHELPER')));
         }

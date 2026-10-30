@@ -289,6 +289,50 @@ test('works over real pipes with a real child process', async () => {
   helper.close();
 });
 
+// Node documents that a child's 'exit' can come while its stdout is still
+// open, with lines not yet read. An answer the helper wrote just before it
+// stopped must still reach its request, so the client takes 'close' (after
+// the streams end) as the end. A hand-made child plays that order exactly:
+// hello, then 'exit', then the answer, then 'close'.
+test("an answer that arrives after 'exit' but before 'close' still resolves", async () => {
+  const { EventEmitter } = require('events');
+  const { PassThrough } = require('stream');
+  const spawned = [];
+  const spawn = () => {
+    const child = new EventEmitter();
+    child.stdin = new PassThrough();
+    child.stdout = new PassThrough();
+    child.stderr = new PassThrough();
+    child.kill = () => true;
+    spawned.push(child);
+    setImmediate(() => child.stdout.write(`${JSON.stringify({ id: 0, ok: true, result: { op: 'hello', version: 1, pid: 1 } })}\n`));
+    child.stdin.on('data', (buf) => {
+      const { id } = JSON.parse(buf.toString());
+      child.emit('exit', 0, null);
+      // the big answer comes in pieces, after 'exit'
+      const line = `${JSON.stringify({ id, ok: true, result: { big: 'x'.repeat(200000) } })}\n`;
+      setImmediate(() => {
+        child.stdout.write(line.slice(0, 70000));
+        setImmediate(() => {
+          child.stdout.end(line.slice(70000));
+          child.stderr.end();
+          child.stdout.on('end', () => setImmediate(() => child.emit('close', 0, null)));
+          child.stdout.resume();
+        });
+      });
+    });
+    return child;
+  };
+  const helper = createWinHelper({ path: EXE, spawn });
+  const r = await helper.request('perf.sample', {});
+  assert.equal(r.big.length, 200000, 'the answer arrived whole');
+  // a request made after the exit goes to a new helper, not the stopping one
+  const r2 = await helper.request('perf.sample', {});
+  assert.equal(r2.big.length, 200000);
+  assert.equal(spawned.length, 2);
+  helper.close();
+});
+
 // ------------------------------------------------------------ the C# helper
 
 test('the C# helper implements every op and error code the protocol lists', () => {

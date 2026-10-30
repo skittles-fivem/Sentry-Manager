@@ -856,7 +856,11 @@ namespace SentrySixManager.Helper
             string from = Args.Str(a, "from"), to = Args.Str(a, "to");
             var expected = Args.Obj(a, "expected", true);
             bool replace = Args.Bool(a, "replace", false);
-            using (var h = Files.Open(from, Native.DELETE | Native.FILE_READ_ATTRIBUTES, Native.FILE_SHARE_READ, Native.FILE_FLAG_OPEN_REPARSE_POINT))
+            // BACKUP_SEMANTICS lets a directory or junction be opened at all,
+            // so a junction is refused as ELOOP rather than failing as EACCES;
+            // it loosens neither the share mode nor the identity check.
+            using (var h = Files.Open(from, Native.DELETE | Native.FILE_READ_ATTRIBUTES, Native.FILE_SHARE_READ,
+                Native.FILE_FLAG_OPEN_REPARSE_POINT | Native.FILE_FLAG_BACKUP_SEMANTICS))
             {
                 var id = Files.Identity(h);
                 if (id.Reparse) throw Files.ReparseRefused();
@@ -876,8 +880,10 @@ namespace SentrySixManager.Helper
             var expected = Args.Obj(a, "expected", true);
             string sha = Args.OptStr(expected, "sha256");
             using (var h = Files.Open(path, Native.DELETE | Native.GENERIC_READ | Native.FILE_WRITE_ATTRIBUTES, Native.FILE_SHARE_READ,
-                Native.FILE_FLAG_OPEN_REPARSE_POINT | Native.FILE_FLAG_SEQUENTIAL_SCAN))
+                Native.FILE_FLAG_OPEN_REPARSE_POINT | Native.FILE_FLAG_BACKUP_SEMANTICS | Native.FILE_FLAG_SEQUENTIAL_SCAN))
             {
+                // BACKUP_SEMANTICS so a directory or junction opens and is
+                // refused below (ELOOP, EISDIR) instead of failing as EACCES
                 var id = Files.Identity(h);
                 if (id.Reparse) throw Files.ReparseRefused();
                 if (id.Directory) throw new HelperError("EISDIR", 0, "The path is a directory; refused.");
@@ -920,9 +926,34 @@ namespace SentrySixManager.Helper
             share = m.Groups[2].Value;
         }
 
-        static string UserName(Dictionary<string, object> a)
+        // The account smb.connect and smb.test both present, so a passing
+        // test means the real connection uses the same credentials. Without
+        // a domain it is the server's own account (HOST\user), which is what
+        // a NAS expects for its local users; a Windows server that does not
+        // know HOST as a domain checks its local accounts as well. A user
+        // already written as DOMAIN\user or user@domain is taken as it is.
+        // domain comes back null only for the user@domain form.
+        static void Account(Dictionary<string, object> a, string host, out string user, out string domain)
         {
-            string user = Args.Str(a, "user"), domain = Args.OptStr(a, "domain");
+            user = Args.Str(a, "user");
+            domain = Args.OptStr(a, "domain");
+            if (domain != null && domain.Length == 0) domain = null;
+            int slash = user.IndexOf('\\');
+            if (domain == null && slash > 0)
+            {
+                domain = user.Substring(0, slash);
+                user = user.Substring(slash + 1);
+            }
+            else if (domain == null && user.IndexOf('@') < 0)
+            {
+                domain = host;
+            }
+        }
+
+        static string UserName(Dictionary<string, object> a, string host)
+        {
+            string user, domain;
+            Account(a, host, out user, out domain);
             return domain == null ? user : domain + "\\" + user;
         }
 
@@ -934,7 +965,7 @@ namespace SentrySixManager.Helper
             SplitUnc(unc, out host, out share);
             string password = Args.OptStr(a, "password") ?? "";
             var res = new Native.NETRESOURCE { dwType = Native.RESOURCETYPE_DISK, lpLocalName = null, lpRemoteName = @"\\" + host + @"\" + share };
-            int err = Native.WNetAddConnection2W(ref res, password, UserName(a), Native.CONNECT_TEMPORARY);
+            int err = Native.WNetAddConnection2W(ref res, password, UserName(a, host), Native.CONNECT_TEMPORARY);
             if (err != 0) throw HelperError.FromWin32(err);
             return new JObj();
         }
@@ -996,10 +1027,9 @@ namespace SentrySixManager.Helper
         {
             string unc = Args.Str(a, "unc"), host, share;
             SplitUnc(unc, out host, out share);
-            string user = Args.Str(a, "user");
-            // Without a domain the account is the server's own (HOST\user),
-            // which is what a NAS expects for its local users.
-            string domain = Args.OptStr(a, "domain") ?? host;
+            // the same account smb.connect presents (see Account)
+            string user, domain;
+            Account(a, host, out user, out domain);
             string password = Args.OptStr(a, "password") ?? "";
             bool write = Args.Bool(a, "write", false);
             string folder = Args.OptStr(a, "folder");
