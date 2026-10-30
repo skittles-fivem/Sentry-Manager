@@ -161,11 +161,12 @@ function summarizeDays(recordings, codecs) {
 }
 
 class Inventory {
-  constructor({ vehicles, db, log, onChange = () => {} }) {
+  constructor({ vehicles, db, log, onChange = () => {}, onScanned = () => {} }) {
     this.vehicles = vehicles;
     this.db = db;
     this.log = log;
     this.onChange = onChange;
+    this.onScanned = onScanned;
     this.state = new Map(); // vehicleId -> { files, recordings, scannedAt, durationMs, errors, scanning }
     this.scans = new Map();
     this.codecMaps = new Map(); // vehicleId -> Map(rel -> { size, mtimeMs, codec })
@@ -257,6 +258,7 @@ class Inventory {
         this.state.set(vehicleId, entry);
         this.log.info(`${vehicle.name}: ${entry.recordings.length} recordings, ${res.files.size} files (${(res.durationMs / 1000).toFixed(1)}s)`);
         this.probeCodecs(vehicleId);
+        this.onScanned(vehicleId);
         return entry;
       } catch (err) {
         this.state.set(vehicleId, { ...(prev || {}), scanning: false, lastError: err.message });

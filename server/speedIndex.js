@@ -128,6 +128,22 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
     return out;
   }
 
+  /** How far each day is indexed: { day: { clips, indexed } } (front-camera clips). */
+  async function progress(vid, list) {
+    const per = {};
+    for (const f of inventory.get(vid)?.files?.values() || []) {
+      if (f.kind !== 'clip' || f.camera !== 'front' || !(f.size > 0) || !list.includes(f.day)) continue;
+      (per[f.day] ||= { clips: 0, indexed: 0, files: [] }).clips++;
+      per[f.day].files.push(f);
+    }
+    for (const [d, p] of Object.entries(per)) {
+      const data = await load(vid, d);
+      p.indexed = p.files.filter((f) => { const had = data[f.rel]; return had && had[0] === f.size && had[1] === Math.round(f.mtimeMs); }).length;
+      delete p.files;
+    }
+    return per;
+  }
+
   /** Index one clip now (the viewer asked for it before the background got there). */
   async function clip(vid, rel, real, size, mtimeMs) {
     const f = inventory.get(vid)?.files?.get(rel);
@@ -141,7 +157,7 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
     return sp;
   }
 
-  return { kick, day, clip, flush, stop() { stopped = true; } };
+  return { kick, day, clip, progress, flush, stop() { stopped = true; } };
 }
 
 module.exports = { createSpeedIndex };

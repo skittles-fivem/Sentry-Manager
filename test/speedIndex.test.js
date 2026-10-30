@@ -60,3 +60,20 @@ test('speed index: indexes front clips once, and again when they change', { time
   assert.equal(reads.length, 1);
   assert.deepEqual(await again.day('v1', 'nonsense'), {});
 });
+
+test('speed index: every finished footage scan starts an indexing pass', async () => {
+  const { Inventory } = require('../server/inventory');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'speedscan-'));
+  try {
+    const scanned = [];
+    const vehicles = { get: () => ({ id: 'v1', name: 'Car' }), share: () => null, rootOf: () => dir };
+    const db = { protectedSet: () => new Set() };
+    const inv = new Inventory({ vehicles, db, log: { info() {}, warn() {} }, onScanned: (id) => scanned.push(id) });
+    inv.probeCodecs = () => {};
+    await inv.scan('v1');
+    await inv.scan('v1');
+    assert.deepEqual(scanned, ['v1', 'v1']);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
