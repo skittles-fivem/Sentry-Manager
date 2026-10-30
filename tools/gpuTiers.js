@@ -122,15 +122,23 @@ function shortfallOf(picked, asked) {
 // ---------------------------------------------------------------- zero-copy evidence
 //
 // A zero-copy run is repeated with -loglevel verbose (to a throwaway output)
-// and what FFmpeg prints shows where the frames were:
-//  - the decoder, once get_format has chosen (libavcodec h264_slice.c /
-//    hevc): "[h264 @ 0x..] Reinit context to 1280x960, pix_fmt: cuda"
-//  - the filter graph's input (libavfilter/buffersrc.c, verbose):
-//    "[graph 0 input from stream 0:0 @ 0x..] w:1280 h:960 pixfmt:cuda tb:.."
-//  - the encoder's input, in the output stream line (dump_format, info):
-//    "Stream #0:0: Video: hevc (Main) (hvc1 / 0x31637668), cuda(pc, ..), .."
-// A fallback shows as one of those in a system-memory format (nv12, yuv420p,
-// yuvj420p) or as one of FFmpeg's fallback messages:
+// and what FFmpeg prints shows where the frames were. FFmpeg 8.1 (water,
+// RTX 4070 Ti) prints, for frames that stay in CUDA memory:
+//  - fftools/ffmpeg_demux.c: "[vist#0:0/h264 @ ..] Selecting decoder 'h264'
+//    because of requested hwaccel method cuda"
+//  - the decoder, once get_format has chosen (libavcodec/h264_slice.c):
+//    "[h264 @ ..] Reinit context to 1280x960, pix_fmt: cuda"
+//  - the filter graph's input, printed again whenever the graph is
+//    reconfigured (libavfilter/buffersrc.c): "[graph -1 input from stream
+//    0:0 @ ..] w:1280 h:960 pixfmt:cuda tb:1/10000 .."
+//  - the encoder's input (fftools/ffmpeg_enc.c hw_device_setup_for_encode):
+//    "[enc:hevc_nvenc @ ..] Using input frames context (format cuda) with
+//    hevc_nvenc encoder." (system-memory frames give "Using device .. with
+//    .. encoder." or nothing instead)
+// The output stream line ("Video: hevc (Main) .., nv12(tv, ..)") names the
+// frames context's software format, nv12, even for CUDA frames: shown, not
+// judged. A fallback shows as a graph input or encoder input in a system
+// memory format, or as one of FFmpeg's fallback messages:
 //  - libavcodec/decode.c hwaccel_init: "Failed setup for format cuda:
 //    hwaccel initialisation returned error." (then get_format retries
 //    without it: "Format cuda not usable, retrying get_format() without it.")
@@ -152,12 +160,16 @@ const FALLBACK_PATTERNS = Object.freeze([
   /\bhwdownload\b/i,
   /Impossible to convert between the formats/i
 ]);
-const DECODER_FORMAT = /^\[(h264|hevc|av1|vp9|mpeg2video)[^\]]*\] Reinit context to \d+x\d+, pix_fmt: ([a-z0-9_]+)/;
+const DECODER_FORMAT = /^\[(h264|hevc|av1|vp9|mpeg2video) @ ([^\]]*)\] Reinit context to \d+x\d+, pix_fmt: ([a-z0-9_]+)/;
 // (the buffer source's own line, whatever the graph calls it)
 const FILTER_INPUT = /^\[([^\]]*)\] w:\d+ h:\d+ pixfmt:([a-z0-9_]+) tb:/;
+const ENCODER_FRAMES = /Using input frames context \(format ([a-z0-9_]+)\) with (\S+) encoder/;
+const ENCODER_DEVICE = /Using device (\S+) \(type ([a-z0-9_]+)\) with (\S+) encoder/;
 const STREAM_VIDEO = /^\s*Stream #\d+:\d+[^:]*: Video: (.*)$/;
-// Informational: NVENC/CUDA/hwaccel lines that say which device did what.
-const HW_INFO = /Using auto hwaccel type|hwaccel|cuda|nvenc|CUDA capable devices|Nvenc|GPU #|Stream #\d+:\d+ -> #/i;
+// Informational: hwaccel/NVENC lines that say which device did what.
+const HW_INFO = /Selecting decoder|hwaccel|Using device|Nvenc|CUDA capable devices|GPU #|Stream #\d+:\d+ -> #/i;
+// Per-packet noise that says nothing about the frames.
+const NOISE = /Non-monotonic DTS|^ {4}Last message repeated|non monotonically increasing dts/;
 
 // the pixel format in a stream line's "Video: codec (..), fmt(..), WxH, .."
 function streamPixFmt(description) {
@@ -185,10 +197,24 @@ function expectedHwFormat(args) {
   return index === -1 ? null : args[index + 1] || null;
 }
 
-// What a verbose zero-copy run printed -> { ok, expected, decoder, filterInput,
-// encoderInput, fallbacks, lines, reason }.
-function zeroCopyEvidence(stderr, expected = 'cuda') {
-  const evidence = { ok: false, expected, decoder: [], filterInput: [], encoderInput: [], fallbacks: [], lines: [], reason: null };
+const addOnce = (list, value) => { if (!list.includes(value)) list.push(value); };
+
+// What a verbose zero-copy run printed -> { ok, expected, decoder,
+// decoderContexts, filterInput, encoderInput, encoderDevice, outputStream,
+// fallbacks, noiseLines, lines, reason } (+ log, the lines after "Stream
+// mapping:" less the noise, when withLog).
+//
+// Judged: every filter graph input and the encoder's input frames context
+// must be the expected format, at least one decoder must have chosen it, and
+// no fallback message may appear. Every decoded frame enters the graph
+// through its input, and a frame in another format reconfigures the graph
+// (a new input line), so those two lines account for every frame. A decoder
+// context that printed a software format is listed in decoderContexts.
+function zeroCopyEvidence(stderr, expected = 'cuda', { withLog = false } = {}) {
+  const evidence = {
+    ok: false, expected, decoder: [], decoderContexts: [], filterInput: [], encoderInput: [], encoderDevice: [], outputStream: [],
+    fallbacks: [], noiseLines: 0, lines: [], reason: null, ...(withLog ? { log: [] } : {})
+  };
   let inOutput = false;
   // (before "Stream mapping:" the decoder lines are avformat's probing, which
   // never uses the hwaccel)
@@ -197,19 +223,28 @@ function zeroCopyEvidence(stderr, expected = 'cuda') {
   for (const raw of String(stderr || '').split(/\r\n|\n|\r/)) {
     const line = raw.replace(/\s+$/, '');
     if (!line.trim()) continue;
+    if (NOISE.test(line)) { evidence.noiseLines += 1; continue; }
     if (/^Stream mapping:/.test(line)) mapped = true;
+    if (withLog && mapped && evidence.log.length < 200) evidence.log.push(line);
     if (/^Output #\d+/.test(line)) inOutput = true;
     else if (/^Input #\d+/.test(line)) inOutput = false;
     let match;
     if (mapped && (match = DECODER_FORMAT.exec(line))) {
-      if (!evidence.decoder.includes(match[2])) evidence.decoder.push(match[2]);
+      addOnce(evidence.decoder, match[3]);
+      evidence.decoderContexts.push({ context: `${match[1]} @ ${match[2]}`, format: match[3] });
       keep(line);
     } else if ((match = FILTER_INPUT.exec(line))) {
-      if (!evidence.filterInput.includes(match[2])) evidence.filterInput.push(match[2]);
+      evidence.filterInput.push(match[2]);
       keep(line);
+    } else if ((match = ENCODER_FRAMES.exec(line))) {
+      addOnce(evidence.encoderInput, match[1]);
+      keep(line.trim());
+    } else if ((match = ENCODER_DEVICE.exec(line))) {
+      addOnce(evidence.encoderDevice, `${match[2]} ${match[1]}`);
+      keep(line.trim());
     } else if (inOutput && (match = STREAM_VIDEO.exec(line))) {
       const format = streamPixFmt(match[1]);
-      if (format && !evidence.encoderInput.includes(format)) evidence.encoderInput.push(format);
+      if (format) addOnce(evidence.outputStream, format);
       keep(line.trim());
     } else if (HW_INFO.test(line)) {
       keep(line.trim());
@@ -219,13 +254,14 @@ function zeroCopyEvidence(stderr, expected = 'cuda') {
       keep(line.trim());
     }
   }
-  const wrong = (formats) => formats.filter((format) => format !== expected);
+  const wrong = (formats) => [...new Set(formats.filter((format) => format !== expected))];
   const problems = [];
   if (evidence.fallbacks.length) problems.push('fallback message');
-  if (wrong(evidence.decoder).length) problems.push(`decoder frames ${wrong(evidence.decoder).join('/')}`);
+  if (!evidence.decoder.includes(expected)) problems.push(`no decoder chose ${expected}`);
+  if (!evidence.filterInput.length) problems.push('no filter graph input printed');
   if (wrong(evidence.filterInput).length) problems.push(`filter input ${wrong(evidence.filterInput).join('/')}`);
+  if (!evidence.encoderInput.length) problems.push(`no ${expected} frames context at the encoder${evidence.encoderDevice.length ? ` (encoder device ${evidence.encoderDevice.join('/')})` : ''}`);
   if (wrong(evidence.encoderInput).length) problems.push(`encoder input ${wrong(evidence.encoderInput).join('/')}`);
-  if (!evidence.filterInput.length && !evidence.encoderInput.length) problems.push('no frame format printed');
   evidence.ok = problems.length === 0;
   evidence.reason = problems.length ? problems.join('; ') : null;
   return evidence;
@@ -233,7 +269,7 @@ function zeroCopyEvidence(stderr, expected = 'cuda') {
 
 function evidenceLabel(evidence) {
   if (!evidence) return '-';
-  const formats = `dec ${evidence.decoder.join('/') || '?'} > filter ${evidence.filterInput.join('/') || '?'} > enc ${evidence.encoderInput.join('/') || '?'}`;
+  const formats = `dec ${evidence.decoder.join('/') || '?'} > filter ${[...new Set(evidence.filterInput)].join('/') || '?'} > enc ${evidence.encoderInput.join('/') || '?'}`;
   return evidence.ok ? `ok ${formats}` : `FAIL ${evidence.reason} (${formats})`;
 }
 
@@ -378,7 +414,8 @@ function summaryText(report) {
     parts.push('Zero-copy evidence (the same command at -loglevel verbose):');
     for (const run of evidenceRuns) {
       parts.push(`- ${run.set} ${run.camera} ${run.encoder}: ${evidenceLabel(run.zeroCopyEvidence)}`);
-      for (const line of run.zeroCopyEvidence.lines.slice(0, 12)) parts.push(`    ${line}`);
+      // the lines themselves for the first clip of a set and encoder, and for every failure
+      if (run.zeroCopyEvidence.log || !run.zeroCopyEvidence.ok) for (const line of run.zeroCopyEvidence.lines.slice(0, 16)) parts.push(`    ${line}`);
     }
   }
   const failedComparisons = report.comparisons.filter((c) => !c.result?.ok);
@@ -787,7 +824,12 @@ async function runClip({ report, set, entry, source, lanes, options, runner, dia
       if (run.failedAt === 'encode' || run.failedAt === 'telemetry') continue;
       outputs[tier] = target;
       run.picture = await picture(source, target, inspected.durationSeconds);
-      if (tier === 'zero-copy') run.zeroCopyEvidence = await zeroCopyCheck(options.ffmpeg, lastArgs, target, path.join(dir, 'zero-copy-verbose.mp4'));
+      if (tier === 'zero-copy') {
+        // the verbose log itself (less per-packet noise) for the first clip
+        // of each set and encoder
+        const withLog = !report.runs.some((other) => other.zeroCopyEvidence?.log && other.set === run.set && other.encoder === run.encoder);
+        run.zeroCopyEvidence = await zeroCopyCheck(options.ffmpeg, lastArgs, target, path.join(dir, 'zero-copy-verbose.mp4'), { withLog });
+      }
       run.ok = run.verify?.ok === true && run.picture?.ok === true && (tier !== 'zero-copy' || run.zeroCopyEvidence?.ok === true);
       if (!run.failedAt && !run.picture?.ok) run.failedAt = 'picture';
       if (!run.failedAt && tier === 'zero-copy' && !run.zeroCopyEvidence?.ok) run.failedAt = 'zero-copy';
@@ -808,15 +850,21 @@ async function runClip({ report, set, entry, source, lanes, options, runner, dia
 
 // The zero-copy encode's exact command again, at -loglevel verbose and into a
 // throwaway file: what FFmpeg prints shows whether the frames stayed on the GPU.
-async function zeroCopyCheck(ffmpeg, args, target, throwaway) {
+const VERBOSE_KEEP = 32 * 1024 * 1024;
+async function zeroCopyCheck(ffmpeg, args, target, throwaway, { withLog = false } = {}) {
   if (!Array.isArray(args)) return { ...zeroCopyEvidence('', null), reason: 'no command' };
   const level = args.indexOf('-loglevel');
   const verbose = args.map((arg, index) => (index === level + 1 && level !== -1 ? 'verbose' : arg === target ? throwaway : arg));
   removeTree(throwaway);
-  const result = await runEncode(ffmpeg, verbose, { keepHead: 256 * 1024 });
+  // all of it: a graph reconfigured half way through must not be missed
+  const result = await runEncode(ffmpeg, verbose, { keepHead: VERBOSE_KEEP });
   removeTree(throwaway);
-  const evidence = zeroCopyEvidence(`${result.head}\n${result.stderr}`, expectedHwFormat(args) || 'cuda');
+  const evidence = zeroCopyEvidence(result.head, expectedHwFormat(args) || 'cuda', { withLog });
   evidence.exit = result.status ?? result.signal ?? null;
+  if (result.head.length >= VERBOSE_KEEP) {
+    evidence.ok = false;
+    evidence.reason = [evidence.reason, 'verbose log over 32 MB, not read whole'].filter(Boolean).join('; ');
+  }
   if (result.status !== 0) {
     evidence.ok = false;
     evidence.reason = [evidence.reason, `verbose run exit ${evidence.exit}`].filter(Boolean).join('; ');
