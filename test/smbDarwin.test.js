@@ -200,13 +200,16 @@ test('mount: the password goes in once, only after the prompt, and stdin stays o
   assert.deepEqual(Object.keys(call.opts.env).sort(), ['HOME', 'LANG', 'LC_ALL', 'PATH']);
   assert.equal(call.opts.env.HOME, path.join(runDir, 'smb', 'car', 'home'));
   noSecret({ args: call.args, env: call.opts.env, res, runCalls: fr.calls });
-  // the private nsmb.conf: 0700 folders, a 0600 file, no secret
+  // the private nsmb.conf: 0700 folders, a 0600 file, no secret (the modes
+  // are checked only where files have permission bits; Windows has none)
   const prefs = path.join(runDir, 'smb', 'car', 'home', 'Library', 'Preferences');
-  for (const d of [path.join(runDir, 'smb'), path.join(runDir, 'smb', 'car'), path.join(runDir, 'smb', 'car', 'home'), path.dirname(prefs), prefs]) {
-    assert.equal(fs.statSync(d).mode & 0o777, 0o700, d);
-  }
   const conf = path.join(prefs, 'nsmb.conf');
-  assert.equal(fs.statSync(conf).mode & 0o777, 0o600);
+  if (process.platform !== 'win32') {
+    for (const d of [path.join(runDir, 'smb'), path.join(runDir, 'smb', 'car'), path.join(runDir, 'smb', 'car', 'home'), path.dirname(prefs), prefs]) {
+      assert.equal(fs.statSync(d).mode & 0o777, 0o700, d);
+    }
+    assert.equal(fs.statSync(conf).mode & 0o777, 0o600);
+  }
   assert.equal(fs.readFileSync(conf, 'utf8'), nsmbConf({ encrypt: true }));
   assert.equal(fs.readFileSync(conf, 'utf8').includes(SECRET), false);
   // checked afterwards with smbutil, by absolute path
@@ -493,7 +496,8 @@ test('sweep: force-unmounts only our smbfs mounts directly under the footage roo
   const real = fs.realpathSync(footageRoot);
   fr.state.table = fixture('mount-output.txt').replaceAll('/Library/Application Support/SentrySixManager/footage', real);
   const done = await mounter.sweep();
-  assert.deepEqual(done.map((d) => d.mountPoint).sort(), [path.join(real, 'car'), path.join(real, 'car'), path.join(real, 'van')].sort());
+  // the mount points come back exactly as mount(8) prints them, joined with /
+  assert.deepEqual(done.map((d) => d.mountPoint).sort(), [`${real}/car`, `${real}/car`, `${real}/van`].sort());
   const umounts = fr.calls.filter((c) => c[0] === '/sbin/umount');
   assert.ok(umounts.every((c) => c[1] === '-f'));
   assert.equal(umounts.some((c) => c[2].endsWith('truck')), false, 'mounted by another user');
