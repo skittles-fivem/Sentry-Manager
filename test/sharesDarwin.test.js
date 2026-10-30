@@ -15,6 +15,12 @@ const { forPlatform } = require('../server/platform');
 const { ShareManager, writeHint, platformOf, darwinVolumeOf, DARWIN_TEXT } = require('../server/share');
 const { VehicleManager, normalizeVehicle } = require('../server/vehicles');
 const { createSmbTester } = require('../server/smbTest');
+const { notOnWindows } = require('./fixtures/platformSkip');
+
+// VehicleManager resolves folders with the host's path module, as on the
+// Mac and in Docker it is path.posix: on Windows /Volumes resolves onto the
+// current drive (D:\Volumes), so the POSIX folder rules need a POSIX host.
+const POSIX_HOST = notOnWindows('VehicleManager resolves the darwin and Linux folder rules with the host path module (POSIX paths)');
 
 const STATE = '/Library/Application Support/SentrySixManager';
 const FOOTAGE = `${STATE}/footage`;
@@ -54,7 +60,7 @@ test('platformOf: names stay names on Linux and Windows; darwin gets its rules',
   assert.equal(darwinVolumeOf('/Users/Shared/cam'), null);
 });
 
-test('darwin folder vehicles: under the footage root, /Volumes or /Users/Shared only, never macOS\'s own folders', () => {
+test('darwin folder vehicles: under the footage root, /Volumes or /Users/Shared only, never macOS\'s own folders', { skip: POSIX_HOST }, () => {
   const p = mac({ links: { '/Volumes/Macintosh HD': '/', '/Volumes/sneaky': '/library/application support/sentrysixmanager/data' } });
   const vm = new VehicleManager({ db: memDb(), footageRoot: FOOTAGE, folderRoots: [FOOTAGE], protectedDirs: [DATA], logger: quiet, platform: p });
   assert.deepEqual(vm.folderRoots, [FOOTAGE, '/Volumes', '/Users/Shared']);
@@ -79,14 +85,14 @@ test('darwin folder vehicles: under the footage root, /Volumes or /Users/Shared 
   assert.ok(!vm.protectedDirs.includes('/proc'), 'no Linux folders on a Mac');
 });
 
-test('darwin: FOLDER_ROOTS inside a system folder still cannot reach it', () => {
+test('darwin: FOLDER_ROOTS inside a system folder still cannot reach it', { skip: POSIX_HOST }, () => {
   const p = mac({ env: { FOLDER_ROOTS: '/opt/cams' } });
   const vm = new VehicleManager({ db: memDb(), footageRoot: FOOTAGE, logger: quiet, platform: p });
   assert.ok(vm.folderRoots.includes('/opt/cams'));
   assert.throws(() => vm.checkFolder('/opt/cams/car'), /overlaps \/opt/);
 });
 
-test('darwin: vehicles may not overlap in any letter case; texts never mention Docker', () => {
+test('darwin: vehicles may not overlap in any letter case; texts never mention Docker', { skip: POSIX_HOST }, () => {
   const vm = new VehicleManager({ db: memDb(), footageRoot: FOOTAGE, logger: quiet, platform: mac() });
   vm.startShare = () => null;
   vm.add({ name: 'A', source: { type: 'path', path: '/Volumes/TESLA/TeslaCam' } });
@@ -107,7 +113,7 @@ test('darwin: vehicles may not overlap in any letter case; texts never mention D
   }
 });
 
-test('Linux vehicles keep their words and folders exactly', () => {
+test('Linux vehicles keep their words and folders exactly', { skip: POSIX_HOST }, () => {
   const vm = new VehicleManager({ db: memDb(), footageRoot: '/footage', logger: quiet, platform: 'linux' });
   assert.deepEqual(vm.folderRoots, ['/footage']);
   assert.deepEqual(vm.protectedDirs, ['/proc', '/sys', '/dev', '/etc', '/root', '/run', '/boot']);
