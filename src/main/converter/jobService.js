@@ -317,6 +317,56 @@ function offTargetField(verification) {
   return { offTarget: { savedPercent: details.offTargetSavedPercent, targetPercent: details.offTargetTargetPercent } };
 }
 
+// The GPU a lane's encoder uses (null for the CPU or a job without lanes).
+const laneDeviceOf = (encoder) => (encoder?.device && encoder.device.kind !== 'cpu' ? encoder.device : null);
+// One encoder's decode records: per GPU when a lane chose one.
+const decodeKeyOf = (encoder) => `${laneDeviceOf(encoder) ? `${laneDeviceOf(encoder).id}|` : ''}${encoder.codec}`;
+// The input arguments decodeAccel (deps.decodeAccel) gives an encoder, or null.
+function decodeAccelFrom(decodeAccel, encoder, options) {
+  try {
+    const device = laneDeviceOf(encoder);
+    const args = decodeAccel(encoder.codec, device ? { ...(options || {}), device } : options);
+    return Array.isArray(args) && args.length > 0 ? args : null;
+  } catch (_) { return null; }
+}
+
+// Encode decode tiers, fastest first: GPU frames kept on the GPU (zero-copy),
+// then GPU decode, then (implicitly, after the list) CPU decode. A clip
+// whose lead-in frames are held (leadIn.js) skips zero-copy: the frame
+// repeat runs on system-memory frames, and a failure there must not rule
+// zero-copy out for the clips that start on a keyframe. VA-API, QSV and
+// AMF keep frames on the GPU only for 8-bit 4:2:0 sources with even
+// dimensions (video: what inspectVideo read); NVENC as it always did.
+// (the service then leaves out the tiers it found broken: encodeDecodeTiers)
+function decodeTierCandidates(encoder, decodeAccel, { zeroCopy = true, video = null } = {}) {
+  if (encoder?.hardware !== true || encoder.remote === true || typeof decodeAccel !== 'function') return [];
+  const fits = String(encoder.codec || '').endsWith('_nvenc') || zeroCopySource(video);
+  return [
+    ...(zeroCopy && fits ? [{ key: `${decodeKeyOf(encoder)}:zero-copy`, args: decodeAccelFrom(decodeAccel, encoder, { zeroCopy: true }) }] : []),
+    { key: `${decodeKeyOf(encoder)}:gpu`, args: decodeAccelFrom(decodeAccel, encoder) }
+  ].filter((tier) => tier.args);
+}
+
+// The ffmpeg command line of one encode on this server: decodeAccel is the
+// tier's input arguments (null: CPU decoding).
+function ffmpegEncodeCommand({ source, target, codec, encoder, bitrate, quality = null, holdFrames = 0, decodeAccel = null }) {
+  const hwFrames = Array.isArray(decodeAccel) && decodeAccel.includes('-hwaccel_output_format');
+  const device = encoder.hardware === true ? laneDeviceOf(encoder) : null;
+  const encodeArgs = buildEncodeArgs({
+    codec, encoder: encoder.codec, bitrate, quality, hwFrames, ...(device ? { device } : {}), ...(holdFrames > 0 ? { holdFrames } : {})
+  });
+  const args = [
+    '-nostdin', '-hide_banner', '-loglevel', 'error', '-n',
+    ...(decodeAccel || []),
+    '-i', source,
+    ...encodeArgs,
+    '-an', '-sn', '-dn',
+    '-progress', 'pipe:1', '-nostats',
+    '-f', 'mp4', target
+  ];
+  return { encodeArgs, args };
+}
+
 function createConverterJobService(deps) {
   validateDependencies(deps);
   const store = deps.store;
@@ -330,15 +380,9 @@ function createConverterJobService(deps) {
   const encodeDecodeBroken = new Set();
   const verifyDecodeFallbacks = new Map();
   const VERIFY_DECODE_FALLBACK_LIMIT = 3;
-  const laneDevice = (encoder) => (encoder?.device && encoder.device.kind !== 'cpu' ? encoder.device : null);
-  const decodeKey = (encoder) => `${laneDevice(encoder) ? `${laneDevice(encoder).id}|` : ''}${encoder.codec}`;
-  function accelArgs(encoder, options) {
-    try {
-      const device = laneDevice(encoder);
-      const args = deps.decodeAccel(encoder.codec, device ? { ...(options || {}), device } : options);
-      return Array.isArray(args) && args.length > 0 ? args : null;
-    } catch (_) { return null; }
-  }
+  const laneDevice = laneDeviceOf;
+  const decodeKey = decodeKeyOf;
+  const accelArgs = (encoder, options) => decodeAccelFrom(deps.decodeAccel, encoder, options);
   function decodeAccelFor(encoder, purpose) {
     // a node decodes its clips itself; verifying here decodes on this CPU
     if (encoder?.hardware !== true || encoder.remote === true || typeof deps.decodeAccel !== 'function') return null;
@@ -363,20 +407,10 @@ function createConverterJobService(deps) {
     zeroCopyRecord.failures.set(key, failures);
     if (failures >= ZERO_COPY_FAILURE_LIMIT) zeroCopyRecord.off.add(key);
   }
-  // Encode decode tiers, fastest first: GPU frames kept on the GPU (zero-copy),
-  // then GPU decode, then (implicitly, after the list) CPU decode. A clip
-  // whose lead-in frames are held (leadIn.js) skips zero-copy: the frame
-  // repeat runs on system-memory frames, and a failure there must not rule
-  // zero-copy out for the clips that start on a keyframe. VA-API, QSV and
-  // AMF keep frames on the GPU only for 8-bit 4:2:0 sources with even
-  // dimensions (video: what inspectVideo read); NVENC as it always did.
-  function encodeDecodeTiers(encoder, { zeroCopy = true, video = null } = {}) {
-    if (encoder?.hardware !== true || encoder.remote === true || typeof deps.decodeAccel !== 'function') return [];
-    const fits = String(encoder.codec || '').endsWith('_nvenc') || zeroCopySource(video);
-    return [
-      ...(zeroCopy && fits ? [{ key: `${decodeKey(encoder)}:zero-copy`, args: accelArgs(encoder, { zeroCopy: true }) }] : []),
-      { key: `${decodeKey(encoder)}:gpu`, args: accelArgs(encoder) }
-    ].filter((tier) => tier.args && !encodeDecodeBroken.has(tier.key) && !zeroCopyRecord.off.has(tier.key));
+  // The decode tiers this service still offers (decodeTierCandidates).
+  function encodeDecodeTiers(encoder, options = {}) {
+    return decodeTierCandidates(encoder, deps.decodeAccel, options)
+      .filter((tier) => !encodeDecodeBroken.has(tier.key) && !zeroCopyRecord.off.has(tier.key));
   }
   const pathApi = deps.pathApi || require('path');
   const clock = deps.clock || { now: Date.now, sleep: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)) };
@@ -1327,20 +1361,9 @@ function createConverterJobService(deps) {
         return { ok: false, code: 'encoder-start-failed' };
       }
     } else {
-      const hwFrames = Array.isArray(decodeAccel) && decodeAccel.includes('-hwaccel_output_format');
-      const device = encoder.hardware === true ? laneDevice(encoder) : null;
-      encodeArgs = buildEncodeArgs({
-        codec, encoder: encoder.codec, bitrate, quality, hwFrames, ...(device ? { device } : {}), ...(holdFrames > 0 ? { holdFrames } : {})
-      });
-      const args = [
-        '-nostdin', '-hide_banner', '-loglevel', 'error', '-n',
-        ...(decodeAccel || []),
-        '-i', source,
-        ...encodeArgs,
-        '-an', '-sn', '-dn',
-        '-progress', 'pipe:1', '-nostats',
-        '-f', 'mp4', target
-      ];
+      const command = ffmpegEncodeCommand({ source, target, codec, encoder, bitrate, quality, holdFrames, decodeAccel });
+      encodeArgs = command.encodeArgs;
+      const args = command.args;
       try {
         child = deps.spawnProcess(ffmpegPath, args, {
           shell: false,
@@ -3880,5 +3903,7 @@ module.exports = {
   ConverterJobServiceError,
   createConverterJobService,
   createZeroCopyState,
+  decodeTierCandidates,
+  ffmpegEncodeCommand,
   publicSnapshot
 };

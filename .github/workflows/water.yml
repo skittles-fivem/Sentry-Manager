@@ -51,3 +51,132 @@ jobs:
             "  cloud-only: $(($f | Where-Object { ([int]$_.Attributes -band 0x400000) -ne 0 }).Count)"
             $f | Select-Object -First 12 | ForEach-Object { '  ' + $_.FullName.Substring($d.Length) + '  ' + [math]::Round($_.Length/1MB,1) + ' MB' }
           }
+
+  # The converter's decode tiers on this PC's real GPUs (docs/plans/windows.md,
+  # section 8): tools/gpuTiers.js copies a minute of the owner's HW3 and HW4
+  # clips (read only) into the runner's temp folder and encodes them on every
+  # GPU, codec and tier the app would try, with the app's own arguments,
+  # verifier and picture check. The JSON report is kept as an artifact.
+  gpu:
+    needs: probe
+    if: github.event_name == 'push'
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # node.exe, ffmpeg.exe and ffprobe.exe exactly as windows\versions.json
+      # pins them (SHA-256 checked), kept in a folder next to the runner's
+      # work folders so later runs reuse them (each file's hash is checked
+      # again before it is reused).
+      - name: Pinned node and ffmpeg
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $pins = Get-Content -Raw -LiteralPath windows\versions.json | ConvertFrom-Json
+          $cache = Join-Path (Split-Path -Parent $env:RUNNER_WORKSPACE) '_sentry-tools'
+          New-Item -ItemType Directory -Force -Path $cache | Out-Null
+          $utf8 = New-Object Text.UTF8Encoding $false
+          function Get-Sha([string]$file) { (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLowerInvariant() }
+          foreach ($tool in 'node', 'ffmpeg') {
+            $pin = $pins.$tool
+            $want = ([string]$pin.sha256).ToLowerInvariant()
+            if ($want -notmatch '^[0-9a-f]{64}$') { throw "windows/versions.json: $tool has no SHA-256" }
+            if ([string]$pin.url -notmatch '^https://') { throw "windows/versions.json: the $tool url must be https" }
+            $dir = Join-Path $cache "$tool-$($pin.version)"
+            $marker = Join-Path $dir 'hashes.json'
+            $names = @($pin.files.PSObject.Properties | ForEach-Object { $_.Name })
+            $reuse = $false
+            if (Test-Path -LiteralPath $marker) {
+              $known = Get-Content -Raw -LiteralPath $marker | ConvertFrom-Json
+              $reuse = ($known.zip -eq $want)
+              foreach ($name in $names) {
+                $file = Join-Path $dir $name
+                if (-not $reuse -or -not (Test-Path -LiteralPath $file) -or (Get-Sha $file) -ne $known.files.$name) { $reuse = $false }
+              }
+            }
+            if ($reuse) {
+              Write-Host "$tool $($pin.version): reused from $dir"
+            } else {
+              if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
+              New-Item -ItemType Directory -Force -Path $dir | Out-Null
+              $zip = Join-Path $env:RUNNER_TEMP "$tool.zip"
+              Write-Host "Downloading $tool $($pin.version) from $($pin.url)"
+              Invoke-WebRequest -UseBasicParsing -Uri ([string]$pin.url) -OutFile $zip
+              $got = Get-Sha $zip
+              if ($got -ne $want) { throw "the $tool download does not match its pinned SHA-256 (expected $want, got $got)" }
+              $hashes = @{}
+              $z = [IO.Compression.ZipFile]::OpenRead($zip)
+              try {
+                foreach ($name in $names) {
+                  $from = [string]$pin.files.$name
+                  $entry = $z.GetEntry($from)
+                  if (-not $entry) { throw "the $tool archive has no $from" }
+                  $file = Join-Path $dir $name
+                  [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $file, $true)
+                  $hashes[$name] = Get-Sha $file
+                }
+              } finally { $z.Dispose() }
+              Remove-Item -LiteralPath $zip -Force
+              [IO.File]::WriteAllText($marker, (@{ zip = $want; files = $hashes } | ConvertTo-Json), $utf8)
+            }
+          }
+          $nodeExe = Join-Path $cache "node-$($pins.node.version)\node.exe"
+          $ffDir = Join-Path $cache "ffmpeg-$($pins.ffmpeg.version)"
+          [IO.File]::AppendAllText($env:GITHUB_ENV, "SENTRY_NODE=$nodeExe`nSENTRY_FFMPEG=$(Join-Path $ffDir 'ffmpeg.exe')`nSENTRY_FFPROBE=$(Join-Path $ffDir 'ffprobe.exe')`n", $utf8)
+          & $nodeExe -v
+          & (Join-Path $ffDir 'ffmpeg.exe') -hide_banner -version | Select-Object -First 1
+
+      # The helper lists the Intel/AMD adapters (gpu.list), as in the app.
+      - name: Helper (csc)
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          if (-not (Test-Path -LiteralPath $csc)) { throw "no .NET Framework 4.8 compiler at $csc" }
+          $bin = Join-Path $env:RUNNER_TEMP 'helper'
+          New-Item -ItemType Directory -Force -Path $bin | Out-Null
+          $exe = Join-Path $bin 'SentryHelper.exe'
+          & $csc /nologo /optimize+ /platform:x64 /target:exe /reference:System.dll /reference:System.Core.dll /reference:System.Management.dll /reference:System.Web.Extensions.dll "/out:$exe" windows\helper\SentryHelper.cs
+          if ($LASTEXITCODE -ne 0) { throw 'csc could not compile SentryHelper.cs' }
+          [IO.File]::AppendAllText($env:GITHUB_ENV, "SENTRY_HELPER=$exe`n", (New-Object Text.UTF8Encoding $false))
+          Write-Host "Built $exe"
+
+      - name: GPU tiers (HW3 and HW4 clips)
+        run: |
+          $ErrorActionPreference = 'Stop'
+          nvidia-smi --query-gpu=name,driver_version,pci.bus_id --format=csv
+          $out = Join-Path $env:RUNNER_TEMP 'gputiers'
+          $report = Join-Path $env:RUNNER_TEMP 'gpu-report\gpu-tiers.json'
+          & $env:SENTRY_NODE tools\gpuTiers.js --ffmpeg $env:SENTRY_FFMPEG --ffprobe $env:SENTRY_FFPROBE `
+            --clips 'C:\Users\ktmcm\OneDrive\Desktop\2026-10-19' --clips 'C:\Users\ktmcm\OneDrive\Desktop\2026-07-21' `
+            --out $out --report $report
+          $code = $LASTEXITCODE
+          $text = Join-Path $env:RUNNER_TEMP 'gpu-report\gpu-tiers.txt'
+          if (Test-Path -LiteralPath $text) {
+            $fence = '```'
+            [IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, "${fence}text`n$([IO.File]::ReadAllText($text))`n${fence}`n", (New-Object Text.UTF8Encoding $false))
+          }
+          exit $code
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gpu-tiers
+          path: ${{ runner.temp }}\gpu-report
+          if-no-files-found: warn
+
+      - name: Clean up
+        if: always()
+        run: |
+          foreach ($d in 'gputiers', 'gpu-report', 'helper') {
+            $p = Join-Path $env:RUNNER_TEMP $d
+            if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction Continue }
+          }
