@@ -1,0 +1,48 @@
+name: Windows PC (water)
+
+# Runs on the owner's own Windows PC (a self-hosted runner) for what GitHub's
+# machines cannot test: real GPUs, the network, a TrueNAS node. Only pushes
+# to wip start it, never pull requests, so nobody else's code runs there.
+
+on:
+  push:
+    branches: [wip]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: water
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Windows, CPU and GPUs
+        run: |
+          Get-CimInstance Win32_OperatingSystem | Format-List Caption, Version, BuildNumber, OSArchitecture
+          Get-CimInstance Win32_Processor | Format-List Name, NumberOfCores, NumberOfLogicalProcessors
+          Get-CimInstance Win32_VideoController | Format-List Name, DriverVersion, AdapterRAM, PNPDeviceID, VideoProcessor
+          "Admin: " + ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          "User: " + [Security.Principal.WindowsIdentity]::GetCurrent().Name
+      - name: Tools already installed
+        run: |
+          foreach ($t in 'node','ffmpeg','ffprobe','nvidia-smi','git','docker','pwsh') {
+            $c = Get-Command $t -ErrorAction SilentlyContinue
+            if ($c) { "$t -> $($c.Source)" } else { "$t -> (not found)" }
+          }
+          try { node -v } catch {}
+          try { nvidia-smi --query-gpu=name,driver_version,pci.bus_id --format=csv } catch {}
+      - name: Disks and network
+        run: |
+          Get-CimInstance Win32_LogicalDisk | Format-Table DeviceID, FileSystem, @{n='FreeGB';e={[math]::Round($_.FreeSpace/1GB)}}, @{n='SizeGB';e={[math]::Round($_.Size/1GB)}}
+          Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' } | Format-Table InterfaceAlias, IPAddress
+          foreach ($h in '192.168.1.57') {
+            $r = Test-NetConnection $h -Port 9000 -WarningAction SilentlyContinue
+            "$($h):9000 reachable: $($r.TcpTestSucceeded)"
+          }
