@@ -66,6 +66,32 @@ function Run-Native([string]$File, [string[]]$Arguments, [string]$What) {
   if ($LASTEXITCODE -ne 0) { throw "$What failed ($File exit code $LASTEXITCODE)." }
 }
 
+# The same with the command line written out as is. PowerShell re-quotes
+# arguments that hold quotes (5.1 and 7 each their own way), and sc.exe then
+# refuses the line (exit code 1639), so binPath goes this way.
+function Run-NativeLine([string]$File, [string]$Line, [string]$What) {
+  $info = New-Object System.Diagnostics.ProcessStartInfo
+  $info.FileName = $File
+  $info.Arguments = $Line
+  $info.UseShellExecute = $false
+  $proc = [System.Diagnostics.Process]::Start($info)
+  try { $proc.WaitForExit(); $code = $proc.ExitCode } finally { $proc.Dispose() }
+  if ($code -ne 0) { throw "$What failed ($File exit code $code)." }
+}
+
+# Removes every entry this SID has on a folder, if it has any. icacls cannot:
+# it refuses a SID no account has (exit code 1332), such as the service's
+# when there never was one, or it was just removed.
+function Remove-SidEntries([string]$Path, [string]$Sid) {
+  if (-not (Test-Path -LiteralPath $Path)) { return }
+  $target = New-Object System.Security.Principal.SecurityIdentifier($Sid)
+  $acl = Get-Acl -LiteralPath $Path
+  $mine = @($acl.GetAccessRules($true, $false, [System.Security.Principal.SecurityIdentifier]) | Where-Object { $_.IdentityReference.Value -eq $target.Value })
+  if ($mine.Count -eq 0) { return }
+  $acl.PurgeAccessRules($target)
+  Set-Acl -LiteralPath $Path -AclObject $acl
+}
+
 function Same-Path([string]$A, [string]$B) {
   $fa = [System.IO.Path]::GetFullPath($A).TrimEnd('\')
   $fb = [System.IO.Path]::GetFullPath($B).TrimEnd('\')
@@ -590,17 +616,17 @@ $portLine
 
   # --- 5. the service (service mode), or none (app mode) ---
   if ($Mode -eq 'service') {
-    # binPath must reach the service manager in quotes (the path has a space).
-    # Windows PowerShell 5.1 does not escape embedded quotes for native tools,
-    # hence the \" ; the registry is checked afterwards either way.
-    $binPathArg = '\"' + $ServiceExe + '\"'
+    # binPath must reach the service manager in quotes (the path has a space):
+    # "\"C:\...\SentryService.exe\"" on the command line, written out as is
+    # (Run-NativeLine); the registry is checked afterwards either way.
+    $scArgs = 'binPath= "\"' + $ServiceExe + '\"" obj= "' + $ServiceAccount + '" start= delayed-auto depend= Tcpip/LanmanWorkstation DisplayName= "Sentry Six Manager"'
     $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if ($null -eq $svc) {
       Say "Creating the service $ServiceName (runs as ${ServiceAccount}: no password, not an administrator)..."
-      Run-Native 'sc.exe' @('create', $ServiceName, 'binPath=', $binPathArg, 'obj=', $ServiceAccount, 'start=', 'delayed-auto', 'depend=', 'Tcpip/LanmanWorkstation', 'DisplayName=', 'Sentry Six Manager') 'Creating the service'
+      Run-NativeLine 'sc.exe' "create $ServiceName $scArgs" 'Creating the service'
     } else {
       Say "Updating the service $ServiceName..."
-      Run-Native 'sc.exe' @('config', $ServiceName, 'binPath=', $binPathArg, 'obj=', $ServiceAccount, 'start=', 'delayed-auto', 'depend=', 'Tcpip/LanmanWorkstation', 'DisplayName=', 'Sentry Six Manager') 'Updating the service'
+      Run-NativeLine 'sc.exe' "config $ServiceName $scArgs" 'Updating the service'
     }
     $regKey = "HKLM:\SYSTEM\CurrentControlSet\Services\$ServiceName"
     $wantImage = '"' + $ServiceExe + '"'
@@ -656,7 +682,8 @@ $portLine
   if (-not [string]::IsNullOrEmpty($prevUserSid) -and $prevUserSid -ne $AppUserSid -and (Is-PersonSid $prevUserSid)) { $gone += $prevUserSid }
   foreach ($sid in $gone) {
     foreach ($p in @($InstallDir, $DataRoot) + @($subs | ForEach-Object { Join-Path $DataRoot $_ })) {
-      Run-Native 'icacls.exe' @($p, '/remove:g', "*$sid", '/C', '/Q') "Removing $(Sid-Name $sid) from $p"
+      Say "Removing $(Sid-Name $sid) from $p..."
+      Remove-SidEntries $p $sid
     }
   }
   if ($Mode -eq 'service') {
