@@ -411,7 +411,6 @@ function leftovers(base, folder) {
   return found;
 }
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Dies at the point, starts again on the same folders, waits for the job.
 // Returns what a test checks: the job, each clip's codec (and whether a
@@ -420,7 +419,9 @@ async function crashAndRecover({ point, mode = 'replace', networkMode = 'direct'
   const { base, folder } = await makeBase(clips);
   const names = fs.readdirSync(folder).sort();
   const before = Object.fromEntries(names.map((name) => [name, sha256(path.join(folder, name))]));
+  const crashStarted = Date.now();
   const died = await crash(base, { point, concurrency, mode, networkMode });
+  trace(`the crash took ${Date.now() - crashStarted} ms`);
   let env;
   try {
     env = await open(base, { concurrency, mode, networkMode });
@@ -445,7 +446,9 @@ async function crashAndRecover({ point, mode = 'replace', networkMode = 'direct'
             + `/owned=${Object.keys(item.ownedPaths || {}).join('+') || '-'}`).join(' '));
       }, 1000);
     }
-    await Promise.race([env.runtime.service.whenIdle(listed.id), sleep(90_000)]);
+    let waited;
+    await Promise.race([env.runtime.service.whenIdle(listed.id), new Promise((resolve) => { waited = setTimeout(resolve, 90_000); })]);
+    clearTimeout(waited);
     clearInterval(ticker);
     trace('wait over');
     traceProcesses('after the wait');
@@ -467,7 +470,10 @@ async function crashAndRecover({ point, mode = 'replace', networkMode = 'direct'
 
 function assertRecovered(result, { mode = 'replace' } = {}) {
   assert.equal(result.died.signal, 'SIGKILL', `the converter died at the point (${result.died.stderr.slice(0, 300)})`);
-  assert.equal(result.job.state, 'completed', `finished by itself: ${JSON.stringify(result.job.recovery || null)}`);
+  // (what each clip was doing, when the job had not finished)
+  const clipStates = () => result.job.items.map((item) => `${item.relativePath}: ${item.state} ${item.resultCode || ''}`
+    + ` ${item.failure?.code || ''} attempts ${item.attempts || 0}`).join('; ');
+  assert.equal(result.job.state, 'completed', `finished by itself: ${JSON.stringify(result.job.recovery || null)} (${clipStates()})`);
   assert.equal(result.job.recovery ?? null, null);
   for (const item of result.job.items) {
     assert.equal(item.state, 'completed', `${item.relativePath}: ${item.state} ${item.resultCode || ''}`);

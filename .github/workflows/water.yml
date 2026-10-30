@@ -269,6 +269,8 @@ jobs:
           [IO.File]::AppendAllText($env:GITHUB_ENV, "SENTRY_HELPER=$exe`n", (New-Object Text.UTF8Encoding $false))
           [IO.File]::AppendAllText($env:GITHUB_PATH, "$(Split-Path -Parent $env:SENTRY_FFMPEG)`n", (New-Object Text.UTF8Encoding $false))
 
+      # Each run beside the other crash suites, as npm test runs them at once
+      # (the failure on windows-latest came while all of them ran).
       - name: converterCrashParallel x20
         env:
           REQUIRE_TOOLS: '1'
@@ -280,15 +282,19 @@ jobs:
           for ($i = 1; $i -le 20; $i++) {
             $t = [Diagnostics.Stopwatch]::StartNew()
             $log = Join-Path $env:RUNNER_TEMP "stress-$i.log"
+            $others = Join-Path $env:RUNNER_TEMP "stress-others-$i.log"
+            $bg = Start-Process -FilePath $env:SENTRY_NODE -ArgumentList '--disable-warning=ExperimentalWarning', '--test', '--test-reporter=spec', 'test/converterCrashReplace.test.js', 'test/converterCrashSeparate.test.js', 'test/winOwnedFsCrash.test.js' -RedirectStandardOutput $others -RedirectStandardError "$others.err" -NoNewWindow -PassThru
             cmd /c "`"$env:SENTRY_NODE`" --disable-warning=ExperimentalWarning --test --test-reporter=spec test/converterCrashParallel.test.js > `"$log`" 2>&1"
             $code = $LASTEXITCODE
+            $bg.WaitForExit()
             if ($code -eq 0) { $pass++ }
-            $line = "run ${i}: exit $code in $([math]::Round($t.Elapsed.TotalSeconds)) s"
+            $line = "run ${i}: exit $code in $([math]::Round($t.Elapsed.TotalSeconds)) s (others exit $($bg.ExitCode))"
             $results += $line
             Write-Host "::group::$line"
             Get-Content -Encoding UTF8 -LiteralPath $log | Write-Host
             Write-Host '::endgroup::'
             Get-Content -Encoding UTF8 -LiteralPath $log | Select-String -Pattern '(\u2716|\u2139 pass|\u2139 fail)' | ForEach-Object { Write-Host "  $_" }
+            Get-Content -Encoding UTF8 -LiteralPath $others | Select-String -Pattern '(\u2716|\u2139 pass|\u2139 fail)' | ForEach-Object { Write-Host "  others: $_" }
           }
           $results | ForEach-Object { Write-Host $_ }
           Write-Host "STRESS RESULT: $pass/20 passed"
