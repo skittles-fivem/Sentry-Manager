@@ -2021,6 +2021,10 @@ function createConverterJobService(deps) {
       const zeroCopyKey = usedTier?.key?.endsWith(':zero-copy') ? usedTier.key : null;
       let zeroCopyDiscard = false;
       while (zeroCopyKey && !zeroCopyRecord.checked.has(zeroCopyKey) && pictureCheckedZeroCopy(selected)) {
+        // Zero-copy was turned off on this GPU and codec while this clip
+        // encoded (another clip's pictures did not match): this one is never
+        // trusted either, and not checked again.
+        if (zeroCopyRecord.off.has(zeroCopyKey)) { zeroCopyDiscard = true; break; }
         // Another clip on this GPU and codec is being checked: its verdict
         // decides this one too. A mismatch throws this clip away as well; an
         // undecided check leaves this clip to be checked itself.

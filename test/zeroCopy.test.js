@@ -105,7 +105,8 @@ test('only 8-bit 4:2:0 sources with even dimensions may stay on the GPU', () => 
 
 // A converter job service over the real job store and planner, whose ffmpeg
 // is `spawnProcess` (a fake child, or a real node script).
-function createRig({ platform = 'linux', device, works, behave, video = TESLA, timeline = { frames: [] }, comparePicture, spawnProcess, clips = 1, concurrency = 1, zeroCopyState }) {
+// (encodeMs: how long an encode with these arguments takes; none by default)
+function createRig({ platform = 'linux', device, works, behave, encodeMs, video = TESLA, timeline = { frames: [] }, comparePicture, spawnProcess, clips = 1, concurrency = 1, zeroCopyState }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-zerocopy-'));
   const store = createJobStore({ rootDir: path.join(dir, 'jobs'), fs: fs.promises });
   const advertised = ['libx265', 'hevc_vaapi', 'hevc_qsv', 'hevc_amf', 'hevc_nvenc'];
@@ -134,10 +135,13 @@ function createRig({ platform = 'linux', device, works, behave, video = TESLA, t
     child.kill = (signal) => finish(null, signal || 'SIGTERM');
     spawned.push({ command, args });
     const code = behave ? behave(args) : 0;
-    setImmediate(() => {
+    const ms = encodeMs ? encodeMs(args) : 0;
+    const end = () => {
       if (code === 0) child.stdout.emit('data', 'fps=100\nprogress=end\n');
       finish(code);
-    });
+    };
+    if (ms > 0) setTimeout(end, ms);
+    else setImmediate(end);
     return child;
   };
   const record = (spawn) => (command, args, options) => {
@@ -410,6 +414,32 @@ test('one zero-copy picture check at a time per GPU and codec; the clips that fi
     assert.equal(mismatch.compared.length, 1);
   } finally {
     await mismatch.close();
+  }
+  // a clip encoded zero-copy that finishes only after the mismatch was found
+  // (a slower clip, or a slower system) is not checked again: zero-copy is
+  // off for that GPU, so it goes back to GPU decoding like the others
+  let zeroCopyEncodes = 0;
+  const late = createRig({
+    device: AMD_RENDER, works: vaapiWorks, clips: 3, concurrency: 3,
+    encodeMs: (args) => {
+      if (!args.includes('pipe:1') || !args.includes('-hwaccel_output_format')) return 0;
+      zeroCopyEncodes += 1;
+      return zeroCopyEncodes === 3 ? 300 : 0;
+    },
+    comparePicture: async () => {
+      // the verdict comes once all three are encoding zero-copy
+      while (zeroCopyEncodes < 3) await sleep(5);
+      return { ok: false, mean: 0.2, low: 0.1 };
+    }
+  });
+  try {
+    assert.equal((await late.run()).state, 'completed');
+    const tiers = late.encodes().map((entry) => late.tierOf(entry.args));
+    assert.equal(tiers.filter((tier) => tier === 'zero-copy').length, 3);
+    assert.equal(tiers.filter((tier) => tier === 'gpu').length, 3);
+    assert.equal(late.compared.length, 1, 'one check, however late a clip finishes');
+  } finally {
+    await late.close();
   }
 });
 

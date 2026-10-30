@@ -459,7 +459,9 @@ function fakeServiceFactory(record) {
   };
 }
 
-async function openRuntime(dir, { devices, works = desktopWorks, service = null, listMs = 0 } = {}) {
+// (platform: what the runtime is told it runs on; the planner here is always
+// Linux's, as the devices are /dev/dri and NVIDIA ones)
+async function openRuntime(dir, { devices, works = desktopWorks, service = null, listMs = 0, platform = null } = {}) {
   const { createConverterRuntime } = require('../src/main/converter/runtime');
   const { spawn } = require('child_process');
   const probe = fakeProbe(works);
@@ -469,6 +471,7 @@ async function openRuntime(dir, { devices, works = desktopWorks, service = null,
   const runtime = await createConverterRuntime({
     userDataPath: fs.realpathSync(path.join(dir, 'data')), tempPath: fs.realpathSync(path.join(dir, 'temp')),
     ffmpegPath: 'ffmpeg', ffprobePath: 'ffprobe', spawn, autoConvert: false,
+    ...(platform ? { platform } : {}),
     factories: {
       createEncoderPlanner: () => createEncoderPlanner({ runProbe: probe.runProbe, platform: 'linux' }),
       createDeviceDiscovery: () => ({
@@ -489,7 +492,9 @@ test('devices() lists each device with the encoder it proved, and the default de
   const previousOrder = process.env.CUDA_DEVICE_ORDER;
   delete process.env.CUDA_DEVICE_ORDER;
   try {
-    const { runtime, probe, discovery } = await openRuntime(dir, { devices: [UHD, ARC, T400, CPU] });
+    // the Linux rules (QSV and VA-API without a device open renderD128) on
+    // every system: Windows' own are in runtimeGpuWin32.test.js
+    const { runtime, probe, discovery } = await openRuntime(dir, { devices: [UHD, ARC, T400, CPU], platform: 'linux' });
     assert.equal(process.env.CUDA_DEVICE_ORDER, undefined, 'CUDA keeps its own order for every ffmpeg that names no GPU');
     await runtime.start();
     assert.equal(probe.calls.length, 0, 'nothing is probed until something asks');
@@ -514,11 +519,11 @@ test('devices() lists each device with the encoder it proved, and the default de
     await runtime.shutdown();
 
     const nvidia = await openRuntime(fs.mkdtempSync(path.join(dir, 'nv-')), {
-      devices: [ARC, T400, CPU], works: (encoder, args) => encoder.endsWith('_nvenc') || desktopWorks(encoder, args)
+      devices: [ARC, T400, CPU], platform: 'linux', works: (encoder, args) => encoder.endsWith('_nvenc') || desktopWorks(encoder, args)
     });
     assert.equal((await nvidia.runtime.devices()).defaultDevice, T400.id, 'NVENC without a device is index 0');
     await nvidia.runtime.shutdown();
-    const cpuOnly = await openRuntime(fs.mkdtempSync(path.join(dir, 'cpu-')), { devices: [CPU], works: (encoder) => encoder.startsWith('lib') });
+    const cpuOnly = await openRuntime(fs.mkdtempSync(path.join(dir, 'cpu-')), { devices: [CPU], works: (encoder) => encoder.startsWith('lib'), platform: 'linux' });
     assert.deepEqual(await cpuOnly.runtime.devices(), { devices: [{ ...CPU, encoders: null }], defaultDevice: null, defaultDevices: null });
     assert.equal(cpuOnly.probe.calls.length, 0, 'no GPU: nothing is tested');
     await cpuOnly.runtime.shutdown();
@@ -581,7 +586,8 @@ test('devices(): one GPU tests nothing and logs nothing; a GPU converting now, o
 test('the default device per codec: AV1 may use another GPU than H.265; NVENC only when one NVIDIA GPU can', async (t) => {
   captureWarnings(t);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-lanes-rt-'));
-  const open = (devices, works) => openRuntime(fs.mkdtempSync(path.join(dir, 'rt-')), { devices, works });
+  // (the Linux rules on every system, as above)
+  const open = (devices, works) => openRuntime(fs.mkdtempSync(path.join(dir, 'rt-')), { devices, works, platform: 'linux' });
   const RTX = { ...T400, id: 'pci:0000:02:00.0', pci: '0000:02:00.0', name: 'NVIDIA GeForce RTX 3060', index: 1 };
   try {
     // an Arc A380 on renderD128 next to a T400 (NVENC H.265, no AV1)
@@ -650,7 +656,9 @@ test('only an ffmpeg that names an NVIDIA GPU by index numbers them in PCI order
   await run('ffmpeg', ['-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda', '-i', 'clip.mp4', '-c:v', 'hevc_nvenc']);
   assert.deepEqual(seen.map((options) => options.env?.CUDA_DEVICE_ORDER ?? null), ['PCI_BUS_ID', 'PCI_BUS_ID', null, null]);
   assert.equal('env' in seen[3], false, 'a job without lanes: the server\'s own environment, as always');
-  assert.equal(seen[0].env.PATH, process.env.PATH, 'the rest of the environment is kept');
+  // (Windows names it Path: its environment ignores case, a copy of it does not)
+  const pathKey = Object.keys(process.env).find((key) => key.toUpperCase() === 'PATH');
+  assert.equal(seen[0].env[pathKey], process.env.PATH, 'the rest of the environment is kept');
 
   // the converter's encodes too
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-lanes-rt-'));

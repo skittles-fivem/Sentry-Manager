@@ -130,31 +130,30 @@ function judgeFrames(sourceBuf, candidateBuf, { minShift = -SHIFT, maxShift = SH
   return { ok: mean >= PICTURE_MEAN && low >= PICTURE_LOW, mean: round(mean), low: round(low), frames: scores.length, shift: best.shift };
 }
 
-/**
- * Run decodes at once and wait for every one to end, also after one fails:
- * the first failure stops the others (through their signal) and is the
- * answer once they have all let go of their files. A decoder still reading
- * the original after the check has answered would keep it open, and on
- * Windows a file that is open cannot be replaced, moved to the bin or
- * deleted.
- */
-async function decodeAll(jobs, signal) {
+/** decode(file, { width, height, signal }) -> Buffer of grey frames. */
+// Runs the decodes at once and answers their pictures in order. When one
+// fails the others are stopped, and the answer waits until every one has
+// ended: no decoder is left reading the original or the encode (on Windows
+// an open file cannot be deleted, and the clip's files are cleaned up next).
+async function decodeAll(decodes, signal) {
   const stop = new AbortController();
-  const abort = () => stop.abort();
+  const forward = () => stop.abort();
   if (signal?.aborted) stop.abort();
-  else signal?.addEventListener('abort', abort, { once: true });
+  else signal?.addEventListener('abort', forward, { once: true });
   let first = null;
-  const settled = await Promise.allSettled(jobs.map((job) => Promise.resolve().then(() => job(stop.signal)).catch((err) => {
-    if (!first) first = { err };
-    stop.abort();
-    throw err;
-  })));
-  signal?.removeEventListener('abort', abort);
-  if (first) throw first.err;
-  return settled.map((r) => r.value);
+  try {
+    const settled = await Promise.allSettled(decodes.map((run) => Promise.resolve().then(() => run(stop.signal)).catch((err) => {
+      if (!first) first = { err };
+      stop.abort();
+      throw err;
+    })));
+    if (first) throw first.err;
+    return settled.map((entry) => entry.value);
+  } finally {
+    signal?.removeEventListener('abort', forward);
+  }
 }
 
-/** decode(file, { width, height, signal }) -> Buffer of grey frames. */
 async function comparePictures({ source, candidate, signal, decode, durationSeconds = null, random = Math.random }) {
   // A clip long enough: a few short stretches at random places, chosen only
   // now that the encode is back (the node cannot know which), instead of
@@ -167,9 +166,9 @@ async function comparePictures({ source, candidate, signal, decode, durationSeco
     // all decoded at once
     const starts = Array.from({ length: SAMPLE_COUNT }, (_, n) => Math.round((SAMPLE_EDGE_SECONDS + ((n + random()) / SAMPLE_COUNT) * span) * 100) / 100);
     const stretches = starts.map((start) => ({ start, from: Math.max(0, start - SAMPLE_MARGIN_SECONDS) }));
-    let frames;
+    let decoded;
     try {
-      frames = await decodeAll(stretches.flatMap(({ start, from }) => [
+      decoded = await decodeAll(stretches.flatMap(({ start, from }) => [
         (stop) => decode(source, { width: W, height: H, signal: stop, start, length: SAMPLE_SECONDS }),
         (stop) => decode(candidate, { width: W, height: H, signal: stop, start: from, length: SAMPLE_SECONDS + (start - from) + SAMPLE_MARGIN_SECONDS })
       ]), signal);
@@ -181,7 +180,7 @@ async function comparePictures({ source, candidate, signal, decode, durationSeco
       // sit that many frames on (~36 fps, up to 40), give or take the lead-in
       const early = Math.round((start - from) * 36);
       const slack = Math.ceil((start - from) * 4) + SHIFT;
-      return { ...judgeFrames(frames[2 * n], frames[2 * n + 1], { minShift: early - slack, maxShift: early + slack, expect: early }), at: start };
+      return { ...judgeFrames(decoded[2 * n], decoded[2 * n + 1], { minShift: early - slack, maxShift: early + slack, expect: early }), at: start };
     });
     const failed = results.find((r) => !r.ok);
     if (failed) return { ...failed, sampled: results.length };
@@ -197,7 +196,10 @@ async function comparePictures({ source, candidate, signal, decode, durationSeco
   let a;
   let b;
   try {
-    [a, b] = await decodeAll([(stop) => decode(source, { width: W, height: H, signal: stop }), (stop) => decode(candidate, { width: W, height: H, signal: stop })], signal);
+    [a, b] = await decodeAll([
+      (stop) => decode(source, { width: W, height: H, signal: stop }),
+      (stop) => decode(candidate, { width: W, height: H, signal: stop })
+    ], signal);
   } catch (err) {
     return { ok: false, reason: 'decode-failed', detail: String(err?.code || err?.message || err).slice(0, 80) };
   }
@@ -226,7 +228,8 @@ function ffmpegDecoder({ spawn, ffmpegPath = 'ffmpeg', timeoutMs = 30 * 60_000, 
     const limit = width * height * MAX_FRAMES;
     const timer = setTimeout(() => child.kill('SIGKILL'), timeoutMs);
     const abort = () => child.kill('SIGKILL');
-    signal?.addEventListener('abort', abort, { once: true });
+    if (signal?.aborted) abort();
+    else signal?.addEventListener('abort', abort, { once: true });
     child.stdout.on('data', (c) => {
       size += c.length;
       if (size > limit) child.kill('SIGKILL');
