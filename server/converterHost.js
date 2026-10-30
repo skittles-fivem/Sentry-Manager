@@ -2,14 +2,16 @@
 
 // Runs the Sentry Studio converter (src/main/converter, unchanged) inside the
 // server, composed the same way src/main.js does it in the desktop app. The
-// only differences: Linux owned-file operations, a wider set of retryable
-// network errors (Linux SMB soft mounts also report EHOSTDOWN / ESTALE /
-// EAGAIN), and no Electron app/dialog.
+// only differences: the server's owned-file operations (posixOwnedFs on
+// Linux, winOwnedFs through SentryHelper.exe on native Windows), a wider set
+// of retryable network errors (Linux SMB soft mounts also report EHOSTDOWN /
+// ESTALE / EAGAIN), and no Electron app/dialog.
 
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { createPosixOwnedFs } = require('./posixOwnedFs');
+const { createWinOwnedFs } = require('./platform/winOwnedFs');
 const { gpuDisplayName } = require('./stats/gpu');
 
 const SRC = path.join(__dirname, '..', 'src');
@@ -56,15 +58,35 @@ function createNetwork() {
   };
 }
 
+// Without a helper client (not handed in) nothing on Windows can be moved or
+// removed safely: replacing originals and owned cleanup report unavailable.
+const NO_HELPER = Object.freeze({
+  available: () => false,
+  request: async () => { throw Object.assign(new Error('SentryHelper.exe is not available.'), { code: 'ENOSYS' }); }
+});
+
+/** The owned-file adapter for the platform the server runs on. */
+function ownedFsFor(platform, helper) {
+  return platform === 'win32' ? createWinOwnedFs({ helper: helper || NO_HELPER }) : createPosixOwnedFs();
+}
+
 /**
  * @param {object} o
  * @param {string} o.dataDir   persistent local dir (job store lives here)
  * @param {string} o.tempDir   persistent local dir for staging / verification
  * @param {(runtime) => void} [o.onReady]
+ * @param {string} [o.platform]  process.platform (tests inject it)
+ * @param {object} [o.helper]    win32: the SentryHelper.exe client (server/platform/winHelper.js)
+ * @param {() => string[]} [o.replacementRoots]  footage folders whose drives are checked at start
  */
-function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobePath = 'ffprobe', log, onClipConverted, owned = createPosixOwnedFs(), powerMeter = null, isCheapNow = null, remoteNodes = null }) {
+function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobePath = 'ffprobe', log, onClipConverted, platform = process.platform, helper = null, owned = ownedFsFor(platform, helper), replacementRoots = null, powerMeter = null, isCheapNow = null, remoteNodes = null }) {
   fs.mkdirSync(dataDir, { recursive: true });
   fs.mkdirSync(tempDir, { recursive: true });
+  // Windows: the native realpath (real letter case, long names instead of
+  // 8.3 short ones, a mapped drive as its UNC path); the JS one keeps
+  // whatever spelling it was given, and staging refuses any owned file whose
+  // real path differs from the path it was given.
+  const realpath = platform === 'win32' ? fs.realpathSync.native : fs.realpathSync;
   let runtime = null;
   let lastError = null;
 
@@ -72,14 +94,14 @@ function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobeP
     app: { quit() {} },
     initialize: async ({ retainRuntime, runtime: existing, isQuitting }) => {
       const rt = existing || await createConverterRuntime({
-        userDataPath: fs.realpathSync(dataDir),
-        tempPath: fs.realpathSync(tempDir),
+        userDataPath: realpath(dataDir),
+        tempPath: realpath(tempDir),
         ffmpegPath,
         ffprobePath,
         spawn,
         fs,
         pathApi: path,
-        platform: process.platform,
+        platform,
         removeOwned: owned.removeOwned,
         renameExclusive: owned.renameExclusive,
         // tempDir is the container's own: no footage, nobody else writes there
@@ -106,6 +128,32 @@ function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobeP
     onError: (error) => log?.error(`Converter shutdown failed: ${error?.code || 'SHUTDOWN_FAILED'}${error?.field ? ` (field ${String(error.field).slice(0, 80)})` : ''}`)
   });
 
+  // Drives where replacing originals is not possible although the adapter
+  // is (Windows: the identity check per drive, see winOwnedFs.checkVolume).
+  // Docker's adapter has no such check: nothing is listed there.
+  const rootChecks = new Map(); // root -> { available, reason? }
+  async function checkReplacementRoots(roots = replacementRoots?.() || []) {
+    const check = owned.renameExclusive?.replacementSupport;
+    if (typeof check !== 'function') return [];
+    const out = [];
+    for (const root of new Set((roots || []).filter((r) => typeof r === 'string' && r))) {
+      let verdict;
+      try {
+        verdict = await check(realpath(root));
+      } catch (error) {
+        verdict = { available: false, reason: `the folder cannot be read (${error?.code || 'error'})` };
+      }
+      const before = rootChecks.get(root);
+      rootChecks.set(root, verdict);
+      if (rootChecks.size > 256) rootChecks.delete(rootChecks.keys().next().value);
+      if (!verdict.available && before?.reason !== verdict.reason) {
+        log?.warn?.(`Replacing originals is unavailable for ${root}: ${verdict.reason}`);
+      }
+      out.push({ root, ...verdict });
+    }
+    return out;
+  }
+
   /** Start with retries (the desktop shows a recovery dialog instead). */
   async function start({ attempts = 5, delayMs = 2000 } = {}) {
     for (let i = 1; ; i++) {
@@ -113,6 +161,7 @@ function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobeP
         runtime = await lifecycle.start();
         lastError = null;
         log?.info(`Converter ready (replacement ${runtime.capabilities.replacement}, cleanup ${runtime.capabilities.ownershipCleanup})`);
+        if (replacementRoots) await checkReplacementRoots().catch(() => {});
         return runtime;
       } catch (error) {
         lastError = error;
@@ -128,8 +177,11 @@ function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobeP
     stop: () => lifecycle.beforeQuit({ preventDefault() {} }),
     get runtime() { return runtime; },
     get lastError() { return lastError; },
-    helperAvailable: owned.helperAvailable
+    // the Windows helper may crash and come back: read at each request
+    get helperAvailable() { return owned.helperAvailable; },
+    checkReplacementRoots,
+    replacementRoots: () => [...rootChecks].map(([root, verdict]) => ({ root, ...verdict }))
   };
 }
 
-module.exports = { createConverterHost, createDeviceNameOf, RETRYABLE };
+module.exports = { createConverterHost, createDeviceNameOf, ownedFsFor, RETRYABLE };

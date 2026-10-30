@@ -1,0 +1,36 @@
+'use strict';
+
+// The converter's owned-file suites, run again with the Windows adapter
+// (server/platform/winOwnedFs.js) in place of posixOwnedFs, backed by a
+// stand-in for SentryHelper.exe that works on this machine's real files
+// (test/fixtures/winFsHelperFake.js). The same assertions then prove the
+// same safety properties on the Windows path: nothing is ever overwritten,
+// a removal refuses a file whose identity or content is not the recorded
+// one, a guard that changed keeps the backup, and a replacement swaps,
+// rolls back and cleans up exactly as on Docker.
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const path = require('path');
+const posix = require('../server/posixOwnedFs');
+const { createWinOwnedFs } = require('../server/platform/winOwnedFs');
+const { createLinuxFsHelper } = require('./fixtures/winFsHelperFake');
+
+const helpers = [];
+posix.createPosixOwnedFs = (options = {}) => {
+  const helper = createLinuxFsHelper({
+    ...(options.noReplace?.available ? { rename: options.noReplace.rename } : {})
+  });
+  helpers.push(helper);
+  return createWinOwnedFs({ helper });
+};
+
+require(path.join(__dirname, 'posixOwnedFs.test.js'));
+require(path.join(__dirname, 'stagingSplit.test.js'));
+require(path.join(__dirname, 'ownedCleanup.test.js'));
+
+test('those suites ran through the Windows adapter and its helper operations', () => {
+  assert.ok(helpers.length > 0, 'the Windows adapter was created');
+  const ops = new Set(helpers.flatMap((helper) => helper.calls.map((call) => call.op)));
+  for (const op of ['fs.identity', 'fs.renameExpected', 'fs.guardedRemove']) assert.ok(ops.has(op), `${op} was used`);
+});

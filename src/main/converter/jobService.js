@@ -2423,10 +2423,20 @@ function createConverterJobService(deps) {
 
   async function processVideo(runtime, item, lane = null) {
     let quickRetries = 0;
+    let busyRetries = 0;
     while (!runtime.cancelRequested && !runtime.stopRequested) {
       try {
         return await processVideoOnce(runtime, currentItem(runtime, item.id), lane);
       } catch (error) {
+        // Windows: the original was open in another program (still being
+        // copied in, a player) when it was first read, before anything of
+        // the clip existed: waited for a little and read again.
+        if (error?.code === 'FILE_IN_USE' && busyRetries < QUICK_RETRY_LIMIT
+            && Object.keys(ownershipFor(runtime, item.id)?.ownedPaths || {}).length === 0) {
+          busyRetries += 1;
+          await clock.sleep(Math.min(backoff.initialMs * 5 ** busyRetries, backoff.maximumMs));
+          continue;
+        }
         const affectedPath = typeof error.path === 'string' ? error.path : item.sourcePath;
         if (!isRetryableNetwork(error, affectedPath)) throw error;
         if (Object.keys(ownershipFor(runtime, item.id)?.ownedPaths || {}).length > 0) {
@@ -2827,10 +2837,13 @@ function createConverterJobService(deps) {
   // Automatic jobs for different vehicles may run side by side when they
   // share no device (a GPU or a node): each has lanes of its own. Anything
   // else (a job started by hand, one without lanes) runs alone, as always.
-  // the same folder, or one inside the other: the same files
+  // the same folder, or one inside the other: the same files (on Windows
+  // C:\Footage and c:\footage are one folder)
+  const caseless = (deps.platform || process.platform) === 'win32' || pathApi === require('path').win32;
   function overlaps(a, b) {
     if (typeof a !== 'string' || typeof b !== 'string') return true;
-    const [x, y] = [pathApi.resolve(a), pathApi.resolve(b)];
+    let [x, y] = [pathApi.resolve(a), pathApi.resolve(b)];
+    if (caseless) [x, y] = [x.toLowerCase(), y.toLowerCase()];
     return x === y || x.startsWith(y + pathApi.sep) || y.startsWith(x + pathApi.sep);
   }
 

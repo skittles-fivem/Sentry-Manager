@@ -28,6 +28,7 @@ const ERROR_MESSAGES = Object.freeze({
   PARTIAL_COLLISION: 'An unrelated partial file already exists.',
   DESTINATION_WRITE_FAILED: 'The destination could not be written safely.',
   ATOMIC_PROMOTION_UNSUPPORTED: 'This filesystem does not support safe atomic publication.',
+  FILE_IN_USE: 'The file is open in another program. Nothing was changed; it is tried again later.',
   DESTINATION_VALIDATION_FAILED: 'The destination did not pass read-back validation.',
   SOURCE_OUTSIDE_ROOT: 'The replacement source is outside the selected source root.',
   SOURCE_CHANGED: 'The original changed after input capture. Retain it and restart with a stable source.',
@@ -250,6 +251,20 @@ function createFileTransaction(options = {}) {
     splitSave: true
   });
   const chunkSize = validSafeInteger(options.chunkSize, { positive: true }) ? options.chunkSize : 1024 * 1024;
+  // Windows: another program holding a file open without sharing it (a video
+  // player, Explorer making a thumbnail, a virus scanner) makes a move or a
+  // removal fail with EBUSY, before anything changed. Such a failure is
+  // waited out a little and tried again, and is never taken for a collision
+  // or a changed file. Linux never takes these paths.
+  const windows = platform === 'win32';
+  const sleep = typeof options.sleep === 'function' ? options.sleep : (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  // the original's move to its backup name (the adapter has already retried
+  // for a few seconds each time): about half a minute in all
+  const busyBackupDelays = Array.isArray(options.busyBackupDelaysMs) ? options.busyBackupDelaysMs : [1000, 3000, 9000];
+  // the converter's own work files (a scanner opening a new encode output)
+  const busyUnlinkDelays = Array.isArray(options.busyUnlinkDelaysMs) ? options.busyUnlinkDelaysMs : [50, 100, 200, 400, 800, 1600, 1600];
+  const inUse = (error) => windows && error?.code === 'EBUSY';
+  const inUseError = () => Object.assign(transactionError('FILE_IN_USE'), { retryable: true });
   const ownedIdentities = new Map();
   // In-process leases on staged sources and encode outputs. The default of one
   // lease each keeps the original one-file-at-a-time contract (STAGING_BUSY);
@@ -729,6 +744,7 @@ function createFileTransaction(options = {}) {
       await syncDirectory(pathApi.dirname(to));
       return { finalCreated, sourceRemoved: false, cleanupPending: true };
     } catch (error) {
+      if (inUse(error)) throw inUseError();
       if (error && ['EEXIST', 'EACCES', 'EPERM'].includes(error.code)) throw transactionError(collisionCode);
       if (error instanceof FileTransactionError) throw error;
       throw transactionError('DESTINATION_WRITE_FAILED');
@@ -811,6 +827,7 @@ function createFileTransaction(options = {}) {
       return { ...observed, stat: after };
     } catch (error) {
       if (error instanceof FileTransactionError) throw error;
+      if (inUse(error)) throw inUseError();
       throw transactionError(code);
     } finally {
       if (handle) await handle.close().catch(() => {});
@@ -911,12 +928,20 @@ function createFileTransaction(options = {}) {
   // The original to its backup name. The adapter hashes it (held open)
   // against the converted version first; a mismatch there means the
   // original changed.
+  // An original open in another program (Windows: FILE_IN_USE, nothing
+  // moved) is tried again a few times before the clip gives up, untouched.
   async function promoteBackup(source, backup, expectedSource) {
-    try {
-      return await promoteNoReplace(source, backup, 'REPLACEMENT_COLLISION', { expectedSource, removeSource: true });
-    } catch (error) {
-      if (error instanceof FileTransactionError && error.code === 'UNSAFE_OWNED_PATH') throw transactionError('SOURCE_CHANGED');
-      throw error;
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await promoteNoReplace(source, backup, 'REPLACEMENT_COLLISION', { expectedSource, removeSource: true });
+      } catch (error) {
+        if (error instanceof FileTransactionError && error.code === 'UNSAFE_OWNED_PATH') throw transactionError('SOURCE_CHANGED');
+        if (error?.code === 'FILE_IN_USE' && attempt < busyBackupDelays.length) {
+          await sleep(busyBackupDelays[attempt]);
+          continue;
+        }
+        throw error;
+      }
     }
   }
 
@@ -968,11 +993,19 @@ function createFileTransaction(options = {}) {
   }
 
   async function unlinkPrivate(target) {
-    try {
-      await pfs.unlink(target);
-    } catch (error) {
-      if (error?.code === 'ENOENT') return;
-      throw transactionError('OWNED_CLEANUP_FAILED');
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        await pfs.unlink(target);
+        return;
+      } catch (error) {
+        if (error?.code === 'ENOENT') return;
+        // Windows: still open in a scanner or a closing ffmpeg for a moment
+        if (windows && ['EBUSY', 'EPERM'].includes(error?.code) && attempt < busyUnlinkDelays.length) {
+          await sleep(busyUnlinkDelays[attempt]);
+          continue;
+        }
+        throw transactionError('OWNED_CLEANUP_FAILED');
+      }
     }
   }
 
@@ -996,6 +1029,20 @@ function createFileTransaction(options = {}) {
     return true;
   }
 
+  // An emptied private folder (best effort; Windows: retried while a scanner
+  // still holds it).
+  async function removeEmptyFolder(folder) {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        await pfs.rmdir(folder);
+        return;
+      } catch (error) {
+        if (!windows || !['EBUSY', 'EPERM', 'ENOTEMPTY'].includes(error?.code) || attempt >= busyUnlinkDelays.length) return;
+        await sleep(busyUnlinkDelays[attempt]);
+      }
+    }
+  }
+
   // The private verification snapshot (structurally checked by the caller:
   // <temp>/sentry-six-verification-*/<token>.mp4) and its folder.
   async function removePrivateSnapshot(artifact, metadata) {
@@ -1010,7 +1057,7 @@ function createFileTransaction(options = {}) {
       if (!realFolder || !samePath(realFolder, folder, pathApi, platform)) throw transactionError('UNSAFE_OWNED_PATH');
       await unlinkPrivate(artifact.path);
     }
-    await pfs.rmdir(folder).catch(() => {});
+    await removeEmptyFolder(folder);
     return { cleaned: true };
   }
 
@@ -1841,6 +1888,27 @@ function createFileTransaction(options = {}) {
     }
   }
 
+  // An adapter that can replace originals only on some drives (Windows: the
+  // drive must report the same file identities to Node and to the helper, and
+  // keep them across renames) says so for the clip's folder, before anything
+  // is written beside the original. The answer is cached per drive.
+  async function checkReplacementVolume(source) {
+    const check = options.renameExclusive?.replacementSupport;
+    if (typeof check !== 'function') return { available: replacementAvailable };
+    try {
+      const result = await check(pathApi.dirname(validateAbsolutePath(source, pathApi)));
+      return result?.available === true ? { available: true } : { available: false, reason: String(result?.reason || 'unavailable') };
+    } catch (_error) {
+      return { available: false, reason: 'the check failed' };
+    }
+  }
+
+  async function assertReplacementVolume(source) {
+    if (typeof options.renameExclusive?.replacementSupport !== 'function') return;
+    const result = await checkReplacementVolume(source);
+    if (!result.available) throw Object.assign(transactionError('ATOMIC_PROMOTION_UNSUPPORTED'), { reason: result.reason });
+  }
+
   // Saving a clip is split in two: the copy of its verified conversion to the
   // share, which any number of clips may do at once (prepare), and the few
   // renames that put it in place, one clip at a time (swap / commit). What a
@@ -1888,6 +1956,7 @@ function createFileTransaction(options = {}) {
     assertReplacementCapable();
     const expectedSource = validateSourceAuthority(operation.expectedSource);
     const sourceInfo = await assertSourceContained(operation.source, operation.sourceRoot);
+    await assertReplacementVolume(sourceInfo.source);
     let originalStat;
     if (adapterVerifies) originalStat = await assertSourceIdentity(sourceInfo.source, expectedSource);
     else {
@@ -2739,6 +2808,7 @@ function createFileTransaction(options = {}) {
     capabilities,
     releaseLeases,
     captureSource,
+    checkReplacementVolume,
     reserveEncodeOutput,
     adoptEncodeOutput,
     copyAsset,
