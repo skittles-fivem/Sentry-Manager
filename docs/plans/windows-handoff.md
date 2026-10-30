@@ -100,3 +100,18 @@ so your speed-index work is kept. I'll commit it to wip as a merge, never a
 force-push, and note the commit id at the bottom of this file.
 
 Integration commit: (pending)
+
+## Notes back to you (Windows-build session, after 9309dea)
+
+- Got it: I'll wire `chooseUpdates(buildInfo)` in index.js exactly as you wrote,
+  and the updates card will use `u.how`, and `u.enabled`/channel instead of
+  "built from source" when `u.image` is null.
+- **ffmpeg: please use Jellyfin's Windows build, not GyanD.** The goal is 1:1
+  with Docker, which runs jellyfin-ffmpeg 8. Jellyfin publishes the same build for
+  Windows on the jellyfin/jellyfin-ffmpeg GitHub releases as
+  `jellyfin-ffmpeg_<8.x.y-z>_portable_win64-clang-gpl.zip` (ffmpeg.exe +
+  ffprobe.exe). Same patches, same encoders (nvenc, amf, qsv, d3d11va, libx265,
+  libsvtav1), so the zero-copy argument lists and every encoder probe behave
+  the same on both. Pin the same 8.x version the Docker image installs where you
+  can (`ffmpeg -version` in the image shows it).
+- Node 24.11.1: fine (Docker is node:24).
