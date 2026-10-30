@@ -4,10 +4,17 @@ name: Windows
 #   - test: the whole test suite on Windows, with the pinned ffmpeg on PATH,
 #     the helper and service built with the csc.exe Windows ships, and
 #     REQUIRE_TOOLS=1 so a missing tool fails instead of skipping.
+#   - app: the native app (SentrySix.exe, windows\app) built with the .NET
+#     SDK, its Core tests against the real server, and every page listed in
+#     windows\app\Shell\RENDER-PAGES.md rendered to PNG (artifact
+#     native-renders, for tools/parity/report.js). Runs beside test.
 #   - package: windows\build.ps1 makes the zip, SHA256SUMS and release.json.
-#   - install-check: installs that zip as a user would (install.ps1 in
-#     Windows PowerShell 5.1), checks the web UI over HTTPS and the service
+#   - install-check: installs that zip as a user would (install.ps1 -Service
+#     in Windows PowerShell 5.1), checks the web UI over HTTPS and the service
 #     account, then uninstalls and checks nothing is left.
+#   - install-check-app: the same zip without the service (install.ps1
+#     -NoService): the server started as the app starts it, checked, stopped
+#     by writing "stop" to it, then uninstalled.
 #   - publish: on a push to main only, a GitHub Release with the zip,
 #     SHA256SUMS and release.json (what update notices and update.ps1 read).
 # Docker-only changes do not run it, and it never touches ghcr.io. Never on
@@ -144,8 +151,84 @@ jobs:
           Write-Host "ffprobe: $((Get-Command ffprobe).Source)"
           npm test
 
+  # The native app. Does not wait for test (that takes long); package waits
+  # for both.
+  app:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # the Core tests start the real server (server/index.js) with this node
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Build SentrySix.exe
+        run: |
+          if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) { throw 'no .NET SDK (dotnet) on this runner' }
+          dotnet --version
+          $out = Join-Path $env:GITHUB_WORKSPACE 'build\app-ui'
+          dotnet build windows/app/SentrySix.csproj -c Release -o $out -p:ContinuousIntegrationBuild=true
+          if ($LASTEXITCODE -ne 0) { throw "dotnet build failed (exit code $LASTEXITCODE)" }
+          $exe = Join-Path $out 'SentrySix.exe'
+          if (-not (Test-Path -LiteralPath $exe)) { throw "the build made no $exe" }
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "SENTRY_APP_EXE=$exe"
+          Get-ChildItem -LiteralPath $out -Recurse -File | ForEach-Object { $_.FullName.Substring($out.Length + 1) }
+
+      - name: Core tests (against the real server)
+        run: |
+          $proj = 'windows/app/Core.Tests'
+          if (-not (Test-Path -LiteralPath "$proj/Core.Tests.csproj")) { throw "$proj/Core.Tests.csproj is missing: the Core tests have to exist before this job can pass" }
+          node --version
+          dotnet run --project $proj -c Release
+          if ($LASTEXITCODE -ne 0) { throw "Core tests failed (exit code $LASTEXITCODE)" }
+
+      # Every "<interface> <page>" pair RENDER-PAGES.md lists (a list item, a
+      # table row or a code line naming one of the five interfaces), at the
+      # two sizes tools/parity/capture.js takes the web pages at; the names
+      # match its files, <interface>-<page>-<width>x<height>.png.
+      - name: Render the pages (SentrySix.exe --render)
+        run: |
+          $list = 'windows/app/Shell/RENDER-PAGES.md'
+          if (-not (Test-Path -LiteralPath $list)) { throw "$list is missing: the shell has to list the pages its --render mode draws" }
+          if (-not $env:SENTRY_APP_EXE -or -not (Test-Path -LiteralPath $env:SENTRY_APP_EXE)) { throw 'SentrySix.exe was not built (see the build step)' }
+          $rx = '^\s*(?:[-*+]\s+|\|\s*|\d+\.\s+)?`?(builtin|horizon|flux|aurora|daylight)`?\s*(?:\|\s*|\s+)`?([a-z][a-z0-9-]*)`?'
+          $pairs = @(Get-Content -LiteralPath $list | ForEach-Object { if ($_ -match $rx) { "$($Matches[1]) $($Matches[2])" } } | Sort-Object -Unique)
+          if (-not $pairs.Count) { throw "$list lists no '<interface> <page>' lines (interfaces: builtin, horizon, flux, aurora, daylight)" }
+          $out = Join-Path $env:GITHUB_WORKSPACE 'native-renders'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $sizes = @(@{ w = 1400; h = 900 }, @{ w = 390; h = 844 })
+          $bad = 0
+          foreach ($pair in $pairs) {
+            $ui, $page = $pair -split ' '
+            foreach ($sz in $sizes) {
+              $png = Join-Path $out "$ui-$page-$($sz.w)x$($sz.h).png"
+              $argList = @('--render', $ui, $page, '--width', $sz.w, '--height', $sz.h, '--out', "`"$png`"")
+              $p = Start-Process -FilePath $env:SENTRY_APP_EXE -ArgumentList $argList -PassThru -NoNewWindow
+              if (-not $p.WaitForExit(120000)) { $p.Kill(); Write-Host "::error::$ui $page $($sz.w)x$($sz.h): no result within 2 minutes"; $bad++; continue }
+              if ($p.ExitCode -ne 0) { Write-Host "::error::$ui $page $($sz.w)x$($sz.h): SentrySix.exe --render exit code $($p.ExitCode)"; $bad++; continue }
+              if (-not (Test-Path -LiteralPath $png) -or (Get-Item -LiteralPath $png).Length -lt 100) { Write-Host "::error::$ui $page $($sz.w)x$($sz.h): no PNG written"; $bad++; continue }
+              Write-Host "rendered $png"
+            }
+          }
+          if ($bad) { throw "$bad render(s) failed" }
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-renders
+          path: native-renders/
+          if-no-files-found: warn
+          retention-days: 14
+
   package:
-    needs: test
+    needs: [test, app]
     runs-on: windows-latest
     timeout-minutes: 30
     outputs:
@@ -263,8 +346,22 @@ jobs:
       - name: Install
         run: |
           $ErrorActionPreference = 'Continue'
-          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File pkg\install.ps1
+          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File pkg\install.ps1 -Service
           if ($LASTEXITCODE -ne 0) { Write-Host "::error::install.ps1 failed (exit code $LASTEXITCODE)"; exit 1 }
+
+      - name: Start menu entry, start at sign-in, mode
+        run: |
+          $exe = Join-Path $env:ProgramFiles 'SentrySixManager\app-ui\SentrySix.exe'
+          if (-not (Test-Path -LiteralPath $exe)) { throw "no $exe" }
+          $lnk = Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Sentry Six Manager.lnk'
+          if (-not (Test-Path -LiteralPath $lnk)) { throw "no Start menu entry at $lnk" }
+          $target = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk).TargetPath
+          if ($target -ne $exe) { throw "the Start menu entry opens $target, not $exe" }
+          $run = (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run').SentrySixManager
+          if ($run -ne "`"$exe`" --tray") { throw "the sign-in start is '$run'" }
+          $mode = (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\SentrySixManager').Mode
+          if ($mode -ne 'service') { throw "install.ps1 recorded mode '$mode', expected service" }
+          Write-Host "Start menu entry, sign-in start ($run) and mode ($mode) are in place"
 
       - name: The web UI answers over HTTPS
         run: |
@@ -329,8 +426,11 @@ jobs:
           }
           $running = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith("$dir\", [StringComparison]::OrdinalIgnoreCase) })
           if ($running.Count) { $left += "$($running.Count) process(es) from $dir" }
+          if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Sentry Six Manager.lnk')) { $left += 'the Start menu entry' }
+          if ($null -ne (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run').PSObject.Properties['SentrySixManager']) { $left += 'the start at sign-in' }
+          if (Test-Path -LiteralPath 'HKLM:\SOFTWARE\SentrySixManager') { $left += 'HKLM\SOFTWARE\SentrySixManager' }
           if ($left.Count) { throw "uninstall left: $($left -join '; ')" }
-          Write-Host 'Uninstalled cleanly: no service, firewall rule, program files or data'
+          Write-Host 'Uninstalled cleanly: no service, firewall rule, Start menu entry, sign-in start, program files or data'
 
       - name: Logs (on failure)
         if: failure()
@@ -345,8 +445,129 @@ jobs:
             Where-Object { $_.ProviderName -match 'SentrySix|Service Control Manager|\.NET Runtime|Application Error' } |
             Format-List TimeCreated, ProviderName, Message
 
+  # The same zip without the service: the app runs the server. Here the
+  # server is started as the app starts it (SentryService.exe run --data, as
+  # the user who installed it) and stopped as the app's Quit stops it
+  # ("stop" on its stdin).
+  install-check-app:
+    needs: package
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: powershell
+    env:
+      ZIP: ${{ needs.package.outputs.zip }}
+      PORT: '9000'
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-package
+          path: dist
+
+      - name: Unpack (checked against SHA256SUMS)
+        run: |
+          $zip = Join-Path $PWD "dist\$env:ZIP"
+          $line = Get-Content -LiteralPath dist\SHA256SUMS | Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($env:ZIP))$" } | Select-Object -First 1
+          if (-not $line) { throw "SHA256SUMS has no line for $env:ZIP" }
+          $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
+          if ($got -ne $line.Substring(0, 64)) { throw "$env:ZIP does not match SHA256SUMS" }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [IO.Compression.ZipFile]::ExtractToDirectory($zip, (Join-Path $PWD 'pkg'))
+
+      - name: Install without the service
+        run: |
+          $ErrorActionPreference = 'Continue'
+          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File pkg\install.ps1 -NoService
+          if ($LASTEXITCODE -ne 0) { Write-Host "::error::install.ps1 -NoService failed (exit code $LASTEXITCODE)"; exit 1 }
+
+      - name: No service; Start menu entry, start at sign-in, data rights for this user
+        run: |
+          if (Get-Service -Name 'SentrySixManager' -ErrorAction SilentlyContinue) { throw 'install.ps1 -NoService installed the service' }
+          $exe = Join-Path $env:ProgramFiles 'SentrySixManager\app-ui\SentrySix.exe'
+          $lnk = Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Sentry Six Manager.lnk'
+          if (-not (Test-Path -LiteralPath $lnk)) { throw "no Start menu entry at $lnk" }
+          $run = (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run').SentrySixManager
+          if ($run -ne "`"$exe`" --tray") { throw "the sign-in start is '$run'" }
+          $reg = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\SentrySixManager'
+          $me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+          if ($reg.Mode -ne 'app') { throw "install.ps1 recorded mode '$($reg.Mode)', expected app" }
+          if ($reg.AppUserSid -ne $me) { throw "the data is for $($reg.AppUserSid), not this user ($me)" }
+          $data = Join-Path $env:ProgramData 'SentrySixManager\data'
+          $acl = Get-Acl -LiteralPath $data
+          $mine = @($acl.Access | Where-Object { $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value -eq $me -and ($_.FileSystemRights -band [Security.AccessControl.FileSystemRights]::Modify) -eq [Security.AccessControl.FileSystemRights]::Modify })
+          if (-not $mine.Count) { throw "this user ($me) cannot change $data" }
+          if (@(Get-NetFirewallRule -Name 'SentrySixManager-WebUI' -ErrorAction SilentlyContinue).Count -eq 0) { throw 'install.ps1 added no firewall rule' }
+          Write-Host "App mode for $me; Start menu entry, sign-in start and firewall rule in place"
+
+      - name: The server, started as the app starts it, answers over HTTPS and stops on "stop"
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $dataRoot = Join-Path $env:ProgramData 'SentrySixManager'
+          $psi = New-Object System.Diagnostics.ProcessStartInfo
+          $psi.FileName = Join-Path $env:ProgramFiles 'SentrySixManager\bin\SentryService.exe'
+          $psi.Arguments = "run --data `"$dataRoot`""
+          $psi.UseShellExecute = $false
+          $psi.RedirectStandardInput = $true
+          $server = [System.Diagnostics.Process]::Start($psi)
+          $base = "https://127.0.0.1:$env:PORT"
+          $ok = $false
+          for ($i = 0; $i -lt 60; $i++) {
+            if ($server.HasExited) { break }
+            curl.exe -fsk --max-time 10 -o NUL "$base/healthz"
+            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            Start-Sleep -Seconds 2
+          }
+          $failed = $null
+          if (-not $ok) { $failed = "$base/healthz did not answer (server exited: $($server.HasExited))" }
+          else {
+            $code = curl.exe -sk --max-time 10 -o NUL -w '%{http_code}' "$base/login"
+            if ($code -ne '200') { $failed = "$base/login answered $code, expected 200" }
+          }
+          if (-not $server.HasExited) {
+            $server.StandardInput.WriteLine('stop')
+            $server.StandardInput.Flush()
+            if (-not $server.WaitForExit(120000)) { $server.Kill(); if (-not $failed) { $failed = 'the server did not stop within 2 minutes of "stop"' } }
+            elseif ($server.ExitCode -ne 0 -and -not $failed) { $failed = "the server stopped with exit code $($server.ExitCode), expected 0" }
+          }
+          $dir = Join-Path $env:ProgramFiles 'SentrySixManager'
+          $left = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith("$dir\", [StringComparison]::OrdinalIgnoreCase) })
+          if ($left.Count -and -not $failed) { $failed = "after stop, still running: $(($left | ForEach-Object Name) -join ', ')" }
+          if ($failed) { Write-Host "::error::$failed"; exit 1 }
+          Write-Host "healthz and the login page answered on $base; the server stopped cleanly on stop"
+
+      - name: Uninstall
+        run: |
+          $ErrorActionPreference = 'Continue'
+          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$env:ProgramFiles\SentrySixManager\uninstall.ps1" -RemoveData -Force
+          if ($LASTEXITCODE -ne 0) { Write-Host "::error::uninstall.ps1 failed (exit code $LASTEXITCODE)"; exit 1 }
+
+      - name: Nothing is left
+        run: |
+          $left = @()
+          if (Get-Service -Name 'SentrySixManager' -ErrorAction SilentlyContinue) { $left += 'a service' }
+          if (@(Get-NetFirewallRule -Name 'SentrySixManager-WebUI' -ErrorAction SilentlyContinue).Count) { $left += 'the firewall rule' }
+          $dir = Join-Path $env:ProgramFiles 'SentrySixManager'
+          foreach ($p in $dir, "$dir.new", "$dir.old", (Join-Path $env:ProgramData 'SentrySixManager')) {
+            if (Test-Path -LiteralPath $p) { $left += $p }
+          }
+          if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Sentry Six Manager.lnk')) { $left += 'the Start menu entry' }
+          if ($null -ne (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run').PSObject.Properties['SentrySixManager']) { $left += 'the start at sign-in' }
+          if (Test-Path -LiteralPath 'HKLM:\SOFTWARE\SentrySixManager') { $left += 'HKLM\SOFTWARE\SentrySixManager' }
+          if ($left.Count) { throw "uninstall left: $($left -join '; ')" }
+          Write-Host 'Uninstalled cleanly'
+
+      - name: Logs (on failure)
+        if: failure()
+        run: |
+          foreach ($f in 'service.log', 'manager.log') {
+            $p = Join-Path $env:ProgramData "SentrySixManager\data\logs\$f"
+            Write-Host "== $p"
+            if (Test-Path -LiteralPath $p) { Get-Content -LiteralPath $p -Tail 200 } else { Write-Host '(none)' }
+          }
+
   publish:
-    needs: [package, install-check]
+    needs: [package, install-check, install-check-app]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10

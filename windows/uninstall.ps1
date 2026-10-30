@@ -1,8 +1,11 @@
 #Requires -Version 5.1
 #Requires -RunAsAdministrator
 <#
-  Removes the Sentry Six Manager service, its firewall rule and its program
-  files (%ProgramFiles%\SentrySixManager).
+  Removes Sentry Six Manager in either mode: the service (service mode), the
+  app's Start menu entry and its start at sign-in, the firewall rule and the
+  program files (%ProgramFiles%\SentrySixManager). The app, and in app mode
+  the server it runs, must be quit first (tray icon > Quit); it waits up to 2
+  minutes for that (-Force: then ends them).
 
   Your data (%ProgramData%\SentrySixManager: accounts, settings, certificates,
   logs, footage folder) is kept, so installing again carries on where it left
@@ -22,6 +25,10 @@ $ErrorActionPreference = 'Stop'
 
 $ServiceName = 'SentrySixManager'
 $FirewallRuleName = 'SentrySixManager-WebUI'
+$ModeKey = 'HKLM:\SOFTWARE\SentrySixManager'
+$RunKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
+$RunValueName = 'SentrySixManager'
+$ShortcutName = 'Sentry Six Manager.lnk'
 
 function Say([string]$Text) { Write-Host $Text }
 function Warn([string]$Text) { Write-Host "Warning: $Text" -ForegroundColor Yellow }
@@ -73,6 +80,10 @@ function Remove-Folder([string]$Path) {
     }
   }
   return $true
+}
+
+function Get-OurProcesses([string]$Dir) {
+  return @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith("$Dir\", [System.StringComparison]::OrdinalIgnoreCase) })
 }
 
 $programFiles = $env:ProgramFiles
@@ -138,6 +149,43 @@ try {
   } else {
     Say 'No service installed; skipping.'
   }
+
+  # --- the app (and in app mode its server): quit before its files go ---
+  $running = @(Get-OurProcesses $InstallDir)
+  if ($running.Count -gt 0) {
+    Say "Sentry Six Manager is running ($((@($running | ForEach-Object { $_.Name } | Sort-Object -Unique)) -join ', ')). Quit it: right-click its tray icon > Quit (for every signed-in user). Waiting up to 2 minutes..."
+    $until = (Get-Date).AddSeconds(120)
+    while ($running.Count -gt 0 -and (Get-Date) -lt $until) {
+      Start-Sleep -Seconds 2
+      $running = @(Get-OurProcesses $InstallDir)
+    }
+    if ($running.Count -gt 0) {
+      if (-not $Force) {
+        throw "Programs from $InstallDir are still running ($((@($running | ForEach-Object { "$($_.Name) (pid $($_.ProcessId))" })) -join ', ')). Quit Sentry Six Manager and run this again (-Force ends them)."
+      }
+      Warn 'Ending them (-Force).'
+      foreach ($p in $running) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue }
+      for ($i = 0; $i -lt 10 -and @(Get-OurProcesses $InstallDir).Count -gt 0; $i++) { Start-Sleep -Seconds 1 }
+    }
+    Say 'It has quit.'
+  }
+
+  # --- Start menu entry and the start at sign-in ---
+  $shortcut = Join-Path ([Environment]::GetFolderPath('CommonPrograms')) $ShortcutName
+  if (Test-Path -LiteralPath $shortcut) {
+    Say 'Removing the Start menu entry...'
+    Remove-Item -LiteralPath $shortcut -Force
+  } else {
+    Say 'No Start menu entry; skipping.'
+  }
+  if ((Test-Path -LiteralPath $RunKey) -and $null -ne (Get-ItemProperty -LiteralPath $RunKey).PSObject.Properties[$RunValueName]) {
+    Say 'Removing the start at sign-in...'
+    Remove-ItemProperty -LiteralPath $RunKey -Name $RunValueName
+  } else {
+    Say 'No start at sign-in; skipping.'
+  }
+  # which mode was installed (install.ps1 reads it on the next install)
+  if (Test-Path -LiteralPath $ModeKey) { Remove-Item -LiteralPath $ModeKey -Recurse -Force }
 
   # --- firewall ---
   $rule = @(Get-NetFirewallRule -Name $FirewallRuleName -ErrorAction SilentlyContinue)
