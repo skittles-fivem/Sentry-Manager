@@ -298,6 +298,13 @@ test('the welcome shows the port from manager.env and the certificate fingerprin
   const fp = new crypto.X509Certificate(fs.readFileSync(crt)).fingerprint256;
   assert.ok(r.stdout.includes(`Certificate fingerprint (SHA-256), as browsers show it: ${fp}\n`), r.stdout);
   assert.match(r.stdout, /No setup code: the account is already set up\./);
+
+  // behind a reverse proxy (TLS_MODE=off) the address is http
+  fs.writeFileSync(path.join(sb.state, 'manager.env'), 'PORT=9443\nTLS_MODE="Off"\n');
+  const off = install(sb, makePackage(sb, { version: '2.0.0' }));
+  assert.equal(off.status, 0, off.out);
+  assert.match(off.stdout, /Open http:\/\/Test-Mac\.local:9443\n/);
+  assert.match(off.stdout, /or http:\/\/192\.168\.1\.20:9443\n/);
 });
 
 test('a failing self-test is reported, not fatal', { skip: !hasTar && 'needs tar' }, () => {
@@ -403,10 +410,13 @@ test('without --from it takes the newest macos-v release from GitHub', { skip: !
   const base = 'https://github.com/skittles-fivem/Sentry-Manager/releases/download';
   const newest = `${base}/macos-v3.0.0-aaaaaaa/${pkg.tarName}`;
   const releases = path.join(sb.base, 'releases.json');
+  const pre = `${base}/macos-v4.0.0-ddddddd/SentrySixManager-4.0.0-ddddddd-macos-arm64.tar.gz`;
+  // as GitHub lists them: tag_name and prerelease before the assets
   fs.writeFileSync(releases, JSON.stringify([
-    { tag_name: 'v3.0.0', assets: [{ browser_download_url: `${base}/v3.0.0/SentrySixManager-3.0.0-aaaaaaa-win-x64.zip` }] },
-    { tag_name: 'macos-v3.0.0-aaaaaaa', assets: [{ browser_download_url: `${base}/macos-v3.0.0-aaaaaaa/SHA256SUMS` }, { browser_download_url: newest }] },
-    { tag_name: 'macos-v2.0.0-bbbbbbb', assets: [{ browser_download_url: `${base}/macos-v2.0.0-bbbbbbb/SentrySixManager-2.0.0-bbbbbbb-macos-arm64.tar.gz` }] },
+    { tag_name: 'macos-v4.0.0-ddddddd', prerelease: true, assets: [{ browser_download_url: pre }] },
+    { tag_name: 'v3.0.0', prerelease: false, assets: [{ browser_download_url: `${base}/v3.0.0/SentrySixManager-3.0.0-aaaaaaa-win-x64.zip` }] },
+    { tag_name: 'macos-v3.0.0-aaaaaaa', prerelease: false, assets: [{ browser_download_url: `${base}/macos-v3.0.0-aaaaaaa/SHA256SUMS` }, { browser_download_url: newest }] },
+    { tag_name: 'macos-v2.0.0-bbbbbbb', prerelease: false, assets: [{ browser_download_url: `${base}/macos-v2.0.0-bbbbbbb/SentrySixManager-2.0.0-bbbbbbb-macos-arm64.tar.gz` }] },
   ], null, 2));
   sb.urls = {
     'https://api.github.com/repos/skittles-fivem/Sentry-Manager/releases?per_page=30': releases,
@@ -415,11 +425,23 @@ test('without --from it takes the newest macos-v release from GitHub', { skip: !
   };
   const r = run(sb, path.join(MACOS, 'install.sh'));
   assert.equal(r.status, 0, r.out);
-  assert.equal(version(sb), '3.0.0');
+  assert.equal(version(sb), '3.0.0', 'the newest final release, not the newer pre-release');
+  assert.equal(indexOf(calls(sb), new RegExp(`^curl .*${pre.replace(/[.]/g, '\\.')}`)), -1, 'the pre-release is not downloaded');
   for (const x of calls(sb).filter((y) => y.cmd === 'curl' && !y.args.some((a) => a.includes('/healthz')))) {
     assert.ok(x.args.includes('--proto') && x.args[x.args.indexOf('--proto') + 1] === '=https', line(x));
     assert.ok(x.args.includes('--proto-redir') && x.args[x.args.indexOf('--proto-redir') + 1] === '=https', line(x));
   }
+  // GitHub's own output has no line breaks to rely on
+  fs.writeFileSync(releases, JSON.stringify(JSON.parse(fs.readFileSync(releases, 'utf8'))));
+  clearCalls(sb);
+  assert.equal(run(sb, path.join(MACOS, 'install.sh')).status, 0);
+  assert.equal(indexOf(calls(sb), new RegExp(`^curl .*${newest.replace(/[.]/g, '\\.')}$`)) >= 0, true);
+
+  // a pre-release only when it is named
+  const named = run(sb, path.join(MACOS, 'install.sh'), ['--release', 'macos-v4.0.0-ddddddd']);
+  assert.notEqual(named.status, 0);
+  assert.ok(indexOf(calls(sb), new RegExp(`^curl .*${pre.replace(/[.]/g, '\\.')}$`)) >= 0, 'asked for by name');
+
   // a tag that is not there
   const missing = run(sb, path.join(MACOS, 'install.sh'), ['--release', 'macos-v9.9.9-ccccccc']);
   assert.notEqual(missing.status, 0);
@@ -509,10 +531,21 @@ test('the CLI: status, stop, start, setup-code, allow-folder', { skip: !hasTar &
   clearCalls(sb);
   assert.equal(run(sb, cli, ['allow-folder', footage]).status, 0);
   assert.equal(calls(sb).find((x) => x.cmd === 'chmod').args[2], 'user:_sentrysix allow list,search,readattr,readextattr,readsecurity,file_inherit,directory_inherit');
-  for (const bad of ['/', '/System', '/Library', '/etc', '/private/var']) {
+  for (const bad of ['/', '/System', '/Library', '/etc', '/private/var', '/Applications', '/Volumes', '/SYSTEM/Library']) {
     if (!fs.existsSync(bad)) continue;
     const r = run(sb, cli, ['allow-folder', bad]);
     assert.notEqual(r.status, 0, bad);
     assert.match(r.stderr, /is a system folder/);
   }
+  // on a Mac: never a whole home folder or its Library
+  const home = fs.existsSync('/Users') ? fs.readdirSync('/Users').find((n) => n !== 'Shared' && !n.startsWith('.') && fs.existsSync(`/Users/${n}/Library`)) : null;
+  if (home) {
+    assert.match(run(sb, cli, ['allow-folder', `/Users/${home}`]).stderr, /whole home folder/);
+    assert.match(run(sb, cli, ['allow-folder', `/Users/${home}/Library`]).stderr, /in someone's Library/);
+  }
+
+  // with TLS_MODE=off the address is http
+  fs.writeFileSync(path.join(sb.state, 'manager.env'), 'TLS_MODE=off\nPORT=9100\n');
+  assert.equal(launchd(sb).running, true);
+  assert.match(run(sb, cli, ['status'], { FAKE_UID: '501' }).stdout, /Answers on port 9100: http:\/\/Test-Mac\.local:9100/);
 });

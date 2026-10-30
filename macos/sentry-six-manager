@@ -52,11 +52,21 @@ EOF
 loaded() { launchctl print "system/$LABEL" >/dev/null 2>&1; }
 running() { launchctl print "system/$LABEL" 2>/dev/null | grep -Eq '^[[:space:]]*state = running'; }
 
+# A setting from manager.env (the last line for it wins), without quotes.
+setting() { # setting <KEY>
+  awk -F= -v k="$1" '$0 ~ "^[[:space:]]*" k "[[:space:]]*=" { v = $2 } END { print v }' "$STATE/manager.env" 2>/dev/null | tr -d ' "'\''\r' || true
+}
+
 port() {
   local p
-  p=$(awk -F= '/^[[:space:]]*PORT[[:space:]]*=/ { v = $2 } END { print v }' "$STATE/manager.env" 2>/dev/null | tr -d ' "'\''\r' || true)
+  p=$(setting PORT)
   case "$p" in ''|*[!0-9]*) p=9000 ;; esac
   printf '%s\n' "$p"
+}
+
+# https, or http with TLS_MODE=off (behind a reverse proxy)
+scheme() {
+  case "$(setting TLS_MODE | tr 'A-Z' 'a-z')" in off) printf 'http\n' ;; *) printf 'https\n' ;; esac
 }
 
 answers() {
@@ -102,7 +112,7 @@ cmd_status() {
   fi
   if answers; then
     host=$(scutil --get LocalHostName 2>/dev/null || true)
-    say "Answers on port $(port)${host:+: https://$host.local:$(port)}"
+    say "Answers on port $(port)${host:+: $(scheme)://$host.local:$(port)}"
   else
     say "Does not answer on port $(port)"
     return 1
@@ -189,7 +199,7 @@ cmd_run() {
 # /Library/SentrySixManager/node/bin/node (System Settings > Privacy &
 # Security), or the footage elsewhere.
 cmd_allow_folder() {
-  local dir="" write=0 real ace anc
+  local dir="" write=0 real low ace anc
   while [ $# -gt 0 ]; do
     case "$1" in
       --write) write=1; shift ;;
@@ -200,9 +210,18 @@ cmd_allow_folder() {
   [ -n "$dir" ] || fail "usage: sudo sentry-six-manager allow-folder <folder> [--write]"
   [ -d "$dir" ] || fail "$dir is not a folder"
   real=$(cd "$dir" && pwd -P)
-  case "$real" in
-    /|/System|/System/*|/Library|/Library/*|/private|/private/*|/usr|/usr/*|/bin|/bin/*|/sbin|/sbin/*|/dev|/dev/*|/etc|/etc/*|/var|/var/*|/opt|/opt/*|/Users)
+  # macOS disks usually ignore case: /system is /System
+  low=$(printf '%s' "$real" | tr 'A-Z' 'a-z')
+  case "$low" in
+    /|/system|/system/*|/library|/library/*|/private|/private/*|/usr|/usr/*|/bin|/bin/*|/sbin|/sbin/*|/dev|/dev/*|/etc|/etc/*|/var|/var/*|/opt|/opt/*|/users|/applications|/applications/*|/volumes)
       fail "$real is a system folder: give the service a footage folder (a drive under /Volumes, or a folder in /Users/Shared)" ;;
+    /users/shared|/users/shared/*) ;;
+    # not a whole home folder, nor its Library (keychains, mail, browser data)
+    /users/*/library|/users/*/library/*)
+      fail "$real is in someone's Library: give the service only a footage folder" ;;
+    /users/*/*) ;;
+    /users/*)
+      fail "$real is someone's whole home folder: give the service only the footage folder inside it" ;;
   esac
   ace="user:$SVC allow list,search,readattr,readextattr,readsecurity,file_inherit,directory_inherit"
   if [ "$write" = 1 ]; then

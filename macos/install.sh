@@ -103,10 +103,10 @@ https_get() { # https_get <url> <file>
   curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 --retry 2 -o "$2" "$1"
 }
 
-# The newest release whose tag starts with macos-v (or --release), as the
-# tarball's URL. Releases come newest first.
+# The newest final release whose tag starts with macos-v (or --release), as
+# the tarball's URL. Releases come newest first.
 find_release() {
-  local api repo_rx tag_rx url
+  local api repo_rx tag_rx url u t finals
   printf '%s' "$REPO" | grep -Eq '^[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}$' || fail "SENTRY_RELEASE_REPO is not owner/name: $REPO"
   api="https://api.github.com/repos/$REPO/releases?per_page=30"
   https_get "$api" "$WORK/releases.json" || fail "could not ask GitHub for the releases ($api)"
@@ -116,10 +116,19 @@ find_release() {
     printf '%s' "$TAG" | grep -Eq '^macos-v[A-Za-z0-9._+-]+$' || fail "--release takes a macos-v... tag"
     tag_rx=$(printf '%s' "$TAG" | sed 's/[.+]/\\&/g')
   fi
-  url=$(grep -oE '"browser_download_url": *"[^"]+"' "$WORK/releases.json" \
+  # the tags of final releases (each release has its tag_name before its
+  # prerelease flag): a pre-release is installed only when named with --release
+  finals=" $(grep -oE '"(tag_name|prerelease)": *("[^"]*"|true|false)' "$WORK/releases.json" \
+    | awk -F'"' '$2 == "tag_name" { t = $4; next } $2 == "prerelease" { if ($3 ~ /false/ && t != "") print t; t = "" }' \
+    | tr '\n' ' ') "
+  url=""
+  for u in $(grep -oE '"browser_download_url": *"[^"]+"' "$WORK/releases.json" \
     | sed -E 's/^.*"(https:[^"]+)"$/\1/' \
-    | grep -E "^https://github\\.com/$repo_rx/releases/download/$tag_rx/SentrySixManager-[A-Za-z0-9._+-]+-macos-arm64\\.tar\\.gz\$" \
-    | head -n 1 || true)
+    | grep -E "^https://github\\.com/$repo_rx/releases/download/$tag_rx/SentrySixManager-[A-Za-z0-9._+-]+-macos-arm64\\.tar\\.gz\$" || true); do
+    t=$(basename "$(dirname "$u")")
+    if [ -n "$TAG" ]; then url=$u; break; fi
+    case "$finals" in *" $t "*) url=$u; break ;; esac
+  done
   [ -n "$url" ] || fail "found no macOS release in $REPO${TAG:+ called $TAG}"
   printf '%s\n' "$url"
 }
@@ -328,11 +337,21 @@ start_service() {
   launchctl bootstrap system "$PLIST"
 }
 
+# A setting from manager.env (the last line for it wins), without quotes.
+setting() { # setting <KEY>
+  awk -F= -v k="$1" '$0 ~ "^[[:space:]]*" k "[[:space:]]*=" { v = $2 } END { print v }' "$STATE/manager.env" 2>/dev/null | tr -d ' "'\''\r' || true
+}
+
 port() {
   local p
-  p=$(awk -F= '/^[[:space:]]*PORT[[:space:]]*=/ { v = $2 } END { print v }' "$STATE/manager.env" 2>/dev/null | tr -d ' "'\''\r' || true)
+  p=$(setting PORT)
   case "$p" in ''|*[!0-9]*) p=9000 ;; esac
   printf '%s\n' "$p"
+}
+
+# https, or http with TLS_MODE=off (behind a reverse proxy)
+scheme() {
+  case "$(setting TLS_MODE | tr 'A-Z' 'a-z')" in off) printf 'http\n' ;; *) printf 'https\n' ;; esac
 }
 
 # /healthz answers on plain HTTP too
@@ -394,14 +413,15 @@ videotoolbox_selftest() {
 # certificate to compare. The app writes the setup code and the certificate
 # before it starts listening, so once /healthz answers they are there.
 print_welcome() {
-  local p host ip crt fp
+  local p host ip crt fp web
   p=$(port)
+  web=$(scheme)
   host=$(scutil --get LocalHostName 2>/dev/null || true)
   ip=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)
   say ""
   say "Sentry Six Manager is running."
-  [ -z "$host" ] || say "  Open https://$host.local:$p"
-  [ -z "$ip" ] || say "    or https://$ip:$p"
+  [ -z "$host" ] || say "  Open $web://$host.local:$p"
+  [ -z "$ip" ] || say "    or $web://$ip:$p"
   if [ -s "$STATE/data/setup-code.txt" ]; then
     say "  Setup code: $(tr -cd 'A-Za-z0-9-' < "$STATE/data/setup-code.txt")"
   else
