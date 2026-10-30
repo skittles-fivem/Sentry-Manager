@@ -289,13 +289,15 @@ function decodedFrameCount(stdout) {
 
 // The null muxer reports harmless duplicate-DTS messages for Tesla VFR clips
 // (and for retimed frame_num-gap clips) even when decoding exits successfully.
-// FFmpeg's log callback folds identical consecutive messages into
-// "    Last message repeated N times" (libavutil/log.c), printed when the next
-// different message arrives. That line is dropped only when the message it
-// repeats was itself tolerated; a repeat of anything else, or one with no
-// message before it, stays and fails the decode like all other stderr.
+// FFmpeg's default log callback (av_log_default_callback, libavutil/log.c)
+// folds identical consecutive messages and prints exactly
+// "    Last message repeated N times" (four spaces, no component prefix, N of
+// 1 or more, always "times") before the next different message, or when
+// FFmpeg exits. That line is dropped only when the message it repeats was
+// itself tolerated; a repeat of anything else, one with no message before
+// it, or any other spelling stays and fails the decode like all other stderr.
 const TOLERATED_DECODE_STDERR = /^\[null[^\r\n]*\] Application provided invalid, non monotonically increasing dts to muxer in stream 0: \d+ >= \d+$/;
-const REPEATED_MESSAGE = /^\s*(?:\[[^\]\r\n]*\]\s*)?Last message repeated \d+ times?\s*$/;
+const REPEATED_MESSAGE = /^ {4}Last message repeated [1-9]\d* times$/;
 
 function withoutToleratedStderr(stderr) {
   const kept = [];

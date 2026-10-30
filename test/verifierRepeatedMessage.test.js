@@ -1,8 +1,9 @@
 'use strict';
 
-// FFmpeg's log callback (libavutil/log.c) prints a message identical to the
-// one before it only once, then "    Last message repeated N times" when the
-// next different message arrives. A retimed frame_num-gap clip makes the null
+// FFmpeg's default log callback (av_log_default_callback, libavutil/log.c)
+// prints a message identical to the one before it only once, then exactly
+// "    Last message repeated N times" (four spaces, no prefix) before the next
+// different message, or when FFmpeg exits. A retimed frame_num-gap clip makes the null
 // muxer print the same duplicate-DTS message several times in a row, so the
 // verifier saw that repeat line as unknown stderr and refused a good file
 // (HW4 2026-07-21 20-00-02 left_pillar and right_repeater). The repeat line is
@@ -40,8 +41,24 @@ test('a repeat of a tolerated duplicate-DTS message is tolerated, any count, LF,
   }
   // As the HW4 night clips printed it: the same message twice, folded.
   assert.strictEqual(withoutToleratedStderr(`${DUP(1062)}\n${REPEAT(1)}\n${DUP(1555)}\n`), '');
-  // A component prefix before the repeat text is accepted too.
-  assert.strictEqual(withoutToleratedStderr(`${DUP(7)}\n[null @ 0x1] Last message repeated 3 times\n`), '');
+  // Printed when FFmpeg exits: the last line, with no newline after it.
+  assert.strictEqual(withoutToleratedStderr(`${DUP(7)}\n${REPEAT(3)}`), '');
+});
+
+test('only FFmpeg\'s own spelling of the repeat line is dropped after a tolerated message', () => {
+  for (const line of [
+    '[null @ 0x1] Last message repeated 3 times', // a component prefix
+    'Last message repeated 3 times', // not indented
+    '  Last message repeated 3 times', // two spaces
+    '     Last message repeated 3 times', // five spaces
+    '\tLast message repeated 3 times', // a tab
+    '    Last message repeated 1 time', // "time"
+    '    Last message repeated 0 times', // no repeat
+    '    Last message repeated 03 times', // a leading zero
+    '    Last message repeated 3 times ' // trailing space
+  ]) {
+    assert.strictEqual(withoutToleratedStderr(`${DUP(7)}\n${line}\n`), line, JSON.stringify(line));
+  }
 });
 
 test('a repeat of an intolerable message, or with no message before it, still fails', () => {

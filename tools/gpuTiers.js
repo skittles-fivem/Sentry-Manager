@@ -18,6 +18,12 @@
 // --keep. Windows: SENTRY_HELPER names SentryHelper.exe for the Intel/AMD
 // adapters (without it only NVIDIA GPUs, through nvidia-smi, are found).
 // --cpu adds the CPU encoder as a device (a baseline, slow).
+//
+// Every zero-copy encode is run once more, the same command at -loglevel
+// verbose into a throwaway file, and fails unless what FFmpeg printed shows
+// the frames on the GPU from decoder to encoder (zeroCopyEvidence).
+// Exit code: 0 everything passed, 3 a run or a tier-vs-tier comparison
+// failed (an app finding), 2 a harness problem.
 
 const fs = require('fs');
 const path = require('path');
@@ -91,14 +97,14 @@ function groupClipSets(names) {
 }
 
 // N whole minutes: only minutes with every camera the folder has, never the
-// newest one (Tesla's last file of a recording is usually cut short), spread
-// evenly over what is left. Each entry also carries its cameras in a fixed
-// order (front, back, then the rest by name).
+// newest one when there is more than one (Tesla's last file of a recording is
+// usually cut short), spread evenly over what is left. Fewer whole minutes
+// than asked: all of them (the caller records the shortfall, shortfallOf).
 function pickTimestamps(groups, count) {
   const cameraCount = (group) => Object.keys(group.cameras).length;
   const most = groups.reduce((max, group) => Math.max(max, cameraCount(group)), 0);
   let whole = groups.filter((group) => cameraCount(group) === most);
-  if (whole.length > count && whole.length > 1) whole = whole.slice(0, -1);
+  if (whole.length > 1) whole = whole.slice(0, -1);
   if (whole.length <= count) return whole;
   const picked = [];
   for (let n = 0; n < count; n += 1) {
@@ -106,6 +112,141 @@ function pickTimestamps(groups, count) {
     picked.push(whole[Math.min(index, whole.length - 1)]);
   }
   return picked;
+}
+
+// A set with fewer whole minutes than asked: { asked, picked }, else null.
+function shortfallOf(picked, asked) {
+  return picked.length < asked ? { asked, picked: picked.length } : null;
+}
+
+// ---------------------------------------------------------------- zero-copy evidence
+//
+// A zero-copy run is repeated with -loglevel verbose (to a throwaway output)
+// and what FFmpeg prints shows where the frames were:
+//  - the decoder, once get_format has chosen (libavcodec h264_slice.c /
+//    hevc): "[h264 @ 0x..] Reinit context to 1280x960, pix_fmt: cuda"
+//  - the filter graph's input (libavfilter/buffersrc.c, verbose):
+//    "[graph 0 input from stream 0:0 @ 0x..] w:1280 h:960 pixfmt:cuda tb:.."
+//  - the encoder's input, in the output stream line (dump_format, info):
+//    "Stream #0:0: Video: hevc (Main) (hvc1 / 0x31637668), cuda(pc, ..), .."
+// A fallback shows as one of those in a system-memory format (nv12, yuv420p,
+// yuvj420p) or as one of FFmpeg's fallback messages:
+//  - libavcodec/decode.c hwaccel_init: "Failed setup for format cuda:
+//    hwaccel initialisation returned error." (then get_format retries
+//    without it: "Format cuda not usable, retrying get_format() without it.")
+//  - decode.c: "Invalid setup for format cuda: missing configuration."
+//  - fftools/ffmpeg_dec.c hw_device_setup_for_decode / ffmpeg_hw.c:
+//    "Hardware device setup failed for decoder: ..", "Device creation failed: .."
+//  - libavfilter/avfiltergraph.c: "auto-inserting filter 'auto_scale_0'
+//    between .." (a software conversion) or a hwdownload in the graph.
+const FALLBACK_PATTERNS = Object.freeze([
+  /Failed setup for format/i,
+  /hwaccel initiali[sz]ation returned error/i,
+  /Invalid setup for format/i,
+  /Format \S+ not usable/i,
+  /Hardware device setup failed/i,
+  /Device creation failed/i,
+  /hwaccel[^\r\n]*cannot be initiali[sz]ed/i,
+  /No device available for decoder/i,
+  /auto-?inserting/i,
+  /\bhwdownload\b/i,
+  /Impossible to convert between the formats/i
+]);
+const DECODER_FORMAT = /^\[(h264|hevc|av1|vp9|mpeg2video)[^\]]*\] Reinit context to \d+x\d+, pix_fmt: ([a-z0-9_]+)/;
+// (the buffer source's own line, whatever the graph calls it)
+const FILTER_INPUT = /^\[([^\]]*)\] w:\d+ h:\d+ pixfmt:([a-z0-9_]+) tb:/;
+const STREAM_VIDEO = /^\s*Stream #\d+:\d+[^:]*: Video: (.*)$/;
+// Informational: NVENC/CUDA/hwaccel lines that say which device did what.
+const HW_INFO = /Using auto hwaccel type|hwaccel|cuda|nvenc|CUDA capable devices|Nvenc|GPU #|Stream #\d+:\d+ -> #/i;
+
+// the pixel format in a stream line's "Video: codec (..), fmt(..), WxH, .."
+function streamPixFmt(description) {
+  const parts = [];
+  let depth = 0;
+  let current = '';
+  for (const char of description) {
+    if (char === '(') depth += 1;
+    if (char === ')') depth = Math.max(0, depth - 1);
+    if (char === ',' && depth === 0) { parts.push(current.trim()); current = ''; continue; }
+    current += char;
+  }
+  parts.push(current.trim());
+  for (const part of parts.slice(1)) {
+    const match = /^([a-z][a-z0-9_]*)(?:\(|$)/.exec(part);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+// The -hwaccel_output_format of an argument list: the format the frames are
+// to stay in (cuda, d3d11, vaapi, videotoolbox_vld), else null.
+function expectedHwFormat(args) {
+  const index = (args || []).indexOf('-hwaccel_output_format');
+  return index === -1 ? null : args[index + 1] || null;
+}
+
+// What a verbose zero-copy run printed -> { ok, expected, decoder, filterInput,
+// encoderInput, fallbacks, lines, reason }.
+function zeroCopyEvidence(stderr, expected = 'cuda') {
+  const evidence = { ok: false, expected, decoder: [], filterInput: [], encoderInput: [], fallbacks: [], lines: [], reason: null };
+  let inOutput = false;
+  // (before "Stream mapping:" the decoder lines are avformat's probing, which
+  // never uses the hwaccel)
+  let mapped = false;
+  const keep = (line) => { if (evidence.lines.length < 40 && !evidence.lines.includes(line)) evidence.lines.push(line); };
+  for (const raw of String(stderr || '').split(/\r\n|\n|\r/)) {
+    const line = raw.replace(/\s+$/, '');
+    if (!line.trim()) continue;
+    if (/^Stream mapping:/.test(line)) mapped = true;
+    if (/^Output #\d+/.test(line)) inOutput = true;
+    else if (/^Input #\d+/.test(line)) inOutput = false;
+    let match;
+    if (mapped && (match = DECODER_FORMAT.exec(line))) {
+      if (!evidence.decoder.includes(match[2])) evidence.decoder.push(match[2]);
+      keep(line);
+    } else if ((match = FILTER_INPUT.exec(line))) {
+      if (!evidence.filterInput.includes(match[2])) evidence.filterInput.push(match[2]);
+      keep(line);
+    } else if (inOutput && (match = STREAM_VIDEO.exec(line))) {
+      const format = streamPixFmt(match[1]);
+      if (format && !evidence.encoderInput.includes(format)) evidence.encoderInput.push(format);
+      keep(line.trim());
+    } else if (HW_INFO.test(line)) {
+      keep(line.trim());
+    }
+    if (FALLBACK_PATTERNS.some((pattern) => pattern.test(line))) {
+      evidence.fallbacks.push(line.trim());
+      keep(line.trim());
+    }
+  }
+  const wrong = (formats) => formats.filter((format) => format !== expected);
+  const problems = [];
+  if (evidence.fallbacks.length) problems.push('fallback message');
+  if (wrong(evidence.decoder).length) problems.push(`decoder frames ${wrong(evidence.decoder).join('/')}`);
+  if (wrong(evidence.filterInput).length) problems.push(`filter input ${wrong(evidence.filterInput).join('/')}`);
+  if (wrong(evidence.encoderInput).length) problems.push(`encoder input ${wrong(evidence.encoderInput).join('/')}`);
+  if (!evidence.filterInput.length && !evidence.encoderInput.length) problems.push('no frame format printed');
+  evidence.ok = problems.length === 0;
+  evidence.reason = problems.length ? problems.join('; ') : null;
+  return evidence;
+}
+
+function evidenceLabel(evidence) {
+  if (!evidence) return '-';
+  const formats = `dec ${evidence.decoder.join('/') || '?'} > filter ${evidence.filterInput.join('/') || '?'} > enc ${evidence.encoderInput.join('/') || '?'}`;
+  return evidence.ok ? `ok ${formats}` : `FAIL ${evidence.reason} (${formats})`;
+}
+
+// 0: every offered run and every tier-vs-tier comparison passed and the
+// harness had nothing to report; 3: an app finding (a run failed its encode,
+// verify, picture or zero-copy check, or two tiers' encodes differ); 2: a
+// harness problem only (nothing ran, a clip could not be read, ...).
+function exitCodeFor(report) {
+  const runs = report?.runs || [];
+  const offered = runs.filter((run) => run.offered !== false);
+  if (offered.some((run) => !run.ok) || (report?.comparisons || []).some((c) => !c.result?.ok)) return 3;
+  if ((report?.problems || []).length > 0 || offered.length === 0) return 2;
+  return 0;
 }
 
 const CAMERA_ORDER = ['front', 'back', 'left_pillar', 'right_pillar', 'left_repeater', 'right_repeater'];
@@ -159,7 +300,8 @@ function summaryRows(report) {
     seconds: run.wallSeconds === null || run.wallSeconds === undefined ? '-' : String(run.wallSeconds),
     ratio: run.sizeRatio === null || run.sizeRatio === undefined ? '-' : String(run.sizeRatio),
     verify: run.offered === false ? '-' : verifyLabel(run.verify),
-    picture: run.offered === false ? '-' : pictureLabel(run.picture)
+    picture: run.offered === false ? '-' : pictureLabel(run.picture),
+    'zero-copy evidence': run.tier !== 'zero-copy' || run.offered === false ? '-' : evidenceLabel(run.zeroCopyEvidence)
   }));
 }
 
@@ -177,13 +319,14 @@ function tierTotals(report) {
     if (run.offered === false) continue;
     const key = `${run.deviceName || run.device}|${run.codec}|${run.tier}`;
     if (!totals.has(key)) {
-      totals.set(key, { device: run.deviceName || run.device, codec: run.codec, tier: run.tier, clips: 0, ok: 0, verified: 0, pictureOk: 0, fpsSum: 0, fpsCount: 0 });
+      totals.set(key, { device: run.deviceName || run.device, codec: run.codec, tier: run.tier, clips: 0, ok: 0, verified: 0, pictureOk: 0, onGpu: 0, fpsSum: 0, fpsCount: 0 });
     }
     const total = totals.get(key);
     total.clips += 1;
     if (run.ok) total.ok += 1;
     if (run.verify?.ok) total.verified += 1;
     if (run.picture?.ok) total.pictureOk += 1;
+    if (run.zeroCopyEvidence?.ok) total.onGpu += 1;
     if (Number.isFinite(run.fps)) { total.fpsSum += run.fps; total.fpsCount += 1; }
   }
   return [...totals.values()].map((total) => ({
@@ -194,13 +337,14 @@ function tierTotals(report) {
     ok: `${total.ok}/${total.clips}`,
     verified: `${total.verified}/${total.clips}`,
     picture: `${total.pictureOk}/${total.clips}`,
+    'frames on GPU': total.tier === 'zero-copy' ? `${total.onGpu}/${total.clips}` : '-',
     'mean fps': total.fpsCount ? String(round(total.fpsSum / total.fpsCount, 1)) : '-'
   }));
 }
 
 function summaryText(report) {
   const parts = [];
-  parts.push(`GPU tier test: ${report.sets.map((set) => `${set.name} (${set.timestamps.join(', ')})`).join('; ')}`);
+  parts.push(`GPU tier test: ${report.sets.map((set) => `${set.name} (${set.timestamps.join(', ')}${set.short ? `; only ${set.short.picked} of ${set.short.asked} whole minutes` : ''})`).join('; ')}`);
   parts.push(`profile ${report.profile}, verify ${report.verifyMode}; devices: ${report.devices.map((d) => `${d.name} [${d.id}]`).join(', ') || 'none'}`);
   parts.push('');
   parts.push('Sources:');
@@ -217,10 +361,10 @@ function summaryText(report) {
   }))), ['set', 'camera', 'MB', 'size', 'pix_fmt', 'range', 'seconds', 'zero-copy guard', 'lead-in hold']));
   parts.push('');
   parts.push('Encodes:');
-  parts.push(formatTable(summaryRows(report), ['set', 'camera', 'device', 'codec', 'tier', 'result', 'fps', 'seconds', 'ratio', 'verify', 'picture']));
+  parts.push(formatTable(summaryRows(report), ['set', 'camera', 'device', 'codec', 'tier', 'result', 'fps', 'seconds', 'ratio', 'verify', 'picture', 'zero-copy evidence']));
   parts.push('');
   parts.push('Per tier:');
-  parts.push(formatTable(tierTotals(report), ['device', 'codec', 'tier', 'clips', 'ok', 'verified', 'picture', 'mean fps']));
+  parts.push(formatTable(tierTotals(report), ['device', 'codec', 'tier', 'clips', 'ok', 'verified', 'picture', 'frames on GPU', 'mean fps']));
   if (report.comparisons.length) {
     parts.push('');
     parts.push('Tier against tier (picture check):');
@@ -228,17 +372,30 @@ function summaryText(report) {
       set: c.set, camera: c.camera, device: c.deviceName || c.device, codec: c.codec, pair: `${c.a} vs ${c.b}`, picture: pictureLabel(c.result)
     })), ['set', 'camera', 'device', 'codec', 'pair', 'picture']));
   }
+  const evidenceRuns = report.runs.filter((run) => run.zeroCopyEvidence);
+  if (evidenceRuns.length) {
+    parts.push('');
+    parts.push('Zero-copy evidence (the same command at -loglevel verbose):');
+    for (const run of evidenceRuns) {
+      parts.push(`- ${run.set} ${run.camera} ${run.encoder}: ${evidenceLabel(run.zeroCopyEvidence)}`);
+      for (const line of run.zeroCopyEvidence.lines.slice(0, 12)) parts.push(`    ${line}`);
+    }
+  }
+  const failedComparisons = report.comparisons.filter((c) => !c.result?.ok);
   const failures = report.runs.filter((run) => run.offered !== false && !run.ok);
-  if (failures.length || report.problems.length) {
+  if (failures.length || failedComparisons.length || report.problems.length) {
     parts.push('');
     parts.push('Failures:');
     for (const run of failures) {
-      parts.push(`- ${run.set} ${run.camera} ${run.encoder} ${run.tier}: ${run.failedAt}${run.verify && !run.verify.ok ? ` (${run.verify.reason})` : ''}`);
+      parts.push(`- ${run.set} ${run.camera} ${run.encoder} ${run.tier}: ${run.failedAt}${run.verify && !run.verify.ok ? ` (${run.verify.reason})` : ''}${run.failedAt === 'zero-copy' ? ` (${run.zeroCopyEvidence?.reason})` : ''}`);
       const detail = run.stderrTail || run.verify?.decodeStderr;
       if (detail) parts.push(detail.split('\n').map((line) => `    ${line}`).join('\n'));
     }
+    for (const c of failedComparisons) parts.push(`- ${c.set} ${c.camera} ${c.codec} ${c.a} vs ${c.b}: picture ${pictureLabel(c.result)}`);
     for (const problem of report.problems) parts.push(`- harness: ${problem}`);
   }
+  parts.push('');
+  parts.push(`Exit code ${exitCodeFor(report)} (0 all passed, 3 an app failure, 2 a harness problem)`);
   return parts.join('\n');
 }
 
@@ -275,11 +432,12 @@ function removeTree(target) {
   fs.rmSync(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
 }
 
-function runEncode(ffmpeg, args) {
+function runEncode(ffmpeg, args, { keepHead = 0 } = {}) {
   return new Promise((resolve) => {
     const started = process.hrtime.bigint();
     let stdout = '';
     let stderr = '';
+    let head = '';
     let child;
     try {
       // as the app spawns it (runtime.js spawnProcess): CUDA numbers the
@@ -291,12 +449,15 @@ function runEncode(ffmpeg, args) {
     }
     const timer = setTimeout(() => child.kill('SIGKILL'), ENCODE_TIMEOUT_MS);
     child.stdout.on('data', (chunk) => { stdout = (stdout + chunk).slice(-STDERR_KEEP); });
-    child.stderr.on('data', (chunk) => { stderr = (stderr + chunk).slice(-STDERR_KEEP); });
+    child.stderr.on('data', (chunk) => {
+      if (head.length < keepHead) head += String(chunk).slice(0, keepHead - head.length);
+      stderr = (stderr + chunk).slice(-STDERR_KEEP);
+    });
     child.once('error', (error) => { stderr += `\n${error.message}`; });
     child.once('close', (status, signal) => {
       clearTimeout(timer);
       const seconds = Number(process.hrtime.bigint() - started) / 1e9;
-      resolve({ status, signal, stdout, stderr, seconds });
+      resolve({ status, signal, stdout, stderr, head, seconds });
     });
   });
 }
@@ -317,6 +478,11 @@ async function main(argv) {
   for (const dir of clipDirs) if (reportPath && isInside(reportPath, dir)) throw new Error('--report must be outside the clip folders');
 
   const platform = process.platform;
+  // The app's process limits (server/converterHost.js: 30 minutes, and the
+  // runtime's default 1 MB of output, no maxProcessOutputBytes) for what the
+  // app runs: ffprobe, the planner's probes and the verifier's full decode.
+  // The larger one is for this harness's own diagnostics only.
+  const appRunner = createBoundedProcessRunner({ spawn: childProcess.spawn, timeoutMs: 30 * 60_000 });
   const runner = createBoundedProcessRunner({ spawn: childProcess.spawn, timeoutMs: 30 * 60_000, maxOutputBytes: 8 * 1024 * 1024 });
   const report = {
     tool: 'gpuTiers',
@@ -359,7 +525,7 @@ async function main(argv) {
     if (options.cpu && !devices.some((device) => device.kind === 'cpu')) devices.push(CPU_DEVICE);
     report.devices = devices.map((device) => ({ ...device }));
 
-    const planner = createEncoderPlanner({ runProbe: runner, platform, ffmpegPath: options.ffmpeg });
+    const planner = createEncoderPlanner({ runProbe: appRunner, platform, ffmpegPath: options.ffmpeg });
     // Each device's encoder per codec, chosen and proven as a lane's is
     // (planner.selectFor); a GPU that cannot encode a codec is left out.
     const lanes = [];
@@ -383,8 +549,8 @@ async function main(argv) {
     fs.mkdirSync(snapshotRoot, { recursive: true });
     const adapters = createConverterAdapters({
       fs: fs.promises,
-      runFfprobe: runner,
-      runFullDecode: runner,
+      runFfprobe: appRunner,
+      runFullDecode: appRunner,
       verifierOptions: {
         ffmpegPath: options.ffmpeg,
         ffprobePath: options.ffprobe,
@@ -414,6 +580,8 @@ async function main(argv) {
       }
       const picked = pickTimestamps(groupClipSets(names), options.minutes);
       const set = { name, dir, timestamps: picked.map((group) => group.timestamp), sources: [] };
+      const short = shortfallOf(picked, options.minutes);
+      if (short) set.short = short;
       report.sets.push(set);
       if (picked.length === 0) report.problems.push(`${dir}: no Tesla clips`);
       const copies = path.join(out, 'sources', name);
@@ -435,10 +603,11 @@ async function main(argv) {
             continue;
           }
           console.log(`[gpuTiers] ${name} ${group.timestamp} ${camera} (${round(entry.bytes / 1048576, 1)} MB)`);
-          await runClip({ report, set, entry, source, lanes, options, runner, adapters, decodeAccel, picture, out });
+          await runClip({ report, set, entry, source, lanes, options, runner: appRunner, diagnostics: runner, adapters, decodeAccel, picture, out });
         }
       }
     }
+    if (!report.runs.some((run) => run.offered !== false)) report.problems.push('nothing ran');
   } finally {
     helper?.close();
     report.finishedAt = new Date().toISOString();
@@ -458,7 +627,7 @@ async function main(argv) {
   return report;
 }
 
-async function runClip({ report, set, entry, source, lanes, options, runner, adapters, decodeAccel, picture, out }) {
+async function runClip({ report, set, entry, source, lanes, options, runner, diagnostics, adapters, decodeAccel, picture, out }) {
   // What the app reads first (runtime.js inspectVideo), then the colour
   // facts for the report.
   const appProbe = await runner(options.ffprobe, ['-v', 'error', '-select_streams', 'v:0',
@@ -518,7 +687,7 @@ async function runClip({ report, set, entry, source, lanes, options, runner, ada
         set: set.name, timestamp: entry.timestamp, camera: entry.camera, device: device.id, deviceName: device.name,
         codec, encoder: selected.codec, tier, offered: true, ok: false, failedAt: null,
         wallSeconds: null, frames: null, fps: null, bitrate: null, outputBytes: null, sizeRatio: null,
-        attempts: [], verify: null, picture: null, stderrTail: null, args: null
+        attempts: [], verify: null, picture: null, zeroCopyEvidence: null, stderrTail: null, args: null
       };
       report.runs.push(run);
       const chosen = tierArgs[tier];
@@ -531,6 +700,7 @@ async function runClip({ report, set, entry, source, lanes, options, runner, ada
       }
       let bitrate = startBitrate;
       let sizeRetryCount = 0;
+      let lastArgs = null;
       const target = path.join(dir, `${tier}.mp4`);
       while (true) {
         removeTree(target);
@@ -541,6 +711,7 @@ async function runClip({ report, set, entry, source, lanes, options, runner, ada
         run.attempts.push(attempt);
         const encoded = await runEncode(options.ffmpeg, args);
         attempt.wallSeconds = round(encoded.seconds, 2);
+        lastArgs = args;
         attempt.frames = progressFrames(encoded.stdout);
         run.wallSeconds = attempt.wallSeconds;
         run.frames = attempt.frames;
@@ -588,7 +759,7 @@ async function runClip({ report, set, entry, source, lanes, options, runner, ada
           // The verifier keeps only the kind of failure: the same complete
           // decode (verifier.js decodeArgs), on the CPU, says what ffmpeg
           // printed.
-          const decode = await runner(options.ffmpeg, ['-nostdin', '-hide_banner', '-loglevel', 'error', '-xerror', '-err_detect', 'explode',
+          const decode = await diagnostics(options.ffmpeg, ['-nostdin', '-hide_banner', '-loglevel', 'error', '-xerror', '-err_detect', 'explode',
             '-i', target, '-map', '0:v:0', '-an', '-sn', '-dn', '-fps_mode', 'passthrough', '-progress', 'pipe:1', '-nostats', '-f', 'null', '-'], { timeoutMs: 30 * 60_000 });
           run.verify.decodeStatus = decode?.status ?? null;
           // (less the null muxer's duplicate-dts lines the verifier tolerates)
@@ -616,9 +787,11 @@ async function runClip({ report, set, entry, source, lanes, options, runner, ada
       if (run.failedAt === 'encode' || run.failedAt === 'telemetry') continue;
       outputs[tier] = target;
       run.picture = await picture(source, target, inspected.durationSeconds);
-      run.ok = run.verify?.ok === true && run.picture?.ok === true;
+      if (tier === 'zero-copy') run.zeroCopyEvidence = await zeroCopyCheck(options.ffmpeg, lastArgs, target, path.join(dir, 'zero-copy-verbose.mp4'));
+      run.ok = run.verify?.ok === true && run.picture?.ok === true && (tier !== 'zero-copy' || run.zeroCopyEvidence?.ok === true);
       if (!run.failedAt && !run.picture?.ok) run.failedAt = 'picture';
-      console.log(`[gpuTiers]   ${selected.codec} ${tier}: ${run.ok ? 'ok' : `FAIL ${run.failedAt}`} ${run.fps ?? '-'} fps, ratio ${run.sizeRatio}, verify ${verifyLabel(run.verify)}, picture ${pictureLabel(run.picture)}`);
+      if (!run.failedAt && tier === 'zero-copy' && !run.zeroCopyEvidence?.ok) run.failedAt = 'zero-copy';
+      console.log(`[gpuTiers]   ${selected.codec} ${tier}: ${run.ok ? 'ok' : `FAIL ${run.failedAt}`} ${run.fps ?? '-'} fps, ratio ${run.sizeRatio}, verify ${verifyLabel(run.verify)}, picture ${pictureLabel(run.picture)}${tier === 'zero-copy' ? `, frames ${evidenceLabel(run.zeroCopyEvidence)}` : ''}`);
     }
     // the tiers' encodes against each other
     const present = TIERS.filter((tier) => outputs[tier]);
@@ -633,6 +806,25 @@ async function runClip({ report, set, entry, source, lanes, options, runner, ada
   if (!options.keep) removeTree(source);
 }
 
+// The zero-copy encode's exact command again, at -loglevel verbose and into a
+// throwaway file: what FFmpeg prints shows whether the frames stayed on the GPU.
+async function zeroCopyCheck(ffmpeg, args, target, throwaway) {
+  if (!Array.isArray(args)) return { ...zeroCopyEvidence('', null), reason: 'no command' };
+  const level = args.indexOf('-loglevel');
+  const verbose = args.map((arg, index) => (index === level + 1 && level !== -1 ? 'verbose' : arg === target ? throwaway : arg));
+  removeTree(throwaway);
+  const result = await runEncode(ffmpeg, verbose, { keepHead: 256 * 1024 });
+  removeTree(throwaway);
+  const evidence = zeroCopyEvidence(`${result.head}\n${result.stderr}`, expectedHwFormat(args) || 'cuda');
+  evidence.exit = result.status ?? result.signal ?? null;
+  if (result.status !== 0) {
+    evidence.ok = false;
+    evidence.reason = [evidence.reason, `verbose run exit ${evidence.exit}`].filter(Boolean).join('; ');
+    evidence.stderrTail = stderrTail(result.stderr, 10);
+  }
+  return evidence;
+}
+
 function laneOptions(selected) {
   const device = selected?.device && selected.device.kind !== 'cpu' ? selected.device : null;
   return device ? { device } : {};
@@ -642,6 +834,12 @@ module.exports = {
   parseArgs,
   groupClipSets,
   pickTimestamps,
+  shortfallOf,
+  zeroCopyEvidence,
+  expectedHwFormat,
+  streamPixFmt,
+  evidenceLabel,
+  exitCodeFor,
   cameraOrder,
   stderrTail,
   progressFrames,
@@ -654,9 +852,10 @@ module.exports = {
 
 if (require.main === module) {
   main(process.argv.slice(2)).then((report) => {
-    process.exitCode = report.problems.length > 0 ? 2 : 0;
+    process.exitCode = exitCodeFor(report);
   }, (error) => {
+    // the harness could not run (arguments, folders, ...)
     console.error(`[gpuTiers] ${error?.stack || error}`);
-    process.exitCode = 1;
+    process.exitCode = 2;
   });
 }

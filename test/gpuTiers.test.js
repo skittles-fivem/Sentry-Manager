@@ -6,7 +6,8 @@ const path = require('path');
 
 const {
   parseArgs, groupClipSets, pickTimestamps, cameraOrder, stderrTail, progressFrames,
-  summaryRows, tierTotals, formatTable, summaryText, isInside
+  summaryRows, tierTotals, formatTable, summaryText, isInside,
+  shortfallOf, zeroCopyEvidence, expectedHwFormat, streamPixFmt, evidenceLabel, exitCodeFor
 } = require('../tools/gpuTiers');
 const { decodeTierCandidates, ffmpegEncodeCommand } = require('../src/main/converter/jobService');
 const { decodeAccelArgs } = require('../src/main/converter/encoderPlanner');
@@ -39,6 +40,27 @@ test('whole minutes only, never the last one, spread over the folder', () => {
   // fewer whole minutes than asked: all of them
   assert.equal(pickTimestamps(groupClipSets(names(stamps[0], HW4)), 3).length, 1);
   assert.deepEqual(pickTimestamps([], 2), []);
+});
+
+test('the newest minute is dropped whenever there is more than one, and a short set is recorded', () => {
+  const stamps = Array.from({ length: 3 }, (_, n) => `2026-10-19_00-0${n}-29`);
+  const groups = groupClipSets(stamps.flatMap((stamp) => names(stamp, HW4)));
+  // three whole minutes, three asked: the newest still goes
+  const three = pickTimestamps(groups, 3);
+  assert.deepEqual(three.map((group) => group.timestamp), stamps.slice(0, 2));
+  assert.deepEqual(shortfallOf(three, 3), { asked: 3, picked: 2 });
+  // two whole minutes, one asked: the older one
+  assert.deepEqual(pickTimestamps(groups.slice(0, 2), 1).map((group) => group.timestamp), [stamps[0]]);
+  // a single minute is all there is: kept, and short of two
+  const one = pickTimestamps(groups.slice(0, 1), 2);
+  assert.equal(one.length, 1);
+  assert.deepEqual(shortfallOf(one, 2), { asked: 2, picked: 1 });
+  assert.equal(shortfallOf(pickTimestamps(groups, 2), 2), null);
+  // ten whole minutes, three asked: spread, newest never
+  const ten = groupClipSets(Array.from({ length: 10 }, (_, n) => names(`2026-10-19_01-0${n}-29`, HW4)).flat());
+  const picked = pickTimestamps(ten, 3).map((group) => group.timestamp);
+  assert.equal(new Set(picked).size, 3);
+  assert.ok(!picked.includes('2026-10-19_01-09-29'));
 });
 
 test('cameras in a fixed order', () => {
@@ -99,6 +121,108 @@ test('the tiers and command lines the app uses on NVENC (Windows)', () => {
   assert.deepEqual(decodeTierCandidates({ codec: 'libx265', hardware: false }, decodeAccel, { video }), []);
 });
 
+// What FFmpeg 8 prints at -loglevel verbose for the zero-copy command
+// (-hwaccel cuda -hwaccel_output_format cuda ... -c:v hevc_nvenc), frames on
+// the GPU from decoder to encoder.
+const ZERO_COPY_LOG = [
+  '[h264 @ 0x1f0] Reinit context to 1280x960, pix_fmt: yuvj420p',
+  "Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'C:\\gputiers\\sources\\2026-10-19_00-01-29-front.mp4':",
+  '  Stream #0:0[0x1](und): Video: h264 (High), 1 reference frame (avc1 / 0x31637661), yuvj420p(pc, bt709, progressive, left), 1280x960, 4994 kb/s, 36.02 fps, 36 tbr, 90k tbn (default)',
+  '[vost#0:0/hevc_nvenc @ 0x2a0] Created video stream from input stream 0:0',
+  'Stream mapping:',
+  '  Stream #0:0 -> #0:0 (h264 (native) -> hevc (hevc_nvenc))',
+  '[h264 @ 0x2b0] Reinit context to 1280x960, pix_fmt: cuda',
+  '[graph 0 input from stream 0:0 @ 0x3c0] w:1280 h:960 pixfmt:cuda tb:1/90000 fr:36/1 sar:0/1 csp:bt709 range:pc',
+  '[hevc_nvenc @ 0x2c0] Loaded Nvenc version 13.0',
+  '[hevc_nvenc @ 0x2c0] Nvenc initialized successfully',
+  '[hevc_nvenc @ 0x2c0] supports NVENC',
+  "Output #0, mp4, to 'C:\\gputiers\\zero-copy-verbose.mp4':",
+  '  Stream #0:0: Video: hevc (Main) (hvc1 / 0x31637668), cuda(pc, bt709, progressive, left), 1280x960, q=2-31, 3720 kb/s, 36 fps, 90k tbn (default)',
+  '[out#0/mp4 @ 0x4d0] Output file #0 (C:\\gputiers\\zero-copy-verbose.mp4):'
+].join('\r\n');
+
+// The same command when NVDEC could not be set up: the decoder retried
+// get_format without CUDA, frames came out in system memory and a software
+// conversion was inserted in front of the encoder.
+const FALLBACK_LOG = [
+  'Stream mapping:',
+  '  Stream #0:0 -> #0:0 (h264 (native) -> hevc (hevc_nvenc))',
+  '[h264 @ 0x2b0] Failed setup for format cuda: hwaccel initialisation returned error.',
+  '[h264 @ 0x2b0] Reinit context to 1280x960, pix_fmt: yuvj420p',
+  '[graph 0 input from stream 0:0 @ 0x3c0] w:1280 h:960 pixfmt:yuvj420p tb:1/90000 fr:36/1 sar:0/1 csp:bt709 range:pc',
+  "[format @ 0x3d0] auto-inserting filter 'auto_scale_0' between the filter 'Parsed_null_0' and the filter 'format'",
+  '[auto_scale_0 @ 0x3e0] w:1280 h:960 fmt:yuvj420p csp:bt709 range:pc sar:0/1 -> w:1280 h:960 fmt:nv12 csp:bt709 range:pc sar:0/1 flags:0x00000004',
+  '[hevc_nvenc @ 0x2c0] 1 CUDA capable devices found',
+  "Output #0, mp4, to 'x.mp4':",
+  '  Stream #0:0: Video: hevc (Main) (hvc1 / 0x31637668), nv12(pc, bt709, progressive, left), 1280x960, q=2-31, 3720 kb/s, 36 fps, 90k tbn (default)'
+].join('\n');
+
+test('zero-copy evidence: frames on the GPU from decoder to encoder', () => {
+  const evidence = zeroCopyEvidence(ZERO_COPY_LOG, 'cuda');
+  assert.equal(evidence.ok, true, evidence.reason);
+  // the probing decoder (before "Stream mapping:") is not the one that runs
+  assert.deepEqual(evidence.decoder, ['cuda']);
+  assert.deepEqual(evidence.filterInput, ['cuda']);
+  assert.deepEqual(evidence.encoderInput, ['cuda']);
+  assert.deepEqual(evidence.fallbacks, []);
+  assert.ok(evidence.lines.some((line) => /pixfmt:cuda/.test(line)));
+  assert.ok(evidence.lines.some((line) => /Nvenc initialized successfully/.test(line)));
+  assert.match(evidenceLabel(evidence), /^ok dec cuda > filter cuda > enc cuda$/);
+  // an AV1 encode's output line
+  assert.deepEqual(zeroCopyEvidence(ZERO_COPY_LOG.replace('hevc (Main) (hvc1 / 0x31637668)', 'av1 (Main) (av01 / 0x31307661)'), 'cuda').encoderInput, ['cuda']);
+});
+
+test('zero-copy evidence: a fallback to system memory fails, whichever way it shows', () => {
+  const evidence = zeroCopyEvidence(FALLBACK_LOG, 'cuda');
+  assert.equal(evidence.ok, false);
+  assert.deepEqual(evidence.decoder, ['yuvj420p']);
+  assert.deepEqual(evidence.filterInput, ['yuvj420p']);
+  assert.deepEqual(evidence.encoderInput, ['nv12']);
+  assert.equal(evidence.fallbacks.length, 2);
+  assert.match(evidence.reason, /fallback message; decoder frames yuvj420p; filter input yuvj420p; encoder input nv12/);
+  assert.match(evidenceLabel(evidence), /^FAIL /);
+  // each sign alone is enough
+  const only = (line) => zeroCopyEvidence(ZERO_COPY_LOG.replace('[out#0/mp4', `${line}\n[out#0/mp4`), 'cuda');
+  for (const line of [
+    '[h264 @ 0x2b0] Failed setup for format cuda: hwaccel initialisation returned error.',
+    '[h264 @ 0x2b0] Format cuda not usable, retrying get_format() without it.',
+    '[vist#0:0/h264 @ 0x2b0] Hardware device setup failed for decoder: Generic error in an external library',
+    "[format @ 0x3d0] auto-inserting filter 'auto_scale_0' between the filter 'Parsed_null_0' and the filter 'format'",
+    "[Parsed_hwdownload_0 @ 0x3d0] hwdownload"
+  ]) assert.equal(only(line).ok, false, line);
+  assert.equal(zeroCopyEvidence(ZERO_COPY_LOG.replace('pixfmt:cuda', 'pixfmt:nv12'), 'cuda').ok, false);
+  assert.equal(zeroCopyEvidence(ZERO_COPY_LOG.replace('cuda(pc,', 'yuv420p(pc,'), 'cuda').ok, false);
+  // nothing printed about the frames: no proof
+  const empty = zeroCopyEvidence('Stream mapping:\n  Stream #0:0 -> #0:0 (h264 (native) -> hevc (hevc_nvenc))\n', 'cuda');
+  assert.equal(empty.ok, false);
+  assert.match(empty.reason, /no frame format printed/);
+});
+
+test('zero-copy evidence helpers', () => {
+  assert.equal(expectedHwFormat(['-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda', '-i', 'x']), 'cuda');
+  assert.equal(expectedHwFormat(['-hwaccel', 'cuda']), null);
+  assert.equal(streamPixFmt('hevc (Main) (hvc1 / 0x31637668), cuda(pc, bt709, progressive, left), 1280x960, q=2-31'), 'cuda');
+  assert.equal(streamPixFmt('hevc, 1 reference frame (hev1 / 0x31766568), yuv420p(tv, progressive, left), 320x240 (0x0)'), 'yuv420p');
+  assert.equal(streamPixFmt('h264'), null);
+});
+
+test('exit code: 3 for an app failure, 2 for a harness problem, 0 only when all passed', () => {
+  const ok = (over = {}) => ({ offered: true, ok: true, ...over });
+  const base = (over) => ({ runs: [ok(), ok({ tier: 'zero-copy' }), { offered: false }], comparisons: [{ result: { ok: true } }], problems: [], ...over });
+  assert.equal(exitCodeFor(base()), 0);
+  for (const failedAt of ['encode', 'verify', 'picture', 'zero-copy']) {
+    assert.equal(exitCodeFor(base({ runs: [ok(), ok({ ok: false, failedAt })] })), 3, failedAt);
+  }
+  assert.equal(exitCodeFor(base({ comparisons: [{ result: { ok: false, mean: 0.9 } }] })), 3);
+  assert.equal(exitCodeFor(base({ comparisons: [{ result: null }] })), 3);
+  assert.equal(exitCodeFor(base({ problems: ['clip: copy: EACCES'] })), 2);
+  assert.equal(exitCodeFor(base({ runs: [{ offered: false }] })), 2, 'nothing ran');
+  assert.equal(exitCodeFor(base({ runs: [] })), 2);
+  // an app failure is reported even with a harness problem beside it
+  assert.equal(exitCodeFor(base({ runs: [ok({ ok: false, failedAt: 'verify' })], problems: ['x'] })), 3);
+  assert.equal(exitCodeFor(sampleReport()), 3);
+});
+
 function sampleReport() {
   const run = (over) => ({
     set: 'HW4', timestamp: 't', camera: 'front', device: 'pci:0000:01:00.0', deviceName: 'RTX', codec: 'h265', encoder: 'hevc_nvenc',
@@ -141,4 +265,17 @@ test('summary rows, per-tier totals and the table', () => {
   assert.match(text, /2896x1876/);
   assert.match(text, /Failures:\n- HW4 front hevc_nvenc zero-copy: encode\n {4}Impossible to convert/);
   assert.match(text, /gpu vs cpu-decode/);
+  assert.match(text, /zero-copy evidence/);
+  assert.match(text, /Exit code 3/);
+  const withEvidence = sampleReport();
+  withEvidence.runs[0] = { ...withEvidence.runs[0], ok: false, failedAt: 'zero-copy', stderrTail: null, fps: 300, verify: { ok: true }, picture: { ok: true, mean: 0.99 }, zeroCopyEvidence: zeroCopyEvidence(FALLBACK_LOG, 'cuda') };
+  withEvidence.sets[0].short = { asked: 3, picked: 2 };
+  const evidenceText = summaryText(withEvidence);
+  assert.match(evidenceText, /only 2 of 3 whole minutes/);
+  assert.match(evidenceText, /Zero-copy evidence[^\n]*\n- HW4 front hevc_nvenc: FAIL fallback message/);
+  assert.match(evidenceText, /Failed setup for format cuda/);
+  assert.match(evidenceText, /zero-copy: zero-copy \(fallback message/);
+  assert.equal(summaryRows(withEvidence)[0]['zero-copy evidence'].startsWith('FAIL'), true);
+  assert.equal(summaryRows(withEvidence)[1]['zero-copy evidence'], '-');
+  assert.equal(tierTotals(withEvidence)[0]['frames on GPU'], '0/1');
 });

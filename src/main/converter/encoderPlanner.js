@@ -104,7 +104,7 @@ function qualityRateArgs(codec, encoder, level) {
 // and night Tesla clips (more than twice it; GPU tier test on an RTX 4070 Ti, see
 // tools/nvencRate.js), and a lower -b:v on the size retry barely changed the
 // size. With the cap every such clip landed under its target on the first
-// try, at the same picture check score and SSIM within 0.002 at equal size.
+// try, at a picture check score within 0.001 and SSIM within 0.002 at equal size.
 // VBR rather than CBR so a still (Sentry) scene is not padded up to the
 // bitrate. av1_nvenc met every target with -b:v alone and stays as it is.
 function bitrateArgs(encoder, bitrate) {
