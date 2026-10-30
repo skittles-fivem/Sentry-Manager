@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const crypto = require('crypto');
 const fs = require('fs');
 const fsp = require('fs/promises');
+const os = require('os');
 const { realTmp } = require('./fixtures/tmp');
 const path = require('path');
 const { spawn, spawnSync, execFileSync } = require('child_process');
