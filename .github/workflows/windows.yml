@@ -10,8 +10,9 @@ name: Windows
 #     account, then uninstalls and checks nothing is left.
 #   - publish: on a push to main only, a GitHub Release with the zip,
 #     SHA256SUMS and release.json (what update notices and update.ps1 read).
-# Docker-only changes do not run it, and it never touches ghcr.io. Never on
-# pull requests: nobody else's code runs here with this repository's token.
+# Docker-only and macOS-only changes do not run it, and it never touches
+# ghcr.io. Never on pull requests: nobody else's code runs here with this
+# repository's token.
 
 on:
   push:
@@ -23,6 +24,9 @@ on:
       - '.github/workflows/image.yml'
       - '.github/workflows/water.yml'
       - '.github/workflows/water-tests.yml'
+      - 'macos/**'
+      - 'native/darwin/**'
+      - '.github/workflows/macos.yml'
       - 'README.md'
       - 'docs/**'
   workflow_dispatch:

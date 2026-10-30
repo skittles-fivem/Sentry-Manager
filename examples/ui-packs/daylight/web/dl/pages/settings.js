@@ -1,7 +1,7 @@
 // Settings: vehicles (with a guided "add my vehicle"), account, look,
 // interface packs, security, updates, system and the electricity price.
 
-import { api, upload, esc, enc, icon, bytes, plural, when, ago, chip, kv, details, emptyState, confirmDialog, modal, toast, fail, busy, store, fin, liveDraw, clockPref, onWindows, whereRunning, toldHow, WIN_UPDATE } from '../core.js';
+import { api, upload, esc, enc, icon, bytes, plural, when, ago, chip, kv, details, emptyState, confirmDialog, modal, toast, fail, busy, store, fin, liveDraw, clockPref, onWindows, onMac, whereRunning, toldHow, WIN_UPDATE, MAC_UPDATE } from '../core.js';
 import { state, loadVehicles, shareHealth, setVehicle, vehicleById } from '../state.js';
 import { go, setTheme, currentTheme, signOut } from '../app.js';
 
@@ -102,18 +102,19 @@ async function addVehicle({ el, ctx }) {
   const STEPS = ['Where', 'Details', 'Check'];
   // on the Windows service a folder is one on this PC, not one mounted into a container
   const win = () => onWindows() || state.system?.deployment === 'windows';
+  const mac = () => !win() && (onMac() || state.system?.deployment === 'macos');
   const draw = () => {
     let body = '';
     if (draft.step === 1) {
       body = `<h2>Where does the car’s footage live?</h2><p class="muted" style="margin:6px 0 18px">Pick the one that matches your setup.</p>
         <div class="choices"><button type="button" class="choice" data-type="smb" aria-pressed="${draft.type === 'smb'}"><span class="choice-icon">${icon('network')}</span><span><b>On a network share</b><span>A NAS, a TeslaUSB or another computer sharing a folder (SMB).</span></span></button>
-          <button type="button" class="choice" data-type="path" aria-pressed="${draft.type === 'path'}"><span class="choice-icon">${icon('folder')}</span><span><b>In a folder on this server</b><span>${win() ? 'A folder on a drive of this PC.' : 'A folder you mounted into the container yourself.'}</span></span></button></div>`;
+          <button type="button" class="choice" data-type="path" aria-pressed="${draft.type === 'path'}"><span class="choice-icon">${icon('folder')}</span><span><b>In a folder on this server</b><span>${win() ? 'A folder on a drive of this PC.' : mac() ? 'A drive or folder on this Mac.' : 'A folder you mounted into the container yourself.'}</span></span></button></div>`;
     } else if (draft.step === 2) {
-      body = `<h2>Tell us about it</h2><p class="muted" style="margin:6px 0 18px">${draft.type === 'smb' ? 'The share’s address and an account that can read it.' : win() ? 'The folder’s path on this PC.' : 'The folder’s path inside the container.'}</p>
+      body = `<h2>Tell us about it</h2><p class="muted" style="margin:6px 0 18px">${draft.type === 'smb' ? 'The share’s address and an account that can read it.' : win() ? 'The folder’s path on this PC.' : mac() ? 'The folder’s path on this Mac.' : 'The folder’s path inside the container.'}</p>
         <form class="form-grid" id="veh-form">
           <label class="field"><span>Vehicle name</span><input class="input" name="name" value="${esc(draft.name)}" placeholder="My Model Y" required></label>
           ${timezoneField(draft.timezone)}
-          ${draft.type === 'smb' ? smbFields(draft.source, versions) : `<label class="field full"><span>Folder</span><input class="input mono" name="path" value="${esc(draft.source.path || '')}" placeholder="${win() ? 'D:\\TeslaCam' : '/footage/model-y'}" autocapitalize="none" spellcheck="false"><span class="hint">${win() ? 'An internal or USB drive of this PC. For a NAS, use a network share.' : 'A folder you mounted into the container (bind mount or Docker volume).'}</span></label>`}
+          ${draft.type === 'smb' ? smbFields(draft.source, versions) : `<label class="field full"><span>Folder</span><input class="input mono" name="path" value="${esc(draft.source.path || '')}" placeholder="${win() ? 'D:\\TeslaCam' : mac() ? '/Volumes/TESLADRIVE' : '/footage/model-y'}" autocapitalize="none" spellcheck="false"><span class="hint">${win() ? 'An internal or USB drive of this PC. For a NAS, use a network share.' : mac() ? 'A drive plugged into this Mac (under /Volumes) or a folder in /Users/Shared. For a NAS, use a network share.' : 'A folder you mounted into the container (bind mount or Docker volume).'}</span></label>`}
         </form>`;
     } else {
       const s = draft.source;
@@ -365,7 +366,7 @@ async function security({ el }) {
   }
   el.innerHTML = `<div class="card stack"><h2>Security</h2>
     <div class="note ${sec.https ? 'note-good' : 'note-bad'}">${icon(sec.https ? 'lock' : 'alert')}<span>${sec.https ? '<b>This connection is encrypted (HTTPS).</b> Your password and footage can’t be read on the way.' : '<b>This connection isn’t encrypted.</b> Others on the network could read your password and footage. Use https:// or a reverse proxy that does HTTPS.'}</span></div>
-    ${details('About the server process', `<p class="small">${onWindows() ? (sec.elevated ? 'It runs as an administrator. Fine for trying it out; the service runs it as its own ordinary account.' : `It runs as ${esc(sec.account || 'its own service account')}, an ordinary account, not an administrator.`) : sec.runningAsRoot ? 'It runs as root (not supervised). Fine while developing; the Docker image runs it as an ordinary user.' : 'It runs as an ordinary user; only the supervisor can connect shares.'}</p>`)}
+    ${details('About the server process', `<p class="small">${onWindows() ? (sec.elevated ? 'It runs as an administrator. Fine for trying it out; the service runs it as its own ordinary account.' : `It runs as ${esc(sec.account || 'its own service account')}, an ordinary account, not an administrator.`) : onMac() ? (sec.runningAsRoot ? 'It runs as root. Fine for trying it out; the service runs it as its own account.' : `It runs as the macOS service account <code>${esc(sec.account || '_sentrysix')}</code>, not as root, and connects shares itself.`) : sec.runningAsRoot ? 'It runs as root (not supervised). Fine while developing; the Docker image runs it as an ordinary user.' : 'It runs as an ordinary user; only the supervisor can connect shares.'}</p>`)}
     <h3>Certificate</h3>${certBody}</div>`;
   el.querySelector('#hosts')?.addEventListener('submit', (e) => { e.preventDefault(); save(String(new FormData(e.target).get('hostnames') || '').split(/[\s,]+/).filter(Boolean), e.submitter); });
   el.querySelector('#add-host')?.addEventListener('click', (e) => save([...(tls.editable || []), host], e.currentTarget));
@@ -377,9 +378,9 @@ async function updates({ el }) {
     const cur = u.current || {};
     const running = `${cur.sha ? `${esc(cur.sha.slice(0, 7))}${u.tag ? ` (${esc(u.tag)})` : ''}` : 'built from source'}${cur.builtAt ? ` · built ${esc(String(cur.builtAt).slice(0, 10))}` : ''}`;
     const how = '<code>docker compose pull &amp;&amp; docker compose up -d</code>';
-    // the Windows build updates from a release: the server's own words, else the Windows steps
+    // the Windows and Mac builds update from a release: the server's own words, else their steps
     const told = toldHow(u);
-    const release = told || onWindows() ? esc(told || WIN_UPDATE) : '';
+    const release = told || onWindows() ? esc(told || WIN_UPDATE) : onMac() ? esc(MAC_UPDATE) : '';
     const off = release
       ? (told || cur.sha ? `Checking for updates is turned off (UPDATE_CHECK=off). ${release}` : 'This copy runs from source. To update it, get the new code and start it again.')
       : u.image ? `Checking for updates is turned off (UPDATE_CHECK=off). To update, run ${how}.` : 'This copy was built from source. To update it, build the image again from the new code.';
@@ -421,7 +422,7 @@ async function system({ el }) {
   let mode = p.mode === 'tou' ? 'tou' : 'flat';
   const gpuText = (g) => {
     if (!g) return '';
-    const list = [...(g.nvidia || []).map((x) => `${esc(x.name)} (driver ${esc(x.driver)})`), ...(g.gpus || []).filter((x) => x.vendor !== 'nvidia').map((x) => (x.virtual ? `${esc(x.name)} (not a real GPU, not used)` : `${esc(x.name || x.vendorName)}${x.passedThrough ? (x.encodes ? ` · converts ${esc(Object.entries(x.encodes).filter(([, y]) => y).map(([k]) => k.toUpperCase()).join(', ') || 'nothing')}` : '') : (onWindows() || sys?.deployment === 'windows' ? ' · not usable for encoding' : ' · not passed into the container')}`))];
+    const list = [...(g.nvidia || []).map((x) => `${esc(x.name)} (driver ${esc(x.driver)})`), ...(g.gpus || []).filter((x) => x.vendor !== 'nvidia').map((x) => (x.virtual ? `${esc(x.name)} (not a real GPU, not used)` : `${esc(x.name || x.vendorName)}${x.passedThrough ? (x.encodes ? ` · converts ${esc(Object.entries(x.encodes).filter(([, y]) => y).map(([k]) => k.toUpperCase()).join(', ') || 'nothing')}` : '') : (onWindows() || onMac() || sys?.deployment === 'windows' || sys?.deployment === 'macos' ? ' · not usable for encoding' : ' · not passed into the container')}`))];
     return list.length ? list.join('<br>') : 'None. Conversions use the processor.';
   };
   el.innerHTML = `<div class="stack">

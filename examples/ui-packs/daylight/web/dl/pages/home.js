@@ -126,7 +126,7 @@ function vehicleCard(v) {
 }
 
 // why the CPU's watts are missing (/api/stats power.cpuUnavailable)
-const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)' };
+const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)', macos: 'CPU n/a (Mac)' };
 
 export async function render(ctx) {
   const { view } = ctx;

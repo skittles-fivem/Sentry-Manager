@@ -1,0 +1,344 @@
+name: macOS
+
+# Builds, checks and publishes the native macOS package (Apple Silicon only,
+# no Docker).
+#   - test: the whole test suite on an arm64 Mac, with the pinned ffmpeg on
+#     PATH, sentry-fsops built into build/ and REQUIRE_TOOLS=1 so a missing
+#     tool fails instead of skipping. The VideoToolbox probe is only logged:
+#     hosted runners are virtual machines and may have no hardware encoder.
+#   - package: macos/build.sh makes the tarball, SHA256SUMS and release.json.
+#   - install-check: installs that tarball with the real install.sh (the
+#     runner has passwordless sudo), checks the web UI over HTTPS, the
+#     service account, a restart after a crash, a clean stop, the Rosetta
+#     refusal, then uninstalls and checks nothing is left.
+#   - publish: on a push to main only, a macos-v* GitHub Release with the
+#     tarball, SHA256SUMS and release.json, never marked latest (that one is
+#     Windows').
+# Docker-only and Windows-only changes do not run it, and it never touches
+# ghcr.io. Never on pull requests: nobody else's code runs here with this
+# repository's token.
+
+on:
+  push:
+    branches: [main, wip]
+    # (not the Dockerfile: build.sh takes the app file list from it)
+    paths-ignore:
+      - 'docker-compose*.yml'
+      - 'truenas/**'
+      - 'windows/**'
+      - '.github/workflows/image.yml'
+      - '.github/workflows/windows.yml'
+      - '.github/workflows/water.yml'
+      - '.github/workflows/water-tests.yml'
+      - 'README.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+# Read-only by default; only publish may write (the release).
+permissions:
+  contents: read
+
+# A newer push replaces a build still running for an older one.
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      # (the tests never see a token)
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Apple Silicon
+        run: |
+          [ "$(sysctl -n hw.optional.arm64 2>/dev/null || true)" = 1 ] || { echo "::error::this runner is not Apple Silicon"; exit 1; }
+          [ "$(node -p process.arch)" = arm64 ] || { echo "::error::node is $(node -p process.arch), not arm64"; exit 1; }
+          sw_vers
+
+      # The ffmpeg the package ships, checked against macos/versions.json
+      # before anything in it is used.
+      - name: Pinned ffmpeg
+        run: |
+          pin() { node -p "require('./macos/versions.json').ffmpeg.$1"; }
+          url=$(pin url)
+          want=$(pin sha256 | tr 'A-F' 'a-f')
+          [[ "$url" == https://* ]] || { echo "::error::macos/versions.json: the ffmpeg url must be https"; exit 1; }
+          [[ "$want" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::macos/versions.json: the ffmpeg sha256 is not a SHA-256"; exit 1; }
+          dl="$RUNNER_TEMP/ffmpeg-download"
+          mkdir -p "$dl"
+          echo "Downloading ffmpeg $(pin version) from $url"
+          curl -fsSL --proto '=https' -o "$dl/ffmpeg.tar.xz" "$url"
+          got=$(shasum -a 256 "$dl/ffmpeg.tar.xz" | cut -d' ' -f1)
+          echo "ffmpeg sha256: $got"
+          [ "$got" = "$want" ] || { echo "::error::the ffmpeg download does not match its pinned SHA-256 (expected $want, got $got)"; exit 1; }
+          # only the two programs leave the archive, each to a fixed name
+          bin="$RUNNER_TEMP/ffmpeg"
+          mkdir -p "$bin"
+          for name in ffmpeg ffprobe; do
+            member=$(pin "files.$name")
+            case "$member" in /*|*..*) echo "::error::versions.json: $member is not a plain path"; exit 1 ;; esac
+            tar -xJf "$dl/ffmpeg.tar.xz" -C "$dl" "$member"
+            cp "$dl/$member" "$bin/$name"
+            chmod 0755 "$bin/$name"
+          done
+          rm -rf "$dl"
+          echo "$bin" >> "$GITHUB_PATH"
+          "$bin/ffmpeg" -hide_banner -version | head -1
+          lipo -archs "$bin/ffmpeg"
+
+      # Logged only: a virtual machine may refuse VideoToolbox (-12908).
+      - name: VideoToolbox probe (log only)
+        continue-on-error: true
+        run: |
+          ffmpeg -hide_banner -encoders | grep -i videotoolbox || true
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=640x360:rate=30 -frames:v 30 \
+            -c:v hevc_videotoolbox -q:v 55 -allow_sw 0 -f null - \
+            && echo "VideoToolbox HEVC works on this runner" \
+            || echo "::notice::VideoToolbox HEVC does not work on this runner (expected on a virtual machine)"
+
+      # The same compiler flags as build.sh
+      - name: sentry-fsops
+        run: |
+          mkdir -p build
+          clang -O2 -Wall -Wextra -Werror -arch arm64 -mmacosx-version-min=13.5 -o build/sentry-fsops native/darwin/sentry-fsops.c
+          [ "$(lipo -archs build/sentry-fsops)" = arm64 ] || { echo "::error::sentry-fsops is not arm64 only"; exit 1; }
+          echo "SENTRY_NOREPLACE_RENAME=$PWD/build/sentry-fsops" >> "$GITHUB_ENV"
+
+      - name: Tests
+        env:
+          REQUIRE_TOOLS: '1'
+        run: |
+          echo "ffmpeg: $(command -v ffmpeg)"
+          echo "ffprobe: $(command -v ffprobe)"
+          npm test
+
+  package:
+    needs: test
+    runs-on: macos-15
+    timeout-minutes: 30
+    outputs:
+      tarball: ${{ steps.made.outputs.tarball }}
+      version: ${{ steps.made.outputs.version }}
+      short: ${{ steps.made.outputs.short }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # build.sh verifies every pin, builds sentry-fsops and checks that
+      # everything it ships is arm64 only
+      - name: Build the package
+        run: bash macos/build.sh --out dist
+
+      - name: What was made
+        id: made
+        run: |
+          shopt -s nullglob
+          tars=(dist/SentrySixManager-*-macos-arm64.tar.gz)
+          [ "${#tars[@]}" = 1 ] || { echo "::error::expected one tarball in dist, found ${#tars[@]}"; exit 1; }
+          for f in SHA256SUMS release.json; do [ -f "dist/$f" ] || { echo "::error::dist has no $f"; exit 1; }; done
+          version=$(node -p "require('./dist/release.json').version")
+          sha=$(node -p "require('./dist/release.json').sha")
+          [[ "$version" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]{0,39}$ ]] || { echo "::error::release.json has no usable version"; exit 1; }
+          [ "$sha" = "$GITHUB_SHA" ] || { echo "::error::release.json names $sha, this run built $GITHUB_SHA"; exit 1; }
+          (cd dist && shasum -a 256 -c SHA256SUMS)
+          { echo "tarball=$(basename "${tars[0]}")"; echo "version=$version"; echo "short=${GITHUB_SHA:0:7}"; } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos-package
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  install-check:
+    needs: package
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      TARBALL: ${{ needs.package.outputs.tarball }}
+      LABEL: io.github.skittles-fivem.sentry-six-manager
+      CLI: /Library/SentrySixManager/bin/sentry-six-manager
+      STATE: /Library/Application Support/SentrySixManager
+      PORT: '9000'
+    steps:
+      # the real install.sh from this commit
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: macos-package
+          path: dist
+
+      # Under Rosetta the installer stops before it changes anything
+      - name: Refused under Rosetta
+        run: |
+          if ! arch -x86_64 /usr/bin/true 2>/dev/null; then
+            echo "::notice::Rosetta is not installed on this runner; skipped"
+            exit 0
+          fi
+          set +e
+          out=$(sudo arch -x86_64 /bin/bash macos/install.sh --from "dist/$TARBALL" --sums dist/SHA256SUMS 2>&1)
+          code=$?
+          set -e
+          echo "$out"
+          [ "$code" != 0 ] || { echo "::error::install.sh ran under Rosetta"; exit 1; }
+          grep -q Rosetta <<<"$out" || { echo "::error::install.sh did not say Rosetta"; exit 1; }
+          [ ! -e /Library/SentrySixManager ] || { echo "::error::install.sh left /Library/SentrySixManager under Rosetta"; exit 1; }
+
+      - name: Install
+        run: sudo bash macos/install.sh --from "dist/$TARBALL" --sums dist/SHA256SUMS
+
+      - name: The web UI answers over HTTPS
+        run: |
+          ok=0
+          for i in $(seq 1 30); do
+            if [ "$(curl -fsS --max-time 5 "http://127.0.0.1:$PORT/healthz" 2>/dev/null || true)" = ok ]; then ok=1; break; fi
+            sleep 2
+          done
+          [ "$ok" = 1 ] || { echo "::error::/healthz did not answer"; exit 1; }
+          code=$(curl -sk --max-time 10 -o /dev/null -w '%{http_code}' "https://127.0.0.1:$PORT/login")
+          [ "$code" = 200 ] || { echo "::error::https://127.0.0.1:$PORT/login answered $code, expected 200"; exit 1; }
+          echo "healthz and the HTTPS login page answer on port $PORT"
+
+      - name: The service runs as _sentrysix, not root
+        run: |
+          pid=$(pgrep -f 'server/index.js' | head -1)
+          [ -n "$pid" ] || { echo "::error::no server/index.js is running"; exit 1; }
+          user=$(ps -o user= -p "$pid" | tr -d ' ')
+          [ "$user" = _sentrysix ] || { echo "::error::the server runs as $user, not _sentrysix"; exit 1; }
+          mode=$(sudo stat -f %Lp "$STATE/data/setup-code.txt")
+          [ "$mode" = 600 ] || { echo "::error::setup-code.txt has mode $mode, not 600"; exit 1; }
+          sudo "$CLI" status
+          sudo "$CLI" setup-code | grep -q '^Setup code: ' || { echo "::error::setup-code printed no code"; exit 1; }
+          echo "The server (pid $pid) runs as $user"
+
+      # launchd starts it again within about 5 s (ThrottleInterval 5)
+      - name: Restarted after a crash
+        run: |
+          old=$(pgrep -f 'server/index.js' | head -1)
+          sudo kill -9 "$old"
+          for i in $(seq 1 30); do
+            new=$(pgrep -f 'server/index.js' | head -1 || true)
+            if [ -n "$new" ] && [ "$new" != "$old" ]; then echo "restarted as pid $new"; exit 0; fi
+            sleep 1
+          done
+          echo "::error::the server did not come back after kill -9"
+          exit 1
+
+      - name: Stops cleanly
+        run: |
+          for i in $(seq 1 30); do
+            [ "$(curl -fsS --max-time 3 "http://127.0.0.1:$PORT/healthz" 2>/dev/null || true)" = ok ] && break
+            sleep 2
+          done
+          sudo launchctl kill TERM "system/$LABEL"
+          for i in $(seq 1 60); do
+            sudo launchctl print "system/$LABEL" | grep -Eq '^[[:space:]]*state = running' || break
+            sleep 1
+          done
+          info=$(sudo launchctl print "system/$LABEL")
+          grep -Eq '^[[:space:]]*state = running' <<<"$info" && { echo "::error::still running a minute after TERM"; exit 1; }
+          grep -Eq 'last exit code = 0' <<<"$info" || { echo "$info"; echo "::error::the last exit code is not 0"; exit 1; }
+          sudo grep -q 'Stopped cleanly' "$STATE/data/logs/manager.log" "/Library/Logs/SentrySixManager/service.log" \
+            || { echo "::error::no 'Stopped cleanly' in the logs"; exit 1; }
+          if pgrep -u _sentrysix -l; then echo "::error::processes of _sentrysix are left (ffmpeg or caffeinate)"; exit 1; fi
+          echo "Stopped cleanly, exit code 0, nothing left running"
+
+      - name: Uninstall
+        run: sudo "$CLI" uninstall --remove-data
+
+      - name: Nothing is left
+        run: |
+          left=()
+          sudo launchctl print "system/$LABEL" >/dev/null 2>&1 && left+=("the launchd job")
+          for p in /Library/SentrySixManager /Library/SentrySixManager.new /Library/SentrySixManager.old "$STATE" \
+            "/Library/LaunchDaemons/$LABEL.plist" /etc/newsyslog.d/sentry-six-manager.conf /etc/paths.d/sentry-six-manager; do
+            [ -e "$p" ] && left+=("$p")
+          done
+          dscl . -read /Users/_sentrysix >/dev/null 2>&1 && left+=("the account _sentrysix")
+          pgrep -f 'server/index.js' >/dev/null && left+=("a running server")
+          if [ "${#left[@]}" != 0 ]; then printf '::error::uninstall left: %s\n' "${left[*]}"; exit 1; fi
+          echo "Uninstalled cleanly: no job, program files, data or account"
+
+      - name: Logs (on failure)
+        if: failure()
+        run: |
+          sudo launchctl print "system/$LABEL" 2>/dev/null | head -60 || true
+          for f in "/Library/Logs/SentrySixManager/service.log" "$STATE/data/logs/manager.log"; do
+            echo "== $f"
+            sudo tail -n 200 "$f" 2>/dev/null || echo '(none)'
+          done
+
+  publish:
+    needs: [package, install-check]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: macos-package
+          path: dist
+
+      # A final release (update notices and update.sh read final macos-v*
+      # releases only), never --latest: that is Windows' release. A release
+      # with all three files (a re-run) is left as it was; one left a draft
+      # or short of a file by a run cut off is finished here.
+      - name: GitHub Release
+        working-directory: dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARBALL: ${{ needs.package.outputs.tarball }}
+          VERSION: ${{ needs.package.outputs.version }}
+          SHORT: ${{ needs.package.outputs.short }}
+        run: |
+          [[ "$VERSION" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]{0,39}$ ]] || { echo "::error::no usable version"; exit 1; }
+          [[ "$SHORT" =~ ^[0-9a-f]{7}$ ]] || { echo "::error::no short commit id"; exit 1; }
+          sha256sum -c SHA256SUMS
+          tag="macos-v$VERSION-$SHORT"
+          if have="$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft,assets 2>/dev/null)"; then
+            if jq -e --arg t "$TARBALL" '(.isDraft | not) and ([.assets[].name] as $n | [$t, "SHA256SUMS", "release.json"] | all(. as $f | $n | index($f)))' <<<"$have" >/dev/null; then
+              echo "::notice::Release $tag already exists; left as it is"
+              exit 0
+            fi
+            echo "::notice::Release $tag is a draft or short of a file; finishing it"
+            gh release upload "$tag" "$TARBALL" SHA256SUMS release.json --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --latest=false
+            exit 0
+          fi
+          level="$(jq -r '.critical.level // 0' release.json)"
+          reason="$(jq -r '.critical.reason // ""' release.json)"
+          {
+            echo "Sentry Six Manager $VERSION for macOS (Apple Silicon, M1 and later), built from $GITHUB_SHA."
+            echo
+            echo "Install or upgrade: open Terminal and run"
+            echo
+            echo '    curl -fsSL https://raw.githubusercontent.com/'"$GITHUB_REPOSITORY"'/main/macos/install.sh | sudo bash'
+            echo
+            echo "Already installed: run sudo sentry-six-manager update in Terminal."
+            echo "Intel Macs are not supported. Check the download against SHA256SUMS."
+            if [ "$level" != 0 ] && [ -n "$reason" ]; then echo; echo "Critical update (level $level): $reason"; fi
+          } > notes.md
+          gh release create "$tag" "$TARBALL" SHA256SUMS release.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Sentry Six Manager $VERSION for macOS ($SHORT)" \
+            --notes-file notes.md \
+            --latest=false
