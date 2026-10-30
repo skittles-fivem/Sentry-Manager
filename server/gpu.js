@@ -51,7 +51,58 @@ function nameFromDriver(driver) {
 // encoding; NVIDIA cards encode through the NVIDIA Container Toolkit instead.
 const isWslBridge = (driver, dxgDevice) => /d3d12/i.test(driver || '') || (dxgDevice && !driver);
 
-async function detectGpus({ driDir = '/dev/dri', sysDrm = '/sys/class/drm', dxg = '/dev/dxg', runImpl = run, procVersion = '/proc/version', arch = process.arch } = {}) {
+// nvidia-smi's answer: one { name, driver } per NVIDIA GPU
+async function nvidiaSmi(runImpl) {
+  const smi = await runImpl('nvidia-smi', ['--query-gpu=name,driver_version', '--format=csv,noheader'], { timeoutMs: 10000 });
+  return smi.code === 0
+    ? smi.stdout.trim().split(/\r?\n/).filter(Boolean).map((l) => {
+      const [name, driver] = l.split(',').map((s) => s.trim());
+      return { name, driver };
+    })
+    : [];
+}
+
+// Windows: the GPUs are the Direct3D adapters the helper lists (gpu.list),
+// in the same shape as the Linux entries so the System page reads them the
+// same way. There is no container to pass them into: every adapter is
+// usable, and the encoder each one has is proved by the converter (Encoder
+// page), so `encodes` stays unknown here. Software adapters are left out.
+async function detectGpusWin32({ requestHelper, runImpl }) {
+  let adapters = [];
+  if (typeof requestHelper === 'function') {
+    try {
+      const answer = await requestHelper('gpu.list', {}, { timeoutMs: 10000 });
+      adapters = Array.isArray(answer?.adapters) ? answer.adapters : [];
+    } catch {
+      adapters = [];
+    }
+  }
+  const gpus = [];
+  for (const adapter of adapters) {
+    if (!adapter || adapter.software === true) continue;
+    const id = Number.isSafeInteger(adapter.vendorId) ? adapter.vendorId : parseInt(String(adapter.vendorId || '').replace(/^0x/i, ''), 16);
+    if (!Number.isSafeInteger(id) || id === 0x1414) continue;
+    const vendorId = `0x${id.toString(16).padStart(4, '0')}`;
+    const vendor = VENDORS[vendorId] || null;
+    const pci = typeof adapter.pci === 'string' ? adapter.pci.toLowerCase() : null;
+    // one GPU listed twice by DXGI (some hybrid laptops)
+    if (pci && gpus.some((g) => g.pci === pci)) continue;
+    gpus.push({
+      node: pci ? `PCI ${pci}` : `adapter ${Number(adapter.index) || 0}`, vendor, vendorName: VENDOR_NAMES[vendor] || vendorId,
+      driver: null, name: typeof adapter.name === 'string' && adapter.name.trim() ? adapter.name.trim().slice(0, 128) : null,
+      passedThrough: true, encodes: null, lowPowerOnly: false, pci
+    });
+  }
+  const nvidia = await nvidiaSmi(runImpl);
+  const hints = [];
+  if (gpus.some((g) => g.vendor === 'nvidia') && !nvidia.length) {
+    hints.push('An NVIDIA GPU is installed but nvidia-smi did not answer. Install or update the NVIDIA driver (it brings nvidia-smi and NVENC).');
+  }
+  return { gpus, nvidia, hints };
+}
+
+async function detectGpus({ driDir = '/dev/dri', sysDrm = '/sys/class/drm', dxg = '/dev/dxg', runImpl = run, procVersion = '/proc/version', arch = process.arch, platform = process.platform, requestHelper = null } = {}) {
+  if (platform === 'win32') return detectGpusWin32({ requestHelper, runImpl });
   const wsl = fs.existsSync(dxg);
   const gpus = [];
   let passed = [];
@@ -101,13 +152,7 @@ async function detectGpus({ driDir = '/dev/dri', sysDrm = '/sys/class/drm', dxg 
     }
     gpus.push(entry);
   }
-  const smi = await runImpl('nvidia-smi', ['--query-gpu=name,driver_version', '--format=csv,noheader'], { timeoutMs: 10000 });
-  const nvidia = smi.code === 0
-    ? smi.stdout.trim().split('\n').filter(Boolean).map((l) => {
-      const [name, driver] = l.split(',').map((s) => s.trim());
-      return { name, driver };
-    })
-    : [];
+  const nvidia = await nvidiaSmi(runImpl);
   const hints = [];
   for (const g of gpus) {
     if (g.virtual) continue;

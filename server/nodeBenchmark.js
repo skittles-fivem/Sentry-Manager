@@ -85,7 +85,9 @@ function suggest(results) {
  * deps: { nodes (server/nodes.js), vehicles, run (server/proc.js run),
  * ffprobePath, workDir, log; minBytes and levels for tests }.
  */
-function createNodeBenchmark({ nodes, vehicles, run, ffprobePath = 'ffprobe', workDir, log, minBytes = MIN_BYTES, levels = LEVELS }) {
+function createNodeBenchmark({ nodes, vehicles, run, ffprobePath = 'ffprobe', workDir, log, minBytes = MIN_BYTES, levels = LEVELS, platform = process.platform }) {
+  // (Windows: an encoded file can stay busy for a moment after it came back)
+  const removeOptions = { force: true, ...(platform === 'win32' ? { maxRetries: 8, retryDelay: 200 } : {}) };
   const states = new Map(); // node id -> state
   let running = null;
 
@@ -122,7 +124,7 @@ function createNodeBenchmark({ nodes, vehicles, run, ffprobePath = 'ffprobe', wo
       signal.addEventListener('abort', stop, { once: true });
       child.once('close', (code) => {
         signal.removeEventListener('abort', stop);
-        fsp.rm(target, { force: true }).catch(() => {});
+        fsp.rm(target, removeOptions).catch(() => {});
         resolve(code === 0);
       });
     });

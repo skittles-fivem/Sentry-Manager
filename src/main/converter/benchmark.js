@@ -75,6 +75,9 @@ async function runConverterBenchmark(options = {}) {
   } = options;
   const fs = options.fs || nodeFs.promises;
   const pathApi = options.pathApi || nodePath;
+  // Windows keeps a file busy for a moment after ffmpeg (or a virus
+  // scanner) closed it: the work folders are removed with a few retries.
+  const removeOptions = { recursive: true, force: true, ...((options.platform || process.platform) === 'win32' ? { maxRetries: 8, retryDelay: 200 } : {}) };
   if (typeof runLevel !== 'function' || typeof countFrames !== 'function' || !tempRoot) {
     throw new TypeError('benchmark dependencies are required');
   }
@@ -142,7 +145,7 @@ async function runConverterBenchmark(options = {}) {
       const verifyMs = job?.timings?.totalMs?.verify;
       const verifySecondsPerClip = Number.isSafeInteger(timedFiles) && timedFiles > 0 && Number.isFinite(verifyMs)
         ? Math.round(verifyMs / timedFiles / 100) / 10 : null;
-      await fs.rm(levelRoot, { recursive: true, force: true }).catch(() => {});
+      await fs.rm(levelRoot, removeOptions).catch(() => {});
       return {
         level,
         clips: batch.length,
@@ -233,7 +236,7 @@ async function runConverterBenchmark(options = {}) {
     }
     return { encoder, clips: samples.length, results, best, efficient, verifyComparison, skipped };
   } finally {
-    await fs.rm(workRoot, { recursive: true, force: true }).catch(() => {});
+    await fs.rm(workRoot, removeOptions).catch(() => {});
   }
 }
 
