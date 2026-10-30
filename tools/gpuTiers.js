@@ -234,7 +234,8 @@ function summaryText(report) {
     parts.push('Failures:');
     for (const run of failures) {
       parts.push(`- ${run.set} ${run.camera} ${run.encoder} ${run.tier}: ${run.failedAt}${run.verify && !run.verify.ok ? ` (${run.verify.reason})` : ''}`);
-      if (run.stderrTail) parts.push(run.stderrTail.split('\n').map((line) => `    ${line}`).join('\n'));
+      const detail = run.stderrTail || run.verify?.decodeStderr;
+      if (detail) parts.push(detail.split('\n').map((line) => `    ${line}`).join('\n'));
     }
     for (const problem of report.problems) parts.push(`- harness: ${problem}`);
   }
@@ -583,6 +584,16 @@ async function runClip({ report, set, entry, source, lanes, options, runner, ada
           details: verification?.details || null,
           ...(gpuVerifyFallbacks ? { gpuDecodeFellBack: gpuVerifyFallbacks } : {})
         };
+        if (verification?.reason === 'decode-failed') {
+          // The verifier keeps only the kind of failure: the same complete
+          // decode (verifier.js decodeArgs), on the CPU, says what ffmpeg
+          // printed.
+          const decode = await runner(options.ffmpeg, ['-nostdin', '-hide_banner', '-loglevel', 'error', '-xerror', '-err_detect', 'explode',
+            '-i', target, '-map', '0:v:0', '-an', '-sn', '-dn', '-fps_mode', 'passthrough', '-progress', 'pipe:1', '-nostats', '-f', 'null', '-'], { timeoutMs: 30 * 60_000 });
+          run.verify.decodeStatus = decode?.status ?? null;
+          run.verify.decodeStderr = stderrTail(decode?.stderr, 8) || null;
+          run.verify.decodedFrames = progressFrames(decode?.stdout);
+        }
         if (!verification?.ok) {
           // the app's size retry (decideSizeRetry): once more at a corrected bitrate
           const retry = decideSizeRetry({
