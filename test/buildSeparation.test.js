@@ -75,18 +75,22 @@ test('the Dockerfile copies nothing from windows/', () => {
   assert.doesNotMatch(docker, /\bwindows\//, 'no windows/ path anywhere in the Dockerfile');
 });
 
-test('windows.yml does not run for Docker-only changes and never touches the image registry', {
+test('windows.yml does not run for compose or TrueNAS changes and never touches the image registry', {
   skip: fs.existsSync(WINDOWS_YML) ? false : '.github/workflows/windows.yml does not exist yet'
 }, () => {
   const yml = fs.readFileSync(WINDOWS_YML, 'utf8');
   const lists = pathsIgnoreLists(yml);
   assert.ok(lists.length >= 1, 'windows.yml has a paths-ignore list');
   for (const list of lists) {
-    for (const p of ['Dockerfile', 'docker-compose.yml', 'truenas/**']) {
-      assert.ok(list.includes(p), `windows.yml paths-ignore has ${p}: ${JSON.stringify(list)}`);
-    }
+    // (not the Dockerfile: build.ps1 takes the package's file list from it,
+    // so a Dockerfile change can change the Windows package too)
+    const compose = list.includes('docker-compose.yml') || list.includes('docker-compose*.yml');
+    assert.ok(compose, `windows.yml paths-ignore has docker-compose.yml: ${JSON.stringify(list)}`);
+    assert.ok(list.includes('truenas/**'), `windows.yml paths-ignore has truenas/**: ${JSON.stringify(list)}`);
   }
-  assert.doesNotMatch(yml, /ghcr\.io|docker\/build-push-action|docker\/login-action/);
+  // (comments may say so; only the steps count)
+  const steps = yml.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n');
+  assert.doesNotMatch(steps, /ghcr\.io|docker\/build-push-action|docker\/login-action/);
 });
 
 test('the parser reads both YAML list forms', () => {
