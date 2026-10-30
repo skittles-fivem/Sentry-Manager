@@ -85,9 +85,15 @@ public actor APIClient {
             req.httpBody = body
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
-        if let token = session.token() { req.setValue(SessionCookie.header(token), forHTTPHeaderField: "Cookie") }
+        // the cookie only ever goes over HTTPS
+        if isSecure, let token = session.token() { req.setValue(SessionCookie.header(token), forHTTPHeaderField: "Cookie") }
         for (k, v) in headers { req.setValue(v, forHTTPHeaderField: k) }
         return req
+    }
+
+    /// Only https://127.0.0.1 is the engine; anything else gets no request.
+    public nonisolated var isSecure: Bool {
+        baseURL.scheme?.lowercased() == "https" && baseURL.host == "127.0.0.1"
     }
 
     /// Sends a call and decodes its answer; handles 401 and the password confirm.
@@ -116,6 +122,8 @@ public actor APIClient {
     }
 
     private func perform<R>(_ e: Endpoint<R>, confirmed: Bool) async throws -> (Data, HTTPURLResponse) {
+        // passwords, tokens and the cookie never go over plain HTTP
+        guard isSecure else { throw APIError.unreachable }
         let req = makeRequest(method: e.method, pathAndQuery: e.pathAndQuery, body: e.body, timeout: e.timeout.seconds, headers: e.headers)
         let data: Data
         let res: HTTPURLResponse

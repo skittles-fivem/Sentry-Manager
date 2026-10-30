@@ -149,4 +149,11 @@ final class InterfaceTests: XCTestCase {
         XCTAssertTrue(SkinPrefs(skin: .flux, store: store).bool("collapsed", default: false))
         XCTAssertEqual(SkinPrefs(skin: .builtin, store: store).key("collapsed"), "sm.collapsed")
     }
+
+    func testOddDigitsDoNotCrash() {
+        // only ASCII digits count, as in the web's JavaScript
+        XCTAssertEqual(Format.clockText("2026-10-29 \u{0661}\u{0665}:10:02", clock24: false), "2026-10-29 \u{0661}\u{0665}:10:02 AM")
+        XCTAssertEqual(Format.sensorName(chip: "coretemp", label: "Package id 99999999999999999999", kind: nil, multiSocket: true),
+                       "CPU package 99999999999999999999")
+    }
 }

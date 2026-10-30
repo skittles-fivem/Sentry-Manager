@@ -6,6 +6,22 @@ import XCTest
 @testable import SentryKit
 
 final class APIClientTests: XCTestCase {
+    func testNothingGoesOutExceptOverHTTPSToLoopback() async throws {
+        for base in ["http://127.0.0.1:9000", "https://example.com:9000"] {
+            let t = FakeTransport { _ in .init(status: 200, body: json("{}")) }
+            let c = APIClient(baseURL: URL(string: base)!, transport: t, session: MemorySessionStore(token: "TOKEN"))
+            do {
+                _ = try await c.send(API.login(username: "admin", password: "secret-password"))
+                XCTFail("sent to \(base)")
+            } catch let e as APIError {
+                XCTAssertEqual(e, .unreachable)
+            }
+            XCTAssertTrue(t.requests.isEmpty, base)
+            // streams and media build their requests here too: no cookie
+            XCTAssertNil(c.makeRequest(method: .get, pathAndQuery: "/api/events").value(forHTTPHeaderField: "Cookie"))
+        }
+    }
+
     func testHeadersOnGetAndPost() async throws {
         let t = fixtureServer(["/api/vehicles": "vehicles.json", "/api/vehicles/model-y/scan": "protect.json"])
         let c = makeClient(t)

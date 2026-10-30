@@ -66,11 +66,11 @@ public enum Format {
     public static func clockText(_ s: String?, clock24: Bool) -> String {
         let str = s ?? ""
         guard !clock24 else { return str }
-        let re = try! NSRegularExpression(pattern: "(\\d{1,2}):(\\d{2})(:\\d{2})?$")
+        let re = try! NSRegularExpression(pattern: "([0-9]{1,2}):([0-9]{2})(:[0-9]{2})?$")
         guard let m = re.firstMatch(in: str, range: NSRange(str.startIndex..., in: str)),
               let all = Range(m.range, in: str), let hh = Range(m.range(at: 1), in: str), let mm = Range(m.range(at: 2), in: str) else { return str }
         let ss = Range(m.range(at: 3), in: str).map { String(str[$0]) } ?? ""
-        let h = Int(str[hh])!
+        guard let h = Int(str[hh]) else { return str }
         return str.replacingCharacters(in: all, with: "\(h % 12 == 0 ? 12 : h % 12):\(str[mm])\(ss) \(h < 12 ? "AM" : "PM")")
     }
 
@@ -207,8 +207,8 @@ public enum Format {
             guard let m = re.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)) else { return nil }
             return (0..<m.numberOfRanges).map { Range(m.range(at: $0), in: s).map { String(s[$0]) } ?? "" }
         }
-        if chip == "coretemp", let m = match("^Package id (\\d+)$", label) {
-            if multiSocket { return "CPU \(Int(m[1])! + 1) package" }
+        if chip == "coretemp", let m = match("^Package id ([0-9]+)$", label) {
+            if multiSocket, let n = Int(m[1]), n < Int.max { return "CPU \(n + 1) package" }
             return m[1] == "0" ? "CPU package" : "CPU package \(m[1])"
         }
         if chip == "k10temp", match("^T(ctl|die)$", label) != nil { return "CPU (\(label))" }

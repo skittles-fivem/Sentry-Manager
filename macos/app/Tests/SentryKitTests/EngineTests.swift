@@ -201,6 +201,9 @@ final class LocalSignInTests: XCTestCase {
         XCTAssertEqual(p(#"{"v":1,"token":"local1_short","port":9000}"#), .invalid("no token"))
         XCTAssertEqual(p(#"{"v":1,"token":"local1_AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdH+8","port":9000}"#), .invalid("no token"))
         XCTAssertEqual(LocalSignIn.parse(Data(repeating: 0x20, count: 4097), enginePort: 9000), .invalid("line too long"))
+        // a port no Int can hold is refused, not a crash
+        XCTAssertEqual(p(#"{"v":1,"token":"\#(Self.token)","port":1e300}"#), .invalid("wrong port"))
+        XCTAssertEqual(p(#"{"v":1,"token":"\#(Self.token)","port":9000.5}"#), .invalid("wrong port"))
     }
 
     func testRealUnixSocket() throws {

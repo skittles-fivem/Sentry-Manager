@@ -82,7 +82,7 @@ public enum LocalSignIn {
         case let e?: return .invalid("error \(e)")
         case nil: break
         }
-        guard let port = w.port, Int(port) == enginePort else { return .invalid("wrong port") }
+        guard let port = w.port, let n = Int(exactly: port), n == enginePort else { return .invalid("wrong port") }
         if w.needsSetup == true, let code = w.setupCode, isSetupCode(code) { return .setupCode(code) }
         if let t = w.token, isToken(t) { return .token(t, expiresAt: w.expiresAt) }
         return .invalid("no token")
