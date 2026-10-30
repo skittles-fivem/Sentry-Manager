@@ -164,6 +164,23 @@ test('an Intel Mac is refused before anything is changed', { skip: !hasTar && 'n
   }
 });
 
+test('an installer running under Rosetta is refused before anything is changed', { skip: !hasTar && 'needs tar' }, () => {
+  const sb = sandbox();
+  const r = install(sb, makePackage(sb), { FAKE_ROSETTA: '1' });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /running under Rosetta/);
+  assert.match(r.stderr, /arch -arm64/);
+  assert.equal(indexOf(calls(sb), /^(dscl|launchctl|shasum|codesign|curl) /), -1, 'nothing ran after the check');
+  assert.deepEqual(fs.readdirSync(sb.root), []);
+});
+
+test('an Intel Mac with an old macOS gets the Intel message', { skip: !hasTar && 'needs tar' }, () => {
+  const sb = sandbox();
+  const r = install(sb, makePackage(sb), { FAKE_ARM64: 'missing', FAKE_MACOS: '12.7.6' });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /Intel processor/);
+});
+
 test('macOS older than 13.5 is refused, 13.5 is not', { skip: !hasTar && 'needs tar' }, () => {
   for (const v of ['13.4.1', '13', '12.7.6', '10.15']) {
     const sb = sandbox();

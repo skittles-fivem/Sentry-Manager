@@ -80,14 +80,15 @@ function ownedFsFor(platform, helper) {
  * @param {() => string[]} [o.replacementRoots]  footage folders whose drives are checked at start
  * @param {function} [o.requestHelper]  win32: (op, args, { timeoutMs }) => answer, for the helper's gpu.list
  */
-function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobePath = 'ffprobe', log, onClipConverted, platform = process.platform, helper = null, owned = ownedFsFor(platform, helper), replacementRoots = null, requestHelper = null, powerMeter = null, isCheapNow = null, remoteNodes = null }) {
+function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobePath = 'ffprobe', log, onClipConverted, platform = process.platform, helper = null, owned = ownedFsFor(platform, helper), replacementRoots = null, requestHelper = null, describeVolume = null, powerMeter = null, isCheapNow = null, remoteNodes = null }) {
   fs.mkdirSync(dataDir, { recursive: true });
   fs.mkdirSync(tempDir, { recursive: true });
   // Windows: the native realpath (real letter case, long names instead of
   // 8.3 short ones, a mapped drive as its UNC path); the JS one keeps
   // whatever spelling it was given, and staging refuses any owned file whose
-  // real path differs from the path it was given.
-  const realpath = platform === 'win32' ? fs.realpathSync.native : fs.realpathSync;
+  // real path differs from the path it was given. macOS: the same (real
+  // case, /tmp as /private/tmp).
+  const realpath = platform === 'win32' || platform === 'darwin' ? fs.realpathSync.native : fs.realpathSync;
   let runtime = null;
   let lastError = null;
 
@@ -118,6 +119,8 @@ function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobeP
         ...(isCheapNow ? { isCheapNow } : {}),
         // Windows: Intel and AMD adapters are listed by the helper (gpu.list)
         ...(typeof requestHelper === 'function' ? { requestHelper } : {}),
+        // macOS: a drive's kind (local, smbfs, ...) from sentry-fsops volinfo
+        ...(typeof describeVolume === 'function' ? { describeVolume } : {}),
         // other servers paired under Nodes, as encoding lanes (server/nodes.js)
         ...(remoteNodes ? { remoteNodes } : {}),
         onClipConverted: (outputPath) => onClipConverted?.(outputPath),
@@ -138,7 +141,7 @@ function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobeP
   // C:\Footage and c:\footage are one entry); the spelling it was first given
   // is kept for display.
   const rootChecks = new Map(); // key -> { root, verdict: { available, reason? } }
-  const rootKey = (real) => (platform === 'win32' ? real.toLowerCase() : real);
+  const rootKey = (real) => (platform === 'win32' ? real.toLowerCase() : platform === 'darwin' ? real.normalize('NFC') : real);
   async function checkReplacementRoots(roots = replacementRoots?.() || []) {
     const check = owned.renameExclusive?.replacementSupport;
     if (typeof check !== 'function') return [];

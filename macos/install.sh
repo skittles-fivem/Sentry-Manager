@@ -79,6 +79,11 @@ check_apple_silicon() {
   [ "$arm" = 1 ] || fail "this Mac has an Intel processor. Sentry Six Manager for macOS runs on Apple Silicon (M1 and later) only; on an Intel Mac, use the Docker version on another computer."
 }
 
+# Under Rosetta (Terminal set to Open using Rosetta) sysctl.proc_translated is 1.
+check_not_rosetta() {
+  [ "$(sysctl -n sysctl.proc_translated 2>/dev/null || true)" != 1 ] || fail "this installer is running under Rosetta. Open Terminal without Rosetta (Get Info, then untick Open using Rosetta), or run it with arch -arm64."
+}
+
 # ---- download and verify -------------------------------------------------------
 
 cleanup() {
@@ -462,8 +467,9 @@ main() {
     esac
   done
   check_root
-  check_macos
   check_apple_silicon
+  check_not_rosetta
+  check_macos
   if [ "$UPDATE" = 1 ] && [ ! -d "$PROG" ]; then fail "Sentry Six Manager is not installed here: run install.sh"; fi
 
   WORK=$(mktemp -d "${TMPDIR:-/tmp}/sentry-six-install.XXXXXX")

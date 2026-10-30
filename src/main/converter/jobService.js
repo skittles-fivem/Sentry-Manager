@@ -1643,6 +1643,12 @@ function createConverterJobService(deps) {
         }
       }
       if (typeof staging.captureSource !== 'function') throw serviceError('SOURCE_AUTHORITY_REQUIRED');
+    } else if (typeof staging.checkPublicationVolume === 'function' && runtime.manifest.config.destinationRoot) {
+      // A destination where converted files cannot be saved safely (macOS:
+      // an SMB share) fails the clip before an encode, and before any folder
+      // is made there. Adapters without the check: always available.
+      const volume = await staging.checkPublicationVolume(pathApi.join(runtime.manifest.config.destinationRoot, 'x'));
+      if (!volume.available) throw Object.assign(serviceError('ATOMIC_PROMOTION_UNSUPPORTED'), { reason: volume.reason });
     }
     // Fingerprint the original read-only before anything else touches it. When
     // it is copied to local staging, the copy itself fingerprints it with the

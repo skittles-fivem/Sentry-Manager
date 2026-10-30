@@ -290,8 +290,10 @@ async function main() {
     for (const d of platform.systemDirs()) if (!protectedDirs.some((x) => platform.samePath(x, d))) protectedDirs.push(d);
   }
   // (macOS: a share's "mounted" is the mounter's probe, from /sbin/mount)
-  const vehicles = new VehicleManager({ db, footageRoot: FOOTAGE_ROOT, folderRoots, protectedDirs, logger, mounter, platform: platform.name });
-  const smbTester = createSmbTester({ mounter, vehicles, log: logger.scope('vehicles'), platform: platform.name });
+  // (macOS: the platform object itself, so the one this server holds is used)
+  const vehiclePlatform = platform.name === 'darwin' ? platform : platform.name;
+  const vehicles = new VehicleManager({ db, footageRoot: FOOTAGE_ROOT, folderRoots, protectedDirs, logger, mounter, platform: vehiclePlatform });
+  const smbTester = createSmbTester({ mounter, vehicles, log: logger.scope('vehicles'), platform: vehiclePlatform });
   // macOS: shares outlive the app there; the ones a crash or a stop left
   // behind are taken off before the vehicles mount theirs again
   if (platform.name === 'darwin') {
@@ -413,6 +415,8 @@ async function main() {
   const UI_COOKIE = 'sm_ui_original';
   const originalOnly = (req) => parseCookies(req.headers.cookie || '')[UI_COOKIE] === '1';
   await uiPacks.tidy().catch((err) => logger.scope('ui').warn(`UI packs folder: ${err.message}`));
+  // macOS: the Apple GPU for Settings > System, its test encode run with this ffmpeg and cached
+  const darwinGpus = platform.name === 'darwin' ? require('./platform/darwinGpu').createDarwinGpus({ runImpl: run, ffmpegPath: FFMPEG }) : null;
   // The converter's owned-file operations: Docker keeps converterHost's own
   // default (posixOwnedFs). Windows: the helper's (winOwnedFs), its GPU list
   // (gpu.list) and a check, per footage drive, that originals can be
@@ -429,7 +433,8 @@ async function main() {
     } : {}),
     ...(platform.name === 'darwin' ? {
       platform: platform.name,
-      owned: platform.ownedFs({ volumeInfo: platform.volumeInfo }),
+      owned: platform.ownedFs(),
+      describeVolume: (p) => platform.volumeInfo(p),
       replacementRoots: footageFolders
     } : {}),
     remoteNodes: {
@@ -549,6 +554,8 @@ async function main() {
   });
   vehicles.on('health', (id, healthy) => {
     if (!healthy) return;
+    // (macOS: a share is now mounted; its drive is checked for replacing originals)
+    if (platform.name === 'darwin') host.checkReplacementRoots().catch(() => {});
     bin.reconcile(id).catch((err) => log.warn(`Recycle Bin check of ${id}: ${err.message}`))
       .then(() => inventory.scan(id)).then(() => announce('inventory'), () => {});
   });
@@ -688,9 +695,9 @@ async function main() {
     deployment: platform.deployment,
     converter: host.runtime ? { ready: true, capabilities: host.runtime.capabilities } : { ready: false, error: host.lastError?.code || null },
     nativeHelper: host.helperAvailable,
-    gpu: await detectGpus(winHelper ? { requestHelper: (op, args, opts) => winHelper.request(op, args, opts) } : platform.name === 'darwin' ? { platform: platform.name, runImpl: run } : {}),
-    // footage drives where originals cannot be replaced safely (Windows only;
-    // always empty on Docker)
+    gpu: await detectGpus(winHelper ? { requestHelper: (op, args, opts) => winHelper.request(op, args, opts) } : darwinGpus ? { platform: platform.name, darwin: darwinGpus } : {}),
+    // footage drives where originals cannot be replaced safely (Windows and
+    // macOS; always empty on Docker)
     replacementRoots: host.replacementRoots(),
     dataFree: await diskSpace(fs.promises, DATA).then((s) => s.free).catch(() => null),
     timezone: process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -911,8 +918,8 @@ async function main() {
     requireConfirmed(req);
     const v = vehicles.add(body || {});
     audit.info(`Vehicle "${v.name}" (${v.id}) added, ${describeSource(v.source)}: ${by(req, user)}`);
-    // (Windows: is the new folder's drive fit for replacing originals? in the background)
-    if (winHelper) host.checkReplacementRoots().catch(() => {});
+    // (Windows and macOS: is the new folder's drive fit for replacing originals? in the background)
+    if (winHelper || platform.name === 'darwin') host.checkReplacementRoots().catch(() => {});
     return vehicleSummary(v);
   });
   r.add('PUT', '/api/vehicles/:id', async (req, res, { params, body, user }) => {
@@ -923,7 +930,7 @@ async function main() {
       const what = before.source.type === v.source.type && before.source.share === v.source.share && before.source.path === v.source.path
         ? describeSource(v.source) : `${describeSource(before.source)} -> ${describeSource(v.source)}`;
       audit.info(`Vehicle "${v.name}" (${v.id}) footage source changed: ${what}${before.source.password !== v.source.password ? ', new password' : ''}: ${by(req, user)}`);
-      if (winHelper) host.checkReplacementRoots().catch(() => {});
+      if (winHelper || platform.name === 'darwin') host.checkReplacementRoots().catch(() => {});
     } else if (before.name !== v.name || before.timezone !== v.timezone) {
       audit.info(`Vehicle ${v.id} renamed or time zone changed: ${by(req, user)}`);
     }

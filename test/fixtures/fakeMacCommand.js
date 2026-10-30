@@ -13,6 +13,7 @@
 //   FAKE_UID          what `id -u` prints (default 0)
 //   FAKE_MACOS        what `sw_vers -productVersion` prints (default 15.1)
 //   FAKE_ARM64        hw.optional.arm64: 1, 0, or 'missing' (an Intel Mac)
+//   FAKE_ROSETTA      sysctl.proc_translated: 1 under Rosetta (default 0)
 //   FAKE_URLS         JSON {url: file} that curl downloads from
 //   FAKE_CODESIGN_FAIL  a path part whose `codesign --verify` fails
 //   FAKE_SETUP_CODE   written to data/setup-code.txt when the job starts
@@ -80,6 +81,7 @@ const commands = {
       if (v === 'missing') exit(1, "sysctl: unknown oid 'hw.optional.arm64'");
       return out(v);
     }
+    if (key === 'sysctl.proc_translated') return out(process.env.FAKE_ROSETTA ?? '0');
     exit(1, `sysctl: unknown oid '${key}'`);
   },
 

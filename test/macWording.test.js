@@ -161,3 +161,15 @@ test('pack sign-in pages on a Mac: the setup-code command and the installer\'s o
     assert.match(js, /info\?\.deployment === 'macos'/);
   }
 });
+
+test('the plain-HTTP continue page on a Mac points at Terminal, not Docker', () => {
+  const { continueTemplate, fingerprintFallback, DOCKER_LOG } = require('../server/continueWording');
+  const html = read('web/continue.html');
+  const mac = continueTemplate(html, 'macos');
+  assert.ok(html.includes(DOCKER_LOG));
+  assert.doesNotMatch(mac, /docker|compose|container/i);
+  assert.ok(mac.includes("which is also in the installer's output in Terminal (or <code>sudo sentry-six-manager logs</code>):</p>"));
+  assert.doesNotMatch(fingerprintFallback('macos'), /docker|container/i);
+  assert.equal(continueTemplate(html, 'docker'), html);
+  assert.equal(fingerprintFallback('docker'), 'shown in the container log');
+});

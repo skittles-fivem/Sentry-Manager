@@ -263,8 +263,9 @@ function createDarwinPlatform({
     /** The Windows helper: none on a Mac. */
     helper: () => null,
     keepAwake,
-    /** The converter's owned-file adapter, with sentry-fsops rename-excl as the no-replace rename. */
-    ownedFs: (options) => require('../posixOwnedFs').createPosixOwnedFs({ helperPath: fsOpsPath, argsFor: renameExclArgs, ...options }),
+    /** The converter's owned-file adapter: posixOwnedFs with sentry-fsops rename-excl as the
+     *  no-replace rename, plus per-drive answers (none on an SMB share; darwinOwnedFs.js). */
+    ownedFs: (options) => require('./darwinOwnedFs').createDarwinOwnedFs({ helperPath: fsOpsPath, argsFor: renameExclArgs, volumeInfo, ...options }),
     /** mount_smbfs as this process's own user (smbDarwin.js). */
     mounter: (opts = {}) => require('./smbDarwin').createDarwinMounter({
       footageRoot: opts.footageRoot || P.join(STATE_ROOT, 'footage'),
