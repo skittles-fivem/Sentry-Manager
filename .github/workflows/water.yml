@@ -21,7 +21,9 @@ jobs:
     timeout-minutes: 15
     defaults:
       run:
-        shell: powershell
+        # Windows blocks .ps1 scripts by default; bypass it for this step's
+        # own script only (the PC's setting stays as it is)
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
     steps:
       - name: Windows, CPU and GPUs
         run: |
