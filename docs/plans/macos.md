@@ -184,7 +184,7 @@ Why these values:
 - External and network volumes may need Full Disk Access for `/Library/SentrySixManager/node/bin/node`. That cannot be scripted without MDM. Whether children (ffmpeg) inherit it, and whether it survives a Node update (Developer ID identifier plus team): verify on a Mac.
 - Finder-mounted shares belong to the console user, so they are not a supported source on the daemon. Use an SMB vehicle.
 
-**Fallback.** If the install-time VideoToolbox self-test fails as a daemon, `install.sh --agent` installs the same plist as a LaunchAgent in `gui/<uid>`, without `UserName`. It is documented as "only when the daemon cannot use the GPU". Under macOS 15+ the agent is subject to Local Network privacy, while daemons are believed exempt (Apple TN3179, verify on a Mac).
+**Fallback.** The running service writes its own VideoToolbox answer (`ok` or `failed`) to `run/videotoolbox`, and install.sh reports that one. `--agent` is not built yet: it would run the app as the logged-in user instead of `_sentrysix`, which needs an owner decision. If the install-time VideoToolbox self-test fails as a daemon, `install.sh --agent` installs the same plist as a LaunchAgent in `gui/<uid>`, without `UserName`. It is documented as "only when the daemon cannot use the GPU". Under macOS 15+ the agent is subject to Local Network privacy, while daemons are believed exempt (Apple TN3179, verify on a Mac).
 
 ## 4. HTTPS (`server/x509.js`)
 
@@ -311,6 +311,8 @@ There is a gap of microseconds in which another client could create the file and
 8. Once per process: `O_NOFOLLOW_ANY` must give ELOOP through a symlinked folder.
 
 *Replace originals* is available only when the mode is not `none` and the identity is stable. Expected results:
+
+Phase 1 runs steps 2 to 6 (darwinOwnedFs.js `selfTestDrive`), the first time a drive is asked about and cached per device (a remount gives a new st_dev, so it runs again). The mtime is compared right after the rename, not 1 s later. Steps 7 and 8 are left to safeFs and the platform. A drive whose volinfo says it can but whose trial fails is treated as one that cannot.
 
 | volume | no-replace | identity | hard links |
 |---|---|---|---|
@@ -493,7 +495,7 @@ Re-running install.sh upgrades in place.
 - Where the setup code is: "`sudo sentry-six-manager setup-code`" (auth.js:114, web/login.html:31, 36, web/login.js:28, web/continue.html:35, web/app.js:2329).
 - The folder vehicle option becomes "Folder or drive on this Mac", with placeholder `/Volumes/TESLADRIVE` (app.js:2385-2399 and the four packs). Re-zip the packs afterwards (uiPackExamples.test.js:24-28).
 - New `GET /api/system/volumes` for a "Drives on this Mac" picker. It returns `[]` on Docker.
-- **Under `/Volumes/<NAME>`, healthy means *mounted*.** On Catalina and later `/` is the sealed System volume and `/Volumes` is a firmlink into the Data volume, so its st_dev already differs from `/`. Comparing with `/` would let a leftover empty `/Volumes/TESLADRIVE` folder pass after an eject, and the app would scan it as empty and write onto the internal disk. The rule is: `lstat(root).dev !== lstat(dirname(root)).dev` (that is, `/Volumes`), **and** `/sbin/mount` has a line for that exact path (firmlink list: check `/usr/share/firmlinks` on a Mac). `fs.watch('/Volumes')` triggers a re-check (debounced 500 ms), and the 30 s poll stays as the fallback.
+- **Under `/Volumes/<NAME>`, healthy means *mounted*.** On Catalina and later `/` is the sealed System volume and `/Volumes` is a firmlink into the Data volume, so its st_dev already differs from `/`. Comparing with `/` would let a leftover empty `/Volumes/TESLADRIVE` folder pass after an eject, and the app would scan it as empty and write onto the internal disk. The rule is: `lstat(root).dev !== lstat(dirname(root)).dev` (that is, `/Volumes`), **and** `/sbin/mount` has a line for that exact path (firmlink list: check `/usr/share/firmlinks` on a Mac). `fs.watch('/Volumes')` triggers a re-check (debounced 2.5 s, so the 2 s `/sbin/mount` cache has aged out), and the 30 s poll stays as the fallback.
 - NTFS drives get a read-only hint, and EPERM gets the TCC hint.
 - The updates card and critical bar use `u.how`, with no TrueNAS line on macos (app.js:2210-2219, critical.js:18, 85-86).
 - Process line: "runs as the macOS service account `_sentrysix`, not as root; it connects shares itself".

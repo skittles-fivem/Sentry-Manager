@@ -14,6 +14,11 @@
 // written by windows/build.ps1. Nothing is downloaded or installed beyond
 // that small file and no token is stored: update.ps1 does the installing.
 // UPDATE_CHECK=off turns it off; builds without a repo have nothing to check.
+//
+// The macOS build (channel "macos") does the same with its own releases:
+// they are tagged macos-v<version>-<sha> and never marked "latest" (that
+// one is Windows'), so it lists the newest releases and takes the newest
+// final macos-v* one with a release.json.
 
 const { cleanCritical, cleanLevel } = require('./imageUpdates');
 
@@ -35,9 +40,21 @@ const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}
 const VERSION_RE = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,39}$/;
 const HOW = 'To update, run update.ps1 in the Sentry Six Manager install folder (as administrator), or download the new release zip and run Install.cmd from it. Settings, footage and the Recycle Bin stay as they are.';
 
-/** 'release' for the Windows build (GitHub Releases), else 'image' (the registry). */
+const HOW_MACOS = 'To update, run sudo sentry-six-manager update in Terminal. Settings, footage and the Recycle Bin stay as they are.';
+const MACOS_TAG = 'macos-v';
+// releases come newest first, 100 to a page; Windows publishes its own in
+// between, so a few pages are read before saying there is no macOS one
+const MACOS_LIST = 100;
+const MACOS_PAGES = 5;
+// what each release channel reads and how its install is updated
+const CHANNELS = Object.freeze({
+  windows: Object.freeze({ how: HOW, list: false }),
+  macos: Object.freeze({ how: HOW_MACOS, list: true })
+});
+
+/** 'release' for the Windows and macOS builds (GitHub Releases), else 'image' (the registry). */
 function chooseUpdates(buildInfo) {
-  return buildInfo?.channel === 'windows' ? 'release' : 'image';
+  return Object.hasOwn(CHANNELS, String(buildInfo?.channel)) ? 'release' : 'image';
 }
 
 /** "owner/repo" checked against GitHub's naming rules, or null. */
@@ -103,6 +120,8 @@ class ReleaseUpdates {
     this.repo = parseRepo(buildInfo.release ?? buildInfo.repo);
     this.tag = typeof buildInfo.version === 'string' && VERSION_RE.test(buildInfo.version) ? buildInfo.version : null;
     this.current = { sha: buildInfo.sha || null, builtAt: buildInfo.builtAt || null };
+    this.channel = chooseUpdates(buildInfo) === 'release' ? CHANNELS[buildInfo.channel] : CHANNELS.windows;
+    this.how = this.channel.how;
     this.enabled = enabled && chooseUpdates(buildInfo) === 'release' && Boolean(this.repo);
     this.state = db.get(DB_KEY, { latest: null, checkedAt: 0, error: null });
     this.lastCheck = 0;
@@ -123,7 +142,7 @@ class ReleaseUpdates {
       error: this.state.error,
       updateAvailable: this.updateAvailable(),
       critical: this.critical(),
-      how: HOW
+      how: this.how
     };
   }
 
@@ -186,7 +205,7 @@ class ReleaseUpdates {
       this.notes.raise({
         kind: 'update', level: 'critical', dedupeKey: 'image-update-critical',
         title: 'Critical update: install now',
-        message: `${critical.reason} ${HOW.replace(/ Settings.*$/, '')}`
+        message: `${critical.reason} ${this.how.replace(/ Settings.*$/, '')}`
       });
     } else {
       this.notes.resolve('image-update-critical');
@@ -196,7 +215,7 @@ class ReleaseUpdates {
     this.notes.raise({
       kind: 'update', level: 'info', dedupeKey: 'image-update',
       title: 'An update is available',
-      message: `A newer release${l.version ? ` (${l.version})` : ''} was published${l.created ? ` on ${l.created.slice(0, 10)}` : ''}. ${HOW.replace(/ Settings.*$/, '')}`
+      message: `A newer release${l.version ? ` (${l.version})` : ''} was published${l.created ? ` on ${l.created.slice(0, 10)}` : ''}. ${this.how.replace(/ Settings.*$/, '')}`
     });
     return undefined;
   }
@@ -223,18 +242,43 @@ class ReleaseUpdates {
     throw new Error('GitHub sent too many redirects');
   }
 
-  async fetchLatest() {
+  /** The release to read: releases/latest (Windows), or the newest macos-v* one in the list. */
+  async latestRelease(calm) {
     const { owner, name } = this.repo;
-    const calm = (message) => Object.assign(new Error(message), { calm: true });
-    const r = await this.request(`https://api.github.com/repos/${owner}/${name}/releases/latest`, API_HOSTS, 'application/vnd.github+json');
+    if (!this.channel.list) {
+      const rel = await this.readReleases(`https://api.github.com/repos/${owner}/${name}/releases/latest`, calm);
+      if (!rel || typeof rel !== 'object') throw new Error('GitHub sent an unexpected answer');
+      // releases/latest skips these already; a stray one is never offered
+      if (rel.draft || rel.prerelease) throw calm('the newest release is not final yet');
+      return rel;
+    }
+    const when = (x) => Date.parse(x.published_at || x.created_at || '') || 0;
+    for (let page = 1; page <= MACOS_PAGES; page++) {
+      const rel = await this.readReleases(`https://api.github.com/repos/${owner}/${name}/releases?per_page=${MACOS_LIST}&page=${page}`, calm);
+      if (!Array.isArray(rel)) throw new Error('GitHub sent an unexpected answer');
+      const mac = rel.filter((x) => x && typeof x === 'object' && !x.draft && !x.prerelease
+        && typeof x.tag_name === 'string' && x.tag_name.startsWith(MACOS_TAG)
+        && Array.isArray(x.assets) && x.assets.some((a) => a && a.name === 'release.json'));
+      if (mac.length) return mac.reduce((best, x) => (when(x) > when(best) ? x : best));
+      // a page that is not full is the last one
+      if (rel.length < MACOS_LIST) break;
+    }
+    throw calm('no macOS release has been published yet');
+  }
+
+  /** One GitHub API answer, parsed. */
+  async readReleases(url, calm) {
+    const r = await this.request(url, API_HOSTS, 'application/vnd.github+json');
     if (r.status === 404) throw calm('no release has been published yet');
     if (r.status === 403 || r.status === 429) throw calm('GitHub is limiting checks right now; it tries again later');
     if (r.status !== 200) throw new Error(`GitHub answered ${r.status}`);
-    let rel;
-    try { rel = JSON.parse(r.text); } catch { throw new Error('GitHub sent an unexpected answer'); }
-    if (!rel || typeof rel !== 'object') throw new Error('GitHub sent an unexpected answer');
-    // releases/latest skips these already; a stray one is never offered
-    if (rel.draft || rel.prerelease) throw calm('the newest release is not final yet');
+    try { return JSON.parse(r.text); } catch { throw new Error('GitHub sent an unexpected answer'); }
+  }
+
+  async fetchLatest() {
+    const { owner, name } = this.repo;
+    const calm = (message) => Object.assign(new Error(message), { calm: true });
+    const rel = await this.latestRelease(calm);
     const asset = Array.isArray(rel.assets) ? rel.assets.find((a) => a && a.name === 'release.json') : null;
     if (!asset || typeof asset.browser_download_url !== 'string') throw new Error('the latest release has no release.json');
     let first;
@@ -259,4 +303,4 @@ class ReleaseUpdates {
   }
 }
 
-module.exports = { ReleaseUpdates, chooseUpdates, parseRepo, parseReleaseJson, HOW };
+module.exports = { ReleaseUpdates, chooseUpdates, parseRepo, parseReleaseJson, HOW, HOW_MACOS };

@@ -3,7 +3,7 @@
 
 import {
   $, esc, icon, api, upload, state, loadVehicles, setVehicle, bytes, whenFull, fin, toast, confirmDialog, empty, clockPref, emit,
-  onWindows, whereRunning, toldHow, WIN_UPDATE, WIN_LOGS
+  onWindows, onMac, whereRunning, toldHow, WIN_UPDATE, WIN_LOGS, MAC_UPDATE
 } from '../core.js';
 
 const SECTIONS = [
@@ -52,12 +52,13 @@ function vehicleForm(v, sys) {
   const s = v?.source || { type: 'smb', version: sys?.smbDefaultVersion || '3.1.1', encrypt: true };
   const smb = s.type !== 'path';
   const win = onWindows() || sys?.deployment === 'windows';
+  const mac = !win && (onMac() || sys?.deployment === 'macos');
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return `<form id="veh" class="panel" novalidate><div class="panel-head"><h2>${v ? `Edit ${esc(v.name)}` : 'Add a vehicle'}</h2><a class="btn sm ghost" href="#/settings/vehicles">${icon('x')} Close</a></div>
     <div class="form">
       <label class="field">Name<input class="input" name="name" required maxlength="60" value="${esc(v?.name || '')}" placeholder="Daily driver" autocomplete="off"></label>
       <label class="field">Time zone<input class="input" name="timezone" value="${esc(v?.timezone || tz)}" placeholder="America/Chicago" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
-      <div class="field full">Where the footage is<div class="seg big" role="group" aria-label="Footage source"><button type="button" data-src="smb" aria-pressed="${smb}">Network share (SMB)</button><button type="button" data-src="path" aria-pressed="${!smb}">${win ? 'Folder on this PC' : 'Folder in the container'}</button></div></div>
+      <div class="field full">Where the footage is<div class="seg big" role="group" aria-label="Footage source"><button type="button" data-src="smb" aria-pressed="${smb}">Network share (SMB)</button><button type="button" data-src="path" aria-pressed="${!smb}">${win ? 'Folder on this PC' : mac ? 'Folder on this Mac' : 'Folder in the container'}</button></div></div>
       <div class="full form" data-for="smb"${smb ? '' : ' hidden'}>
         <label class="field full">Share<input class="input mono" name="share" value="${esc(s.share || '')}" placeholder="//192.168.1.50/TeslaCam" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
         <label class="field">User name<input class="input" name="username" value="${esc(s.username || '')}" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
@@ -70,8 +71,8 @@ function vehicleForm(v, sys) {
         <p class="muted small full">Only SMB 3 is used and every connection is signed, so nobody can change the footage or pose as your NAS; without encryption others on the network could watch it. Use a NAS account with access to this share only.</p>
       </div>
       <div class="full" data-for="path"${smb ? ' hidden' : ''}>
-        <label class="field">Folder<input class="input mono" name="path" value="${esc(s.path || '')}" placeholder="${win ? 'D:\\TeslaCam' : '/footage/weekend-car'}" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
-        <p class="muted small" style="margin-top:8px">${win ? 'A folder on a drive of this PC (an internal or USB drive). For a NAS, use the network share.' : 'A folder you mounted into the container yourself (a bind mount or a Docker CIFS volume).'}</p>
+        <label class="field">Folder<input class="input mono" name="path" value="${esc(s.path || '')}" placeholder="${win ? 'D:\\TeslaCam' : mac ? '/Volumes/TESLADRIVE' : '/footage/weekend-car'}" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
+        <p class="muted small" style="margin-top:8px">${win ? 'A folder on a drive of this PC (an internal or USB drive). For a NAS, use the network share.' : mac ? 'A drive plugged into this Mac (under /Volumes) or a folder in /Users/Shared. For a NAS, use the network share.' : 'A folder you mounted into the container yourself (a bind mount or a Docker CIFS volume).'}</p>
       </div>
     </div>
     <p class="err" id="veh-err" role="alert"></p>
@@ -287,9 +288,9 @@ async function updates(box) {
   const cur = u.current || {};
   const running = `${cur.sha ? `${esc(cur.sha.slice(0, 7))}${u.tag ? ` (${esc(u.tag)})` : ''}` : 'built from source'}${cur.builtAt ? ` · built ${esc(String(cur.builtAt).slice(0, 10))}` : ''}`;
   const how = '<code>docker compose pull &amp;&amp; docker compose up -d</code>';
-  // the Windows build updates from a release: the server's own words, else the Windows steps
+  // the Windows and Mac builds update from a release: the server's own words, else their steps
   const told = toldHow(u);
-  const release = told || onWindows() ? esc(told || WIN_UPDATE) : '';
+  const release = told || onWindows() ? esc(told || WIN_UPDATE) : onMac() ? esc(MAC_UPDATE) : '';
   const l = u.latest;
   const lead = release
     ? (!u.enabled ? (told || cur.sha ? `Checking for updates is turned off (UPDATE_CHECK=off). ${release}` : 'This copy runs from source. To update it, get the new code and start it again.') : `Updates come as a new release. ${release} Settings, footage and the Recycle Bin stay as they are.`)
@@ -317,7 +318,7 @@ async function security(box) {
   const covered = !host || (tls.hostnames || []).map((h) => h.toLowerCase()).includes(host.toLowerCase());
   const fp = (s) => esc(s || '?').replace(/:/g, ':<wbr>');
   let html = `<dl class="kv"><dt>This connection</dt><dd>${sec.https ? 'HTTPS (encrypted)' : '<b style="color:var(--bad)">not encrypted</b>: others on the network could read your password and the footage. Use https://.'}</dd>
-    <dt>Server process</dt><dd>${onWindows() ? (sec.elevated ? 'runs as an administrator (fine for trying it out, not for the service)' : `runs as ${esc(sec.account || 'its own service account')}, not an administrator`) : sec.runningAsRoot ? 'runs as root (not supervised; fine for development, not for the Docker image)' : 'runs as an unprivileged user; only the supervisor can mount shares'}</dd>`;
+    <dt>Server process</dt><dd>${onWindows() ? (sec.elevated ? 'runs as an administrator (fine for trying it out, not for the service)' : `runs as ${esc(sec.account || 'its own service account')}, not an administrator`) : onMac() ? (sec.runningAsRoot ? 'runs as root (fine for trying it out, not for the service)' : `runs as the macOS service account <code>${esc(sec.account || '_sentrysix')}</code>, not as root; it connects shares itself`) : sec.runningAsRoot ? 'runs as root (not supervised; fine for development, not for the Docker image)' : 'runs as an unprivileged user; only the supervisor can mount shares'}</dd>`;
   if (sec.tlsMode === 'off') html += '<dt>HTTPS</dt><dd>turned off (TLS_MODE=off): only behind a reverse proxy that does HTTPS.</dd></dl>';
   else if (tls.mode === 'own') html += `<dt>Certificate</dt><dd>your own (TLS_CERT_FILE) · ${esc((tls.certificate?.names || []).join(', '))} · valid until ${esc(tls.certificate?.validTo || '?')}</dd><dt>Fingerprint</dt><dd class="mono small">${fp(tls.certificate?.fingerprint)}</dd></dl>`;
   else if (tls.error) html += `<dt>Certificate</dt><dd>${esc(tls.error)}</dd></dl>`;
@@ -326,7 +327,7 @@ async function security(box) {
       <dt>Certificate</dt><dd>Sentry Six Manager’s own · until ${esc(tls.certificate?.validTo || '?')}, then renews by itself</dd>
       <dt>Covers</dt><dd>${esc((tls.hostnames || []).join(', '))}</dd>
       <dt>Certificate authority</dt><dd>until ${esc(tls.ca?.validTo || '?')} · <span class="mono small">${fp(tls.ca?.fingerprint)}</span></dd></dl>
-      <p class="lead" style="margin-top:14px">Each device shows the browser’s certificate warning once; continue past it and the device remembers. To be sure it is this server, compare the fingerprint above with the browser’s certificate details or ${onWindows() ? `the install window or <code>${esc(WIN_LOGS)}</code>` : 'the container log'}. If a device that continued before warns again and nothing changed here, don’t continue. No warning at all: install the certificate authority below (compare its fingerprint first).</p>
+      <p class="lead" style="margin-top:14px">Each device shows the browser’s certificate warning once; continue past it and the device remembers. To be sure it is this server, compare the fingerprint above with the browser’s certificate details or ${onWindows() ? `the install window or <code>${esc(WIN_LOGS)}</code>` : onMac() ? 'the installer’s output in Terminal' : 'the container log'}. If a device that continued before warns again and nothing changed here, don’t continue. No warning at all: install the certificate authority below (compare its fingerprint first).</p>
       ${covered ? '' : `<div class="note warn" style="margin-top:12px">You opened this page as <b>${esc(host)}</b>, which the certificate doesn’t cover. <button class="btn sm" type="button" id="add-host" data-host="${esc(host)}">Add ${esc(host)}</button></div>`}
       <details class="more-info"><summary>How to install the certificate authority</summary><ul class="list small" style="margin-top:8px">
         <li><div><b>iPhone / iPad:</b> open the download in Safari, then Settings › General › VPN &amp; Device Management to install it, and Settings › General › About › Certificate Trust Settings to turn on full trust.</div></li>
@@ -359,11 +360,13 @@ async function security(box) {
 async function system(box) {
   const [sys] = await Promise.all([api('/api/system'), whereRunning]);
   const win = onWindows() || sys.deployment === 'windows';
+  // not in a container: the Windows service or the Mac's
+  const native = win || onMac() || sys.deployment === 'macos';
   state.system = sys;
   const caps = sys.converter?.capabilities || {};
   const g = sys.gpu || { gpus: [], nvidia: [], hints: [] };
   const gpus = [...(g.nvidia || []).map((x) => `${/^nvidia\b/i.test(x.name || '') ? '' : 'NVIDIA '}${esc(x.name)} (driver ${esc(x.driver)})`),
-    ...(g.gpus || []).filter((x) => x.vendor !== 'nvidia').map((x) => (x.virtual ? `${esc(x.name)} · ${esc(x.node)} · not a GPU` : `${esc(x.name || x.vendorName)} · ${esc(x.node)}${x.passedThrough ? (x.encodes ? ` · encodes ${Object.entries(x.encodes).filter(([, y]) => y).map(([k]) => k.toUpperCase()).join(', ') || 'nothing'}` : '') : (win ? ' · not usable for encoding' : ' · not passed into the container')}`))];
+    ...(g.gpus || []).filter((x) => x.vendor !== 'nvidia').map((x) => (x.virtual ? `${esc(x.name)} · ${esc(x.node)} · not a GPU` : `${esc(x.name || x.vendorName)} · ${esc(x.node)}${x.passedThrough ? (x.encodes ? ` · encodes ${Object.entries(x.encodes).filter(([, y]) => y).map(([k]) => k.toUpperCase()).join(', ') || 'nothing'}` : '') : (native ? ' · not usable for encoding' : ' · not passed into the container')}`))];
   const v = sys.version || {};
   box.innerHTML = `<section class="panel"><div class="panel-head"><h2>System</h2></div><dl class="kv">
     <dt>Version</dt><dd class="mono">${esc(v.version || v.sha || 'development')}${v.builtAt ? ` · ${esc(String(v.builtAt).slice(0, 10))}` : ''}</dd>
@@ -371,9 +374,9 @@ async function system(box) {
     <dt>Safe rename helper</dt><dd>${sys.nativeHelper ? 'installed' : 'missing (link + unlink fallback)'}</dd>
     <dt>GPUs</dt><dd>${gpus.length ? gpus.join('<br>') : 'none visible (the CPU encoders are used)'}</dd>
     ${(g.hints || []).length ? `<dt>GPU hints</dt><dd>${g.hints.map(esc).join('<br>')}</dd>` : ''}
-    <dt>Data ${win ? 'folder' : 'volume'} free</dt><dd>${bytes(sys.dataFree)}</dd>
+    <dt>Data ${native ? 'folder' : 'volume'} free</dt><dd>${bytes(sys.dataFree)}</dd>
     <dt>Server time zone</dt><dd>${esc(sys.timezone)}</dd>
-    <dt>HTTPS</dt><dd>${sys.security?.https ? 'on' : 'off'} · TLS mode ${esc(sys.security?.tlsMode || '')}${sys.security?.supervised && !win ? ' · supervised' : ''}</dd></dl></section>`;
+    <dt>HTTPS</dt><dd>${sys.security?.https ? 'on' : 'off'} · TLS mode ${esc(sys.security?.tlsMode || '')}${sys.security?.supervised && !native ? ' · supervised' : ''}</dd></dl></section>`;
 }
 
 // ---------- Electricity ----------

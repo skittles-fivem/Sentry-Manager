@@ -131,12 +131,19 @@ function zeroCopySource(video) {
   return even(video.width) && even(video.height);
 }
 
+// VideoToolbox on a Mac (a videotoolbox device, or platform 'darwin'):
+// hardware only (-allow_sw 0), so a Mac that cannot reach its media engine
+// (a VM) fails instead of encoding in software. Without either, the
+// arguments are what they always were.
+const videotoolboxOn = (encoder, device, platform) => encoder.endsWith('_videotoolbox')
+  && (platform === 'darwin' || device?.kind === 'videotoolbox');
+
 // holdFrames: a clip that starts before its first keyframe (see leadIn.js)
 // gets the first decodable frame repeated that many times in front, so the
 // encoded file has every frame of the original. tpad clones the frame it is
 // given, so it runs on system-memory frames before any upload; GPU-resident
 // (zero-copy) frames are not used for such clips (jobService).
-function buildEncodeArgs({ codec, encoder, bitrate, quality = null, vaapiDevice = '/dev/dri/renderD128', hwFrames = false, device = null, holdFrames = 0 }) {
+function buildEncodeArgs({ codec, encoder, bitrate, quality = null, vaapiDevice = '/dev/dri/renderD128', hwFrames = false, device = null, holdFrames = 0, platform = null }) {
   requireFamily(codec);
   if (quality === null) requirePositive('bitrate', bitrate);
   if (typeof encoder !== 'string' || !encoderBelongsToFamily(codec, encoder)) {
@@ -177,6 +184,7 @@ function buildEncodeArgs({ codec, encoder, bitrate, quality = null, vaapiDevice 
   }
 
   args.push('-c:v', encoder);
+  if (videotoolboxOn(encoder, device, platform)) args.push('-allow_sw', '0');
   if (device && encoder.endsWith('_nvenc')) args.push('-gpu', deviceIndex(device));
   if (quality !== null) args.push(...qualityRateArgs(codec, encoder, quality));
   else args.push('-b:v', String(Math.round(bitrate)));
@@ -211,8 +219,9 @@ function buildEncodeArgs({ codec, encoder, bitrate, quality = null, vaapiDevice 
  *
  * zeroCopy: the decoded frames stay in GPU memory and go straight into the
  * encoder (buildEncodeArgs with hwFrames). NVENC as always; VA-API and QSV on
- * Linux, AMF and QSV on Windows, each only on the GPU that encodes. null when
- * the encoder has no such tier here (the caller then decodes the usual way).
+ * Linux, AMF and QSV on Windows, each only on the GPU that encodes;
+ * VideoToolbox on a Mac. null when the encoder has no such tier here (the
+ * caller then decodes the usual way).
  */
 function decodeAccelArgs(encoder, { platform = process.platform, vaapiDevice = '/dev/dri/renderD128', zeroCopy = false, device = null } = {}) {
   if (typeof encoder !== 'string') return null;
@@ -235,6 +244,10 @@ function decodeAccelArgs(encoder, { platform = process.platform, vaapiDevice = '
 function zeroCopyArgs(encoder, { platform, cudaDevice, renderNode, device }) {
   // NVDEC frames stay in GPU memory and go straight into NVENC.
   if (encoder.endsWith('_nvenc')) return ['-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda', ...cudaDevice()];
+  // A Mac: VideoToolbox decodes into frames hevc_videotoolbox takes as they are.
+  if (platform === 'darwin') {
+    return encoder.endsWith('_videotoolbox') ? ['-hwaccel', 'videotoolbox', '-hwaccel_output_format', 'videotoolbox_vld'] : null;
+  }
   if (platform === 'linux') {
     if (encoder.endsWith('_vaapi')) {
       return ['-hwaccel', 'vaapi', '-hwaccel_device', renderNode(), '-hwaccel_output_format', 'vaapi'];
@@ -294,9 +307,12 @@ async function probeCandidate({
   const normalized = typeof candidate === 'string'
     ? { codec: candidate, hardware: !CANDIDATES[family].cpu.includes(candidate) }
     : { ...candidate };
+  // A Mac tests VideoToolbox with the quality setting its clips use, so a
+  // broken -q:v shows up here once instead of failing every clip.
+  const rate = platform === 'darwin' && String(normalized.codec).endsWith('_videotoolbox') ? { quality: 'balanced' } : { bitrate };
   let encodeArgs;
   try {
-    encodeArgs = buildEncodeArgs({ codec: family, encoder: normalized.codec, bitrate, vaapiDevice, ...(device ? { device } : {}) });
+    encodeArgs = buildEncodeArgs({ codec: family, encoder: normalized.codec, ...rate, vaapiDevice, platform, ...(device ? { device } : {}) });
   } catch (error) {
     if (!device) throw error;
     return failedProof(normalized, 'invalid device', error.message);
@@ -334,7 +350,8 @@ const ENCODER_PREFIX = Object.freeze({ h265: 'hevc', av1: 'av1' });
 
 // Hardware encoders worth trying on one GPU: on Linux QSV then VA-API on
 // Intel, VA-API on AMD; on Windows QSV on Intel, AMF on AMD; NVENC on NVIDIA
-// on both. Other systems have no per-GPU choice.
+// on both. A Mac's one VideoToolbox device encodes H.265 only (there is no
+// AV1 VideoToolbox encoder). Other systems have no per-GPU choice.
 function deviceCandidates(family, device, platform) {
   const prefix = ENCODER_PREFIX[family];
   if (platform === 'win32') {
@@ -343,6 +360,7 @@ function deviceCandidates(family, device, platform) {
     if (device.kind === 'nvidia') return [`${prefix}_nvenc`];
     return [];
   }
+  if (platform === 'darwin') return device.kind === 'videotoolbox' && family === 'h265' ? ['hevc_videotoolbox'] : [];
   if (platform !== 'linux') return [];
   if (device.kind === 'dri' && device.vendor === 'intel') return [`${prefix}_qsv`, `${prefix}_vaapi`];
   if (device.kind === 'dri' && device.vendor === 'amd') return [`${prefix}_vaapi`];

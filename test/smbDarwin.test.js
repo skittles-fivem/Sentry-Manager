@@ -10,6 +10,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
+const { realTmp } = require('./fixtures/tmp');
 const { EventEmitter } = require('events');
 const { PassThrough } = require('stream');
 const {
@@ -17,7 +18,6 @@ const {
   parseMountLine, parseDarwinMount, findDarwinMount, parseStatshares, checkStatshares,
   explainMountErrorDarwin, CHECK, PROMPT_RE
 } = require('../server/platform/smbDarwin');
-const { realTmp } = require('./fixtures/tmp');
 
 const FIX = path.join(__dirname, 'fixtures', 'darwin');
 const fixture = (name) => fs.readFileSync(path.join(FIX, name), 'utf8');
@@ -450,6 +450,12 @@ test('/sbin/mount parsing: spaces, " on " and "(" in paths, mounted by, stacked 
   assert.equal(findDarwinMount(text, '/Library/Application Support/SentrySixManager/footage'), null);
   assert.equal(findDarwinMount(text, '/Library/Application Support/SentrySixManager/footage/ca'), null);
   assert.equal(findDarwinMount(text, '/Volumes/My'), null, 'a path that only starts the same way');
+  // a drive typed in another case (the Mac's own disk ignores case)
+  const drive = '/dev/disk4s1 on /Volumes/TESLADRIVE (exfat, local, nodev, nosuid, noowners)\n';
+  assert.equal(findDarwinMount(drive, '/Volumes/tesladrive').mountPoint, '/Volumes/TESLADRIVE');
+  assert.equal(findDarwinMount(drive, '/Volumes/TESLADRIVE').fsType, 'exfat');
+  assert.equal(findDarwinMount(drive, '/Volumes/tesla'), null);
+  assert.equal(findDarwinMount('//u@nas/S on /Users/Shared/Car (smbfs)\n', '/users/shared/car'), null, 'only drive names fold');
 });
 
 test('probe: finds the mount at a vehicle folder, cached for 2 s across vehicles', async (t) => {

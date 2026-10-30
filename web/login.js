@@ -16,7 +16,8 @@
   })();
   // deployment (public GET /api/info): on the Windows service the setup code
   // and the fingerprint are in the install window and service.log, not in
-  // docker logs; the page's own words are Docker's
+  // docker logs; on a Mac the code comes from a Terminal command and the
+  // fingerprint from the installer. The page's own words are Docker's.
   const [me, info] = await Promise.all([
     fetch('/api/auth/me').then((r) => r.json()).catch(() => ({})),
     fetch('/api/info').then((r) => (r.ok ? r.json() : {})).catch(() => ({}))
@@ -32,6 +33,14 @@
     while (br?.nextSibling) br.nextSibling.remove();
     br?.after('The same as in the install window, in ', code(log), ' and in your browser\'s certificate details.');
   }
+  const mac = info?.deployment === 'macos';
+  if (mac) {
+    const code = (text) => Object.assign(document.createElement('code'), { textContent: text });
+    $('code-row').querySelector('span').replaceChildren('In Terminal on the Mac, run ', code('sudo sentry-six-manager setup-code'));
+    const br = $('fingerprint').querySelector('br');
+    while (br?.nextSibling) br.nextSibling.remove();
+    br?.after('The same as in the installer\'s output in Terminal and in your browser\'s certificate details.');
+  }
   if (location.protocol !== 'https:') $('insecure').hidden = false;
   if (me.fingerprint) {
     // a line may break after each colon, never inside a byte
@@ -42,6 +51,7 @@
   if (setup) {
     $('title').textContent = 'Create your account';
     $('lead').textContent = `This is the first start. Enter the setup code from ${windows ? 'the install window' : 'the container log'}, then choose the user name and password that protect this Sentry Six Manager.`;
+    if (mac) $('lead').textContent = 'This is the first start. Enter the setup code (in Terminal on the Mac, run sudo sentry-six-manager setup-code), then choose the user name and password that protect this Sentry Six Manager.';
     $('confirm-row').hidden = false;
     $('code-row').hidden = false;
     $('submit').textContent = 'Create account';

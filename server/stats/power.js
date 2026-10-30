@@ -169,13 +169,15 @@ function combinePower(cpuW, gpus, cpuSource) {
  * Why the CPU's watts cannot be read, when they cannot: 'windows' (Docker
  * Desktop for Windows: WSL2 does not pass the energy counters to Linux; or
  * the native Windows build on a PC without Energy Meter counters), 'vm'
- * (another virtual machine: the hypervisor keeps them), else null. Older
+ * (another virtual machine: the hypervisor keeps them), 'macos' (a Mac:
+ * only powermetrics knows them, and it needs root), else null. Older
  * mains know 'windows', so a Windows node reports it the same way.
  */
-function cpuUnavailable({ cpuW, wsl, virtual, windows = false }) {
+function cpuUnavailable({ cpuW, wsl, virtual, windows = false, macos = false }) {
   if (cpuW !== null && cpuW !== undefined) return null;
   if (wsl || windows) return 'windows';
   if (virtual) return 'vm';
+  if (macos) return 'macos';
   return null;
 }
 

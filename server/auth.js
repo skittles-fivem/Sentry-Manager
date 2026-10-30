@@ -73,7 +73,8 @@ class Auth {
    * isSecure(req): whether this request reached us over HTTPS.
    * setupFile: where the one-time setup code is written (besides the log).
    * platform (tests): where the setup code is said to be (the container
-   * log in Docker, the service log and Install.cmd's window on Windows).
+   * log in Docker, the service log and Install.cmd's window on Windows,
+   * the setup-code command on a Mac).
    */
   constructor({ db, log, isSecure = () => false, setupFile = null, platform = defaultPlatform }) {
     this.platform = platform;
@@ -117,7 +118,9 @@ class Auth {
     if (!want || given.length !== want.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(want))) {
       const where = this.platform.deployment === 'windows'
         ? 'It was shown when Install.cmd finished, and is in %ProgramData%\\SentrySixManager\\data\\setup-code.txt and the service log (data\\logs\\service.log).'
-        : 'It is printed in the container log (docker logs sentry-six-manager).';
+        : this.platform.deployment === 'macos'
+          ? 'It was shown when the install finished. To see it again, run sudo sentry-six-manager setup-code in Terminal.'
+          : 'It is printed in the container log (docker logs sentry-six-manager).';
       throw Object.assign(new Error(`That setup code is not right. ${where}`), { status: 403 });
     }
     this.setPassword(username, password);

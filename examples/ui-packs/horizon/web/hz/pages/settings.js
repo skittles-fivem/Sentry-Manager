@@ -1,6 +1,6 @@
 // Settings: the garage (vehicles), account, interface packs, the background
 // effect, updates, security, system and the electricity price.
-import { h, ico, api, send, app, pickCar, loadCars, size, stampFull, toast, ask, act, ok, local, segs, onSegs, pill, panelHead, liveDraw, clockPref, onWindows, whereRunning, toldHow, WIN_UPDATE } from '../core.js';
+import { h, ico, api, send, app, pickCar, loadCars, size, stampFull, toast, ask, act, ok, local, segs, onSegs, pill, panelHead, liveDraw, clockPref, onWindows, onMac, whereRunning, toldHow, WIN_UPDATE, MAC_UPDATE } from '../core.js';
 
 const TABS = [['vehicles', 'Vehicles', 'car'], ['account', 'Account', 'lock'], ['interface', 'Interface', 'horizon'], ['display', 'Background', 'hud'], ['updates', 'Updates', 'download'], ['security', 'Security', 'shield'], ['system', 'System', 'info'], ['power', 'Electricity', 'bolt']];
 const WEEK = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']];
@@ -86,6 +86,7 @@ function carForm(v) {
   const versions = system?.smbVersions || { '3.1.1': 'SMB 3.1.1 (recommended)', '3.02': 'SMB 3.02', '3.0': 'SMB 3.0', 3: 'SMB 3.0 or newer' };
   const s = v?.source || { type: 'smb', version: system?.smbDefaultVersion || '3.1.1', encrypt: true };
   const win = onWindows() || system?.deployment === 'windows';
+  const mac = !win && (onMac() || system?.deployment === 'macos');
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return `<form class="panel hud orange form" id="v-form" novalidate>
     ${panelHead(`${ico(v ? 'gear' : 'plus')}${v ? `Edit ${h(v.name)}` : 'Add a vehicle'}`)}
@@ -93,7 +94,7 @@ function carForm(v) {
       <label class="fld">Name<input class="in" name="name" required value="${h(v?.name || '')}" placeholder="Daily driver"></label>
       <label class="fld">Time zone<input class="in" name="timezone" value="${h(v?.timezone || tz)}" placeholder="America/Chicago" autocapitalize="none" spellcheck="false"></label>
     </div>
-    <div class="fld">Footage source${segs('src', [['smb', 'SMB share'], ['path', win ? 'Folder on this PC' : 'Folder in the container']], s.type === 'path' ? 'path' : 'smb', 'Footage source')}</div>
+    <div class="fld">Footage source${segs('src', [['smb', 'SMB share'], ['path', win ? 'Folder on this PC' : mac ? 'Folder on this Mac' : 'Folder in the container']], s.type === 'path' ? 'path' : 'smb', 'Footage source')}</div>
     <div data-src="smb" class="form"${s.type === 'path' ? ' hidden' : ''}>
       <div class="grid2">
         <label class="fld span-all">Share<input class="in mono" name="share" value="${h(s.share || '')}" placeholder="//192.168.1.50/TeslaCam" spellcheck="false" autocapitalize="none"></label>
@@ -108,8 +109,8 @@ function carForm(v) {
       <p class="small faint">SMB 3 only, every connection signed. Use a NAS account that can reach this share only.</p>
     </div>
     <div data-src="path" class="form"${s.type === 'path' ? '' : ' hidden'}>
-      <label class="fld">Folder<input class="in mono" name="path" value="${h(s.path || '')}" placeholder="${win ? 'D:\\TeslaCam' : '/footage/weekend-car'}" spellcheck="false" autocapitalize="none"></label>
-      <p class="small faint">${win ? 'A folder on a drive of this PC (an internal or USB drive). For a NAS, use SMB share.' : 'A folder mounted into the container (a bind mount or a Docker CIFS volume).'}</p>
+      <label class="fld">Folder<input class="in mono" name="path" value="${h(s.path || '')}" placeholder="${win ? 'D:\\TeslaCam' : mac ? '/Volumes/TESLADRIVE' : '/footage/weekend-car'}" spellcheck="false" autocapitalize="none"></label>
+      <p class="small faint">${win ? 'A folder on a drive of this PC (an internal or USB drive). For a NAS, use SMB share.' : mac ? 'A drive plugged into this Mac (under /Volumes) or a folder in /Users/Shared. For a NAS, use SMB share.' : 'A folder mounted into the container (a bind mount or a Docker CIFS volume).'}</p>
     </div>
     <p class="small faint">Adding a vehicle or changing where its footage comes from asks for your password.</p>
     <div class="row">${v ? `<button class="btn danger" type="button" id="v-del">${ico('bin')}Remove vehicle…</button>` : ''}<a class="btn" href="#/settings/vehicles">Cancel</a><button class="btn go" type="submit">${v ? 'Save' : 'Add vehicle'}</button></div>
@@ -249,7 +250,7 @@ async function updates(box) {
   const l = u.latest;
   // the Windows build updates from a release: the server's own words, else the Windows steps
   const told = toldHow(u);
-  const release = told || onWindows() ? h(told || WIN_UPDATE) : '';
+  const release = told || onWindows() ? h(told || WIN_UPDATE) : onMac() ? h(MAC_UPDATE) : '';
   box.innerHTML = `<section class="panel hud">${panelHead(`${ico('download')}Updates`, u.updateAvailable ? pill('update available', 'grn') : '')}
     <p class="small dim">${release ? (u.enabled ? `Updates come as a new release. ${release} Settings, footage and the Recycle Bin stay.` : told || cur.sha ? `Checking for updates is turned off (UPDATE_CHECK=off). ${release}` : 'This copy runs from source. To update it, get the new code and start it again.')
       : u.enabled ? 'Updates come as a new image. To install one, run <code>docker compose pull &amp;&amp; docker compose up -d</code> where you set up Sentry Six Manager. Settings, footage and the Recycle Bin stay.' : u.image ? 'Checking for updates is turned off (UPDATE_CHECK=off). To update, run <code>docker compose pull &amp;&amp; docker compose up -d</code>.' : 'This copy was built from source. To update it, build the image again from the new code.'}</p>
@@ -271,7 +272,7 @@ async function security(box) {
   const covered = !host || (tls.hostnames || []).map((x) => x.toLowerCase()).includes(host.toLowerCase());
   const fp = (s) => h(s || '?').replace(/:/g, ':<wbr>');
   let body = `<dl class="kv"><dt>This connection</dt><dd>${sec.https ? 'HTTPS (encrypted)' : '<b class="badtx">not encrypted</b>: use https:// or a reverse proxy that does HTTPS.'}</dd>
-    <dt>Server process</dt><dd>${onWindows() ? (sec.elevated ? 'runs as an administrator (fine for trying it out, not for the service)' : `runs as ${h(sec.account || 'its own service account')}, not an administrator`) : sec.runningAsRoot ? 'runs as root (not supervised; fine for development, not for the Docker image)' : 'runs as an unprivileged user'}</dd>`;
+    <dt>Server process</dt><dd>${onWindows() ? (sec.elevated ? 'runs as an administrator (fine for trying it out, not for the service)' : `runs as ${h(sec.account || 'its own service account')}, not an administrator`) : onMac() ? (sec.runningAsRoot ? 'runs as root (fine for trying it out, not for the service)' : `runs as the macOS service account <code>${h(sec.account || '_sentrysix')}</code>, not as root; it connects shares itself`) : sec.runningAsRoot ? 'runs as root (not supervised; fine for development, not for the Docker image)' : 'runs as an unprivileged user'}</dd>`;
   if (sec.tlsMode === 'off') body += '<dt>HTTPS</dt><dd>turned off (TLS_MODE=off): only behind a reverse proxy that does HTTPS.</dd></dl>';
   else if (tls.mode === 'own') body += `<dt>Certificate</dt><dd>your own (TLS_CERT_FILE) · valid until ${h(tls.certificate?.validTo || '?')}</dd><dt>Fingerprint</dt><dd class="mono small">${fp(tls.certificate?.fingerprint)}</dd></dl>`;
   else if (tls.error) body += `<dt>Certificate</dt><dd>${h(tls.error)}</dd></dl>`;
@@ -312,13 +313,15 @@ async function sys(box) {
   const [s, st] = await Promise.all([api('/api/system'), api('/api/stats').catch(() => ({})), whereRunning]);
   system = s;
   const win = onWindows() || s.deployment === 'windows';
-  const vol = win ? 'Data folder' : 'Data volume';
+  // not in a container: the Windows service or the Mac's
+  const native = win || onMac() || s.deployment === 'macos';
+  const vol = native ? 'Data folder' : 'Data volume';
   const dataVol = (st.filesystems || []).find((f) => !f.vehicle)?.path;
   // a Windows data folder is a C:\ path: its converted folder is joined with \ (and the
   // service is not run by the Docker supervisor, so that clause is left out)
   const sep = win && /\\/.test(dataVol || '') && !(dataVol || '').includes('/') ? '\\' : '/';
   const caps = s.converter?.capabilities || {};
-  const gpus = [...(s.gpu?.nvidia || []).map((g) => `${g.name} (driver ${g.driver})`), ...(s.gpu?.gpus || []).filter((g) => g.vendor !== 'nvidia').map((g) => `${g.name || g.vendorName} · ${g.node}${g.virtual ? ' · not a GPU' : g.passedThrough ? (g.encodes ? ` · encodes ${Object.entries(g.encodes).filter(([, x]) => x).map(([k]) => k.toUpperCase()).join(', ') || 'nothing'}` : '') : (win ? ' · not usable for encoding' : ' · not passed into the container')}`)];
+  const gpus = [...(s.gpu?.nvidia || []).map((g) => `${g.name} (driver ${g.driver})`), ...(s.gpu?.gpus || []).filter((g) => g.vendor !== 'nvidia').map((g) => `${g.name || g.vendorName} · ${g.node}${g.virtual ? ' · not a GPU' : g.passedThrough ? (g.encodes ? ` · encodes ${Object.entries(g.encodes).filter(([, x]) => x).map(([k]) => k.toUpperCase()).join(', ') || 'nothing'}` : '') : (native ? ' · not usable for encoding' : ' · not passed into the container')}`)];
   box.innerHTML = `<section class="panel hud">${panelHead(`${ico('info')}System`)}<dl class="kv">
     <dt>Version</dt><dd class="mono">${h(st.host?.version || s.version?.sha || 'dev')}</dd>
     <dt>Converter</dt><dd>${s.converter?.ready ? `ready · replace originals ${h(caps.replacement)} · cleanup ${h(caps.ownershipCleanup)} · publication ${h(caps.separatePublication)}` : `not ready (${h(s.converter?.error || 'starting')})`}</dd>
@@ -328,7 +331,7 @@ async function sys(box) {
     <dt>${vol} free</dt><dd class="num">${size(s.dataFree)}</dd>
     <dt>${vol}</dt><dd class="mono small">${h(dataVol || '—')}</dd><dt>Converted copies</dt><dd class="mono small">${h(dataVol ? `${dataVol}${sep}converted` : '—')}</dd>
     <dt>Server time zone</dt><dd>${h(s.timezone)}</dd>
-    <dt>HTTPS</dt><dd>${s.security?.https ? 'on' : 'off'} · TLS mode ${h(s.security?.tlsMode)}${win ? '' : ` · ${s.security?.supervised ? 'supervised' : 'not supervised'}`}${ok(s.security?.uid) ? ` · uid ${s.security.uid}` : ''}</dd>
+    <dt>HTTPS</dt><dd>${s.security?.https ? 'on' : 'off'} · TLS mode ${h(s.security?.tlsMode)}${native ? '' : ` · ${s.security?.supervised ? 'supervised' : 'not supervised'}`}${ok(s.security?.uid) ? ` · uid ${s.security.uid}` : ''}</dd>
   </dl></section>`;
 }
 

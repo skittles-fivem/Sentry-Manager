@@ -13,12 +13,18 @@
 // On Windows an SMB vehicle has no folder under the footage root: its
 // footage is read straight from \\host\share\folder, which the Windows
 // mounter's target() gives (platform/smbWin32.js).
+//
+// On a Mac an SMB vehicle is mounted at <footage root>/<id> as in Docker
+// (platform/smbDarwin.js). Folder vehicles may be under the footage root,
+// /Volumes (attached drives) or /Users/Shared (the platform's folderRoots),
+// never in macOS's own folders (its systemDirs). Overlap checks there
+// ignore letter case, since APFS usually does.
 
 const { EventEmitter } = require('events');
 const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
-const { ShareManager, withTimeout } = require('./share');
+const { ShareManager, withTimeout, platformOf } = require('./share');
 const { normalizeSmb, parseShare } = require('./mountSpec');
 const { isInside } = require('./safePath');
 const { shouldSkipDir } = require('./footage');
@@ -100,11 +106,13 @@ function platformValidName() {
 // index.js passes the platform's (C:\Windows, Program Files, ...) in
 // protectedDirs, and these names would only resolve to C:\proc and so on.
 const SYSTEM_DIRS = ['/proc', '/sys', '/dev', '/etc', '/root', '/run', '/boot'];
-const systemDirs = (platform) => (platform === 'win32' ? [] : SYSTEM_DIRS);
+// (macOS: the platform's own list, /System, /usr, /private, ...)
+const systemDirs = (platform, mac = null) => (mac ? mac.systemDirs() : platform === 'win32' ? [] : SYSTEM_DIRS);
 
 // Windows: the native realpath (true case, long names, a mapped drive as its
-// UNC path), so one folder always has one spelling; Linux as before.
-const realpathFor = (platform) => (platform === 'win32' ? fs.realpathSync.native : fs.realpathSync);
+// UNC path), so one folder always has one spelling; macOS: the platform's
+// (libc realpath, the on-disk spelling); Linux as before.
+const realpathFor = (platform, mac = null) => (mac ? (p) => mac.realpathSync(p) : platform === 'win32' ? fs.realpathSync.native : fs.realpathSync);
 
 const ID_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
 
@@ -130,6 +138,8 @@ const badRequest = (message) => Object.assign(new Error(message), { status: 400 
  * changed, so a saved vehicle keeps working.
  */
 function normalizeVehicle(input, existing = null, { platform = process.platform, validName = null } = {}) {
+  const { name: platformName, impl: mac } = platformOf(platform);
+  platform = platformName;
   const name = String(input.name ?? existing?.name ?? '').trim().slice(0, 60);
   if (!name) throw badRequest('Give the vehicle a name.');
   const timezone = String(input.timezone ?? existing?.timezone ?? process.env.TZ ?? 'UTC').trim() || 'UTC';
@@ -138,7 +148,9 @@ function normalizeVehicle(input, existing = null, { platform = process.platform,
   let source;
   if (src.type === 'path') {
     const p = String(src.path || '').trim();
-    if (!path.isAbsolute(p) || p.includes('\0')) throw badRequest('The folder must be an absolute path inside the container, e.g. /footage/car.');
+    if (!path.isAbsolute(p) || p.includes('\0')) {
+      throw badRequest(mac ? 'The folder must be a full path, e.g. /Volumes/TESLADRIVE/TeslaCam.' : 'The folder must be an absolute path inside the container, e.g. /footage/car.');
+    }
     source = { type: 'path', path: path.resolve(p) };
   } else {
     // the UI sends no password to keep the stored one
@@ -171,16 +183,21 @@ class VehicleManager extends EventEmitter {
    */
   constructor({ db, footageRoot = '/footage', folderRoots = null, protectedDirs = [], logger, mounter = null, mountinfoPath, probe, platform = process.platform, validName = null }) {
     super();
+    const { name, impl: mac } = platformOf(platform);
     this.db = db;
     this.footageRoot = path.resolve(footageRoot);
     this.folderRoots = (folderRoots || [this.footageRoot]).map((r) => path.resolve(r));
-    this.protectedDirs = [...protectedDirs, ...systemDirs(platform)].filter(Boolean).map((d) => path.resolve(d));
+    // macOS: also the platform's (/Volumes, /Users/Shared), once each
+    if (mac) for (const r of mac.folderRoots(this.footageRoot)) if (!this.folderRoots.some((x) => mac.samePath(x, path.resolve(r)))) this.folderRoots.push(path.resolve(r));
+    this.protectedDirs = [...protectedDirs, ...systemDirs(name, mac)].filter(Boolean).map((d) => path.resolve(d));
     this.logger = logger;
     this.log = logger.scope('vehicles');
     this.mounter = mounter;
-    this.shareOptions = { mountinfoPath, probe, platform };
+    this.shareOptions = { mountinfoPath, probe, platform: mac || name };
     this.shares = new Map();
-    this.platform = platform;
+    this.platform = name;
+    // the darwin platform (macOS rules and texts), else null
+    this.mac = mac;
     this.validNameFn = validName;
   }
 
@@ -198,20 +215,28 @@ class VehicleManager extends EventEmitter {
     const abs = path.resolve(p);
     const real = (() => {
       try {
-        return realpathFor(this.platform)(abs);
+        return realpathFor(this.platform, this.mac)(abs);
       } catch {
         return abs; // checked again (really) every time it is used, see roots()
       }
     })();
-    const inRoot = this.folderRoots.some((r) => isInside(abs, r) && isInside(real, realOr(r, this.platform)));
+    // (macOS: the platform's rules, NFC; allowing never ignores case)
+    const inside = this.mac ? (x, root) => this.mac.isInside(root, x) : isInside;
+    const inRoot = this.folderRoots.some((r) => inside(abs, r) && inside(real, realOr(r, this.platform, this.mac)));
     if (!inRoot) {
-      throw badRequest(this.platform === 'win32'
+      throw badRequest(this.platform === 'win32' || this.mac
         ? `Folder vehicles must be inside ${this.folderRoots.join(' or ')} (FOLDER_ROOTS in manager.env adds more).`
         : `Folder vehicles must be inside ${this.folderRoots.join(' or ')} (mount the folder there with a Docker volume).`);
     }
+    // macOS: /Volumes itself holds every drive, the Mac's own disk too
+    if (this.mac && [abs, real].some((x) => this.mac.samePath(x, '/Volumes', { deny: true }))) {
+      throw badRequest('Choose a drive or a folder inside /Volumes, not /Volumes itself.');
+    }
+    // (macOS: refusing ignores case, so /library/... cannot slip past /Library)
+    const denied = this.mac ? (x, d) => this.mac.isInside(d, x, { deny: true }) : isInside;
     for (const d of this.protectedDirs) {
       for (const x of [abs, real]) {
-        if (isInside(x, d) || isInside(d, x)) throw badRequest(`A vehicle cannot use ${p}: it overlaps ${d}.`);
+        if (denied(x, d) || denied(d, x)) throw badRequest(`A vehicle cannot use ${p}: it overlaps ${d}.`);
       }
     }
     this.checkOverlap(abs, ignoreId);
@@ -227,6 +252,8 @@ class VehicleManager extends EventEmitter {
   }
 
   overlaps(a, b) {
+    // macOS: NFC and case-insensitive (APFS usually is; refusing more is safe)
+    if (this.mac) return this.mac.isInside(b, a, { deny: true }) || this.mac.isInside(a, b, { deny: true });
     if (this.platform !== 'win32') return isInside(a, b) || isInside(b, a);
     // Windows: case-insensitive, \\host\share and drive paths alike
     const inside = (x, root) => {
@@ -244,7 +271,7 @@ class VehicleManager extends EventEmitter {
     return this.list().find((v) => v.id === id) || null;
   }
 
-  /** Where this vehicle's footage is inside the container. */
+  /** Where this vehicle's footage is inside the container (or on the Mac). */
   rootOf(vehicle) {
     if (vehicle.source.type === 'path') return vehicle.source.path;
     if (this.uncShares) {
@@ -279,7 +306,7 @@ class VehicleManager extends EventEmitter {
   }
 
   add(input) {
-    const vehicle = normalizeVehicle(input, null, { platform: this.platform, validName: this.validNameFn });
+    const vehicle = normalizeVehicle(input, null, { platform: this.mac || this.platform, validName: this.validNameFn });
     if (vehicle.source.type === 'path') this.checkFolder(vehicle.source.path);
     // on Windows a share's place does not depend on the id: check it once
     else if (this.uncShares) this.checkOverlap(this.mounter.target('x-new', vehicle.source), null);
@@ -315,7 +342,7 @@ class VehicleManager extends EventEmitter {
   async update(id, input) {
     const existing = this.get(id);
     if (!existing) throw Object.assign(new Error('No such vehicle.'), { status: 404 });
-    const next = { ...existing, ...normalizeVehicle(input, existing, { platform: this.platform, validName: this.validNameFn }) };
+    const next = { ...existing, ...normalizeVehicle(input, existing, { platform: this.mac || this.platform, validName: this.validNameFn }) };
     if (next.source.type === 'path') this.checkFolder(next.source.path, id);
     else this.checkOverlap(this.uncShares ? this.mounter.target(id, next.source) : path.join(this.footageRoot, id), id);
     this.db.set('vehicles', this.list().map((v) => (v.id === id ? next : v)));
@@ -348,8 +375,8 @@ class VehicleManager extends EventEmitter {
     });
     share.on('status', () => this.emit('status', vehicle.id));
     share.on('health', (healthy) => {
-      // (Windows: find Studio's folder now, off the request path; see studioRoot)
-      if (healthy && this.platform === 'win32') this.studioRootAsync(vehicle).catch(() => {});
+      // (Windows, macOS: find Studio's folder now, off the request path; see studioRoot)
+      if (healthy && (this.platform === 'win32' || this.mac)) this.studioRootAsync(vehicle).catch(() => {});
       this.emit('health', vehicle.id, healthy);
     });
     this.shares.set(vehicle.id, share);
@@ -388,7 +415,7 @@ class VehicleManager extends EventEmitter {
     this.studioRoots = this.studioRoots || new Map();
     const cached = this.studioRoots.get(vehicle.id);
     if (cached && cached.root === root && Date.now() - cached.at < 60000) return cached.value;
-    if (this.platform === 'win32') {
+    if (this.platform === 'win32' || this.mac) {
       // never a blocking directory walk here: a share that stopped answering
       // would hold up every request for as long as Windows waits (a minute
       // or more). Answer with what is known and look again in the background.
@@ -455,9 +482,9 @@ class VehicleManager extends EventEmitter {
   }
 }
 
-function realOr(p, platform) {
+function realOr(p, platform, mac = null) {
   try {
-    return realpathFor(platform)(p);
+    return realpathFor(platform, mac)(p);
   } catch {
     return p;
   }

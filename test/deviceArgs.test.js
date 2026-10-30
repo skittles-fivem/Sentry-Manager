@@ -39,7 +39,9 @@ test('without a device every encoder gets exactly today\'s arguments', () => {
   // VA-API's zero-copy tier (docs/plans/windows.md, section 8; zeroCopy.test.js)
   assert.deepEqual(decodeAccelArgs('hevc_vaapi', { platform: 'linux', zeroCopy: true }),
     ['-hwaccel', 'vaapi', '-hwaccel_device', '/dev/dri/renderD128', '-hwaccel_output_format', 'vaapi']);
-  assert.equal(decodeAccelArgs('hevc_videotoolbox', { platform: 'darwin', zeroCopy: true }), null);
+  // VideoToolbox's zero-copy tier on a Mac (videotoolboxArgs.test.js)
+  assert.deepEqual(decodeAccelArgs('hevc_videotoolbox', { platform: 'darwin', zeroCopy: true }),
+    ['-hwaccel', 'videotoolbox', '-hwaccel_output_format', 'videotoolbox_vld']);
   assert.equal(decodeAccelArgs('libx265', { platform: 'linux' }), null);
 });
 

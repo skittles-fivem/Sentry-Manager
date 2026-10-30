@@ -8,8 +8,9 @@
 // Everything comes from this machine's /proc and /sys (plus nvidia-smi on an
 // NVIDIA host); nothing leaves the server. The native Windows build reads
 // the same numbers from Windows's performance counters through
-// SentryHelper.exe instead (platform/win32.js): the providers are picked by
-// platform, and the body has the same shape on both.
+// SentryHelper.exe instead (platform/win32.js), and a Mac from stock
+// commands run in the background (platform/darwin.js): the providers are
+// picked by platform, and the body has the same shape on all three.
 //
 // What exists is probed once (and again every 10 minutes while sampling);
 // a sample is then a few dozen small reads. Reads that ask a device (disk
@@ -72,9 +73,13 @@ function createStats(options = {}) {
   const priceAt = opt('priceAt', () => null);
   // where a conversion job stands ({ clips, savedB }), asked at each sample while its energy is counted
   const jobProgress = opt('jobProgress', () => null);
-  // 'linux' (the Docker image) or 'win32' (the native Windows build, which
-  // also takes `helper`, the SentryHelper.exe client); tests pass either
-  const platform = opt('platform', process.platform) === 'win32' ? 'win32' : 'linux';
+  // 'linux' (the Docker image), 'win32' (the native Windows build, which
+  // also takes `helper`, the SentryHelper.exe client) or 'darwin' (a Mac,
+  // which also takes `run` and `osApi` in tests); a name or the platform
+  // module (server/platform); tests pass any
+  const asked = opt('platform', process.platform);
+  const askedName = typeof asked === 'object' ? asked.name : asked;
+  const platform = askedName === 'win32' || askedName === 'darwin' ? askedName : 'linux';
 
   const reads = new BackgroundReads({ now, readFile: typeof fsp.readFile === 'function' ? fsp.readFile.bind(fsp) : fs.promises.readFile });
   const providers = require(`./platform/${platform}`).createProviders({ procRoot, sysRoot, devRoot, now, reads, spawn, timers, intervalMs, log, appPid, options });
@@ -181,7 +186,10 @@ function createStats(options = {}) {
     guard('gpus', () => gpu.probe());
     guard('power', () => power.probe());
     guard('host', () => host.probe());
-    if (probedAt !== null) reads.prune(probedAt);
+    if (probedAt !== null) {
+      reads.prune(probedAt);
+      providers.prune?.(probedAt);
+    }
     probedAt = t;
   }
 
@@ -200,7 +208,9 @@ function createStats(options = {}) {
   }
 
   function topProcesses(encoders) {
-    const shown = procs.list.filter((p) => p.state !== 'Z' && p.pid !== 2 && p.ppid !== 2 && (p.rssPages > 0 || procs.app.has(p.pid)));
+    // (pid 2 is Linux's kthreadd, the parent of the kernel's threads)
+    const kernel = (p) => platform !== 'darwin' && (p.pid === 2 || p.ppid === 2);
+    const shown = procs.list.filter((p) => p.state !== 'Z' && !kernel(p) && (p.rssPages > 0 || procs.app.has(p.pid)));
     shown.sort((a, b) => (b.cpu || 0) - (a.cpu || 0) || b.memB - a.memB);
     return shown.slice(0, TOP_PROCESSES).map((p) => {
       const enc = encoders.get(p.pid);
@@ -222,7 +232,7 @@ function createStats(options = {}) {
 
   function unlockHints(t, cpuW) {
     const out = [];
-    // (they are compose lines: nothing to add on Windows)
+    // (they are compose lines: nothing to add on Windows or a Mac)
     if (!providers.unlockable) return out;
     // give the supervisor a few seconds to send its first RAPL reading; a
     // virtual machine has no counters to bind, so no hint there
@@ -290,12 +300,14 @@ function createStats(options = {}) {
         model: c?.model ?? cpu.info.model ?? null, cores: c?.cores ?? null, threads: c?.threads ?? null,
         usage: c?.usage ?? null, perCore: c?.perCore ?? [], freqMHz: c?.freqMHz ?? null, tempC: cpuTemp,
         load: c?.load ?? null, app: appUsage(), throttling: Boolean(c?.throttling),
-        sockets: c?.sockets ?? cpu.info.sockets ?? 1, perSocket: perSocket(c?.perSocket)
+        sockets: c?.sockets ?? cpu.info.sockets ?? 1, perSocket: perSocket(c?.perSocket),
+        // (a Mac: its performance and efficiency cores)
+        ...(c?.coreKinds ? { coreKinds: c.coreKinds } : {})
       },
       memory,
       gpus: gpus.map(({ powerSource, ...g }) => g),
-      // (why the CPU's watts are missing: 'windows', 'vm' or null)
-      power: { ...pw, cpuUnavailable: cpuUnavailable({ cpuW: pw.cpuW, wsl: host.static?.wsl === true, virtual: cpu.info.virtual === true, windows: platform === 'win32' && power.meter === false }), todayWh: es.todayWh, weekWh: es.weekWh, todayCost: es.todayCost, weekCost: es.weekCost, priceNow },
+      // (why the CPU's watts are missing: 'windows', 'vm', 'macos' or null)
+      power: { ...pw, cpuUnavailable: cpuUnavailable({ cpuW: pw.cpuW, wsl: host.static?.wsl === true, virtual: cpu.info.virtual === true, windows: platform === 'win32' && power.meter === false, macos: platform === 'darwin' }), todayWh: es.todayWh, weekWh: es.weekWh, todayCost: es.todayCost, weekCost: es.weekCost, priceNow },
       disks: diskList,
       filesystems: fsList,
       network: { ...net, today: used.today, week: used.week, month: used.month },

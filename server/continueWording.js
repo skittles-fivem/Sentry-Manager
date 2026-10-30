@@ -5,20 +5,24 @@
 // before anyone can reach the API, so it cannot ask /api/info; the server
 // fills in the words for where it runs. On Docker the page stays exactly as
 // it is in web/continue.html; on Windows the fingerprint is in the install
-// window and in service.log, not in docker logs.
+// window and in service.log, not in docker logs; on a Mac it is at the end
+// of the installer's output and in manager.log (sentry-six-manager logs).
 
 const DOCKER_LOG = 'the container log (<code>docker logs sentry-six-manager</code>)';
 const WINDOWS_LOG = 'the install window or <code>%ProgramData%\\SentrySixManager\\data\\logs\\service.log</code>';
+const MAC_LOG = 'the installer\'s output in Terminal (or <code>sudo sentry-six-manager logs</code>)';
 
 /** The continue page's template (web/continue.html) with the log line for this deployment. */
 function continueTemplate(html, deployment) {
+  if (deployment === 'macos') return html.replace(DOCKER_LOG, MAC_LOG);
   if (deployment !== 'windows') return html;
   return html.replace(DOCKER_LOG, WINDOWS_LOG);
 }
 
 /** What the page shows in place of the fingerprint when the server has none to show (plain text). */
 function fingerprintFallback(deployment) {
+  if (deployment === 'macos') return 'shown at the end of the installer\'s output in Terminal';
   return deployment === 'windows' ? 'shown in the install window and service.log' : 'shown in the container log';
 }
 
-module.exports = { continueTemplate, fingerprintFallback, DOCKER_LOG, WINDOWS_LOG };
+module.exports = { continueTemplate, fingerprintFallback, DOCKER_LOG, WINDOWS_LOG, MAC_LOG };

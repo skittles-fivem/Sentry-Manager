@@ -169,8 +169,8 @@ export default {
     // what a poll redraws (a highlight in the vehicles, attention or the log holds none of it)
     const STATS = () => [el.querySelector('.cluster'), $('#d-host')?.closest('section'), $('#d-enc'), $('#d-fs'), $('#d-gpu'), $('#d-procs')];
     // why a server's CPU watts are missing (/api/stats power.cpuUnavailable)
-    const CPU_NA = { windows: 'CPU watts aren\'t available on Docker Desktop for Windows (Windows doesn\'t share them with Docker). NVIDIA GPU watts show when the card reports them.', vm: 'CPU watts aren\'t available inside a virtual machine.' };
-    const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)' };
+    const CPU_NA = { windows: 'CPU watts aren\'t available on Docker Desktop for Windows (Windows doesn\'t share them with Docker). NVIDIA GPU watts show when the card reports them.', vm: 'CPU watts aren\'t available inside a virtual machine.', macos: 'CPU and GPU watts are not available on a Mac.' };
+    const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)', macos: 'CPU n/a (Mac)' };
     // Nodes' power with this server's (/api/stats power.combined and
     // power.nodes): '' with no nodes
     function allServers(p, tot, cur) {

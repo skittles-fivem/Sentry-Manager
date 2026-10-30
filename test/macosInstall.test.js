@@ -106,6 +106,8 @@ function run(sb, script, args = [], env = {}) {
       FAKE_DIR: sb.fake,
       SENTRY_ROOT: sb.root,
       SENTRY_WAIT_SECONDS: '2',
+      // no service answer by default: the Terminal-side test runs at once
+      SENTRY_VT_WAIT_SECONDS: '0',
       FAKE_URLS: JSON.stringify(sb.urls),
       ...sb.env,
       ...env,
@@ -168,6 +170,23 @@ test('an Intel Mac is refused before anything is changed', { skip: runsBash || (
     assert.equal(indexOf(calls(sb), /^(dscl|launchctl|shasum|codesign|curl) /), -1, 'nothing ran after the check');
     assert.deepEqual(fs.readdirSync(sb.root), []);
   }
+});
+
+test('an installer running under Rosetta is refused before anything is changed', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
+  const sb = sandbox();
+  const r = install(sb, makePackage(sb), { FAKE_ROSETTA: '1' });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /running under Rosetta/);
+  assert.match(r.stderr, /arch -arm64/);
+  assert.equal(indexOf(calls(sb), /^(dscl|launchctl|shasum|codesign|curl) /), -1, 'nothing ran after the check');
+  assert.deepEqual(fs.readdirSync(sb.root), []);
+});
+
+test('an Intel Mac with an old macOS gets the Intel message', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
+  const sb = sandbox();
+  const r = install(sb, makePackage(sb), { FAKE_ARM64: 'missing', FAKE_MACOS: '12.7.6' });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /Intel processor/);
 });
 
 test('macOS older than 13.5 is refused, 13.5 is not', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
@@ -320,6 +339,17 @@ test('a failing self-test is reported, not fatal', { skip: runsBash || (!hasTar 
   assert.match(r.stdout, /VideoToolbox HEVC did not work for the service/);
 });
 
+test('the VideoToolbox answer comes from the running service when it gives one', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
+  for (const [answer, says] of [['failed', /VideoToolbox HEVC did not work for the service/], ['ok', /GPU: VideoToolbox HEVC works for the service\./]]) {
+    const sb = sandbox();
+    // the Terminal-side test would pass: only the service's answer counts
+    const r = install(sb, makePackage(sb), { FAKE_VT_DAEMON: answer, SENTRY_VT_WAIT_SECONDS: '5' });
+    assert.equal(r.status, 0, r.out);
+    assert.match(r.stdout, says);
+    assert.equal(calls(sb).some((x) => x.cmd === 'sudo'), false, 'no test from the Terminal session');
+  }
+});
+
 test('installing again keeps the account, the settings and the data, and keeps the old version', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   assert.equal(install(sb, makePackage(sb, { version: '1.0.0' })).status, 0);
@@ -425,7 +455,7 @@ test('without --from it takes the newest macos-v release from GitHub', { skip: r
     { tag_name: 'macos-v2.0.0-bbbbbbb', prerelease: false, assets: [{ browser_download_url: `${base}/macos-v2.0.0-bbbbbbb/SentrySixManager-2.0.0-bbbbbbb-macos-arm64.tar.gz` }] },
   ], null, 2));
   sb.urls = {
-    'https://api.github.com/repos/skittles-fivem/Sentry-Manager/releases?per_page=30': releases,
+    'https://api.github.com/repos/skittles-fivem/Sentry-Manager/releases?per_page=100&page=1': releases,
     [newest]: pkg.tarball,
     [`${base}/macos-v3.0.0-aaaaaaa/SHA256SUMS`]: pkg.sums,
   };
@@ -452,6 +482,31 @@ test('without --from it takes the newest macos-v release from GitHub', { skip: r
   const missing = run(sb, path.join(MACOS, 'install.sh'), ['--release', 'macos-v9.9.9-ccccccc']);
   assert.notEqual(missing.status, 0);
   assert.match(missing.stderr, /found no macOS release in skittles-fivem\/Sentry-Manager called macos-v9\.9\.9-ccccccc/);
+});
+
+test('a macOS release behind a full page of Windows releases is still found', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
+  const sb = sandbox();
+  const pkg = makePackage(sb, { version: '3.0.0' });
+  const base = 'https://github.com/skittles-fivem/Sentry-Manager/releases/download';
+  const mac = `${base}/macos-v3.0.0-aaaaaaa/${pkg.tarName}`;
+  const page1 = path.join(sb.base, 'page1.json');
+  const page2 = path.join(sb.base, 'page2.json');
+  fs.writeFileSync(page1, JSON.stringify(Array.from({ length: 100 }, (_, i) => (
+    { tag_name: `v3.${i}.0`, prerelease: false, assets: [{ browser_download_url: `${base}/v3.${i}.0/SentrySixManager-3.${i}.0-aaaaaaa-win-x64.zip` }] }))));
+  fs.writeFileSync(page2, JSON.stringify([
+    { tag_name: 'macos-v3.0.0-aaaaaaa', prerelease: false, assets: [{ browser_download_url: `${base}/macos-v3.0.0-aaaaaaa/SHA256SUMS` }, { browser_download_url: mac }] }]));
+  const api = 'https://api.github.com/repos/skittles-fivem/Sentry-Manager/releases?per_page=100&page=';
+  sb.urls = { [`${api}1`]: page1, [`${api}2`]: page2, [mac]: pkg.tarball, [`${base}/macos-v3.0.0-aaaaaaa/SHA256SUMS`]: pkg.sums };
+  const r = run(sb, path.join(MACOS, 'install.sh'));
+  assert.equal(r.status, 0, r.out);
+  assert.equal(version(sb), '3.0.0');
+  // a page that is not full is the last one asked for
+  fs.writeFileSync(page1, '[]');
+  clearCalls(sb);
+  const none = run(sb, path.join(MACOS, 'install.sh'));
+  assert.notEqual(none.status, 0);
+  assert.match(none.stderr, /found no macOS release in skittles-fivem\/Sentry-Manager/);
+  assert.equal(indexOf(calls(sb), /page=2/), -1);
 });
 
 test('a package with paths outside its folder is refused', { skip: runsBash || (!hasTar && 'needs tar') }, () => {

@@ -9,11 +9,14 @@
 // list the share (and write a file) as the typed account under
 // impersonation (smb.test), so a wrong password is refused even while this
 // PC already has a session to that NAS. The answer has the same shape.
+//
+// On a Mac the share is mounted as in Docker (mount_smbfs, see
+// platform/smbDarwin.js), with the errors and hints in a Mac's words.
 
 const fsp = require('fs/promises');
 const path = require('path');
 const { normalizeSmb } = require('./mountSpec');
-const { explainMountError, explainSmbError, checkWritable, writeHint, WRITE_STEPS } = require('./share');
+const { explainMountError, explainSmbError, checkWritable, writeHint, WRITE_STEPS, platformOf } = require('./share');
 const { findClipRootAsync, CLIP_FOLDER } = require('./vehicles');
 const { shouldSkipDir } = require('./footage');
 const { tail } = require('./proc');
@@ -28,7 +31,9 @@ const PER_MINUTE = 6;
 // separate sign-in on the NAS)
 const WIN_MAX_LISTS = 12;
 
-function createSmbTester({ mounter, vehicles, log = console, now = Date.now, platform = process.platform }) {
+function createSmbTester({ mounter, vehicles, log = console, now = Date.now, platform: platformIn = process.platform }) {
+  // the darwin platform (macOS texts), else null
+  const { name: platform, impl: mac } = platformOf(platformIn);
   let running = false;
   let recent = [];
 
@@ -68,11 +73,12 @@ function createSmbTester({ mounter, vehicles, log = console, now = Date.now, pla
       }
       if (res.code !== 0) {
         const output = String(res.output || '');
-        const error = res.notFound ? 'The mount command is missing from the image (cifs-utils).'
-          : res.timedOut ? 'The NAS did not answer (is port 445 reachable from the Docker host?).'
+        const error = res.notFound ? (mac ? 'mount_smbfs was not found on this Mac.' : 'The mount command is missing from the image (cifs-utils).')
+          : res.timedOut ? (mac ? 'The NAS did not answer (is it switched on, and reachable from this Mac?).' : 'The NAS did not answer (is port 445 reachable from the Docker host?).')
             : tail(output, 2) || `mount exited with ${res.code}`;
         log.info?.(`SMB test of ${smb.share} as ${smb.username || '(guest)'}: failed (${error})`);
-        return { ok: false, stage: 'connect', error, hint: explainMountError(output), ms: now() - started };
+        const hint = !mac ? explainMountError(output) : res.hint !== undefined ? res.hint : mac.smbText.explain(output, res.code);
+        return { ok: false, stage: 'connect', error, hint, ms: now() - started };
       }
       const root = mounter.target(TEST_ID);
       let entries = 0;
@@ -84,7 +90,7 @@ function createSmbTester({ mounter, vehicles, log = console, now = Date.now, pla
       const clips = await findClipRootAsync(root);
       // every step a save needs (Recycle Bin, Protect, replacing originals),
       // on files of its own that are removed again
-      const write = await checkWritable(root);
+      const write = await checkWritable(root, mac ? { platform: 'darwin' } : undefined);
       const writable = write.ok;
       log.info?.(`SMB test of ${smb.share} as ${smb.username || '(guest)'}: connected${clips ? ', footage found' : ''}${writable ? '' : ', read-only'}`);
       return {

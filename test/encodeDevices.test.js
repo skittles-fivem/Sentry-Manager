@@ -190,8 +190,9 @@ test('other systems and a container without GPUs have only the CPU', async () =>
   const m = machine();
   try {
     let asked = false;
-    // (Windows lists its GPUs through the helper: encodeDevicesWin32.test.js)
-    for (const platform of ['darwin', 'freebsd']) {
+    // (Windows lists its GPUs through the helper: encodeDevicesWin32.test.js;
+    // a Mac its VideoToolbox device: videotoolboxArgs.test.js)
+    for (const platform of ['freebsd']) {
       const list = await createDeviceDiscovery({ platform, runCommand: async () => { asked = true; return { status: 0, stdout: '' }; } }).list();
       assert.deepEqual(list.map((d) => d.id), ['cpu']);
     }

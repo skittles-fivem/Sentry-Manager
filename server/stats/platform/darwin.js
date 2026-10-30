@@ -18,6 +18,7 @@ const os = require('os');
 const { round, clampPct } = require('../util');
 const { PowerProvider } = require('../power');
 const { HostInfo } = require('../host');
+const { mountFor } = require('../filesystems');
 const { BackgroundRuns } = require('./darwinRuns');
 const { readPlist } = require('./plist');
 const P = require('./darwinParse');
@@ -512,6 +513,8 @@ class DarwinNetwork {
     this.counters = null;
     const f = this.src.fast(Infinity);
     if (f.cur?.net?.size) this.remember(f.cur.net, f.at);
+    // no answer yet (or no boot session): index.js asks again next minute
+    return this.counters ? undefined : 'pending';
   }
 }
 
@@ -699,7 +702,50 @@ function createDarwinProviders({ now, run, osApi = os, appPid = process.pid, ver
   };
 }
 
+/**
+ * FilesystemsProvider's locate(path, network) for a Mac: the mount a share
+ * lives on, from the last /sbin/mount answer. ready() is false until that
+ * first answer (a Mac always has "/"), so a share is not shown as not
+ * connected while the list is still on its way.
+ */
+function locator(mounts) {
+  const locate = (p, network) => {
+    const m = mountFor(mounts.readMounts(), String(p || ''));
+    const smb = Boolean(m && mounts.isSmb(m.fsType));
+    return {
+      fsType: m?.fsType || null, source: m?.source || null, disk: m && !smb ? mounts.diskOf(m) : null,
+      smbVersion: smb ? mounts.smbVersion(m) : null, mounted: network ? smb : null
+    };
+  };
+  locate.ready = () => mounts.readMounts().length > 0;
+  return locate;
+}
+
+/**
+ * The macOS providers for createStats (the same members as linux.js).
+ * `ctx.options.run` stands in for execFile and `ctx.options.osApi` for
+ * node:os in tests.
+ */
+function createProviders(ctx) {
+  const { now, intervalMs, appPid, options = {} } = ctx;
+  const p = createDarwinProviders({ now, run: options.run, osApi: options.osApi || os, appPid, version: options.version, intervalMs });
+  return {
+    name: 'darwin',
+    procs: p.procs, cpu: p.cpu, memory: p.memory, sensors: p.sensors, disks: p.disks, network: p.network, gpu: p.gpu, power: p.power, host: p.host,
+    runs: p.runs,
+    // the compose lines of index.js UNLOCK mean nothing here
+    unlockable: false,
+    locate: locator(p.mounts),
+    start() {},
+    stop() {},
+    // forget the commands of a disk or link that went away (index.js, at each probe)
+    prune: (before) => p.runs.prune(before),
+    idle: () => p.runs.idle()
+  };
+}
+
 module.exports = {
+  createProviders, locator,
   createDarwinProviders, cpuUnavailable, DarwinCpu, DarwinProcs, DarwinMemory, DarwinDisks, DarwinNetwork,
   DarwinGpu, DarwinSensors, DarwinPower, DarwinHost, DarwinMounts, Sources,
   FAST, IOREG, SYSCTL, SYSCTL_KEYS, THERMAL, SW_VERS, DISKS, BATTERY, MOUNT, MARK, GPU_NODE, SKIP, TUNNEL

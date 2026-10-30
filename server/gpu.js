@@ -101,8 +101,17 @@ async function detectGpusWin32({ requestHelper, runImpl }) {
   return { gpus, nvidia, hints };
 }
 
-async function detectGpus({ driDir = '/dev/dri', sysDrm = '/sys/class/drm', dxg = '/dev/dxg', runImpl = run, procVersion = '/proc/version', arch = process.arch, platform = process.platform, requestHelper = null } = {}) {
+// A Mac: the Apple GPU and its VideoToolbox test encode (platform/darwinGpu.js),
+// one detector for the process so the test encode runs once.
+let darwinGpus = null;
+
+async function detectGpus({ driDir = '/dev/dri', sysDrm = '/sys/class/drm', dxg = '/dev/dxg', runImpl = run, procVersion = '/proc/version', arch = process.arch, platform = process.platform, requestHelper = null, darwin = null } = {}) {
   if (platform === 'win32') return detectGpusWin32({ requestHelper, runImpl });
+  if (platform === 'darwin') {
+    if (darwin) return darwin.detect();
+    darwinGpus = darwinGpus || require('./platform/darwinGpu').createDarwinGpus({ runImpl });
+    return darwinGpus.detect();
+  }
   const wsl = fs.existsSync(dxg);
   const gpus = [];
   let passed = [];

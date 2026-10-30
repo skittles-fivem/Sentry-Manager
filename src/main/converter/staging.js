@@ -84,7 +84,9 @@ function validateAbsolutePath(value, pathApi) {
 
 function normalizeComparison(value, pathApi, platform) {
   const normalized = pathApi.normalize(pathApi.resolve(value));
-  return platform === 'win32' || pathApi === nodePath.win32 ? normalized.toLowerCase() : normalized;
+  if (platform === 'win32' || pathApi === nodePath.win32) return normalized.toLowerCase();
+  // macOS: NFC only, never case (paths are compared after realpath, in on-disk case)
+  return platform === 'darwin' ? normalized.normalize('NFC') : normalized;
 }
 
 function samePath(left, right, pathApi, platform) {
@@ -1515,6 +1517,7 @@ function createFileTransaction(options = {}) {
       throw transactionError('UNSAFE_OWNED_PATH');
     }
     if (await lstatOrNull(destination)) throw transactionError('DESTINATION_COLLISION');
+    await assertPublicationVolume(destination);
 
     const nonce = newNonce();
     const ownedPaths = publicationPaths(destination, jobId, itemId, nonce);
@@ -1637,6 +1640,7 @@ function createFileTransaction(options = {}) {
     const itemId = validateId(operation.itemId);
     const destination = validateAbsolutePath(operation.destination, pathApi);
     const artifact = normalizeArtifact(operation.publicationArtifact);
+    await assertPublicationVolume(destination);
     const partialNonce = newNonce();
     const ownedPaths = { ...publicationPaths(destination, jobId, itemId, partialNonce), publicationSnapshot: artifact.path };
     const ownedArtifacts = {};
@@ -1938,6 +1942,27 @@ function createFileTransaction(options = {}) {
     throw Object.assign(transactionError('ATOMIC_PROMOTION_UNSUPPORTED'), { reason: result.reason });
   }
 
+  // An adapter that cannot publish onto some drives (macOS: an SMB share has
+  // no rename that never replaces) says so for the destination folder, before
+  // anything is written or consumed. Adapters without the check: unchanged.
+  async function checkPublicationVolume(destination) {
+    const check = options.renameExclusive?.publicationSupport;
+    if (typeof check !== 'function') return { available: true };
+    try {
+      const result = await check(pathApi.dirname(validateAbsolutePath(destination, pathApi)));
+      if (result?.available === true) return { available: true };
+      return { available: false, reason: String(result?.reason || 'unavailable') };
+    } catch (_error) {
+      return { available: false, reason: 'the check failed' };
+    }
+  }
+
+  async function assertPublicationVolume(destination) {
+    if (typeof options.renameExclusive?.publicationSupport !== 'function') return;
+    const result = await checkPublicationVolume(destination);
+    if (!result.available) throw Object.assign(transactionError('ATOMIC_PROMOTION_UNSUPPORTED'), { reason: result.reason });
+  }
+
   // Saving a clip is split in two: the copy of its verified conversion to the
   // share, which any number of clips may do at once (prepare), and the few
   // renames that put it in place, one clip at a time (swap / commit). What a
@@ -2192,6 +2217,7 @@ function createFileTransaction(options = {}) {
     const itemId = validateId(operation.itemId);
     const destination = validateAbsolutePath(operation.destination, pathApi);
     const artifact = normalizeArtifact(operation.publicationArtifact);
+    await assertPublicationVolume(destination);
     if (await lstatOrNull(destination)) throw transactionError('DESTINATION_COLLISION');
     const partialNonce = newNonce();
     const partial = publicationPaths(destination, jobId, itemId, partialNonce).destinationPartial;
@@ -2838,6 +2864,7 @@ function createFileTransaction(options = {}) {
     releaseLeases,
     captureSource,
     checkReplacementVolume,
+    checkPublicationVolume,
     reserveEncodeOutput,
     adoptEncodeOutput,
     copyAsset,

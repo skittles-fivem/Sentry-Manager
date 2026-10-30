@@ -13,6 +13,7 @@ const fsp = require('fs/promises');
 const net = require('net');
 const os = require('os');
 const path = require('path');
+const { realTmp } = require('./fixtures/tmp');
 const { PassThrough } = require('stream');
 const { spawn, spawnSync } = require('child_process');
 const platform = require('../server/platform');
@@ -28,7 +29,7 @@ const { ManagerDB } = require('../server/db');
 const { watchStopLine, windowsAccount, namesValidOnWindows, refuseRequestPath } = require('../server/platform/runtime');
 
 const REPO = path.join(__dirname, '..');
-const tmp = () => fsp.mkdtemp(path.join(os.tmpdir(), 'sm-win-'));
+const tmp = () => realTmp('sm-win-');
 const quiet = { info() {}, warn() {}, error() {} };
 const busy = (code = 'EBUSY') => Object.assign(new Error(`${code}: resource busy or locked`), { code });
 // the host's own platform with the Windows answers to "is this in use?"
@@ -103,7 +104,7 @@ test('safeFs without /proc: every component is checked, links are never followed
     await fsp.writeFile(path.join(outside, 'keep.txt'), 'mine');
     await fsp.writeFile(path.join(root, 'TeslaCam', 'RecentClips', 'a.mp4'), 'clip');
     await dirLink(outside, path.join(root, 'TeslaCam', 'link'));
-    const sfs = createSafeFs({ haveProc: false, checkLinks: true });
+    const sfs = createSafeFs({ platform: winLike(), haveProc: false, checkLinks: true });
 
     await assert.rejects(sfs.mkdirpInside(root, path.join(root, 'TeslaCam', 'link', 'bin')), { code: 'ELINKESCAPE' });
     await assert.rejects(sfs.renameInside(root, path.join(root, 'TeslaCam', 'RecentClips', 'a.mp4'), path.join(root, 'TeslaCam', 'link', 'a.mp4')), { code: 'ELINKESCAPE' });

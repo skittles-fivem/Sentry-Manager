@@ -19,14 +19,15 @@
   // What the bar says under the reason. The server's own words come first
   // (status().how in /api/updates, plain text: the Windows build's release
   // updates give them); then the Windows steps when the server is the
-  // Windows service (deployment, GET /api/info); else Docker's command and
-  // the TrueNAS line, as they always were.
+  // Windows service (deployment, GET /api/info), or the Mac's command on a
+  // Mac; else Docker's command and the TrueNAS line, as they always were.
   const COMMAND = 'docker compose pull && docker compose up -d';
   const WIN_UPDATE = 'Run update.ps1 as administrator, or download the latest release and run Install.cmd.';
   function howToInstall(st, deployment) {
     const told = typeof st?.how === 'string' ? st.how.trim() : '';
     if (told) return { run: told, code: null, nas: null };
     if (deployment === 'windows') return { run: WIN_UPDATE, code: null, nas: null };
+    if (deployment === 'macos') return { run: 'In Terminal on the Mac, run:', code: 'sudo sentry-six-manager update', nas: null };
     return { run: 'Run where you set it up:', code: COMMAND, nas: 'TrueNAS: docker pull the image in System → Shell, then Stop and Start the app.' };
   }
   // ---- how to install: end ----
@@ -35,7 +36,7 @@
   let spacer = null;
   let reasonEl = null;
   let howEl = null;
-  // 'docker', 'windows' or 'linux' once asked (only while a critical update shows)
+  // 'docker', 'windows', 'macos' or 'linux' once asked (only while a critical update shows)
   let deployment = null;
   let collapsed = false;
 
@@ -162,7 +163,7 @@
       if (!res.ok) return;
       const st = await res.json();
       if (st && st.critical && typeof st.critical.reason === 'string') {
-        // without the server's own words, ask once whether this is the Windows service
+        // without the server's own words, ask once whether this is the Windows or Mac service
         if (!deployment && !(typeof st.how === 'string' && st.how.trim())) deployment = st.deployment || await whereRunning();
         show(st.critical, howToInstall(st, deployment));
       } else hide();

@@ -158,3 +158,28 @@ X-Requested-With/Origin rules, giving a normal session cookie for the account
 the owner picks once in Settings), rate limits, and what the audit log says.
 Put "contract ready" in your doc and I'll build it with tests; until then I
 won't touch either side of it. Nothing else of yours needs anything from me.
+
+## `run` mode as the default (app mode) — checked
+
+SentryService.cs `run` already does what app mode needs: no admin-only calls
+(no ACLs, registry or event log; it only writes under `--data`); the same logs
+(`<data>\data\logs\service.log`, rotated, plus the app's own manager.log); the
+same helper (SENTRY_HELPER, keep-awake, SMB as the signed-in user); graceful
+stop on a `stop` line, on stdin closing, or Ctrl+C (a second Ctrl+C kills).
+One rule for the app: **keep a pipe open on its stdin for as long as it should
+run.** stdin at EOF from the start (NUL, a scheduled task, `start /b`) is read
+as "stop" and it exits at once. The app must also put it in its kill-on-close
+Job Object itself; `run` makes its own job for node, which nests fine on
+Windows 8+.
+
+## install-check after 8af6a0b (run 41065528939)
+
+Parse error gone; now `Creating the service failed (sc.exe exit code 1639)`.
+1639 is ERROR_INVALID_COMMAND_LINE: sc.exe rejected the argument list. Usual
+causes with `Run-Native 'sc.exe' @(...)`: PowerShell 5.1 re-quotes array
+arguments, so `binPath=` + a value with embedded quotes and spaces
+(`"C:\Program Files\...\SentryService.exe"`) arrives mangled; or a parameter
+sc.exe doesn't know (`DisplayName=` is valid, `depend=` too). Check what
+reaches sc.exe with the exact process command line; building the whole line as
+one string and starting it with `Start-Process -ArgumentList '<line>' -Wait
+-PassThru` (or `cmd /c`) avoids PowerShell's re-quoting.

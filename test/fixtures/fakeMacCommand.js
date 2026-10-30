@@ -13,7 +13,9 @@
 //   FAKE_UID          what `id -u` prints (default 0)
 //   FAKE_MACOS        what `sw_vers -productVersion` prints (default 15.1)
 //   FAKE_ARM64        hw.optional.arm64: 1, 0, or 'missing' (an Intel Mac)
+//   FAKE_ROSETTA      sysctl.proc_translated: 1 under Rosetta (default 0)
 //   FAKE_URLS         JSON {url: file} that curl downloads from
+//   FAKE_VT_DAEMON    ok|failed: what the started service writes to run/videotoolbox
 //   FAKE_CODESIGN_FAIL  a path part whose `codesign --verify` fails
 //   FAKE_SETUP_CODE   written to data/setup-code.txt when the job starts
 //   SENTRY_ROOT       the sandbox root, as the scripts use it
@@ -80,6 +82,7 @@ const commands = {
       if (v === 'missing') exit(1, "sysctl: unknown oid 'hw.optional.arm64'");
       return out(v);
     }
+    if (key === 'sysctl.proc_translated') return out(process.env.FAKE_ROSETTA ?? '0');
     exit(1, `sysctl: unknown oid '${key}'`);
   },
 
@@ -212,6 +215,12 @@ const commands = {
       if (job.disabled) exit(5, 'Bootstrap failed: 5: Input/output error (service is disabled)');
       if (job.loaded) exit(5, 'Bootstrap failed: 5: Input/output error (already loaded)');
       if (!fs.existsSync(b)) exit(2, `${b}: No such file or directory`);
+      // the service's own VideoToolbox answer (ok or failed), as it writes it once up
+      if (process.env.FAKE_VT_DAEMON) {
+        const run = path.join(root(), 'Library/Application Support/SentrySixManager/run');
+        fs.mkdirSync(run, { recursive: true });
+        fs.writeFileSync(path.join(run, 'videotoolbox'), `${process.env.FAKE_VT_DAEMON}\n`);
+      }
       const code = process.env.FAKE_SETUP_CODE;
       if (code) {
         const data = path.join(root(), 'Library/Application Support/SentrySixManager/data');

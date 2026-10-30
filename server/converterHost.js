@@ -65,6 +65,10 @@ const NO_HELPER = Object.freeze({
   request: async () => { throw Object.assign(new Error('SentryHelper.exe is not available.'), { code: 'ENOSYS' }); }
 });
 
+// macOS: how long a footage folder's realpath may take (an SMB share that
+// stopped answering) before its drive is reported as not checked
+const ROOT_TIMEOUT_MS = 10_000;
+
 /** The owned-file adapter for the platform the server runs on. */
 function ownedFsFor(platform, helper) {
   return platform === 'win32' ? createWinOwnedFs({ helper: helper || NO_HELPER }) : createPosixOwnedFs();
@@ -79,15 +83,17 @@ function ownedFsFor(platform, helper) {
  * @param {object} [o.helper]    win32: the SentryHelper.exe client (server/platform/winHelper.js)
  * @param {() => string[]} [o.replacementRoots]  footage folders whose drives are checked at start
  * @param {function} [o.requestHelper]  win32: (op, args, { timeoutMs }) => answer, for the helper's gpu.list
+ * @param {function} [o.rootRealpath]  darwin: async realpath of a footage folder (tests)
  */
-function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobePath = 'ffprobe', log, onClipConverted, platform = process.platform, helper = null, owned = ownedFsFor(platform, helper), replacementRoots = null, requestHelper = null, powerMeter = null, isCheapNow = null, remoteNodes = null }) {
+function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobePath = 'ffprobe', log, onClipConverted, platform = process.platform, helper = null, owned = ownedFsFor(platform, helper), replacementRoots = null, requestHelper = null, describeVolume = null, powerMeter = null, isCheapNow = null, remoteNodes = null, rootRealpath = fs.promises.realpath, rootTimeoutMs = ROOT_TIMEOUT_MS }) {
   fs.mkdirSync(dataDir, { recursive: true });
   fs.mkdirSync(tempDir, { recursive: true });
   // Windows: the native realpath (real letter case, long names instead of
   // 8.3 short ones, a mapped drive as its UNC path); the JS one keeps
   // whatever spelling it was given, and staging refuses any owned file whose
-  // real path differs from the path it was given.
-  const realpath = platform === 'win32' ? fs.realpathSync.native : fs.realpathSync;
+  // real path differs from the path it was given. macOS: the same (real
+  // case, /tmp as /private/tmp).
+  const realpath = platform === 'win32' || platform === 'darwin' ? fs.realpathSync.native : fs.realpathSync;
   let runtime = null;
   let lastError = null;
 
@@ -118,6 +124,8 @@ function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobeP
         ...(isCheapNow ? { isCheapNow } : {}),
         // Windows: Intel and AMD adapters are listed by the helper (gpu.list)
         ...(typeof requestHelper === 'function' ? { requestHelper } : {}),
+        // macOS: a drive's kind (local, smbfs, ...) from sentry-fsops volinfo
+        ...(typeof describeVolume === 'function' ? { describeVolume } : {}),
         // other servers paired under Nodes, as encoding lanes (server/nodes.js)
         ...(remoteNodes ? { remoteNodes } : {}),
         onClipConverted: (outputPath) => onClipConverted?.(outputPath),
@@ -138,7 +146,17 @@ function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobeP
   // C:\Footage and c:\footage are one entry); the spelling it was first given
   // is kept for display.
   const rootChecks = new Map(); // key -> { root, verdict: { available, reason? } }
-  const rootKey = (real) => (platform === 'win32' ? real.toLowerCase() : real);
+  const rootKey = (real) => (platform === 'win32' ? real.toLowerCase() : platform === 'darwin' ? real.normalize('NFC') : real);
+  function realpathWithin(root) {
+    let timer;
+    return Promise.race([
+      rootRealpath(root),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(Object.assign(new Error('timed out'), { code: 'ETIMEDOUT' })), rootTimeoutMs);
+        timer.unref?.();
+      })
+    ]).finally(() => clearTimeout(timer));
+  }
   async function checkReplacementRoots(roots = replacementRoots?.() || []) {
     const check = owned.renameExclusive?.replacementSupport;
     if (typeof check !== 'function') return [];
@@ -148,7 +166,9 @@ function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobeP
       let real = null;
       let verdict;
       try {
-        real = realpath(root);
+        // macOS: off the event loop and given up after a while, so a share
+        // that stopped answering never holds up the server
+        real = platform === 'darwin' ? await realpathWithin(root) : realpath(root);
       } catch (error) {
         verdict = { available: false, reason: `the folder cannot be read (${error?.code || 'error'})` };
       }

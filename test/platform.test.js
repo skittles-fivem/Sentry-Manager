@@ -25,7 +25,7 @@ const win = forPlatform('win32', { env: WIN_ENV, appRoot: APP, exists: () => fal
 const tmp = () => fsp.mkdtemp(path.join(os.tmpdir(), 'sm-platform-'));
 
 test('require picks the platform this process runs on', () => {
-  assert.equal(platform.name, process.platform === 'win32' ? 'win32' : 'linux');
+  assert.equal(platform.name, ['win32', 'darwin'].includes(process.platform) ? process.platform : 'linux');
   assert.equal(typeof platform.forPlatform, 'function');
   for (const p of [linux, win]) {
     for (const key of ['name', 'deployment', 'defaults', 'listDelimiter', 'denyRoots', 'samePath', 'isInside', 'validName', 'realpath',

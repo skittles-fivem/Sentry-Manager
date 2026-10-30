@@ -60,6 +60,7 @@ function packSections(pack, source, answers, extra = {}) {
     $: () => null,
     whereRunning: Promise.resolve(null),
     onWindows: () => false,
+    onMac: () => false,
     ...extra
   };
   const scope = new Proxy(own, {

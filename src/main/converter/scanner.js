@@ -29,9 +29,24 @@ function createPathError(root, candidate) {
   return error;
 }
 
+// Folders a volume keeps for its system (Spotlight, the Trash, a Windows
+// share's own): often readable by root only, so entering one would stop the
+// scan with EACCES. Skipped on a Mac only; Linux and Windows walk as before.
+const DARWIN_SKIP_DIRS = new Set([
+  '.spotlight-v100', '.trashes', '.fseventsd', '.temporaryitems', '.documentrevisions-v100', '.mobilebackups',
+  'system volume information', '$recycle.bin', 'recycler', 'recovery'
+]);
+
+function darwinSkipDirName(name) {
+  const lower = String(name).toLowerCase();
+  return DARWIN_SKIP_DIRS.has(lower) || lower.startsWith('.pkinstallsandboxmanager');
+}
+
 function normalizeForComparison(value, platform, pathApi) {
   const normalized = pathApi.normalize(value);
-  return platform === 'win32' ? normalized.toLowerCase() : normalized;
+  if (platform === 'win32') return normalized.toLowerCase();
+  // macOS: a name typed (NFC) and one read back from the disk (often NFD) are one name
+  return platform === 'darwin' ? normalized.normalize('NFC') : normalized;
 }
 
 function isSameOrDescendant(root, candidate, platform, pathApi) {
@@ -65,7 +80,10 @@ function createAdapters(overrides = {}) {
     signal: overrides.signal,
     loadTeslaFilenameModule: overrides.loadTeslaFilenameModule || loadTeslaFilenameModule,
     path: overrides.path || path,
-    platform: overrides.platform || process.platform
+    platform: overrides.platform || process.platform,
+    // (name) => true for a folder never entered
+    isSkipDirName: overrides.isSkipDirName
+      || ((overrides.platform || process.platform) === 'darwin' ? darwinSkipDirName : null)
   };
 }
 
@@ -278,6 +296,7 @@ async function* scanTeslaFootage(config = {}, adapterOverrides = {}) {
       if (typeof entry.isSymbolicLink === 'function' && entry.isSymbolicLink()) continue;
 
       if (entry.isDirectory()) {
+        if (adapters.isSkipDirName?.(entry.name)) continue;
         const childGroup = group || canonicalGroup(entry.name);
         if (childGroup && !includedGroups.has(childGroup)) continue;
 
@@ -416,6 +435,7 @@ async function* scanTeslaFootage(config = {}, adapterOverrides = {}) {
     if (typeof entry.isSymbolicLink === 'function' && entry.isSymbolicLink()) return null;
 
     if (entry.isDirectory()) {
+      if (adapters.isSkipDirName?.(entry.name)) return null;
       const childGroup = group || canonicalGroup(entry.name);
       if (childGroup && !includedGroups.has(childGroup)) return null;
       return quiet((async () => {

@@ -334,8 +334,8 @@ function decodeAccelFrom(decodeAccel, encoder, options) {
 // then GPU decode, then (implicitly, after the list) CPU decode. A clip
 // whose lead-in frames are held (leadIn.js) skips zero-copy: the frame
 // repeat runs on system-memory frames, and a failure there must not rule
-// zero-copy out for the clips that start on a keyframe. VA-API, QSV and
-// AMF keep frames on the GPU only for 8-bit 4:2:0 sources with even
+// zero-copy out for the clips that start on a keyframe. VA-API, QSV, AMF
+// and VideoToolbox keep frames on the GPU only for 8-bit 4:2:0 sources with even
 // dimensions (video: what inspectVideo read); NVENC as it always did.
 // (the service then leaves out the tiers it found broken: encodeDecodeTiers)
 function decodeTierCandidates(encoder, decodeAccel, { zeroCopy = true, video = null } = {}) {
@@ -349,11 +349,13 @@ function decodeTierCandidates(encoder, decodeAccel, { zeroCopy = true, video = n
 
 // The ffmpeg command line of one encode on this server: decodeAccel is the
 // tier's input arguments (null: CPU decoding).
-function ffmpegEncodeCommand({ source, target, codec, encoder, bitrate, quality = null, holdFrames = 0, decodeAccel = null }) {
+// platform: a Mac's VideoToolbox encodes take -allow_sw 0; nothing else uses it.
+function ffmpegEncodeCommand({ source, target, codec, encoder, bitrate, quality = null, holdFrames = 0, decodeAccel = null, platform = null }) {
   const hwFrames = Array.isArray(decodeAccel) && decodeAccel.includes('-hwaccel_output_format');
   const device = encoder.hardware === true ? laneDeviceOf(encoder) : null;
   const encodeArgs = buildEncodeArgs({
-    codec, encoder: encoder.codec, bitrate, quality, hwFrames, ...(device ? { device } : {}), ...(holdFrames > 0 ? { holdFrames } : {})
+    codec, encoder: encoder.codec, bitrate, quality, hwFrames, platform,
+    ...(device ? { device } : {}), ...(holdFrames > 0 ? { holdFrames } : {})
   });
   const args = [
     '-nostdin', '-hide_banner', '-loglevel', 'error', '-n',
@@ -373,6 +375,8 @@ function createConverterJobService(deps) {
   const scanner = deps.scanner;
   const planner = deps.planner;
   const staging = deps.stagingManager;
+  // (a Mac's VideoToolbox encodes take -allow_sw 0; nothing else uses it)
+  const platform = deps.platform || process.platform;
   // GPU decoding is an optimisation only. An encoder whose GPU decode proved
   // unusable is not offered it again; verify stops after repeated fallbacks.
   // With a GPU chosen per lane the records are per GPU: one GPU's broken
@@ -394,14 +398,15 @@ function createConverterJobService(deps) {
   // odd clip does not cost every later clip the faster path.
   const ZERO_COPY_FAILURE_LIMIT = 3;
   const zeroCopyRecord = deps.zeroCopyState || createZeroCopyState();
-  // The first zero-copy encode on each GPU and codec (VA-API, QSV and AMF)
-  // has its pictures checked against the original's, as a node's are: a
-  // driver that hands the encoder the wrong surfaces still makes a file that
-  // verifies. Once one matched, the others are trusted. Only one clip per
-  // GPU and codec is checked at a time; the others wait for its verdict.
+  // The first zero-copy encode on each GPU and codec (VA-API, QSV, AMF and
+  // VideoToolbox) has its pictures checked against the original's, as a
+  // node's are: a driver that hands the encoder the wrong surfaces still
+  // makes a file that verifies. Once one matched, the others are trusted.
+  // Only one clip per GPU and codec is checked at a time; the others wait
+  // for its verdict.
   // NVENC's zero-copy is proven and not checked.
   const pictureCheckedZeroCopy = (encoder) => typeof deps.comparePicture === 'function'
-    && /_(vaapi|qsv|amf)$/.test(encoder?.codec || '');
+    && /_(vaapi|qsv|amf|videotoolbox)$/.test(encoder?.codec || '');
   function noteZeroCopyFailure(key) {
     const failures = (zeroCopyRecord.failures.get(key) || 0) + 1;
     zeroCopyRecord.failures.set(key, failures);
@@ -1361,7 +1366,7 @@ function createConverterJobService(deps) {
         return { ok: false, code: 'encoder-start-failed' };
       }
     } else {
-      const command = ffmpegEncodeCommand({ source, target, codec, encoder, bitrate, quality, holdFrames, decodeAccel });
+      const command = ffmpegEncodeCommand({ source, target, codec, encoder, bitrate, quality, holdFrames, decodeAccel, platform });
       encodeArgs = command.encodeArgs;
       const args = command.args;
       try {
@@ -1671,6 +1676,12 @@ function createConverterJobService(deps) {
         }
       }
       if (typeof staging.captureSource !== 'function') throw serviceError('SOURCE_AUTHORITY_REQUIRED');
+    } else if (typeof staging.checkPublicationVolume === 'function' && runtime.manifest.config.destinationRoot) {
+      // A destination where converted files cannot be saved safely (macOS:
+      // an SMB share) fails the clip before an encode, and before any folder
+      // is made there. Adapters without the check: always available.
+      const volume = await staging.checkPublicationVolume(pathApi.join(runtime.manifest.config.destinationRoot, 'x'));
+      if (!volume.available) throw Object.assign(serviceError('ATOMIC_PROMOTION_UNSUPPORTED'), { reason: volume.reason });
     }
     // Fingerprint the original read-only before anything else touches it. When
     // it is copied to local staging, the copy itself fingerprints it with the

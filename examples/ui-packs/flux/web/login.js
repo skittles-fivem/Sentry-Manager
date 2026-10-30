@@ -17,9 +17,11 @@
   // On the Windows service (public GET /api/info) the setup code and the
   // certificate fingerprint are in the install window and service.log, not
   // in docker logs. The page's own words are Docker's; they change here.
-  const askWindows = fetch('/api/info', { credentials: 'same-origin' })
-    .then((r) => (r.ok ? r.json() : {}))
+  const askInfo = fetch('/api/info', { credentials: 'same-origin' })
+    .then((r) => (r.ok ? r.json() : {}));
+  const askWindows = askInfo
     .then((info) => info?.deployment === 'windows', () => false);
+  const askMac = askInfo.then((info) => info?.deployment === 'macos', () => false);
   let logWhere = 'the container log';
   function windowsWords() {
     logWhere = 'the install window';
@@ -32,12 +34,27 @@
       before.textContent = /container log: $/.test(t) ? t.replace(/container log: $/, 'install window and in ') : `${t}the install window, ${/\bin $/.test(t) ? 'in ' : ''}`;
     }
   }
+  // On a Mac the setup code comes from a Terminal command, and the
+  // fingerprint is in what the installer printed.
+  function macWords() {
+    logWhere = 'Terminal (sudo sentry-six-manager setup-code)';
+    for (const code of [...document.querySelectorAll('code')]) {
+      if (code.textContent !== 'docker logs sentry-six-manager') continue;
+      const before = code.previousSibling;
+      const t = before?.nodeType === Node.TEXT_NODE ? before.textContent : '';
+      if (/(It’s p|P)rinted in the container log: $/.test(t)) {
+        before.textContent = t.replace(/(It’s p|P)rinted in the container log: $/, 'In Terminal on the Mac, run: ');
+        code.textContent = 'sudo sentry-six-manager setup-code';
+      } else code.replaceWith('the installer’s output in Terminal');
+    }
+  }
   const me = await fetch('/api/auth/me', { credentials: 'same-origin' }).then((r) => r.json()).catch(() => ({}));
   if (me.user) {
     location.replace(next);
     return;
   }
   if (await askWindows) windowsWords();
+  if (await askMac) macWords();
   if (location.protocol !== 'https:') $('insecure').hidden = false;
   if (me.fingerprint) {
     const box = $('fingerprint').querySelector('.mono');

@@ -14,3 +14,6 @@ examples/ui-packs/*.zip
 examples/ui-packs/*/README.md
 # the native Windows build (its own workflow, windows.yml, packages it)
 windows/
+# the native macOS build (its own workflow, macos.yml, packages it)
+macos/
+native/darwin/
