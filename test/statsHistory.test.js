@@ -4,15 +4,12 @@
 // 24 hours, the tiles' sparklines, CSV export, and the file in the data
 // folder that keeps graphs and energy across a restart.
 
-const { skipAll, linuxOnly } = require('./fixtures/platformSkip');
-
-// The math (deltas, wrap-around, averages, energy, alert rules) is the same
-// on every OS and runs everywhere. The tests that run the engine on a fake
-// machine (fake /proc and /sys trees from fixtures/stats/machines.js) are the
-// Linux server monitor; Windows has its own (server/stats/platform/win32.js)
-// and its own tests.
+// The engine runs here on fake machines (fixtures/stats/machines.js): the
+// Linux server monitor, told it is on Linux, reading their /proc and /sys
+// from real folders on Linux and from memory on Windows (whose folder names
+// cannot hold sysfs's ":"), so these tests run on every system. Windows's
+// own monitor (server/stats/platform/win32.js) has its own tests.
 const test = require('node:test');
-const onFakeTrees = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
@@ -108,7 +105,7 @@ test('CSV: an ISO time column, the series in order, empty cells for no data', ()
   assert.equal(day.length, 3);
 });
 
-onFakeTrees('the engine saves history and energy to stats-history.json and reads them back after a restart', async () => {
+test('the engine saves history and energy to stats-history.json and reads them back after a restart', async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stats-data-'));
   const clock = fakeClock();
   const file = path.join(dataDir, 'stats-history.json');
@@ -127,7 +124,8 @@ onFakeTrees('the engine saves history and energy to stats-history.json and reads
     const before = { h15: first.stats.history('15m'), h24: first.stats.history('24h'), energy: first.stats.energy(), csv: first.stats.csv('24h') };
     first.stats.stop();
     assert.ok(fs.existsSync(file));
-    assert.equal((fs.statSync(file).mode & 0o777).toString(8), '600');
+    // Windows has no file modes: the data folder's own permissions keep it
+    if (process.platform !== 'win32') assert.equal((fs.statSync(file).mode & 0o777).toString(8), '600');
     assert.deepEqual(fs.readdirSync(dataDir), ['stats-history.json'], 'no temp file left behind');
     const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
     assert.equal(saved.v, 1);
@@ -155,7 +153,7 @@ onFakeTrees('the engine saves history and energy to stats-history.json and reads
   }
 });
 
-onFakeTrees('while sampling, the file is written every 5 minutes', async () => {
+test('while sampling, the file is written every 5 minutes', async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stats-data-'));
   const s = setup(M.amd, { appPid: 8, dataDir, timers: heldTimers() });
   try {
@@ -169,7 +167,7 @@ onFakeTrees('while sampling, the file is written every 5 minutes', async () => {
   }
 });
 
-onFakeTrees('a damaged, foreign or oversized history file is set aside quietly; a missing data folder is created', async () => {
+test('a damaged, foreign or oversized history file is set aside quietly; a missing data folder is created', async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stats-data-'));
   const file = path.join(dataDir, 'stats-history.json');
   const warnings = [];

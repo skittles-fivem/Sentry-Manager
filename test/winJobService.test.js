@@ -11,24 +11,21 @@ const assert = require('node:assert/strict');
 const path = require('path');
 const { createHarness, ARC, UHD, CPU } = require('./fixtures/lanesHarness');
 
-// The job service reads the platform when it is made (the harness does not
-// pass one): made here as if on Windows.
-function harnessOn(platform, options) {
-  const real = Object.getOwnPropertyDescriptor(process, 'platform');
-  Object.defineProperty(process, 'platform', { ...real, value: platform });
-  try {
-    return createHarness(options);
-  } finally {
-    Object.defineProperty(process, 'platform', real);
-  }
-}
+// The folder rule is about the job service, not this machine's disk: each
+// platform is given its own path rules and folders named as on it, so both
+// halves run on Linux and on Windows alike.
+const FOLDERS = {
+  win32: { pathApi: path.win32, first: 'C:\\Footage\\Car', second: 'c:\\footage\\car\\TeslaCam' },
+  linux: { pathApi: path.posix, first: '/footage/Car', second: '/footage/car/TeslaCam' }
+};
 
 test('Windows: two vehicles whose folders differ only in letter case never convert at once; Linux: they are two folders', async () => {
   for (const platform of ['win32', 'linux']) {
-    const h = harnessOn(platform, { clips: 1, behave: () => 'hold', devices: [ARC, UHD] });
+    const { pathApi, first, second: other } = FOLDERS[platform];
+    const h = createHarness({ clips: 1, behave: () => 'hold', devices: [ARC, UHD], platform, pathApi });
     try {
-      await h.service.start(h.config({ sourceRoot: path.join(h.dir, 'Car'), autoConvert: true, lanes: [{ device: ARC.id, concurrency: 1 }] }));
-      const second = h.service.start(h.config({ sourceRoot: path.join(h.dir, 'car', 'TeslaCam'), autoConvert: true, lanes: [{ device: UHD.id, concurrency: 1 }] }));
+      await h.service.start(h.config({ sourceRoot: first, autoConvert: true, lanes: [{ device: ARC.id, concurrency: 1 }] }));
+      const second = h.service.start(h.config({ sourceRoot: other, autoConvert: true, lanes: [{ device: UHD.id, concurrency: 1 }] }));
       if (platform === 'win32') await assert.rejects(second, { code: 'JOB_ACTIVE' });
       else assert.ok(await second, 'Linux: another folder, on another GPU, side by side');
       h.releaseAll();

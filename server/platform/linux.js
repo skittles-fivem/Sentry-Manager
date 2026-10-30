@@ -90,8 +90,8 @@ function createLinuxPlatform({ env = process.env, exists = fs.existsSync } = {})
      */
     mounter: (opts = {}) => {
       const { createLocalMounter, createIpcMounter } = require('../mounter');
-      if (opts.ipc) return createIpcMounter({ channel: opts.channel || process, footageRoot: opts.footageRoot });
-      return createLocalMounter({ footageRoot: opts.footageRoot, credDir: opts.credDir, uid: opts.uid, gid: opts.gid });
+      if (opts.ipc) return createIpcMounter({ channel: opts.channel || process, footageRoot: opts.footageRoot, pathMod: P });
+      return createLocalMounter({ footageRoot: opts.footageRoot, credDir: opts.credDir, uid: opts.uid, gid: opts.gid, pathMod: P });
     }
   };
 }

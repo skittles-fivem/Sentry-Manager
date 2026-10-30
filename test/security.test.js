@@ -14,9 +14,9 @@ const http2 = require('http2');
 const net = require('net');
 const { realTmp } = require('./fixtures/tmp');
 const path = require('path');
-const { linuxOnly, notOnWindows, needsTool, tlsUsesOpenssl } = require('./fixtures/platformSkip');
+const { linuxOnly, needsTool, tlsUsesOpenssl } = require('./fixtures/platformSkip');
 const { writeNodeTool } = require('./fixtures/nodeTool');
-const { dirLink } = require('./fixtures/dirLink');
+const { dirLink, canLinkFiles } = require('./fixtures/dirLink');
 const { spawn, spawnSync } = require('child_process');
 const { normalizeSmb, mountArgs, parseShare } = require('../server/mountSpec');
 const { createRealGuard } = require('../server/safePath');
@@ -219,21 +219,31 @@ test('HTTPS, the setup code, cookies and password confirmation', { skip: needsTl
   }
 });
 
-// Windows: a file symlink needs admin rights or Developer Mode, O_NOFOLLOW does
-// not exist and /, /etc are Linux's; folder links (junctions there) are covered
-// by the Recycle Bin and safeFs tests below.
-const fileLinks = notOnWindows('file symlinks, O_NOFOLLOW and the Linux root folders');
+// The same attack on every system. On Windows the folder links are junctions
+// (what a normal account can make), the root link goes to the system drive's
+// root with Windows\win.ini standing in for /etc/passwd and the Windows
+// folder for /etc, and the file symlink (admin rights or Developer Mode
+// there) is planted only where this account may make one.
+const onWindows = process.platform === 'win32';
 
-test('symlinks on a share never lead outside it', { skip: fileLinks, timeout: 60000 }, async () => {
+test('symlinks on a share never lead outside it', { timeout: 60000 }, async () => {
   const dir = await tmp();
   const T = path.join(dir, 'footage/TeslaCam');
+  const systemRoot = onWindows ? path.parse(dir).root : '/';
+  const systemFolder = onWindows ? (process.env.SystemRoot || path.join(systemRoot, 'Windows')) : '/etc';
+  const systemFile = onWindows ? 'Windows/win.ini' : 'etc/passwd';
+  const rootlink = path.join(T, 'rootlink');
+  // dir as seen through the root link
+  const viaRoot = (...rest) => path.join(rootlink, dir.slice(systemRoot.length), ...rest);
   await fsp.mkdir(path.join(T, 'RecentClips'), { recursive: true });
   await fsp.writeFile(path.join(T, 'RecentClips/2020-01-01_08-00-00-front.mp4'), 'clip');
   await fsp.mkdir(path.join(dir, 'outside/RecentClips'), { recursive: true });
   await fsp.writeFile(path.join(dir, 'outside/secret.txt'), 'TOP SECRET');
-  await fsp.symlink(path.join(dir, 'outside'), path.join(T, 'linkdir'));
-  await fsp.symlink('/', path.join(T, 'rootlink'));
-  await fsp.symlink(path.join(dir, 'outside/secret.txt'), path.join(T, 'RecentClips/2020-01-01_09-00-00-front.mp4'));
+  await dirLink(path.join(dir, 'outside'), path.join(T, 'linkdir'));
+  await dirLink(systemRoot, rootlink);
+  const linkedClip = path.join(T, 'RecentClips/2020-01-01_09-00-00-front.mp4');
+  const fileLink = canLinkFiles();
+  if (fileLink) await fsp.symlink(path.join(dir, 'outside/secret.txt'), linkedClip, 'file');
   const s = await startServer(dir, { TLS_MODE: 'off', UI_PASSWORD: 'correct horse' });
   const base = `http://127.0.0.1:${s.port}`;
   let cookie = '';
@@ -249,18 +259,18 @@ test('symlinks on a share never lead outside it', { skip: fileLinks, timeout: 60
   };
   try {
     await call('POST', '/api/auth/login', { username: 'admin', password: 'correct horse' });
-    for (const p of [path.join(T, 'linkdir/secret.txt'), path.join(T, 'rootlink/etc/passwd'), path.join(T, `rootlink${dir}/data/manager.db`), path.join(T, 'RecentClips/2020-01-01_09-00-00-front.mp4')]) {
+    for (const p of [path.join(T, 'linkdir/secret.txt'), path.join(rootlink, systemFile), viaRoot('data/manager.db'), ...(fileLink ? [linkedClip] : [])]) {
       assert.equal((await call('POST', '/api/studio/readFile', { path: p })).status, 403, p);
       assert.equal((await call('GET', `/api/media?path=${encodeURIComponent(p)}`)).status, 403, p);
     }
     const listing = (await call('POST', '/api/studio/readDir', { path: T })).data.map((e) => e.name);
     assert.deepEqual(listing, ['RecentClips'], 'links are not listed');
     assert.equal((await call('POST', '/api/studio/readDir', { path: path.join(T, 'linkdir') })).status, 403);
-    for (const defaultPath of [path.join(T, 'linkdir'), path.join(T, 'rootlink/etc')]) {
+    for (const defaultPath of [path.join(T, 'linkdir'), path.join(rootlink, path.basename(systemFolder))]) {
       assert.deepEqual((await call('POST', '/api/converter/invoke/chooseFolder', { purpose: 'source', defaultPath })).data, { ok: false, error: { code: 'PATH_NOT_ALLOWED' } });
     }
     const start = await call('POST', '/api/converter/invoke/start', {
-      sourceRoot: path.join(T, `rootlink${dir}/outside`), destinationRoot: null, outputMode: 'replace', replacementConfirmed: true,
+      sourceRoot: viaRoot('outside'), destinationRoot: null, outputMode: 'replace', replacementConfirmed: true,
       codec: 'h265', profileId: 'balanced', networkMode: 'direct', includedGroups: ['RecentClips'], verifyMode: 'quick'
     });
     assert.deepEqual(start.data, { ok: false, error: { code: 'PATH_NOT_ALLOWED' } });
@@ -275,13 +285,17 @@ test('symlinks on a share never lead outside it', { skip: fileLinks, timeout: 60
     })();
     assert.deepEqual(recs.map((r) => r.start), ['2020-01-01 08:00:00']);
     // folder vehicles may not point at the container's own folders
-    for (const p of ['/', '/etc', path.join(dir, 'data'), REPO]) {
+    for (const p of [systemRoot, systemFolder, path.join(dir, 'data'), REPO]) {
       const r = await call('POST', '/api/vehicles', { name: 'Bad', source: { type: 'path', path: p } });
       assert.equal(r.status, 400, `${p}: ${JSON.stringify(r.data)}`);
     }
   } finally {
     await s.stop();
-    await fsp.rm(dir, { recursive: true, force: true });
+    // the link to the system root goes first, on its own, and the folder is
+    // left behind if it cannot, so the clean-up never walks into the root
+    let rootlinkGone = true;
+    await fsp.unlink(rootlink).catch((err) => { rootlinkGone = err.code === 'ENOENT'; });
+    if (rootlinkGone) await fsp.rm(dir, { recursive: true, force: true });
   }
 });
 
@@ -314,29 +328,38 @@ test('cookie parsing tolerates stray cookies and ignores duplicates', () => {
   assert.deepEqual(parseCookies('other=100%; sm_session=abc; sm_session=evil'), { other: '100%', sm_session: 'abc' });
 });
 
-test('the real-path guard: symlinked roots, the deny list, and a file swapped after the check', { skip: fileLinks }, async () => {
+// The roots and the deny list run on Windows too (the folder link is a
+// junction there, / is the drive's root and the system folder stands in for
+// /etc); the open descriptor part is /proc and O_NOFOLLOW, Linux's: Windows
+// matches an open file by device and inode instead (platformWindows.test.js).
+test('the real-path guard: symlinked roots, the deny list, and a file swapped after the check', async () => {
+  const win = process.platform === 'win32';
   const dir = await fsp.realpath(await tmp());
   const footage = path.join(dir, 'footage');
   const data = path.join(dir, 'data');
+  const top = path.parse(dir).root;
+  const system = win ? (process.env.SystemRoot || 'C:\\Windows') : '/etc';
+  const systemFile = win ? path.join(system, 'win.ini') : '/etc/passwd';
   await fsp.mkdir(path.join(footage, 'car/RecentClips'), { recursive: true });
   await fsp.mkdir(path.join(data, 'converted'), { recursive: true });
   await fsp.writeFile(path.join(data, 'manager.db'), 'secrets');
   await fsp.writeFile(path.join(footage, 'car/RecentClips/a.mp4'), 'clip');
-  await fsp.symlink(data, path.join(footage, 'sneaky')); // a "vehicle folder" that is a link to the data dir
+  await dirLink(data, path.join(footage, 'sneaky')); // a "vehicle folder" that is a link to the data dir
   const guard = createRealGuard(() => [
     { path: path.join(footage, 'car'), within: [footage] },
     { path: path.join(footage, 'sneaky'), within: [footage] },
     path.join(data, 'converted'),
-    { path: '/', within: ['/'] } // as if FOLDER_ROOTS=/ had been allowed
-  ], { deny: () => [data, '/etc'] });
+    { path: top, within: [top] } // as if FOLDER_ROOTS=/ had been allowed
+  ], { deny: () => [data, system] });
   try {
     assert.equal(await guard.resolve(path.join(footage, 'car/RecentClips/a.mp4')), path.join(footage, 'car/RecentClips/a.mp4'));
     assert.equal(await guard.resolve(path.join(footage, 'sneaky/manager.db')), null, 'a root that really lives elsewhere allows nothing');
     assert.equal(await guard.resolve(path.join(data, 'manager.db')), null, 'the deny list holds even under a root like /');
-    assert.equal(await guard.resolve('/etc/passwd'), null);
+    assert.equal(await guard.resolve(systemFile), null);
     assert.ok(await guard.resolve(path.join(data, 'converted/x/y.mp4'), { mustExist: false }), 'roots inside a denied folder still work');
     assert.equal(await guard.resolve('relative/path'), null);
     assert.equal(await guard.resolve(`${footage}/car/\0x`), null);
+    if (win) return;
 
     // swap a checked file for a link to the database: the open descriptor gives it away
     const clip = path.join(footage, 'car/RecentClips/a.mp4');

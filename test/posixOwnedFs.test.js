@@ -13,9 +13,16 @@ const { createPosixOwnedFs, createNoReplaceRename } = require('../server/posixOw
 // renameat2 and the POSIX owned-files adapter; Windows has its own adapter.
 // The platform is checked before any tool, so on Windows nothing is built and
 // REQUIRE_TOOLS=1 does not turn a missing C compiler into a failure there. A
-// Mac runs the same tests against its own helper (sentry-fsops).
+// Mac runs the same tests against its own helper (sentry-fsops). On Windows
+// they run only inside winOwnedFsSuites.test.js, which puts winOwnedFs over
+// the real SentryHelper.exe (SENTRY_HELPER) in posixOwnedFs's place, so the
+// same assertions prove the Windows adapter there.
 const DARWIN = process.platform === 'darwin';
-const notHere = DARWIN ? false : linuxOnly(RENAME_HELPER);
+const ownedFsAdapter = require('./fixtures/ownedFsAdapter');
+const WINDOWS_ADAPTER = process.platform === 'win32' && ownedFsAdapter.posixSuiteOnWindowsAdapter === true;
+const notHere = DARWIN || WINDOWS_ADAPTER ? false
+  : process.platform === 'win32' ? 'on Windows these run in winOwnedFsSuites.test.js, on winOwnedFs over SentryHelper.exe'
+    : linuxOnly(RENAME_HELPER);
 const test = skipAll(notHere);
 const needs = (available, reason) => notHere || needsTool(available, reason);
 
@@ -29,13 +36,15 @@ const hasFfmpeg = spawnSync('ffmpeg', ['-version']).status === 0;
 
 function buildHelper() {
   if (notHere) return false;
+  if (WINDOWS_ADAPTER) return ownedFsAdapter.windowsHelperBuilt();
   if (fs.existsSync(HELPER)) return true;
   fs.mkdirSync(path.dirname(HELPER), { recursive: true });
   if (DARWIN) return spawnSync('cc', ['-arch', 'arm64', '-O2', '-Wall', '-Wextra', '-Werror', '-mmacosx-version-min=13.5', '-o', HELPER, HELPER_SRC]).status === 0;
   return spawnSync('cc', ['-O2', '-o', HELPER, HELPER_SRC]).status === 0;
 }
 const helperBuilt = buildHelper();
-const noHelper = DARWIN ? 'could not build build/sentry-fsops' : 'no C compiler';
+const noHelper = WINDOWS_ADAPTER ? `needs ${ownedFsAdapter.WINDOWS_HELPER}`
+  : DARWIN ? 'could not build build/sentry-fsops' : 'no C compiler';
 
 async function tmp() {
   return realTmp('posix-owned-');
@@ -220,7 +229,7 @@ test('the real converter replaces originals in place with telemetry intact', { s
     const { removeOwned, renameExclusive } = adapters();
     const runtime = await createConverterRuntime({
       userDataPath: path.join(root, 'user'), tempPath: path.join(root, 'tmp'),
-      ffmpegPath: 'ffmpeg', ffprobePath: 'ffprobe', spawn, fs, pathApi: path, platform: 'linux',
+      ffmpegPath: 'ffmpeg', ffprobePath: 'ffprobe', spawn, fs, pathApi: path, platform: WINDOWS_ADAPTER ? 'win32' : 'linux',
       processTimeoutMs: 300000, removeOwned, renameExclusive,
       factories: { createEncoderPlanner(options) {
         const real = createEncoderPlanner(options);

@@ -25,6 +25,8 @@ const SECRET = 'pa$$ w0rd;@x';
 const SMB = { type: 'smb', share: '//nas/TeslaCam', username: 'tesla', password: SECRET, domain: '', version: '3.1.1', encrypt: true, port: null };
 const ME = '_sentrysix';
 const OK_OPTS = 'nodev, nosuid, noexec, nobrowse';
+// Windows has no process.getuid, and its stat() reports every file as uid 0
+const MY_UID = process.getuid?.() ?? 0;
 
 /**
  * A fake /usr/bin/script child. `script` says what it does:
@@ -120,15 +122,19 @@ function mountsOk(fr, mountOpts) {
 }
 
 async function setup(t, { root = 'foot age', ...opts } = {}) {
+  // under the temp folder's real path: on Windows os.tmpdir() can be an 8.3
+  // short name (RUNNER~1), which the mounter's realpath expands
   const base = await realTmp('sm-smbdarwin-');
   t.after(() => fsp.rm(base, { recursive: true, force: true }));
   const footageRoot = path.join(base, root);
   const runDir = path.join(base, 'run');
-  await fsp.mkdir(footageRoot, { recursive: true });
+  // Windows cannot hold a line break in a name. The mounter refuses such a
+  // root from its path alone, so there it is left uncreated
+  if (!(process.platform === 'win32' && /[\r\n]/.test(root))) await fsp.mkdir(footageRoot, { recursive: true });
   const fr = fakeRun(opts.run);
   const fsps = fakeSpawn(opts.script ? opts.script(fr) : mountsOk(fr, opts.mountOpts));
   const mounter = createDarwinMounter({
-    footageRoot, runDir, user: ME, uid: opts.uid ?? process.getuid(), spawn: fsps.spawn, runCmd: fr.runCmd,
+    footageRoot, runDir, user: ME, uid: opts.uid ?? MY_UID, spawn: fsps.spawn, runCmd: fr.runCmd,
     now: opts.now, promptWaitMs: opts.promptWaitMs ?? 2000, timeoutMs: opts.timeoutMs ?? 4000
   });
   return { base, footageRoot, runDir, fr, fsps, mounter };
@@ -194,13 +200,16 @@ test('mount: the password goes in once, only after the prompt, and stdin stays o
   assert.deepEqual(Object.keys(call.opts.env).sort(), ['HOME', 'LANG', 'LC_ALL', 'PATH']);
   assert.equal(call.opts.env.HOME, path.join(runDir, 'smb', 'car', 'home'));
   noSecret({ args: call.args, env: call.opts.env, res, runCalls: fr.calls });
-  // the private nsmb.conf: 0700 folders, a 0600 file, no secret
+  // the private nsmb.conf: 0700 folders, a 0600 file, no secret (the modes
+  // are checked only where files have permission bits; Windows has none)
   const prefs = path.join(runDir, 'smb', 'car', 'home', 'Library', 'Preferences');
-  for (const d of [path.join(runDir, 'smb'), path.join(runDir, 'smb', 'car'), path.join(runDir, 'smb', 'car', 'home'), path.dirname(prefs), prefs]) {
-    assert.equal(fs.statSync(d).mode & 0o777, 0o700, d);
-  }
   const conf = path.join(prefs, 'nsmb.conf');
-  assert.equal(fs.statSync(conf).mode & 0o777, 0o600);
+  if (process.platform !== 'win32') {
+    for (const d of [path.join(runDir, 'smb'), path.join(runDir, 'smb', 'car'), path.join(runDir, 'smb', 'car', 'home'), path.dirname(prefs), prefs]) {
+      assert.equal(fs.statSync(d).mode & 0o777, 0o700, d);
+    }
+    assert.equal(fs.statSync(conf).mode & 0o777, 0o600);
+  }
   assert.equal(fs.readFileSync(conf, 'utf8'), nsmbConf({ encrypt: true }));
   assert.equal(fs.readFileSync(conf, 'utf8').includes(SECRET), false);
   // checked afterwards with smbutil, by absolute path
@@ -310,7 +319,7 @@ test('mount: a symlinked mount point, or one owned by someone else, is refused',
     assert.equal(fsps.calls.length, 0);
   }
   {
-    const { mounter, fsps } = await setup(t, { uid: process.getuid() + 1 });
+    const { mounter, fsps } = await setup(t, { uid: MY_UID + 1 });
     await assert.rejects(mounter.mount('car', SMB), /not owned by the app's own user/);
     assert.equal(fsps.calls.length, 0);
   }
@@ -493,7 +502,8 @@ test('sweep: force-unmounts only our smbfs mounts directly under the footage roo
   const real = fs.realpathSync(footageRoot);
   fr.state.table = fixture('mount-output.txt').replaceAll('/Library/Application Support/SentrySixManager/footage', real);
   const done = await mounter.sweep();
-  assert.deepEqual(done.map((d) => d.mountPoint).sort(), [path.join(real, 'car'), path.join(real, 'car'), path.join(real, 'van')].sort());
+  // the mount points come back exactly as mount(8) prints them, joined with /
+  assert.deepEqual(done.map((d) => d.mountPoint).sort(), [`${real}/car`, `${real}/car`, `${real}/van`].sort());
   const umounts = fr.calls.filter((c) => c[0] === '/sbin/umount');
   assert.ok(umounts.every((c) => c[1] === '-f'));
   assert.equal(umounts.some((c) => c[2].endsWith('truck')), false, 'mounted by another user');

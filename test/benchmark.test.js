@@ -293,10 +293,18 @@ test('the benchmark finds the originals left anywhere in a mostly converted arch
     });
     const hevc = path.join(dir, 'converted.mp4');
     assert.equal(spawnSync('ffmpeg', ['-v', 'error', '-i', original, '-c:v', 'libx265', '-x265-params', 'log-level=none', '-tag:v', 'hvc1', hevc]).status, 0);
-    // 4,200 converted clips (hard links of one), all older than the original
+    // 4,200 converted clips (hard links of a few copies of one: NTFS allows
+    // at most 1,023 links to a file), all older than the original
+    let copy = null;
     for (let n = 0; n < 4200; n++) {
       const t = new Date(Date.UTC(2026, 0, 1) + n * 60_000).toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
-      fs.linkSync(hevc, path.join(saved, `${t}-front.mp4`));
+      const clip = path.join(saved, `${t}-front.mp4`);
+      if (n % 1000 === 0) {
+        fs.copyFileSync(hevc, clip);
+        copy = clip;
+      } else {
+        fs.linkSync(copy, clip);
+      }
     }
     let seenSource = null;
     const fakeService = () => {

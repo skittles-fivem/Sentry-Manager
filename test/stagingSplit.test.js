@@ -9,16 +9,17 @@ const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
+const { ownedFsSkip, createOwnedFs } = require('./fixtures/ownedFsAdapter');
 const { createFileTransaction } = require('../src/main/converter/staging');
-const { createPosixOwnedFs } = require('../server/posixOwnedFs');
 
 const HELPER = path.join(__dirname, '..', 'build', 'noreplace-rename');
-const skip = linuxOnly(RENAME_HELPER) || needsTool(fs.existsSync(HELPER), 'needs build/noreplace-rename');
+// (Linux: posixOwnedFs over build/noreplace-rename; Windows: winOwnedFs over
+// SentryHelper.exe)
+const skip = ownedFsSkip(true, 'needs build/noreplace-rename', 'needs SentryHelper.exe (set SENTRY_HELPER)');
 const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 
 function setup() {
-  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'staging-split-')));
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'staging-split-')));
   const tempRoot = path.join(root, 'tmp', 'sentry-six-converter');
   const footage = path.join(root, 'footage');
   const snapshotFolder = path.join(root, 'tmp', 'sentry-six-verification-abc');
@@ -34,7 +35,7 @@ function setup() {
   const stat = fs.lstatSync(source, { bigint: true });
   const expectedSource = { size: original.length, sha256: sha(original), device: String(stat.dev), inode: String(stat.ino) };
   const writes = [];
-  const owned = createPosixOwnedFs({ helperPath: HELPER });
+  const owned = createOwnedFs({ helperPath: HELPER });
   // what the converter asks the adapter for (moves and removals)
   const requests = [];
   const staging = createFileTransaction({
@@ -58,7 +59,8 @@ test('prepare copies the conversion beside the original and records it on the wa
     const prepared = await env.staging.prepareReplacement(env.operation);
     const temp = path.join(env.footage, `TEMP-H265-${path.basename(env.source)}`);
     assert.deepEqual(fs.readFileSync(temp), env.conversion);
-    assert.equal(fs.statSync(temp).mode & 0o777, 0o644, 'with the original\'s permissions');
+    // (Windows has no POSIX permissions to copy)
+    if (process.platform !== 'win32') assert.equal(fs.statSync(temp).mode & 0o777, 0o644, 'with the original\'s permissions');
     assert.deepEqual(fs.readFileSync(env.source), env.original, 'the original is untouched');
     assert.deepEqual(env.writes.map((write) => write.ownedArtifacts.replacementCandidate.state), ['intent', 'writing', 'owned'],
       'announced, created (its identity), complete; no progress records in between');

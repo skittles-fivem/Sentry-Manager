@@ -3,15 +3,14 @@
 // Server monitor: the GET /api/stats body on five fake machines (Intel + Arc,
 // AMD, NVIDIA, Raspberry Pi, a locked-down container) and on this machine.
 
-const { skipAll, linuxOnly } = require('./fixtures/platformSkip');
+const { linuxOnly } = require('./fixtures/platformSkip');
 
-// The tests that run the engine on a fake machine (fake /proc and /sys trees
-// from fixtures/stats/machines.js) are the Linux server monitor; Windows has
-// its own (server/stats/platform/win32.js) and its own tests. The rest (the
-// math and the drawing of the tiles) is the same on every OS and runs
-// everywhere.
+// The engine runs here on fake machines (fixtures/stats/machines.js): the
+// Linux server monitor, told it is on Linux, reading their /proc and /sys
+// from real folders on Linux and from memory on Windows (whose folder names
+// cannot hold sysfs's ":"), so these tests run on every system. Windows's
+// own monitor (server/stats/platform/win32.js) has its own tests.
 const test = require('node:test');
-const onFakeTrees = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
@@ -25,7 +24,7 @@ const { setup, fakeFs, fakeClock, fakeSpawn } = require('./fixtures/stats/helper
 const MiB = 1048576;
 const SHARES = () => [{ label: 'Footage share', path: '/footage/tesla' }, { label: 'Data volume', path: '/data' }];
 
-onFakeTrees('Intel desktop with an Arc A380 (xe): CPU, memory, GPUs, power, disks, network, sensors', async () => {
+test('Intel desktop with an Arc A380 (xe): CPU, memory, GPUs, power, disks, network, sensors', async () => {
   const clock = fakeClock();
   const fsp = fakeFs(clock, { '/footage/tesla': { delayMs: 3, blocks: 2e9, bfree: 5e8 }, '/data': { blocks: 1.2e8, bfree: 9e7 } });
   const encodes = [{ jobId: 'j1', pid: 200, encoder: 'hevc_vaapi', hardware: true }, { jobId: 'j1', pid: 201, encoder: 'hevc_vaapi', hardware: true }];
@@ -133,7 +132,7 @@ onFakeTrees('Intel desktop with an Arc A380 (xe): CPU, memory, GPUs, power, disk
   }
 });
 
-onFakeTrees('the GPU name comes from pci.ids when the image has it', async () => {
+test('the GPU name comes from pci.ids when the image has it', async () => {
   const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'sm-pciids-'));
   fs.writeFileSync(path.join(dir, 'pci.ids'), M.PCI_IDS);
   const s = setup(M.intelArc, { pciIdsFiles: [path.join(dir, 'pci.ids')] });
@@ -150,7 +149,7 @@ onFakeTrees('the GPU name comes from pci.ids when the image has it', async () =>
   }
 });
 
-onFakeTrees('AMD desktop: k10temp, amdgpu sysfs and per-process video engine from fdinfo', async () => {
+test('AMD desktop: k10temp, amdgpu sysfs and per-process video engine from fdinfo', async () => {
   const s = setup(M.amd, { appPid: 8 });
   try {
     const snap = await s.run(2);
@@ -182,7 +181,7 @@ onFakeTrees('AMD desktop: k10temp, amdgpu sysfs and per-process video engine fro
   }
 });
 
-onFakeTrees('NVIDIA: numbers from one nvidia-smi stream, [N/A] becomes null', async () => {
+test('NVIDIA: numbers from one nvidia-smi stream, [N/A] becomes null', async () => {
   const spawn = fakeSpawn({ lines: M.NVIDIA_LINES });
   const s = setup(M.nvidia, { appPid: 10, spawn });
   try {
@@ -212,7 +211,7 @@ onFakeTrees('NVIDIA: numbers from one nvidia-smi stream, [N/A] becomes null', as
   assert.equal(spawn.calls.find((c) => c.cmd === 'nvidia-smi').child.killed, 'SIGTERM', 'killed on stop');
 });
 
-onFakeTrees('Raspberry Pi: ARM board name, thermal zone as CPU temperature, V3D listed without stats', async () => {
+test('Raspberry Pi: ARM board name, thermal zone as CPU temperature, V3D listed without stats', async () => {
   const s = setup(M.pi, { appPid: 20 });
   try {
     const snap = await s.run(2);
@@ -239,7 +238,7 @@ onFakeTrees('Raspberry Pi: ARM board name, thermal zone as CPU temperature, V3D 
   }
 });
 
-onFakeTrees('a container that can read almost nothing: every field empty, nothing throws', async () => {
+test('a container that can read almost nothing: every field empty, nothing throws', async () => {
   const s = setup(M.bare);
   try {
     const snap = await s.run(3);
@@ -262,18 +261,18 @@ onFakeTrees('a container that can read almost nothing: every field empty, nothin
   }
 });
 
-onFakeTrees('garbage in every file of a full machine never throws', async () => {
+test('garbage in every file of a full machine never throws', async () => {
   const s = setup(M.intelArc, { options: { readShares: SHARES } });
   try {
     await s.run(1);
     const junk = ['', '\u0000\u0000', 'NaN', '-1', '99999999999999999999999', 'cpu  1 2 3', '(((', 'a: b: c', ')) S', '[N/A]'];
     let k = 0;
     const walk = (dir) => {
-      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-        const p = path.join(dir, e.name);
+      for (const e of s.m.fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = s.m.join(dir, e.name);
         if (e.isSymbolicLink()) continue;
         if (e.isDirectory()) walk(p);
-        else fs.writeFileSync(p, junk[k++ % junk.length]);
+        else s.m.fs.writeFileSync(p, junk[k++ % junk.length]);
       }
     };
     walk(s.m.root);
@@ -293,7 +292,7 @@ onFakeTrees('garbage in every file of a full machine never throws', async () => 
   }
 });
 
-onFakeTrees('this machine: a sample of the real /proc and /sys (no GPU here)', async () => {
+test('this machine: a sample of the real /proc and /sys (no GPU here)', { skip: linuxOnly('this machine\'s own /proc and /sys') }, async () => {
   const spawn = fakeSpawn();
   const stats = createStats({ spawn, ffmpegVersion: null, readShares: () => [{ label: 'Temp', path: require('os').tmpdir() }] });
   try {
@@ -322,7 +321,7 @@ onFakeTrees('this machine: a sample of the real /proc and /sys (no GPU here)', a
   }
 });
 
-onFakeTrees('small parsers: stat names with ")" and spaces, CPU names, the host OS', () => {
+test('small parsers: stat names with ")" and spaces, CPU names, the host OS', () => {
   const p = parseStat(M.statLine({ pid: 7, comm: 'weird ) name', ppid: 1, utime: 5, stime: 6, start: 99, rss: 12 }));
   assert.deepEqual(p, { pid: 7, comm: 'weird ) name', state: 'S', ppid: 1, ticks: 11, childTicks: 0, start: 99, rssPages: 12 });
   assert.equal(parseStat('garbage'), null);
@@ -339,7 +338,7 @@ onFakeTrees('small parsers: stat names with ")" and spaces, CPU names, the host 
   assert.equal(osFromKernel(null, null), null);
 });
 
-onFakeTrees('an ffmpeg that ended between two samples still counts: its last ticks come from the app\'s cutime', () => {
+test('an ffmpeg that ended between two samples still counts: its last ticks come from the app\'s cutime', () => {
   const root = fs.mkdtempSync(path.join(require('os').tmpdir(), 'reaped-'));
   const put = (procs) => {
     for (const e of fs.readdirSync(root)) fs.rmSync(path.join(root, e), { recursive: true });
@@ -366,7 +365,7 @@ onFakeTrees('an ffmpeg that ended between two samples still counts: its last tic
   fs.rmSync(root, { recursive: true });
 });
 
-onFakeTrees('a bridge, its bond and its port carry the same bytes: counted once', async () => {
+test('a bridge, its bond and its port carry the same bytes: counted once', async () => {
   // Unraid with pid: host: eth0 in bond0 in br0, seen without the host's sysfs
   const unraid = (phase) => ({
     ...M.amd(phase),
@@ -400,7 +399,7 @@ onFakeTrees('a bridge, its bond and its port carry the same bytes: counted once'
   }
 });
 
-onFakeTrees('a virtual machine gets no "CPU power" hint (there is nothing to bind there)', async () => {
+test('a virtual machine gets no "CPU power" hint (there is nothing to bind there)', async () => {
   const vm = (phase) => {
     const spec = M.amd(phase);
     spec['proc/cpuinfo'] = spec['proc/cpuinfo'].replace(/flags\t\t: fpu vme de pse/g, 'flags\t\t: fpu vme de pse hypervisor');
@@ -422,7 +421,7 @@ onFakeTrees('a virtual machine gets no "CPU power" hint (there is nothing to bin
   }
 });
 
-onFakeTrees('Docker Desktop for Windows (WSL2): no "CPU power" hint, and the reason is Windows', async () => {
+test('Docker Desktop for Windows (WSL2): no "CPU power" hint, and the reason is Windows', async () => {
   const wsl = (phase) => {
     const spec = M.amd(phase);
     spec['proc/sys/kernel/osrelease'] = '5.15.153.1-microsoft-standard-WSL2\n';
@@ -447,7 +446,7 @@ onFakeTrees('Docker Desktop for Windows (WSL2): no "CPU power" hint, and the rea
   }
 });
 
-onFakeTrees('a 128-thread server: the clock is read from 32 cores, not all of them', () => {
+test('a 128-thread server: the clock is read from 32 cores, not all of them', () => {
   const { CpuProvider } = require('../server/stats/cpu');
   const spec = { 'proc/cpuinfo': '', 'proc/stat': '' };
   for (let i = 0; i < 128; i++) spec[`sys/devices/system/cpu/cpu${i}/cpufreq/scaling_cur_freq`] = `${i === 127 ? 3700000 : 1500000}\n`;

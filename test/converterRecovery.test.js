@@ -11,11 +11,15 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
+const { ownedFsSkip } = require('./fixtures/ownedFsAdapter');
 const { spawnSync } = require('child_process');
 const { makeBase, open, CLIP, HELPER } = require('./fixtures/replaceCrash');
+const { exitSignal } = require('./fixtures/processTree');
 
-const skip = linuxOnly(RENAME_HELPER) || needsTool(spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER), 'needs ffmpeg and build/noreplace-rename');
+// (Linux: posixOwnedFs over build/noreplace-rename; Windows: winOwnedFs over
+// SentryHelper.exe)
+const skip = ownedFsSkip(spawnSync('ffmpeg', ['-version']).status === 0, 'needs ffmpeg and build/noreplace-rename', 'needs ffmpeg and SentryHelper.exe (set SENTRY_HELPER)',
+  { noReplaceHelper: HELPER });
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const codec = (file) => String(spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', file]).stdout).trim();
@@ -24,7 +28,8 @@ async function crashThenRestart(kill) {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-recover-'));
   const folder = await makeBase(base);
   const child = spawnSync(process.execPath, [path.join(__dirname, 'fixtures', 'replaceCrash.js')], { env: { ...process.env, BASE: base, KILL: kill }, timeout: 90_000 });
-  assert.strictEqual(child.signal, 'SIGKILL', 'the converter died mid-replacement');
+  // (Windows: ended by TerminateProcess at the point, see processTree.js)
+  assert.strictEqual(exitSignal(child, base), 'SIGKILL', 'the converter died mid-replacement');
   assert.ok(fs.readdirSync(folder).some((name) => name.startsWith('BACKUP-')), 'the original is still kept as a backup');
   const env = await open(base);
   await env.runtime.start();
@@ -73,7 +78,7 @@ test('a job an earlier version left waiting for Resume mid-replacement finishes 
   try {
     const folder = await makeBase(base);
     const child = spawnSync(process.execPath, [path.join(__dirname, 'fixtures', 'replaceCrash.js')], { env: { ...process.env, BASE: base, KILL: 'before' }, timeout: 90_000 });
-    assert.strictEqual(child.signal, 'SIGKILL');
+    assert.strictEqual(exitSignal(child, base), 'SIGKILL');
     env = await open(base);
     // what earlier versions saved after taking one step of the recovery
     const [stopped] = await env.runtime.store.list();

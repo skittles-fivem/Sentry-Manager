@@ -7,7 +7,7 @@ const fs = require('fs');
 const { EventEmitter } = require('events');
 const { PassThrough } = require('stream');
 const { createStats } = require('../../../server/stats');
-const { build } = require('./machines');
+const { build, buildInMemory, inMemoryHere } = require('./machines');
 
 function fakeClock(start = new Date(2026, 9, 23, 10, 0, 0).getTime()) {
   const c = { t: start, now: () => c.t, advance: (ms) => { c.t += ms; } };
@@ -78,7 +78,7 @@ function fakeSpawn({ lines = [], exitAfterLines = false, ffmpeg = 'ffmpeg versio
 /** A share that answers stat/statfs, after `delayMs` on the test clock, or never (hung). */
 function fakeFs(clock, shares = {}) {
   return {
-    readFile: fs.promises.readFile,
+    readFile: (...args) => fs.promises.readFile(...args),
     async stat(p) {
       const s = shares[p];
       if (!s) throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
@@ -94,14 +94,21 @@ function fakeFs(clock, shares = {}) {
   };
 }
 
-/** A machine, a clock and a stats engine on them. */
+/**
+ * A machine, a clock and the Linux server monitor on them, on every system.
+ * `memory: true` keeps the machine in memory (buildInMemory); without it the
+ * machine is in real folders on Linux and in memory elsewhere (inMemoryHere).
+ * The engine is told it is on Linux, so on Windows it runs the Linux monitor,
+ * not the Windows one; `options.platform` picks another.
+ */
 function setup(machine, opts = {}) {
-  const m = build(machine(0));
+  const m = (opts.memory ?? inMemoryHere()) ? buildInMemory(machine(0)) : build(machine(0));
   const clock = opts.clock || fakeClock();
   const stats = createStats({
     procRoot: m.proc, sysRoot: m.sys, devRoot: m.dev, appPid: opts.appPid ?? 100, now: clock.now,
     spawn: opts.spawn || fakeSpawn(), ...(opts.probeFfmpeg ? {} : { ffmpegVersion: opts.ffmpegVersion === undefined ? '7.1.1-Jellyfin' : opts.ffmpegVersion }),
     version: 'test', dataDir: opts.dataDir ?? null, timers: opts.timers, pciIdsFiles: opts.pciIdsFiles || ['/nonexistent/pci.ids'],
+    platform: 'linux',
     ...opts.options
   });
   /** Sample phases from..to, 2 s apart, letting the background reads land after each. */

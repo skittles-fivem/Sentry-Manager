@@ -87,7 +87,7 @@ function createStats(options = {}) {
   const memoryProvider = providers.memory;
   // (the real file system only: a stand-in fsp in tests has no fragment size)
   const filesystems = new FilesystemsProvider({
-    procRoot, sysRoot, appPid, readShares, fsp, now, log, fragmentSize: fsp === fs.promises ? fragmentSize : null, locate: providers.locate
+    procRoot, sysRoot, appPid, readShares, fsp, now, log, fragmentSize: fsp === fs.promises ? fragmentSize : null, locate: providers.locate, platform
   });
   const history = new History({ intervalMs });
   const energy = new Energy({ intervalMs, progressOf: (jobId) => callSafe(jobProgress, jobId) || null });

@@ -22,7 +22,14 @@ const ADVERTISED = ['libx265', 'libsvtav1', 'hevc_nvenc', 'av1_nvenc', 'hevc_qsv
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function until(fn, ms = 10_000) {
+// How long a test waits for something it expects (clips started, a job
+// finished) before calling it a failure. On Linux these come within a second;
+// a Windows runner busy with the real-ffmpeg end-to-end tests next to it
+// writes and flushes each job file far slower (one clip has taken over 10 s
+// there), so the wait is generous. A test that passes never waits it out.
+const PATIENCE_MS = 60_000;
+
+async function until(fn, ms = PATIENCE_MS) {
   const end = Date.now() + ms;
   while (Date.now() < end) {
     if (await fn()) return true;
@@ -82,6 +89,8 @@ function clipName(index) {
  *   behave(args)   'hold' (until released), a number (exit code) or undefined (0 at once)
  *   dir, store     reuse a previous harness's folder (a restart)
  *   timeline       what readTimeline returns for every clip
+ *   platform, pathApi  what the job service is told it runs on (default: this
+ *                  machine), and the paths the scan names clips with
  *   verifier       replaces the verifier (default: every candidate passes)
  *   copyAsset      replaces the staging copy of a kept original (default: refused)
  *   remoteEncode, comparePicture  a lane on another server (Nodes)
@@ -126,7 +135,7 @@ function createHarness(options = {}) {
       const name = clipName(index);
       yield {
         kind: 'video', group: 'RecentClips', eventId: null,
-        relativePath: `RecentClips/${name}`, sourcePath: path.join(config.sourceRoot, 'RecentClips', name),
+        relativePath: `RecentClips/${name}`, sourcePath: (options.pathApi || path).join(config.sourceRoot, 'RecentClips', name),
         sourceBytes: 4_000_000, mtimeMs: 1_700_000_000_000 + index, timestampKey: name.slice(0, 19), camera: 'front'
       };
     }
@@ -176,7 +185,9 @@ function createHarness(options = {}) {
     ...(options.remoteEncode ? { remoteEncode: options.remoteEncode } : {}),
     ...(options.comparePicture ? { comparePicture: options.comparePicture } : {}),
     ...(options.nodeTrusted ? { nodeTrusted: options.nodeTrusted } : {}),
-    ...(options.setNodeSlots ? { setNodeSlots: options.setNodeSlots } : {})
+    ...(options.setNodeSlots ? { setNodeSlots: options.setNodeSlots } : {}),
+    ...(options.platform ? { platform: options.platform } : {}),
+    ...(options.pathApi ? { pathApi: options.pathApi } : {})
   };
   const service = createConverterJobService(deps);
   const destinationRoot = path.join(dir, 'out');
@@ -201,7 +212,7 @@ function createHarness(options = {}) {
   const releaseAll = () => { for (const entry of held()) entry.finish(0); };
   const encodes = () => spawned.filter((entry) => entry.args.includes('pipe:1'));
 
-  async function finishJob(id, ms = 10_000) {
+  async function finishJob(id, ms = PATIENCE_MS) {
     let done = false;
     const idle = service.whenIdle(id).then(() => { done = true; });
     const end = Date.now() + ms;

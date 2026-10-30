@@ -9,8 +9,9 @@
 // (#!<process.execPath>), so spawning its path runs it. Windows cannot run a
 // script by its path without a shell (and Node refuses .cmd files with
 // shell: false), so there writeNodeTool() says so plainly instead of leaving
-// a confusing spawn error; the tests that use it need the Linux renameat2
-// helper and are skipped on Windows before they get here.
+// a confusing spawn error. Tests that run on Windows too write their tools
+// with writeTool() and spawn them with toolSpawn() (test/fixtures/processTree.js),
+// which run the same prelude as a .js file through this very Node.
 //
 // Every tool starts with a small prelude:
 //   args            its arguments, as the code under test passed them

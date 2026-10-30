@@ -468,7 +468,7 @@ $portLine
   $binPathArg = '\"' + $ServiceExe + '\"'
   $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
   if ($null -eq $svc) {
-    Say "Creating the service $ServiceName (runs as $ServiceAccount: no password, not an administrator)..."
+    Say "Creating the service $ServiceName (runs as ${ServiceAccount}: no password, not an administrator)..."
     Run-Native 'sc.exe' @('create', $ServiceName, 'binPath=', $binPathArg, 'obj=', $ServiceAccount, 'start=', 'delayed-auto', 'depend=', 'Tcpip/LanmanWorkstation', 'DisplayName=', 'Sentry Six Manager') 'Creating the service'
   } else {
     Say "Updating the service $ServiceName..."
@@ -485,7 +485,9 @@ $portLine
   # the virtual account is the service's own SID; make sure it has one
   Run-Native 'sc.exe' @('sidtype', $ServiceName, 'unrestricted') 'Setting the service SID type'
   Say 'Setting the service to restart 5 seconds after a failure...'
-  Run-Native 'sc.exe' @('failure', $ServiceName, 'reset=', '86400', 'actions=', 'restart/5000/restart/5000/restart/5000') 'Setting the failure actions'
+  Run-Native 'sc.exe' @('failure', $ServiceName, 'reset=', '60', 'actions=', 'restart/5000') 'Setting the failure actions'
+  # also when it stops with an error code (the service gives up after 5 crashes in 60 s, exit code 2)
+  Run-Native 'sc.exe' @('failureflag', $ServiceName, '1') 'Setting the failure actions for error exits'
   Run-Native 'sc.exe' @('description', $ServiceName, "Sentry Six Manager web app ($scheme`://localhost:$listenPort). Data and settings: $DataRoot") 'Setting the description'
 
   # --- 6. permissions ---

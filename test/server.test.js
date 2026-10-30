@@ -261,7 +261,7 @@ test('footage, protect, Recycle Bin and policies never lose files', { timeout: 1
     assert.equal(r.data.moved.length, 2);
     assert.equal(fs.existsSync(path.join(root, 'TeslaCam/SentryClips/2020-01-02_12-30-00')), false, 'empty event folder removed');
     assert.ok(fs.existsSync(path.join(root, 'TeslaCam/SentryClips')), 'clip folders kept');
-    const binFiles = execFileSync('find', [path.join(root, '.sentry-recycle-bin'), '-type', 'f']).toString().trim().split('\n');
+    const binFiles = fs.readdirSync(path.join(root, '.sentry-recycle-bin'), { recursive: true, withFileTypes: true }).filter((e) => e.isFile()).map((e) => e.name);
     assert.equal(binFiles.length, 5);
     assert.ok(binFiles.every((f) => f.endsWith('.binned')), 'binned files are invisible to the converter');
     const rootListing = await s.call('POST', '/api/studio/readDir', { path: root });
@@ -852,18 +852,32 @@ test('Vehicles: Test connection checks the typed SMB details without saving anyt
   try {
     assert.equal((await s.call('POST', '/api/vehicles/test-smb', body({}))).status, 401, 'sign in first');
     await s.call('POST', '/api/auth/login', { username: 'admin', password: 'correct horse' });
-    const before = (await s.call('GET', '/api/vehicles')).data;
+    // What a vehicle has saved, without what the server finds out about it as
+    // it runs (the share's status, the footage scan, the bin): a slower test
+    // (Windows asks port 445, which can take seconds) lets the first scan and
+    // write check land in between, and those are not something the test saved.
+    const saved = async () => (await s.call('GET', '/api/vehicles')).data.vehicles.map(({ id, name, timezone, source, root, studioRoot, security, policy }) => ({ id, name, timezone, source, root, studioRoot, security, policy }));
+    const before = await saved();
     const bad = await s.call('POST', '/api/vehicles/test-smb', body({ share: 'not a share' }));
     assert.equal(bad.status, 200);
     assert.deepEqual([bad.data.ok, bad.data.stage], [false, 'details']);
     assert.equal((await s.call('POST', '/api/vehicles/test-smb', body({}, { vehicleId: 'no-such-car' }))).status, 404);
-    // a share nobody answers for: a plain "could not connect", never a server error
-    const down = await s.call('POST', '/api/vehicles/test-smb', body({}));
+    // a share nobody answers for: a plain "could not connect", never a server error.
+    // Windows connects on port 445 only, so there another port is a detail it
+    // refuses up front, and the share that is not there is asked for on 445
+    // (this PC's own file server says no straight away).
+    const win = process.platform === 'win32';
+    if (win) {
+      const port = await s.call('POST', '/api/vehicles/test-smb', body({}));
+      assert.deepEqual([port.status, port.data.ok, port.data.stage], [200, false, 'details']);
+      assert.match(port.data.error, /port 445/);
+    }
+    const down = await s.call('POST', '/api/vehicles/test-smb', body(win ? { port: undefined } : {}));
     assert.equal(down.status, 200);
     assert.equal(down.data.ok, false);
     assert.equal(down.data.stage, 'connect');
     assert.equal(typeof down.data.error, 'string');
-    assert.deepEqual((await s.call('GET', '/api/vehicles')).data, before, 'nothing saved');
+    assert.deepEqual(await saved(), before, 'nothing saved');
     // the test's mount point is never a vehicle's id
     const added = await s.call('POST', '/api/vehicles', { name: 'X SMB Test', source: { type: 'path', path: path.join(dir, 'footage') } });
     if (added.status === 200) assert.notEqual(added.data.id, 'x-smb-test');

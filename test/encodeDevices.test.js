@@ -10,11 +10,18 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { createDeviceDiscovery, normalizePciSlot } = require('../src/main/converter/encodeDevices');
+const { createMemoryFs } = require('./fixtures/memoryFs');
+
+const posix = path.posix;
 
 // A /dev and /sys like a desktop with an Intel UHD 770 (00:02.0) and an Arc
-// A380 (03:00.0), plus a Pi-style V3D and an NVIDIA card's render node.
+// A380 (03:00.0), plus a Pi-style V3D and an NVIDIA card's render node. The
+// tree lives in memory with POSIX paths: these are Linux trees (names with
+// colons, symlinks) the tests run the same on every system.
 function machine() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-devices-'));
+  const fs = createMemoryFs();
+  const path = posix;
+  const root = '/machine';
   const dev = path.join(root, 'dev');
   const sys = path.join(root, 'sys');
   fs.mkdirSync(path.join(dev, 'dri'), { recursive: true });
@@ -50,7 +57,12 @@ function machine() {
   char('226:129', arc);
   char('226:130', v3d);
   char('226:131', nvidia);
-  return { root, dev, sys, node: (name) => path.join(dev, 'dri', name) };
+  return {
+    root, dev, sys, fs,
+    node: (name) => path.join(dev, 'dri', name),
+    // what every Linux discovery here is given: this tree, POSIX paths
+    linux: { devRoot: dev, sysRoot: sys, fs, pathApi: posix, platform: 'linux' }
+  };
 }
 
 const noNvidia = async () => ({ status: null, error: { code: 'PROCESS_START_FAILED' }, stdout: '', stderr: '' });
@@ -58,13 +70,13 @@ const noNvidia = async () => ({ status: null, error: { code: 'PROCESS_START_FAIL
 test('every Intel/AMD render node is a device named by its PCI slot, the CPU last', async () => {
   const m = machine();
   try {
-    for (const name of ['renderD128', 'renderD129']) fs.writeFileSync(m.node(name), '');
+    for (const name of ['renderD128', 'renderD129']) m.fs.writeFileSync(m.node(name), '');
     const numbers = { renderD128: { major: 226, minor: 128 }, renderD129: { major: 226, minor: 129 } };
     const list = await createDeviceDiscovery({
-      devRoot: m.dev, sysRoot: m.sys, platform: 'linux', runCommand: noNvidia,
-      statRdev: (node) => numbers[path.basename(node)]
+      ...m.linux, runCommand: noNvidia,
+      statRdev: (node) => numbers[posix.basename(node)]
     }).list();
-    assert.deepEqual(list.map((d) => [d.id, d.kind, d.vendor, d.node && path.basename(d.node), d.index]), [
+    assert.deepEqual(list.map((d) => [d.id, d.kind, d.vendor, d.node && posix.basename(d.node), d.index]), [
       ['pci:0000:00:02.0', 'dri', 'intel', 'renderD128', null],
       ['pci:0000:03:00.0', 'dri', 'intel', 'renderD129', null],
       ['cpu', 'cpu', null, null, null]
@@ -73,7 +85,7 @@ test('every Intel/AMD render node is a device named by its PCI slot, the CPU las
     assert.equal(list[2].name, 'CPU (software encoder)');
     assert.equal(list[1].node, m.node('renderD129'), 'the path inside the container');
   } finally {
-    fs.rmSync(m.root, { recursive: true, force: true });
+    m.fs.rmSync(m.root);
   }
 });
 
@@ -81,29 +93,29 @@ test('the compose remap trick: a node is matched by its device number, not its n
   const m = machine();
   try {
     // /dev/dri/renderD129:/dev/dri/renderD128 -> inside, renderD128 is the Arc
-    fs.writeFileSync(m.node('renderD128'), '');
+    m.fs.writeFileSync(m.node('renderD128'), '');
     const list = await createDeviceDiscovery({
-      devRoot: m.dev, sysRoot: m.sys, platform: 'linux', runCommand: noNvidia,
+      ...m.linux, runCommand: noNvidia,
       statRdev: () => ({ major: 226, minor: 129 })
     }).list();
-    assert.deepEqual(list.map((d) => [d.id, d.node && path.basename(d.node)]), [['pci:0000:03:00.0', 'renderD128'], ['cpu', null]]);
+    assert.deepEqual(list.map((d) => [d.id, d.node && posix.basename(d.node)]), [['pci:0000:03:00.0', 'renderD128'], ['cpu', null]]);
     // without the device number (or when it cannot be read), the name is used
     for (const statRdev of [null, () => { throw new Error('EACCES'); }]) {
-      const byName = await createDeviceDiscovery({ devRoot: m.dev, sysRoot: m.sys, platform: 'linux', runCommand: noNvidia, statRdev }).list();
+      const byName = await createDeviceDiscovery({ ...m.linux, runCommand: noNvidia, statRdev }).list();
       assert.equal(byName[0].id, 'pci:0000:00:02.0');
     }
   } finally {
-    fs.rmSync(m.root, { recursive: true, force: true });
+    m.fs.rmSync(m.root);
   }
 });
 
 test('a SoC GPU and NVIDIA\'s own render nodes are left out; the stats engine names the rest', async () => {
   const m = machine();
   try {
-    for (const name of ['renderD128', 'renderD130', 'renderD131']) fs.writeFileSync(m.node(name), '');
+    for (const name of ['renderD128', 'renderD130', 'renderD131']) m.fs.writeFileSync(m.node(name), '');
     const seen = [];
     const list = await createDeviceDiscovery({
-      devRoot: m.dev, sysRoot: m.sys, platform: 'linux', runCommand: noNvidia, statRdev: null,
+      ...m.linux, runCommand: noNvidia, statRdev: null,
       nameOf: (info) => { seen.push(info); return info.deviceId === '0x4680' ? 'Intel UHD Graphics 770' : null; }
     }).list();
     assert.deepEqual(list.map((d) => d.id), ['pci:0000:00:02.0', 'cpu']);
@@ -111,20 +123,20 @@ test('a SoC GPU and NVIDIA\'s own render nodes are left out; the stats engine na
     assert.deepEqual(Object.keys(seen[0]).sort(), ['deviceId', 'driver', 'pci', 'sysDevice', 'vendor', 'vendorId']);
     assert.deepEqual([seen[0].pci, seen[0].vendor, seen[0].vendorId, seen[0].driver], ['0000:00:02.0', 'intel', '0x8086', 'i915']);
   } finally {
-    fs.rmSync(m.root, { recursive: true, force: true });
+    m.fs.rmSync(m.root);
   }
 });
 
 test('NVIDIA GPUs come from nvidia-smi, bus ids normalised, ordered by index after the DRI ones', async () => {
   const m = machine();
   try {
-    fs.writeFileSync(m.node('renderD129'), '');
+    m.fs.writeFileSync(m.node('renderD129'), '');
     const calls = [];
     const runCommand = async (command, args, options) => {
       calls.push({ command, args, options });
       return { status: 0, stdout: '1, 00000000:02:00.0, NVIDIA GeForce RTX 3060\n0, 00000000:01:00.0, NVIDIA T400\nbad line\n', stderr: '' };
     };
-    const list = await createDeviceDiscovery({ devRoot: m.dev, sysRoot: m.sys, platform: 'linux', runCommand, statRdev: null }).list();
+    const list = await createDeviceDiscovery({ ...m.linux, runCommand, statRdev: null }).list();
     assert.deepEqual(list.map((d) => [d.id, d.kind, d.index, d.name]), [
       ['pci:0000:03:00.0', 'dri', null, 'Intel GPU (0000:03:00.0)'],
       ['pci:0000:01:00.0', 'nvidia', 0, 'NVIDIA T400'],
@@ -138,24 +150,24 @@ test('NVIDIA GPUs come from nvidia-smi, bus ids normalised, ordered by index aft
     assert.equal(normalizePciSlot('nonsense'), null);
     // a failing nvidia-smi means no NVIDIA devices
     const failing = await createDeviceDiscovery({
-      devRoot: m.dev, sysRoot: m.sys, platform: 'linux', statRdev: null,
+      ...m.linux, statRdev: null,
       runCommand: async () => ({ status: 9, stdout: '0, 00000000:01:00.0, NVIDIA T400\n', stderr: 'NVML' })
     }).list();
     assert.deepEqual(failing.map((d) => d.id), ['pci:0000:03:00.0', 'cpu']);
   } finally {
-    fs.rmSync(m.root, { recursive: true, force: true });
+    m.fs.rmSync(m.root);
   }
 });
 
 test('an nvidia-smi that never exits (a wedged driver) does not hold up the list, and no second one is started', async () => {
   const m = machine();
   try {
-    fs.writeFileSync(m.node('renderD129'), '');
+    m.fs.writeFileSync(m.node('renderD129'), '');
     let started = 0;
     let exit;
     // stopped at its timeout, it never closes (stuck in the kernel)
     const runCommand = () => { started += 1; return new Promise((resolve) => { exit = resolve; }); };
-    const discovery = createDeviceDiscovery({ devRoot: m.dev, sysRoot: m.sys, platform: 'linux', runCommand, statRdev: null, nvidiaDeadlineMs: 50 });
+    const discovery = createDeviceDiscovery({ ...m.linux, runCommand, statRdev: null, nvidiaDeadlineMs: 50 });
     const begun = Date.now();
     assert.deepEqual((await discovery.list()).map((d) => d.id), ['pci:0000:03:00.0', 'cpu'], 'the Intel GPU and the CPU, without waiting');
     assert.ok(Date.now() - begun < 2_000);
@@ -170,7 +182,7 @@ test('an nvidia-smi that never exits (a wedged driver) does not hold up the list
     assert.deepEqual((await next).map((d) => d.id), ['pci:0000:03:00.0', 'pci:0000:01:00.0', 'cpu']);
     assert.equal(started, 2);
   } finally {
-    fs.rmSync(m.root, { recursive: true, force: true });
+    m.fs.rmSync(m.root);
   }
 });
 
@@ -185,10 +197,10 @@ test('other systems and a container without GPUs have only the CPU', async () =>
       assert.deepEqual(list.map((d) => d.id), ['cpu']);
     }
     assert.equal(asked, false, 'nothing is run off Linux and Windows');
-    const empty = await createDeviceDiscovery({ devRoot: path.join(m.root, 'nothing'), sysRoot: m.sys, platform: 'linux', runCommand: noNvidia }).list();
+    const empty = await createDeviceDiscovery({ ...m.linux, devRoot: posix.join(m.root, 'nothing'), runCommand: noNvidia }).list();
     assert.deepEqual(empty.map((d) => d.id), ['cpu']);
   } finally {
-    fs.rmSync(m.root, { recursive: true, force: true });
+    m.fs.rmSync(m.root);
   }
 });
 
@@ -197,7 +209,9 @@ test('the server names the devices as Overview > Server names its GPUs', () => {
   const { createDeviceNameOf } = require('../server/converterHost');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-devices-names-'));
   try {
-    const amd = path.join(root, '0000:0c:00.0');
+    // (sysfs names this folder 0000:0c:00.0; only its product_name is read,
+    // and a folder name with colons cannot exist on Windows)
+    const amd = path.join(root, 'amd-gpu');
     fs.mkdirSync(amd);
     fs.writeFileSync(path.join(amd, 'product_name'), 'AMD Radeon RX 7600\n');
     const none = { pciIdsFiles: [] };

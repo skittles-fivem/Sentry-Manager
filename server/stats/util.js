@@ -190,7 +190,11 @@ class BackgroundReads {
 
 const num = (text) => toNum(text === null || text === undefined ? null : String(text).split('\n', 1)[0]);
 
+// Paths in /proc, /sys and /dev are always POSIX paths, whatever system runs
+// the code that builds them (the tests run the Linux monitor on Windows too).
+const join = path.posix.join;
+
 module.exports = {
   readText, readLine, readNum, num, listDir, readLink, realPath, exists,
-  parseKeyValues, parseUevent, round, clampPct, maxOf, sumOf, BackgroundReads, join: path.join
+  parseKeyValues, parseUevent, round, clampPct, maxOf, sumOf, BackgroundReads, join
 };
