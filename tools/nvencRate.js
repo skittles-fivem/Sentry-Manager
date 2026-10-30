@@ -19,7 +19,10 @@
 // --out must not exist yet (or be empty) and is deleted at the end unless
 // --keep. Variant 'app' is whatever buildEncodeArgs gives today; the others
 // replace its rate arguments ('-b:v N' and anything the app adds for NVENC)
-// with their own.
+// with their own. 'bv' is what hevc_nvenc had before its peak rate was
+// capped ('vbr-max1.0', now the app's; run 41089010627 measured all of them).
+// The GitHub workflow does not run this; point water.yml's gpu job at it
+// (as its GPU tiers step runs tools/gpuTiers.js) to measure again.
 
 const fs = require('fs');
 const path = require('path');
