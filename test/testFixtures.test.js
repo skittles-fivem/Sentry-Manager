@@ -11,15 +11,17 @@ const path = require('path');
 const { realTmp, realTmpSync, realTmpRoot } = require('./fixtures/tmp');
 
 test('realTmp makes folders under the real temp path when TMPDIR goes through a symlink', async () => {
-  // On Windows the native real path (no 8.3 short names, as realTmpRoot
-  // gives it), and os.tmpdir() reads TEMP (then TMP) there, not TMPDIR.
-  const realpath = process.platform === 'win32' ? fs.realpathSync.native : fs.realpathSync;
-  const vars = process.platform === 'win32' ? ['TEMP', 'TMP'] : ['TMPDIR'];
+  // Windows names its temp folder in TEMP (os.tmpdir() reads TEMP, then TMP)
+  // and links a folder with a junction; its real path is the native one,
+  // with 8.3 short names (RUNNER~1) expanded
+  const windows = process.platform === 'win32';
+  const vars = windows ? ['TEMP', 'TMP'] : ['TMPDIR'];
+  const realpath = windows ? fs.realpathSync.native : fs.realpathSync;
   const base = realpath(fs.mkdtempSync(path.join(os.tmpdir(), 'sm-fixture-')));
   const real = path.join(base, 'real');
   const link = path.join(base, 'link');
   fs.mkdirSync(real);
-  fs.symlinkSync(real, link);
+  fs.symlinkSync(real, link, windows ? 'junction' : undefined);
   const saved = vars.map((name) => process.env[name]);
   for (const name of vars) process.env[name] = link;
   try {

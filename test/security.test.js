@@ -14,9 +14,9 @@ const http2 = require('http2');
 const net = require('net');
 const { realTmp } = require('./fixtures/tmp');
 const path = require('path');
-const { linuxOnly, notOnWindows, needsTool, tlsUsesOpenssl } = require('./fixtures/platformSkip');
+const { linuxOnly, needsTool, tlsUsesOpenssl } = require('./fixtures/platformSkip');
 const { writeNodeTool } = require('./fixtures/nodeTool');
-const { dirLink } = require('./fixtures/dirLink');
+const { dirLink, canLinkFiles } = require('./fixtures/dirLink');
 const { spawn, spawnSync } = require('child_process');
 const { normalizeSmb, mountArgs, parseShare } = require('../server/mountSpec');
 const { createRealGuard } = require('../server/safePath');
@@ -219,22 +219,31 @@ test('HTTPS, the setup code, cookies and password confirmation', { skip: needsTl
   }
 });
 
-// Windows: the server is started on links to / and /etc, Linux's own folders,
-// with file symlinks among them (admin rights or Developer Mode there); folder
-// links (junctions there) are covered by the real-path guard, Recycle Bin and
-// safeFs tests below and in platformWindows.test.js.
-const fileLinks = notOnWindows('links to / and /etc, the Linux root folders, and file symlinks');
+// The same attack on every system. On Windows the folder links are junctions
+// (what a normal account can make), the root link goes to the system drive's
+// root with Windows\win.ini standing in for /etc/passwd and the Windows
+// folder for /etc, and the file symlink (admin rights or Developer Mode
+// there) is planted only where this account may make one.
+const onWindows = process.platform === 'win32';
 
-test('symlinks on a share never lead outside it', { skip: fileLinks, timeout: 60000 }, async () => {
+test('symlinks on a share never lead outside it', { timeout: 60000 }, async () => {
   const dir = await tmp();
   const T = path.join(dir, 'footage/TeslaCam');
+  const systemRoot = onWindows ? path.parse(dir).root : '/';
+  const systemFolder = onWindows ? (process.env.SystemRoot || path.join(systemRoot, 'Windows')) : '/etc';
+  const systemFile = onWindows ? 'Windows/win.ini' : 'etc/passwd';
+  const rootlink = path.join(T, 'rootlink');
+  // dir as seen through the root link
+  const viaRoot = (...rest) => path.join(rootlink, dir.slice(systemRoot.length), ...rest);
   await fsp.mkdir(path.join(T, 'RecentClips'), { recursive: true });
   await fsp.writeFile(path.join(T, 'RecentClips/2020-01-01_08-00-00-front.mp4'), 'clip');
   await fsp.mkdir(path.join(dir, 'outside/RecentClips'), { recursive: true });
   await fsp.writeFile(path.join(dir, 'outside/secret.txt'), 'TOP SECRET');
-  await fsp.symlink(path.join(dir, 'outside'), path.join(T, 'linkdir'));
-  await fsp.symlink('/', path.join(T, 'rootlink'));
-  await fsp.symlink(path.join(dir, 'outside/secret.txt'), path.join(T, 'RecentClips/2020-01-01_09-00-00-front.mp4'));
+  await dirLink(path.join(dir, 'outside'), path.join(T, 'linkdir'));
+  await dirLink(systemRoot, rootlink);
+  const linkedClip = path.join(T, 'RecentClips/2020-01-01_09-00-00-front.mp4');
+  const fileLink = canLinkFiles();
+  if (fileLink) await fsp.symlink(path.join(dir, 'outside/secret.txt'), linkedClip, 'file');
   const s = await startServer(dir, { TLS_MODE: 'off', UI_PASSWORD: 'correct horse' });
   const base = `http://127.0.0.1:${s.port}`;
   let cookie = '';
@@ -250,18 +259,18 @@ test('symlinks on a share never lead outside it', { skip: fileLinks, timeout: 60
   };
   try {
     await call('POST', '/api/auth/login', { username: 'admin', password: 'correct horse' });
-    for (const p of [path.join(T, 'linkdir/secret.txt'), path.join(T, 'rootlink/etc/passwd'), path.join(T, `rootlink${dir}/data/manager.db`), path.join(T, 'RecentClips/2020-01-01_09-00-00-front.mp4')]) {
+    for (const p of [path.join(T, 'linkdir/secret.txt'), path.join(rootlink, systemFile), viaRoot('data/manager.db'), ...(fileLink ? [linkedClip] : [])]) {
       assert.equal((await call('POST', '/api/studio/readFile', { path: p })).status, 403, p);
       assert.equal((await call('GET', `/api/media?path=${encodeURIComponent(p)}`)).status, 403, p);
     }
     const listing = (await call('POST', '/api/studio/readDir', { path: T })).data.map((e) => e.name);
     assert.deepEqual(listing, ['RecentClips'], 'links are not listed');
     assert.equal((await call('POST', '/api/studio/readDir', { path: path.join(T, 'linkdir') })).status, 403);
-    for (const defaultPath of [path.join(T, 'linkdir'), path.join(T, 'rootlink/etc')]) {
+    for (const defaultPath of [path.join(T, 'linkdir'), path.join(rootlink, path.basename(systemFolder))]) {
       assert.deepEqual((await call('POST', '/api/converter/invoke/chooseFolder', { purpose: 'source', defaultPath })).data, { ok: false, error: { code: 'PATH_NOT_ALLOWED' } });
     }
     const start = await call('POST', '/api/converter/invoke/start', {
-      sourceRoot: path.join(T, `rootlink${dir}/outside`), destinationRoot: null, outputMode: 'replace', replacementConfirmed: true,
+      sourceRoot: viaRoot('outside'), destinationRoot: null, outputMode: 'replace', replacementConfirmed: true,
       codec: 'h265', profileId: 'balanced', networkMode: 'direct', includedGroups: ['RecentClips'], verifyMode: 'quick'
     });
     assert.deepEqual(start.data, { ok: false, error: { code: 'PATH_NOT_ALLOWED' } });
@@ -276,13 +285,17 @@ test('symlinks on a share never lead outside it', { skip: fileLinks, timeout: 60
     })();
     assert.deepEqual(recs.map((r) => r.start), ['2020-01-01 08:00:00']);
     // folder vehicles may not point at the container's own folders
-    for (const p of ['/', '/etc', path.join(dir, 'data'), REPO]) {
+    for (const p of [systemRoot, systemFolder, path.join(dir, 'data'), REPO]) {
       const r = await call('POST', '/api/vehicles', { name: 'Bad', source: { type: 'path', path: p } });
       assert.equal(r.status, 400, `${p}: ${JSON.stringify(r.data)}`);
     }
   } finally {
     await s.stop();
-    await fsp.rm(dir, { recursive: true, force: true });
+    // the link to the system root goes first, on its own, and the folder is
+    // left behind if it cannot, so the clean-up never walks into the root
+    let rootlinkGone = true;
+    await fsp.unlink(rootlink).catch((err) => { rootlinkGone = err.code === 'ENOENT'; });
+    if (rootlinkGone) await fsp.rm(dir, { recursive: true, force: true });
   }
 });
 

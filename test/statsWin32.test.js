@@ -15,13 +15,11 @@ const { cpuUnavailable } = require('../server/stats/power');
 const M = require('./fixtures/stats/machines');
 const W = require('./fixtures/stats/win32');
 const { setup, fakeClock, fakeSpawn, fakeFs } = require('./fixtures/stats/helpers');
-const { linuxOnly } = require('./fixtures/platformSkip');
 
-// The two tests that also run the Linux monitor need its fake /proc and /sys
-// trees, whose names hold a ":" (pci0000:00, intel-rapl:0) that no Windows
-// folder may have. They run on Linux, and the Windows side there is the same
-// code fed the same recorded answers as on Windows (the platform is injected).
-const onFakeTrees = linuxOnly('fake /proc and /sys trees for the Linux server monitor');
+// The two tests that also run the Linux monitor keep its fake /proc and /sys
+// trees in memory (setup's memory option): their names hold a ":"
+// (pci0000:00, intel-rapl:0) that no Windows folder may have. So they run on
+// every system too, the Linux monitor injected as platform 'linux'.
 
 const MiB = 1048576;
 const APP_STARTED_MS = 3600 * 1000; // the app started an hour before the test clock
@@ -158,11 +156,11 @@ function keyTree(v, path = '') {
   return out;
 }
 
-test('Windows: the body has exactly the Linux body\'s keys', { skip: onFakeTrees }, async () => {
+test('Windows: the body has exactly the Linux body\'s keys', async () => {
   const w = winSetup();
-  const linuxArc = setup(M.intelArc, { pciIdsFiles: [] });
+  const linuxArc = setup(M.intelArc, { pciIdsFiles: [], memory: true, options: { platform: 'linux' } });
   const nvSpawn = fakeSpawn({ lines: M.NVIDIA_LINES });
-  const linuxNv = setup(M.nvidia, { appPid: 10, spawn: nvSpawn });
+  const linuxNv = setup(M.nvidia, { appPid: 10, spawn: nvSpawn, memory: true, options: { platform: 'linux' } });
   try {
     const win = await sampled(w, 1);
     const arc = await linuxArc.run(2);
@@ -465,8 +463,8 @@ test('Windows: helpers for names and ids', () => {
   assert.equal(packageSocket('RAPL_Package0_PP0'), null);
 });
 
-test('Linux is picked unless win32 is asked for', { skip: onFakeTrees }, async () => {
-  const s = setup(M.amd, { options: { platform: 'linux' } });
+test('Linux is picked unless win32 is asked for', async () => {
+  const s = setup(M.amd, { memory: true, options: { platform: 'linux' } });
   try {
     const snap = await s.run(1);
     assert.equal(snap.cpu.model, 'AMD Ryzen 7 5800X');

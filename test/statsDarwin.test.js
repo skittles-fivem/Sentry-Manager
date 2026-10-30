@@ -471,8 +471,9 @@ test('data used: an app restart on the same boot counts on through kern.bootsess
 const keys = (o) => Object.keys(o).sort();
 
 test('the darwin outputs have the Linux providers\' shapes (plus cpu.coreKinds)', async () => {
-  // Linux: the Intel + Arc machine of the Linux tests, through the real engine
-  const s = setup(M.intelArc);
+  // Linux: the Intel + Arc machine of the Linux tests, through the real
+  // engine (kept in memory, so this runs on Windows too)
+  const s = setup(M.intelArc, { memory: true, options: { platform: 'linux' } });
   let linux;
   let lin;
   try {

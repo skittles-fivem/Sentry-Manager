@@ -80,6 +80,40 @@ function createMemoryFs() {
       if (!at) throw fsError('ENOENT', 'stat', target);
       return { rdev: 0, isDirectory: () => nodes.get(at).type === 'dir', isFile: () => nodes.get(at).type === 'file' };
     },
+    // the synchronous readers, for code that reads /proc and /sys that way
+    readFileSync(target, encoding) {
+      const at = resolve(target);
+      if (!at) throw fsError('ENOENT', 'open', target);
+      const node = nodes.get(at);
+      if (node.type !== 'file') throw fsError('EISDIR', 'read', target);
+      const enc = typeof encoding === 'string' ? encoding : encoding?.encoding;
+      return enc ? node.data.toString(enc) : Buffer.from(node.data);
+    },
+    readdirSync(target) {
+      const at = resolve(target);
+      if (!at) throw fsError('ENOENT', 'scandir', target);
+      if (nodes.get(at).type !== 'dir') throw fsError('ENOTDIR', 'scandir', target);
+      const prefix = at === '/' ? '/' : `${at}/`;
+      return [...nodes.keys()]
+        .filter((key) => key !== at && key.startsWith(prefix) && !key.slice(prefix.length).includes('/'))
+        .map((key) => key.slice(prefix.length))
+        .sort();
+    },
+    readlinkSync(target) {
+      const at = resolve(target, false);
+      const node = at && nodes.get(at);
+      if (!node) throw fsError('ENOENT', 'readlink', target);
+      if (node.type !== 'link') throw fsError('EINVAL', 'readlink', target);
+      return node.target;
+    },
+    realpathSync(target) {
+      const at = resolve(target);
+      if (!at) throw fsError('ENOENT', 'realpath', target);
+      return at;
+    },
+    accessSync(target) {
+      if (!resolve(target)) throw fsError('ENOENT', 'access', target);
+    },
     promises: {
       async readFile(target, encoding) {
         const at = resolve(target);
