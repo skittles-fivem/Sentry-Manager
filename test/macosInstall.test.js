@@ -597,7 +597,8 @@ test('the CLI: status, stop, start, setup-code, allow-folder', { skip: runsBash 
   clearCalls(sb);
   assert.equal(run(sb, cli, ['allow-folder', footage]).status, 0);
   assert.equal(calls(sb).find((x) => x.cmd === 'chmod').args[2], 'user:_sentrysix allow list,search,readattr,readextattr,readsecurity,file_inherit,directory_inherit');
-  for (const bad of ['/', '/System', '/Library', '/etc', '/private/var', '/Applications', '/Volumes', '/SYSTEM/Library']) {
+  // (on a Mac also the temp folder, /private/var/folders/...)
+  for (const bad of ['/', '/System', '/Library', '/etc', '/private/var', '/Applications', '/Volumes', '/SYSTEM/Library', ...(process.platform === 'darwin' ? [sb.base] : [])]) {
     if (!fs.existsSync(bad)) continue;
     const r = run(sb, cli, ['allow-folder', bad]);
     assert.notEqual(r.status, 0, bad);
