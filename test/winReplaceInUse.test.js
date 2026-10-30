@@ -64,6 +64,10 @@ test('replace in place: an original open in another program when first read is r
         return { select: real.selectCpuFallback, selectCpuFallback: real.selectCpuFallback };
       } }
     });
+    // (told it runs on Windows, ffmpeg's null output is the file NUL in the
+    // working folder here: kept inside the test's own folder)
+    const cwd = process.cwd();
+    process.chdir(root);
     await runtime.start();
     try {
       assert.equal(runtime.capabilities.replacement, 'available');
@@ -77,6 +81,7 @@ test('replace in place: an original open in another program when first read is r
       assert.equal(item.state, 'completed', `${item.relativePath}: ${item.failure?.code || item.resultCode}`);
     } finally {
       await runtime.shutdown();
+      process.chdir(cwd);
     }
     assert.equal(refusals, 0, 'the original was refused once');
     assert.ok(reads.length >= 2 && reads[1] - reads[0] >= 4000, 'and read again after a wait');
