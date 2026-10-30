@@ -78,8 +78,9 @@ function ownedFsFor(platform, helper) {
  * @param {string} [o.platform]  process.platform (tests inject it)
  * @param {object} [o.helper]    win32: the SentryHelper.exe client (server/platform/winHelper.js)
  * @param {() => string[]} [o.replacementRoots]  footage folders whose drives are checked at start
+ * @param {function} [o.requestHelper]  win32: (op, args, { timeoutMs }) => answer, for the helper's gpu.list
  */
-function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobePath = 'ffprobe', log, onClipConverted, platform = process.platform, helper = null, owned = ownedFsFor(platform, helper), replacementRoots = null, powerMeter = null, isCheapNow = null, remoteNodes = null }) {
+function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobePath = 'ffprobe', log, onClipConverted, platform = process.platform, helper = null, owned = ownedFsFor(platform, helper), replacementRoots = null, requestHelper = null, powerMeter = null, isCheapNow = null, remoteNodes = null }) {
   fs.mkdirSync(dataDir, { recursive: true });
   fs.mkdirSync(tempDir, { recursive: true });
   // Windows: the native realpath (real letter case, long names instead of
@@ -115,6 +116,8 @@ function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobeP
         processTimeoutMs: 30 * 60_000,
         powerMeter,
         ...(isCheapNow ? { isCheapNow } : {}),
+        // Windows: Intel and AMD adapters are listed by the helper (gpu.list)
+        ...(typeof requestHelper === 'function' ? { requestHelper } : {}),
         // other servers paired under Nodes, as encoding lanes (server/nodes.js)
         ...(remoteNodes ? { remoteNodes } : {}),
         onClipConverted: (outputPath) => onClipConverted?.(outputPath),

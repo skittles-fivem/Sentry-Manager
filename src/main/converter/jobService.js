@@ -1627,6 +1627,17 @@ function createConverterJobService(deps) {
     const replacing = runtime.manifest.config.outputMode === 'replace';
     if (replacing) {
       if (staging.capabilities?.replacement === 'unavailable') throw serviceError('ATOMIC_PROMOTION_UNSUPPORTED');
+      // A drive that cannot replace originals (Windows: the helper's identity
+      // check per drive) fails the clip here, before an encode is wasted on
+      // it. A check that could not be made just now is one to try again.
+      // (Docker's adapter has no per-drive check: always available here.)
+      if (typeof staging.checkReplacementVolume === 'function') {
+        const volume = await staging.checkReplacementVolume(item.sourcePath);
+        if (!volume.available) {
+          throw Object.assign(serviceError(volume.transient ? 'REPLACEMENT_CHECK_FAILED' : 'ATOMIC_PROMOTION_UNSUPPORTED'),
+            { reason: volume.reason, ...(volume.transient ? { retryable: true } : {}) });
+        }
+      }
       if (typeof staging.captureSource !== 'function') throw serviceError('SOURCE_AUTHORITY_REQUIRED');
     }
     // Fingerprint the original read-only before anything else touches it. When

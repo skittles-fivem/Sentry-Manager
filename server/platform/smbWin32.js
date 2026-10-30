@@ -373,7 +373,20 @@ function createWinMounter({ helper, log = console } = {}) {
     }
   }
 
-  return { mount, unmount, forget, target, probe, test, securityProblem };
+  /**
+   * Is \\host\share connected for some vehicle, as far as this process
+   * knows (the last smb.status answer)? For the System page's "mounted"
+   * (stats/platform/win32.js), which on Docker comes from mountinfo.
+   */
+  function isConnected(uncRoot) {
+    const want = lower(String(uncRoot || '').replace(/[\\/]+$/, ''));
+    for (const [key, ref] of refs) {
+      if (lower(ref.unc) === want && holders(key) > 0 && ref.last?.connected === true) return true;
+    }
+    return false;
+  }
+
+  return { mount, unmount, forget, target, probe, test, securityProblem, isConnected };
 }
 
 module.exports = { createWinMounter, securityProblem, scrub };

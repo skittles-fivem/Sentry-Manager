@@ -65,6 +65,13 @@ function createLinuxPlatform({ env = process.env, exists = fs.existsSync } = {})
     isInUse: () => false,
     skipDirNames,
     isSkipDirName,
+    /**
+     * The SentryHelper.exe client: Windows only. Linux needs no native
+     * helper (the supervisor and the renameat2 helper do that work).
+     */
+    helper: () => null,
+    /** Keep the machine from sleeping while work runs: nothing to do in Docker. */
+    keepAwake: async () => {},
     /** The converter's owned-file adapter (posixOwnedFs.js). */
     ownedFs: (options) => require('../posixOwnedFs').createPosixOwnedFs(options),
     /**

@@ -74,7 +74,7 @@ returns either one (tests). Linux values are today's literals.
 | `defaults.data` / `run` / `footage` | `/data` `/run/sentry-six-manager` `/footage` | `%ProgramData%\SentrySixManager\{data,run,footage}` |
 | `defaults.ffmpeg` / `ffprobe` | `ffmpeg` `ffprobe` | `<APP_ROOT>\..\ffmpeg\ffmpeg.exe` when it exists, else `ffmpeg.exe` |
 | `listDelimiter` | `:` | `;` (FOLDER_ROOTS, EXTRA_ROOTS) |
-| `denyRoots()` | today's list | `%SystemRoot%`, `%ProgramFiles%`, `%ProgramFiles(x86)%`, APP_ROOT, DATA, `C:\$Recycle.Bin`, `C:\System Volume Information` |
+| `denyRoots()` | today's list | `%SystemRoot%`, `%ProgramFiles%`, `%ProgramFiles(x86)%`, APP_ROOT, DATA, RUN, the install home `%ProgramData%\SentrySixManager` (holds `manager.env`; a root inside it, the default footage folder, still works), `C:\$Recycle.Bin`, `C:\System Volume Information` |
 | `samePath(a,b)` / `isInside(root,p)` | byte compare, today's `isInside` | case-insensitive, drive letters and UNC aware, refuses `\\?\` and `\\.\` |
 | `validName(seg)` | **both platforms**: rejects `:`, trailing `.` or space, `CON PRN AUX NUL COM1-9 LPT1-9` (with any extension), control characters, `<>"|?*`, `\` | same |
 | `realpath` | `fsp.realpath` | `fsp.realpath.native` (case, 8.3 names, junctions, mapped drive → UNC) |
@@ -206,7 +206,10 @@ Guards: zero-copy only for 8-bit `yuv420p`/`yuvj420p` sources with even width an
 height (`inspectVideo` reads pix_fmt, width, height) and never with held lead-in
 frames (already). A device+codec turns zero-copy off for the process after **3**
 zero-copy failures followed by a GPU-tier success (today: 1). The first zero-copy
-clip per device and codec also gets a picture check against the GPU tier. Tested on
+clip per device and codec also gets a picture check against the GPU tier (one check
+at a time per device and codec, shared by jobs and benchmarks for the process).
+NVENC keeps today's tier: the pixel-format/size guard and the first-clip picture
+check apply to VA-API, QSV and AMF only; NVENC gets only the 3-failure counter. Tested on
 the owner's PC (RTX 4070 Ti, Windows) with the HW3 and HW4 sets; VA-API on the
 owner's TrueNAS (Radeon 780M) before `main`.
 
@@ -219,7 +222,11 @@ Energy Meter, Process) and `sys.info` (CPU model, sockets, RAM, boot time, disks
 adapters). All rate math stays in Node on raw counters (same delta/wrap/first-sample
 logic). `sampleOnce()` never waits; a stalled helper gives nulls. Not available on
 Windows → null (load, throttling, most temperatures; CPU watts only from Energy Meter).
-`cpuUnavailable: 'windows'` is reused so old mains understand a Windows node.
+`cpuUnavailable: 'windows'` is reused so old mains understand a Windows node; it is
+reported only on a PC whose readings have no Energy Meter counters, not while
+waiting for the first two readings. `t100ns` is wall-clock time: a reading whose
+`t100ns` went back, or moved far from Node's own clock, is a break (no rates for
+that one sample, as with a first reading), not a stale answer.
 
 ## 10. Install, service, updates, packaging
 
@@ -229,7 +236,12 @@ Windows → null (load, throttling, most temperatures; CPU watts only from Energ
   with icacls (install dir: Users read+execute, service read+execute; data:
   inheritance off, SYSTEM + Administrators full, service Modify, Users none); service
   via `sc.exe create SentrySixManager obj= "NT SERVICE\SentrySixManager" start=
-  delayed-auto depend= Tcpip/LanmanWorkstation`, `sc.exe failure … restart/5000`;
+  delayed-auto depend= Tcpip/LanmanWorkstation`, `sc.exe failure … reset= 60
+  actions= restart/5000` and `sc.exe failureflag SentrySixManager 1`. SentryService
+  exit codes: 0 stopped cleanly; 1 bad arguments/layout; `run` mode 2 after 5 crashes
+  in 60 s; as a service it then ends with 1067 (ERROR_PROCESS_ABORTED) without
+  reporting STOPPED, so the recovery action restarts it (Docker's `restart:
+  unless-stopped`);
   firewall rule (Private, Domain) for TCP PORT on node.exe; optional Defender
   exclusion for data; start; print the URL, setup code and certificate fingerprint
   (the `docker logs` analogue). Re-running it upgrades in place and keeps data.
@@ -282,6 +294,12 @@ into failures in CI.
   isolation by ACLs (as Docker with PUID=0).
 - Two vehicles on one NAS must use one account (Windows SMB session rule, error 1219).
 - SMB ports other than 445 unsupported.
+- A vehicle joining an SMB connection another vehicle holds (same share and account)
+  has its password checked once with `smb.test`, since Windows would otherwise reuse
+  the existing session without asking (the Linux client compares it itself).
+- "Test connection" checks writing exactly as far as the helper's `smb.test` does
+  (Docker's steps since the helper runs them; an older helper only writes and
+  deletes a file); the vehicle's own health check always runs the full check.
 - CPU watts only where Windows exposes Energy Meter counters; no load average,
   throttling or most temperatures.
 - Moving an existing Docker `/data` to Windows is not supported (paths differ); pair

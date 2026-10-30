@@ -96,7 +96,15 @@ function platformValidName() {
   }
 }
 
+// The system's own folders no vehicle may use. Linux's only: on Windows
+// index.js passes the platform's (C:\Windows, Program Files, ...) in
+// protectedDirs, and these names would only resolve to C:\proc and so on.
 const SYSTEM_DIRS = ['/proc', '/sys', '/dev', '/etc', '/root', '/run', '/boot'];
+const systemDirs = (platform) => (platform === 'win32' ? [] : SYSTEM_DIRS);
+
+// Windows: the native realpath (true case, long names, a mapped drive as its
+// UNC path), so one folder always has one spelling; Linux as before.
+const realpathFor = (platform) => (platform === 'win32' ? fs.realpathSync.native : fs.realpathSync);
 
 const ID_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
 
@@ -166,7 +174,7 @@ class VehicleManager extends EventEmitter {
     this.db = db;
     this.footageRoot = path.resolve(footageRoot);
     this.folderRoots = (folderRoots || [this.footageRoot]).map((r) => path.resolve(r));
-    this.protectedDirs = [...protectedDirs, ...SYSTEM_DIRS].filter(Boolean).map((d) => path.resolve(d));
+    this.protectedDirs = [...protectedDirs, ...systemDirs(platform)].filter(Boolean).map((d) => path.resolve(d));
     this.logger = logger;
     this.log = logger.scope('vehicles');
     this.mounter = mounter;
@@ -190,12 +198,12 @@ class VehicleManager extends EventEmitter {
     const abs = path.resolve(p);
     const real = (() => {
       try {
-        return fs.realpathSync(abs);
+        return realpathFor(this.platform)(abs);
       } catch {
         return abs; // checked again (really) every time it is used, see roots()
       }
     })();
-    const inRoot = this.folderRoots.some((r) => isInside(abs, r) && isInside(real, realOr(r)));
+    const inRoot = this.folderRoots.some((r) => isInside(abs, r) && isInside(real, realOr(r, this.platform)));
     if (!inRoot) {
       throw badRequest(this.platform === 'win32'
         ? `Folder vehicles must be inside ${this.folderRoots.join(' or ')} (FOLDER_ROOTS in manager.env adds more).`
@@ -447,9 +455,9 @@ class VehicleManager extends EventEmitter {
   }
 }
 
-function realOr(p) {
+function realOr(p, platform) {
   try {
-    return fs.realpathSync(p);
+    return realpathFor(platform)(p);
   } catch {
     return p;
   }

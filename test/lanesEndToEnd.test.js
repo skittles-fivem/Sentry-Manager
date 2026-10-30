@@ -65,8 +65,8 @@ if (/^av1_(qsv|vaapi|nvenc)$/.test(encoder)) {
 const out = [];
 for (let i = 0; i < args.length; i += 1) {
   const a = args[i];
-  if (['-init_hw_device', '-hwaccel', '-hwaccel_device', '-hwaccel_output_format', '-vaapi_device', '-gpu'].includes(a)) { i += 1; continue; }
-  if (a === '-vf' && args[i + 1] === 'format=nv12,hwupload') { i += 1; continue; }
+  if (['-init_hw_device', '-filter_hw_device', '-hwaccel', '-hwaccel_device', '-hwaccel_output_format', '-extra_hw_frames', '-vaapi_device', '-gpu'].includes(a)) { i += 1; continue; }
+  if (a === '-vf' && /^(format=nv12,hwupload|hwmap=derive_device=qsv,format=qsv)$/.test(args[i + 1] || '')) { i += 1; continue; }
   if (a === '-c:v' && /^hevc_(qsv|vaapi|nvenc)$/.test(args[i + 1] || '')) { out.push('-c:v', 'libx265'); i += 1; continue; }
   if (a === '-pix_fmt' && args[i + 1] === 'nv12') { out.push('-pix_fmt', 'yuv420p'); i += 1; continue; }
   out.push(a);
@@ -107,6 +107,9 @@ function gpuOf(args) {
   if (flagValue(args, '-gpu') !== null) return `nvidia${flagValue(args, '-gpu')}`;
   const qsv = /child_device=([^,]+)/.exec(flagValue(args, '-init_hw_device') || '');
   if (qsv) return qsv[1];
+  // QSV zero-copy: the GPU opened as a VA-API device that QSV derives from
+  const vaapi = /^vaapi=[^:,]+:(\/dev\/[^,]+)$/.exec(flagValue(args, '-init_hw_device') || '');
+  if (vaapi) return vaapi[1];
   return flagValue(args, '-vaapi_device');
 }
 
@@ -237,9 +240,11 @@ test('two GPUs end to end: devices, a lane each, live lanes, a benchmark per GPU
     assert.equal(onArc.length, 2);
     assert.equal(onT400.length, 1);
     for (const args of onArc) {
-      assert.deepEqual(args.slice(args.indexOf('-init_hw_device'), args.indexOf('-c:v') + 2),
-        ['-init_hw_device', `qsv=qsvenc:hw_any,child_device=${ARC.node}`, '-c:v', 'hevc_qsv']);
-      assert.deepEqual(args.slice(args.indexOf('-hwaccel'), args.indexOf('-hwaccel') + 4), ['-hwaccel', 'vaapi', '-hwaccel_device', ARC.node]);
+      // Tesla clips are 8-bit 4:2:0: QSV keeps the decoded frames on the Arc (zero-copy, windows.md section 8)
+      assert.deepEqual(args.slice(0, args.indexOf('-hwaccel') + 6), [...args.slice(0, args.indexOf('-init_hw_device')),
+        '-init_hw_device', `vaapi=va:${ARC.node}`, '-init_hw_device', 'qsv=qs@va', '-filter_hw_device', 'qs',
+        '-hwaccel', 'vaapi', '-hwaccel_device', 'va', '-hwaccel_output_format', 'vaapi']);
+      assert.deepEqual(args.slice(args.indexOf('-vf'), args.indexOf('-c:v') + 2), ['-vf', 'hwmap=derive_device=qsv,format=qsv', '-c:v', 'hevc_qsv']);
       assert.equal(args.includes('-gpu'), false);
     }
     const nv = onT400[0];

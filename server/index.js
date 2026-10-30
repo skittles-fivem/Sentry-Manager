@@ -40,6 +40,17 @@ const { RecycleBin, formatBytes } = require('./recycleBin');
 const { Policies } = require('./policies');
 const { Jobs, Notifications } = require('./activity');
 const { ImageUpdates, criticalFromFile } = require('./imageUpdates');
+// The Windows package's update notice reads GitHub Releases instead of the
+// image registry (BUILD_INFO channel "windows"). Docker always takes
+// ImageUpdates; until releaseUpdates.js is in this tree, so does every build.
+const { ReleaseUpdates, chooseUpdates } = (() => {
+  try {
+    return require('./releaseUpdates');
+  } catch (err) {
+    if (err?.code === 'MODULE_NOT_FOUND' && String(err.message).split('\n')[0].includes('releaseUpdates')) return { ReleaseUpdates: null, chooseUpdates: () => 'image' };
+    throw err;
+  }
+})();
 const { Thumbnails } = require('./thumbnails');
 const { detectGpus } = require('./gpu');
 const { createConverterHost } = require('./converterHost');
@@ -51,7 +62,8 @@ const { createConverterBridge } = require('./converterBridge');
 const { hiddenPath, readDir, stat, sendMedia, readTextConfined } = require('./studioApi');
 const { createRealGuard, isInside } = require('./safePath');
 const platform = require('./platform');
-const { watchStopLine, windowsAccount, refuseRequestPath } = require('./platform/runtime');
+const { watchStopLine, windowsAccount, refuseRequestPath, createAwakeVotes } = require('./platform/runtime');
+const { continueTemplate, fingerprintFallback } = require('./continueWording');
 const { VERSIONS, DEFAULT_VERSION, securitySummary } = require('./mountSpec');
 const { TlsManager, localTlsSource, supervisorTlsSource, parseHostnames } = require('./tls');
 const { Router, HttpError, sendJson, readJson, readRaw, serveFile } = require('./http');
@@ -228,9 +240,16 @@ async function main() {
   if (stoppedJobs) log.info(`${stoppedJobs} job(s) were stopped by the restart; Jobs shows them as interrupted`);
   const notes = new Notifications({ db });
 
+  // Windows: one SentryHelper.exe client for everything native (shares,
+  // owned files, GPUs, performance counters, keep-awake); null on Linux
+  const winHelper = platform.helper({ log: logger.scope('helper') });
+  // Keep the PC awake while conversions run or a main's clips are held here
+  // (a no-op on Linux: Docker's host decides that)
+  const awake = createAwakeVotes(platform.keepAwake);
+
   // Docker: over IPC to the supervisor, or mount.cifs here; Windows: the helper
   const mounter = platform.mounter({
-    ipc: SWITCHES.ipcMounter, channel: process, footageRoot: FOOTAGE_ROOT, credDir: RUN_DIR,
+    ipc: SWITCHES.ipcMounter, channel: process, footageRoot: FOOTAGE_ROOT, credDir: RUN_DIR, log: logger.scope('smb'),
     uid: Number(process.env.PUID ?? process.getuid?.() ?? 0), gid: Number(process.env.PGID ?? process.getgid?.() ?? 0)
   });
   // a PATH-style list: ":" between folders in Docker, ";" on Windows (C:\...)
@@ -238,8 +257,16 @@ async function main() {
   // FOOTAGE_PATH comes from the container environment (trusted), not the UI
   if (process.env.FOOTAGE_PATH) folderRoots.push(process.env.FOOTAGE_PATH);
   const protectedDirs = [DATA, APP_ROOT, RUN_DIR];
-  const vehicles = new VehicleManager({ db, footageRoot: FOOTAGE_ROOT, folderRoots, protectedDirs, logger, mounter });
-  const smbTester = createSmbTester({ mounter, vehicles, log: logger.scope('vehicles') });
+  // Windows: the system's folders too (C:\Windows, Program Files, ...; on
+  // Docker vehicles.js adds /proc, /etc, ...), except one that holds a folder
+  // root itself (the install home holds the default footage folder)
+  if (platform.name === 'win32') {
+    for (const d of platform.denyRoots({ data: DATA, appRoot: APP_ROOT, run: RUN_DIR })) {
+      if (!protectedDirs.some((x) => platform.samePath(x, d)) && !folderRoots.some((r) => platform.isInside(d, path.resolve(r)))) protectedDirs.push(d);
+    }
+  }
+  const vehicles = new VehicleManager({ db, footageRoot: FOOTAGE_ROOT, folderRoots, protectedDirs, logger, mounter, platform: platform.name });
+  const smbTester = createSmbTester({ mounter, vehicles, log: logger.scope('vehicles'), platform: platform.name });
   vehicles.bootstrapFromEnv();
   let speedIndex = null;
   const inventory = new Inventory({ vehicles, db, log: logger.scope('inventory'), onChange: () => { announce('inventory'); speedIndex?.kick(); } });
@@ -295,6 +322,9 @@ async function main() {
   const statsLog = logger.scope('stats');
   const stats = createStats({
     dataDir: DATA,
+    // Windows: counters come from the helper (perf.sample), and a share's
+    // "mounted" from the mounter's connections (Docker: /proc and mountinfo)
+    ...(winHelper ? { helper: winHelper, smbConnected: (unc) => mounter.isConnected?.(unc) === true } : {}),
     isBusy: () => converterRunning() || benchmarking !== null,
     readShares: () => [{ label: 'Data volume', path: DATA }, ...vehicles.list().map((v) => ({ label: v.name, path: vehicles.rootOf(v), vehicle: true, network: v.source?.type === 'smb' }))],
     // every running ffmpeg (a benchmark's too), to name processes and GPU clients
@@ -347,12 +377,17 @@ async function main() {
   const UI_COOKIE = 'sm_ui_original';
   const originalOnly = (req) => parseCookies(req.headers.cookie || '')[UI_COOKIE] === '1';
   await uiPacks.tidy().catch((err) => logger.scope('ui').warn(`UI packs folder: ${err.message}`));
-  // the converter's owned-file operations: Docker keeps converterHost's own
-  // default (posixOwnedFs); Windows uses the helper's (null when not built:
-  // then as on Docker without its native helper)
-  const winOwned = platform.name === 'win32' ? platform.ownedFs({ log: logger.scope('converter') }) : null;
+  // The converter's owned-file operations: Docker keeps converterHost's own
+  // default (posixOwnedFs). Windows: the helper's (winOwnedFs), its GPU list
+  // (gpu.list) and a check, per footage drive, that originals can be
+  // replaced safely there.
   const host = createConverterHost({
-    ...(winOwned ? { owned: winOwned } : {}),
+    ...(winHelper ? {
+      platform: platform.name,
+      helper: winHelper,
+      requestHelper: (op, args, opts) => winHelper.request(op, args, opts),
+      replacementRoots: () => vehicles.list().map((v) => { try { return vehicles.studioRoot(v); } catch (_) { return null; } }).filter(Boolean)
+    } : {}),
     remoteNodes: {
       list: () => nodes.list(),
       encode: (request) => nodes.encode(request),
@@ -404,7 +439,9 @@ async function main() {
   let bridge = null;
   let clipThumbs = null;
 
-  const updates = new ImageUpdates({
+  // (Windows package: GitHub Releases; Docker: the image registry)
+  const Updates = chooseUpdates(buildInfo) === 'release' && ReleaseUpdates ? ReleaseUpdates : ImageUpdates;
+  const updates = new Updates({
     db, log: logger.scope('updates'), buildInfo, notes, ownCritical: readOwnCritical(), enabled: !/^(off|false|0|no)$/i.test(process.env.UPDATE_CHECK || '')
   });
   updates.announce();
@@ -430,6 +467,8 @@ async function main() {
     db, log: logger.scope('nodes'), audit: logger.scope('audit'),
     authority: () => tlsSource?.caPem() || null,
     workDir: path.join(DATA, 'node-work'), ffmpegPath: FFMPEG,
+    // held clips keep the PC awake (Windows; a no-op on Linux)
+    keepAwake: (on) => awake.want('node', on),
     runtime: () => host.runtime,
     // this server's power for the main's "All servers" total: the main asks
     // about every 30 s, so sampling holds 45 s and the numbers stay live
@@ -517,6 +556,9 @@ async function main() {
   };
   // (public: the sign-in page reads it; `deployment` picks its wording, 'docker' or 'windows')
   r.add('GET', '/api/auth/me', (req) => ({ user: auth.user(req), needsSetup: auth.needsSetup(), secure: isSecure(req), fingerprint: req.socket?.encrypted ? certFingerprint() : null, deployment: platform.deployment }), { public: true });
+  // Where this server runs ('docker', 'linux' or 'windows'), so the pages
+  // (the sign-in page too, hence public) word their hints for it
+  r.add('GET', '/api/info', () => ({ deployment: platform.deployment }), { public: true });
   // one password check at a time per throttle key (auth.attempt)
   const guarded = async (keys, check) => {
     try {
@@ -602,7 +644,10 @@ async function main() {
     deployment: platform.deployment,
     converter: host.runtime ? { ready: true, capabilities: host.runtime.capabilities } : { ready: false, error: host.lastError?.code || null },
     nativeHelper: host.helperAvailable,
-    gpu: await detectGpus(),
+    gpu: await detectGpus(winHelper ? { requestHelper: (op, args, opts) => winHelper.request(op, args, opts) } : {}),
+    // footage drives where originals cannot be replaced safely (Windows only;
+    // always empty on Docker)
+    replacementRoots: host.replacementRoots(),
     dataFree: await diskSpace(fs.promises, DATA).then((s) => s.free).catch(() => null),
     timezone: process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone,
     security: {
@@ -819,6 +864,8 @@ async function main() {
     requireConfirmed(req);
     const v = vehicles.add(body || {});
     audit.info(`Vehicle "${v.name}" (${v.id}) added, ${describeSource(v.source)}: ${by(req, user)}`);
+    // (Windows: is the new folder's drive fit for replacing originals? in the background)
+    if (winHelper) host.checkReplacementRoots().catch(() => {});
     return vehicleSummary(v);
   });
   r.add('PUT', '/api/vehicles/:id', async (req, res, { params, body, user }) => {
@@ -829,6 +876,7 @@ async function main() {
       const what = before.source.type === v.source.type && before.source.share === v.source.share && before.source.path === v.source.path
         ? describeSource(v.source) : `${describeSource(before.source)} -> ${describeSource(v.source)}`;
       audit.info(`Vehicle "${v.name}" (${v.id}) footage source changed: ${what}${before.source.password !== v.source.password ? ', new password' : ''}: ${by(req, user)}`);
+      if (winHelper) host.checkReplacementRoots().catch(() => {});
     } else if (before.name !== v.name || before.timezone !== v.timezone) {
       audit.info(`Vehicle ${v.id} renamed or time zone changed: ${by(req, user)}`);
     }
@@ -1471,7 +1519,8 @@ async function main() {
     // minutes: live updates send something every 20 s at most, so only
     // abandoned or deliberately held connections go.
     httpsServer.setTimeout(120_000);
-    const continuePage = fs.readFileSync(path.join(WEB, 'continue.html'), 'utf8');
+    // (Windows: the fingerprint is in the install window and service.log, not docker logs)
+    const continuePage = continueTemplate(fs.readFileSync(path.join(WEB, 'continue.html'), 'utf8'), platform.deployment);
     const CONTINUE_FILES = new Set(['/web/continue.js', '/web/shell.css', '/web/icon.png']);
     const redirect = http.createServer(async (req, res) => {
       let u;
@@ -1498,9 +1547,9 @@ async function main() {
       try {
         fingerprint = tlsSource.status().certificate?.fingerprint || '';
       } catch {
-        // shown in the container log instead
+        // shown in the container log (Windows: the install window and service.log) instead
       }
-      const page = continuePage.replace('{{FINGERPRINT}}', escHtml(fingerprint || 'shown in the container log').replace(/:/g, ':<wbr>')).replace('{{HTTPS_URL}}', escHtml(httpsUrl));
+      const page = continuePage.replace('{{FINGERPRINT}}', escHtml(fingerprint || fingerprintFallback(platform.deployment)).replace(/:/g, ':<wbr>')).replace('{{HTTPS_URL}}', escHtml(httpsUrl));
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY',
@@ -1548,6 +1597,8 @@ async function main() {
       }
       mirrorConverterJob(event.snapshot);
       recordSavings(event.snapshot);
+      // (Windows: the PC stays awake while a job runs; nothing on Linux)
+      awake.want('jobs', converterRunning());
     });
     // jobs from before a restart (a paused one still owns its clips)
     // (only a list that loaded settles rows: a failed one would end them all)
@@ -1656,6 +1707,10 @@ async function main() {
     nodeWorker.close();
     await host.stop().catch(() => {});
     await vehicles.stopAll();
+    // (Windows: let the PC sleep again, then end SentryHelper.exe)
+    await awake.want('jobs', false);
+    await awake.want('node', false);
+    winHelper?.close();
     db.close();
     log.info('Stopped cleanly');
     process.exit(0);

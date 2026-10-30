@@ -14,6 +14,8 @@ const fsp = require('fs/promises');
 const path = require('path');
 const { readSpeeds } = require('./speedReader');
 const { speedsOf } = require('./telemetry');
+// (rename-over with Windows' retries when the index is open for a moment)
+const { renameReplace } = require('./platform');
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -51,7 +53,7 @@ function createSpeedIndex({ dir, inventory, vehicles, telemetry, log, pauseMs = 
       await fsp.mkdir(path.dirname(file), { recursive: true });
       const tmp = `${file}.${process.pid}.tmp`;
       await fsp.writeFile(tmp, JSON.stringify(data));
-      await fsp.rename(tmp, file);
+      await renameReplace(tmp, file);
     }
   }
 

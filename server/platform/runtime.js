@@ -59,4 +59,28 @@ function refuseRequestPath(p, platform) {
   return platform.name === 'win32' && !String(p).startsWith('/api/') && !namesValidOnWindows(p, platform);
 }
 
-module.exports = { watchStopLine, windowsAccount, namesValidOnWindows, refuseRequestPath };
+/**
+ * Several parts of the server want the PC kept awake (conversion jobs, a
+ * main's clips held for this node), but the helper keeps one switch. The
+ * returned `want(reason, on)` turns it on when the first reason wants it and
+ * off when the last one lets go, and only then calls `keepAwake` (the
+ * platform's: a no-op on Linux). Calls are chained so the switch always ends
+ * in the state of the last change.
+ */
+function createAwakeVotes(keepAwake) {
+  const reasons = new Set();
+  let applied = false;
+  let chain = Promise.resolve();
+  function want(reason, on) {
+    if (on) reasons.add(reason);
+    else reasons.delete(reason);
+    const next = reasons.size > 0;
+    if (next === applied) return chain;
+    applied = next;
+    chain = chain.then(() => keepAwake(next)).catch(() => {});
+    return chain;
+  }
+  return { want, get on() { return applied; } };
+}
+
+module.exports = { watchStopLine, windowsAccount, namesValidOnWindows, refuseRequestPath, createAwakeVotes };

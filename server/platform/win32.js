@@ -87,8 +87,9 @@ function sleepSync(ms) {
  *   exists   (p) => boolean, used to find the bundled ffmpeg
  *   sleep    async (ms) => void, the retry backoff
  *   fsp      fs/promises (the retry tests pass a fake)
+ *   makeHelper  (options) => helper client, instead of winHelper's createWinHelper
  */
-function createWin32Platform({ env = process.env, appRoot, exists = fs.existsSync, sleep = defaultSleep, fsp: fsPromises = fsp, fs: fsSync = fs } = {}) {
+function createWin32Platform({ env = process.env, appRoot, exists = fs.existsSync, sleep = defaultSleep, fsp: fsPromises = fsp, fs: fsSync = fs, makeHelper = null } = {}) {
   const programData = envGet(env, 'ProgramData') || 'C:\\ProgramData';
   const home = P.join(programData, 'SentrySixManager');
   const app = appRoot || envGet(env, 'APP_ROOT') || path.resolve(__dirname, '..', '..');
@@ -134,6 +135,20 @@ function createWin32Platform({ env = process.env, appRoot, exists = fs.existsSyn
 
   const systemDrive = envGet(env, 'SystemDrive') || 'C:';
 
+  // One SentryHelper.exe client for the whole process (it starts the exe on
+  // its first request and again after a crash). The first caller's options
+  // count: index.js asks first, with its log.
+  let helperClient = null;
+  let helperLog = null;
+  function helper(options = {}) {
+    if (!helperClient) {
+      helperLog = options.log || null;
+      const { createWinHelper, defaultHelperPath } = require('./winHelper');
+      helperClient = (makeHelper || createWinHelper)({ path: defaultHelperPath(env), ...options });
+    }
+    return helperClient;
+  }
+
   return {
     name: 'win32',
     path: P,
@@ -176,6 +191,21 @@ function createWin32Platform({ env = process.env, appRoot, exists = fs.existsSyn
     isInUse: (err) => RETRY_CODES.has(err?.code) && err.code !== 'ENOTEMPTY',
     skipDirNames,
     isSkipDirName,
+    helper,
+    /**
+     * Keep the PC from sleeping (on: true) or let it sleep again (false),
+     * through the helper's power.keepAwake. Docker's host decides that
+     * itself; here a conversion or a main's clips held for this node would
+     * otherwise stop when Windows goes to sleep. A helper that cannot be
+     * reached only costs the keep-awake: it never fails the caller.
+     */
+    keepAwake: async (on) => {
+      try {
+        await helper().request('power.keepAwake', { on: Boolean(on) }, { timeoutMs: 10_000 });
+      } catch (err) {
+        helperLog?.warn?.(`Keeping the PC awake: ${err.message}`);
+      }
+    },
     /**
      * The converter's owned-file adapter through SentryHelper.exe
      * (winOwnedFs.js, section 6 of docs/plans/windows.md). null when that
@@ -190,7 +220,7 @@ function createWin32Platform({ env = process.env, appRoot, exists = fs.existsSyn
         if (missingModule(err, 'winOwnedFs')) return null;
         throw err;
       }
-      return mod.createWinOwnedFs(options);
+      return mod.createWinOwnedFs({ helper: helper(), ...options });
     },
     /**
      * The share mounter: deviceless SMB connections through the helper
@@ -205,7 +235,7 @@ function createWin32Platform({ env = process.env, appRoot, exists = fs.existsSyn
         if (!missingModule(err, 'smbWin32')) throw err;
         return unavailableMounter(opts.footageRoot || P.join(home, 'footage'));
       }
-      return mod.createWinMounter(opts);
+      return mod.createWinMounter({ helper: helper(), ...opts });
     }
   };
 }

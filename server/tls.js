@@ -31,6 +31,9 @@ const os = require('os');
 const path = require('path');
 const { run, tail } = require('./proc');
 const x509 = require('./x509');
+// rename-over and delete with Windows' retries for a file another program
+// has open for a moment (an antivirus scan); plain fs calls on Linux
+const { renameReplace, rmRetry } = require('./platform');
 
 // The certificate stays the same for over two years: a device that tapped
 // "Continue" past the browser's warning trusts exactly this certificate, so
@@ -97,7 +100,7 @@ async function openssl(args, input) {
 /** A new P-256 key written as PKCS#8 PEM (what openssl genpkey writes), readable only by us. */
 async function writeNewKey(file) {
   const { privateKey, pem } = x509.generateKey();
-  await fsp.rm(file, { force: true });
+  await rmRetry(file, { force: true });
   await fsp.writeFile(file, pem, { mode: 0o600 });
   await fsp.chmod(file, 0o600);
   return privateKey;
@@ -225,10 +228,10 @@ class TlsManager {
         '-addext', `nameConstraints=critical,${constraints}`,
         '-out', `${this.files.caCrt}.tmp`]);
     }
-    await fsp.rename(tmpKey, this.files.caKey);
-    await fsp.rename(`${this.files.caCrt}.tmp`, this.files.caCrt);
+    await renameReplace(tmpKey, this.files.caKey);
+    await renameReplace(`${this.files.caCrt}.tmp`, this.files.caCrt);
     await fsp.writeFile(path.join(this.dir, 'ca-names.json'), JSON.stringify(extraDns));
-    await fsp.rm(this.files.crt, { force: true });
+    await rmRetry(this.files.crt, { force: true });
     const where = this.platform === 'win32' ? this.files.caCrt : '/data/tls/ca.crt';
     this.log?.warn(`Created a new HTTPS certificate authority. Install ${where} on your devices (Settings > Security) to trust the page.`);
   }
@@ -242,8 +245,8 @@ class TlsManager {
       await fsp.writeFile(`${this.files.crt}.tmp`, x509.issueLeaf({
         publicKey: key, subject: [['O', ORG], ['CN', cn]], names, caCert, caKey, days: LEAF_DAYS
       }));
-      await fsp.rename(tmpKey, this.files.key);
-      await fsp.rename(`${this.files.crt}.tmp`, this.files.crt);
+      await renameReplace(tmpKey, this.files.key);
+      await renameReplace(`${this.files.crt}.tmp`, this.files.crt);
       this.log?.info(`Issued the HTTPS certificate for ${names.join(', ')}`);
       return;
     }
@@ -262,9 +265,9 @@ class TlsManager {
     await openssl(['x509', '-req', '-in', csr, '-CA', this.files.caCrt, '-CAkey', this.files.caKey,
       '-set_serial', `0x${crypto.randomBytes(16).toString('hex')}`, '-days', String(LEAF_DAYS), '-sha256',
       '-extfile', ext, '-out', `${this.files.crt}.tmp`]);
-    await fsp.rename(tmpKey, this.files.key);
-    await fsp.rename(`${this.files.crt}.tmp`, this.files.crt);
-    await Promise.all([fsp.rm(csr, { force: true }), fsp.rm(ext, { force: true })]);
+    await renameReplace(tmpKey, this.files.key);
+    await renameReplace(`${this.files.crt}.tmp`, this.files.crt);
+    await Promise.all([rmRetry(csr, { force: true }), rmRetry(ext, { force: true })]);
     this.log?.info(`Issued the HTTPS certificate for ${names.join(', ')}`);
   }
 
@@ -329,7 +332,7 @@ async function exportForApp(manager, outDir, { uid, gid } = {}) {
     // a fresh temp file, never through an existing link
     const file = path.join(outDir, name);
     const tmpFile = `${file}.${process.pid}.tmp`;
-    await fsp.rm(tmpFile, { force: true });
+    await rmRetry(tmpFile, { force: true });
     const fh = await fsp.open(tmpFile, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, mode);
     try {
       await fh.writeFile(data);
@@ -338,7 +341,7 @@ async function exportForApp(manager, outDir, { uid, gid } = {}) {
     } finally {
       await fh.close();
     }
-    await fsp.rename(tmpFile, file);
+    await renameReplace(tmpFile, file);
   }
   return material;
 }

@@ -951,8 +951,8 @@ fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify(args) + '\\n');
 const out = [];
 for (let i = 0; i < args.length; i += 1) {
   const a = args[i];
-  if (['-init_hw_device', '-hwaccel', '-hwaccel_device', '-hwaccel_output_format', '-vaapi_device', '-gpu'].includes(a)) { i += 1; continue; }
-  if (a === '-vf' && args[i + 1] === 'format=nv12,hwupload') { i += 1; continue; }
+  if (['-init_hw_device', '-filter_hw_device', '-hwaccel', '-hwaccel_device', '-hwaccel_output_format', '-extra_hw_frames', '-vaapi_device', '-gpu'].includes(a)) { i += 1; continue; }
+  if (a === '-vf' && /^(format=nv12,hwupload|hwmap=derive_device=qsv,format=qsv)$/.test(args[i + 1] || '')) { i += 1; continue; }
   if (a === '-c:v' && /_(qsv|vaapi|nvenc)$/.test(args[i + 1] || '')) { out.push('-c:v', 'libx265'); i += 1; continue; }
   if (a === '-pix_fmt' && args[i + 1] === 'nv12') { out.push('-pix_fmt', 'yuv420p'); i += 1; continue; }
   out.push(a);
@@ -1001,10 +1001,12 @@ test('end to end: a lanes job encodes each clip on its lane\'s GPU through the r
     assert.equal(job.items.filter((item) => item.resultCode === 'converted').length, 4);
     assert.ok(job.items.every((item) => item.encoder === 'hevc_qsv'), 'the QSV encoder proved on each GPU');
     const encodes = ffmpeg.calls().filter((args) => args.includes('pipe:1'));
-    const on = (node) => encodes.filter((args) => args.includes(`qsv=qsvenc:hw_any,child_device=${node}`));
+    // (QSV names its GPU as a child device, or for zero-copy as the VA-API device it derives from)
+    const on = (node) => encodes.filter((args) => args.includes(`qsv=qsvenc:hw_any,child_device=${node}`) || args.includes(`vaapi=va:${node}`));
     assert.equal(on(ARC.node).length + on(UHD.node).length, encodes.length, 'every clip named its GPU');
     assert.ok(on(ARC.node).length >= 1 && on(UHD.node).length >= 1, 'both GPUs converted');
-    assert.ok(on(ARC.node).every((args) => args[args.indexOf('-hwaccel_device') + 1] === ARC.node), 'decoded on the same GPU');
+    assert.ok(on(ARC.node).every((args) => args[args.indexOf('-hwaccel_device') + 1] === ARC.node
+      || (args[args.indexOf('-hwaccel_device') + 1] === 'va' && args.includes(`vaapi=va:${ARC.node}`))), 'decoded on the same GPU');
     const probes = ffmpeg.calls().filter((args) => args.includes('testsrc2=duration=0.5:size=640x360:rate=8'));
     assert.ok(probes.some((args) => args.includes(`qsv=qsvenc:hw_any,child_device=${ARC.node}`)), 'proved on the Arc with its own arguments');
   } finally {

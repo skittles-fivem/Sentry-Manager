@@ -93,6 +93,8 @@ namespace SentrySixManager.Helper
                 case 87: return "EINVAL";
                 // ERROR_DIR_NOT_EMPTY, only from fs.removeDir: node's own name for it
                 case 145: return "ENOTEMPTY";
+                // ERROR_DIRECTORY, only from fs.removeDir on a file
+                case 267: return "ENOTDIR";
                 default: return "EIO";
             }
         }
@@ -418,6 +420,7 @@ namespace SentrySixManager.Helper
         public const uint FILE_ATTRIBUTE_DIRECTORY = 0x10;
         public const uint FILE_ATTRIBUTE_NORMAL = 0x80;
         public const uint FILE_ATTRIBUTE_REPARSE_POINT = 0x400;
+        public const uint MOVEFILE_REPLACE_EXISTING = 0x1;
         public const uint MOVEFILE_WRITE_THROUGH = 0x8;
         public const int FileBasicInfo = 0, FileRenameInfo = 3, FileDispositionInfo = 4;
         public const uint ES_CONTINUOUS = 0x80000000, ES_SYSTEM_REQUIRED = 0x00000001;
@@ -1071,44 +1074,81 @@ namespace SentrySixManager.Helper
                         var err = Errors.From(e);
                         if (err.Code != "EACCES") throw err;
                     }
-                    if (write) writable = TryWrite(dir);
+                    JObj written = write ? TryWrite(dir) : null;
+                    if (written != null) foreach (var kv in written) if (kv.Key == "writable") writable = (bool)kv.Value;
                     JObj status;
                     try { status = SmbStatusRows(host, share); }
                     catch (Exception) { status = new JObj { { "dialect", null }, { "encrypted", null }, { "signed", null } }; }
                     result.Add("readable", readable);
                     result.Add("writable", writable);
                     result.Add("entries", entries);
+                    if (written != null) foreach (var kv in written) if (kv.Key != "writable") result.Add(kv.Key, kv.Value);
                     foreach (var kv in status) if (kv.Key != "connected") result.Add(kv.Key, kv.Value);
                 });
             }
             return result;
         }
 
-        static bool TryWrite(string dir)
+        // Docker's write check (share.js checkWritable), step for step, on two
+        // files of its own: write a, write b and flush it to disk, rename b
+        // over a (if that is refused: delete a, then rename), set a's date to
+        // 2020-01-01 UTC, read back "new", delete. A NAS that refuses any of
+        // them is not writable for the Recycle Bin, Protect or replacing
+        // originals. The answer says which step failed and why: writeStep
+        // (write|sync|rename|utime|read|remove), writeCode, writeError (the
+        // system's text, never a path), renameOverwrite (null until tried).
+        static JObj TryWrite(string dir)
         {
-            string file = Path.Combine(dir, ".sentry-six-manager-check-" + Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture));
-            var data = new byte[4096];
-            using (var rng = RandomNumberGenerator.Create()) rng.GetBytes(data);
-            bool created = false;
+            string tag = ".sentry-six-manager-check-" + Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture);
+            string a = Path.Combine(dir, tag + "-a");
+            string b = Path.Combine(dir, tag + "-b");
+            string step = "write";
+            object renameOverwrite = null;
+            var answer = new JObj();
             try
             {
-                using (var fs = new FileStream(file, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                File.WriteAllBytes(a, Encoding.ASCII.GetBytes("old"));
+                using (var fs = new FileStream(b, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
-                    created = true;
+                    byte[] data = Encoding.ASCII.GetBytes("new");
                     fs.Write(data, 0, data.Length);
+                    step = "sync";
                     fs.Flush(true);
                 }
-                var back = File.ReadAllBytes(file);
-                if (back.Length != data.Length) return false;
-                for (int i = 0; i < data.Length; i++) if (back[i] != data[i]) return false;
-                File.Delete(file);
-                created = false;
-                return true;
+                step = "rename";
+                if (Native.MoveFileExW(Files.Long(b), Files.Long(a), Native.MOVEFILE_REPLACE_EXISTING | Native.MOVEFILE_WRITE_THROUGH))
+                    renameOverwrite = true;
+                else
+                {
+                    renameOverwrite = false;
+                    step = "remove";
+                    File.Delete(a);
+                    step = "rename";
+                    if (!Native.MoveFileExW(Files.Long(b), Files.Long(a), Native.MOVEFILE_WRITE_THROUGH)) throw HelperError.FromWin32(Marshal.GetLastWin32Error());
+                }
+                step = "utime";
+                var when = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                File.SetLastWriteTimeUtc(a, when);
+                File.SetLastAccessTimeUtc(a, when);
+                step = "read";
+                if (Encoding.ASCII.GetString(File.ReadAllBytes(a)) != "new") throw new HelperError("EIO", 0, "What was read back differs from what was written.");
+                step = "remove";
+                File.Delete(a);
+                answer.Add("writable", true);
+                answer.Add("renameOverwrite", renameOverwrite);
+                return answer;
             }
-            catch (Exception) { return false; }
-            finally
+            catch (Exception e)
             {
-                if (created) { try { File.Delete(file); } catch (Exception) { } }
+                try { File.Delete(a); } catch (Exception) { }
+                try { File.Delete(b); } catch (Exception) { }
+                var err = Errors.From(e);
+                answer.Add("writable", false);
+                answer.Add("writeStep", step);
+                answer.Add("writeCode", err.Code);
+                answer.Add("writeError", err.Message);
+                answer.Add("renameOverwrite", renameOverwrite);
+                return answer;
             }
         }
 

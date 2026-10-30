@@ -39,7 +39,9 @@ First line written by the helper, unprompted: `{"id":0,"ok":true,"result":{"op":
 
 Error codes (Win32 → code): 2,3 ENOENT; 5 EACCES; 32,33 EBUSY; 80,183 EEXIST; 17
 EXDEV; 1219 ESESSION; 1326,86 EAUTH; 53,67,1231,64 EHOSTUNREACH; 1272 EGUEST;
-4390,1920 ELOOP (reparse point refused); 87 EINVAL; anything else EIO. Identity
+4390,1920 ELOOP (reparse point refused); 87 EINVAL; 145 ENOTEMPTY (fs.removeDir on
+a non-empty directory); 267 ENOTDIR (fs.removeDir on a file); anything else EIO.
+`fs.guardedRemove` on a plain directory is `EISDIR` (winerr 0). Identity
 mismatch (not a Win32 error) is `EIDENTITY`.
 
 ## Numbers
@@ -65,22 +67,26 @@ COPY_ALLOWED: never copies across volumes → EXDEV). Refuses if `from` is a rep
 point (ELOOP). EEXIST when `to` exists.
 
 ### `fs.renameExpected` `{from, to, expected:{dev,ino,size,mtimeNs}, replace:false}` → `{}`
-Opens `from` with `DELETE | FILE_READ_ATTRIBUTES`, `FILE_FLAG_OPEN_REPARSE_POINT`,
-share read only; checks identity (any field given must match, else EIDENTITY); then
+Opens `from` with `DELETE | FILE_READ_ATTRIBUTES`, `FILE_FLAG_OPEN_REPARSE_POINT |
+FILE_FLAG_BACKUP_SEMANTICS` (so a directory or junction opens and is refused for
+what it is), share read only; refuses a reparse point (ELOOP); checks identity (any field given must match, else EIDENTITY); then
 `SetFileInformationByHandle(FileRenameInfo, ReplaceIfExists = replace)`. The open
 handle makes check and rename one operation on the same file.
 
 ### `fs.guardedRemove` `{path, expected:{dev,ino,size,mtimeNs,sha256?}}` → `{}`
-Opens with `DELETE | GENERIC_READ`, share read only, `FILE_FLAG_OPEN_REPARSE_POINT
-| FILE_FLAG_SEQUENTIAL_SCAN`; checks identity; when `sha256` is given hashes the
+Opens with `DELETE | GENERIC_READ | FILE_WRITE_ATTRIBUTES`, share read only,
+`FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_SEQUENTIAL_SCAN`;
+refuses a reparse point (ELOOP) or a directory (EISDIR); checks identity; when `sha256` is given hashes the
 content **through the same handle** and compares; clears the read-only attribute if
 set; deletes with `FileDispositionInfo`. Nothing is deleted on any mismatch.
 
 ### `fs.removeDir` `{path}` → `{}`  empty directory only, refuses reparse points.
 
 ### `smb.connect` `{unc:'\\\\host\\share', user, domain?, password}` → `{}`
-`WNetAddConnection2W` with `lpLocalName = null`, `CONNECT_TEMPORARY`. Username
-`domain\user` when domain is given.
+`WNetAddConnection2W` with `lpLocalName = null`, `CONNECT_TEMPORARY`. Account:
+`domain\user` when domain is given; otherwise a `user` written as `DOMAIN\user` or
+`user@domain` is used as is; otherwise `HOST\user` (HOST from the UNC). `smb.test`
+presents the same account to `LogonUserW`.
 
 ### `smb.disconnect` `{unc, force:true}` → `{}`  `WNetCancelConnection2W`. ENOENT if none.
 
@@ -88,13 +94,21 @@ set; deletes with `FileDispositionInfo`. Nothing is deleted on any mismatch.
 WMI `root\Microsoft\Windows\SMB : MSFT_SmbConnection` filtered by ServerName and
 ShareName (System.Management). `connected:false` when there is no row.
 
-### `smb.test` `{unc, user, domain?, password, write:bool, folder?:string}` → `{readable, writable, entries:[name...≤200], dialect, encrypted, signed}`
+### `smb.test` `{unc, user, domain?, password, write:bool, folder?:string}` → `{readable, writable, entries:[name...≤200], dialect, encrypted, signed, writeStep?, writeCode?, writeError?, renameOverwrite?}`
 `LogonUserW(LOGON32_LOGON_NEW_CREDENTIALS, LOGON32_PROVIDER_WINNT50)` +
 `WindowsIdentity.RunImpersonated`: list the share (or `folder` under it); when `write`,
-create, write, read back and delete `.sentry-six-manager-check-<pid>`. Never touches
-the process's own sessions.
+Docker's write check (share.js `checkWritable`) step for step on
+`.sentry-six-manager-check-<pid>-a`/`-b`: write a, write b and flush it, rename b over
+a (if refused: delete a, then rename), set a's date to 2020-01-01 UTC, read back, delete.
+`renameOverwrite` says whether the rename over a file worked (null until tried); on a
+failure `writeStep` (`write|sync|rename|utime|read|remove`), `writeCode` and
+`writeError` (the system's text) say which step and why. Never touches the process's
+own sessions.
 
 ### `gpu.list` → `{adapters:[{index, luid:'0x…', vendorId, deviceId, subsysId, revision, name, dedicatedVideoMemory:'n', pci:'0000:01:00.0'|null, software:bool}]}`
+`vendorId`, `deviceId`, `subsysId` and `revision` are JSON numbers (a reader also
+accepts a 4-hex-digit string, with or without `0x`, as in `PCI\VEN_8086`; a decimal
+value is never sent as a string).
 DXGI `CreateDXGIFactory1` + `EnumAdapters1`/`GetDesc1`; PCI address from
 `D3DKMTOpenAdapterFromLuid` + `D3DKMTQueryAdapterInfo(KMTQAITYPE_ADAPTERADDRESS)`
 (bus, device, function → `0000:bb:dd.f`, lower-case hex). Software adapters
@@ -108,7 +122,7 @@ names through the registry 009 index, so non-English Windows works). Each set is
 
 | set | category | counters |
 |---|---|---|
-| cpu | Processor Information | % Processor Time, % Privileged Time, % User Time, % Idle Time, % Processor Performance, Processor Frequency |
+| cpu | Processor Information | % Processor Time, % Privileged Time, % User Time, % Idle Time, % Processor Performance (+ its `% Processor Performance Base`), Processor Frequency |
 | disk | PhysicalDisk | Disk Read Bytes/sec, Disk Write Bytes/sec, Disk Reads/sec, Disk Writes/sec, % Idle Time |
 | net | Network Interface | Bytes Received/sec, Bytes Sent/sec |
 | gpu | GPU Engine | Utilization Percentage (instance names carry pid, luid, engine type) |
@@ -116,6 +130,8 @@ names through the registry 009 index, so non-English Windows works). Each set is
 | energy | Energy Meter | Energy, Power (only on machines that have it; empty object otherwise) |
 | proc | Process | % Processor Time, Working Set - Private, ID Process, Creating Process ID, IO Read Bytes/sec, IO Write Bytes/sec |
 
+A counter with a base (averages, fractions) also carries `<counter> Base` per
+instance, e.g. `% Processor Performance Base`, which the CPU clock needs.
 A category that does not exist yields `{}` for its set, never an error.
 
 ### `sys.info` → `{os:{caption, version, build}, cpus:[{name, cores, threads, socket}], memory:{total:'n'}, bootTime:'ISO', disks:[{number, model, serial, size:'n', mediaType, busType}], volumes:[{letter, label, fs, size:'n', free:'n', disk}], adapters:[{name, description, mac, speed:'n', physical:bool}], elevated:bool, account}`
