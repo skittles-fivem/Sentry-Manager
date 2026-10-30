@@ -99,6 +99,11 @@ class FilesystemsProvider {
     // with a network share, at every check: a share mounted or lost shows within 10 s
     const every = [...this.shares.values()].some((s) => s.network) ? CHECK_EVERY_MS : MOUNTS_EVERY_MS;
     if ((changed || this.mountsAt === null || t - this.mountsAt >= every) && this.locate) {
+      // (a Mac, before its first mount list: nothing is known yet; ask again next sample)
+      if (typeof this.locate.ready === 'function' && !this.locate.ready()) {
+        this.listedAt = null;
+        return;
+      }
       this.mountsAt = t;
       for (const s of this.shares.values()) {
         let m = null;
@@ -133,6 +138,9 @@ class FilesystemsProvider {
   }
 
   check(s) {
+    // a network share not yet known to be mounted is not checked: its
+    // folder could be the empty one on the server's own disk
+    if (s.network && s.mounted === undefined) return;
     s.checkedAt = this.now();
     if (s.mounted === false) {
       s.lastCheck = this.now();

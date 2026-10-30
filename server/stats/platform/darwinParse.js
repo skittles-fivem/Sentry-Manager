@@ -8,6 +8,11 @@
 // Apple Silicon Macs on macOS 13 to 15; the ones marked "verify" still
 // need a look on a real Mac.
 
+// /sbin/mount lines come from the parser the share mounter uses (one copy for both).
+//   /dev/disk3s1s1 on / (apfs, sealed, local, read-only, journaled)
+//   //user@nas/TeslaCam on /path/car (smbfs, nodev, nosuid, mounted by _sentrysix)
+const { parseMountLine, parseDarwinMount: parseMount } = require('../../platform/smbDarwin');
+
 /** "key: value" lines of sysctl, as { key: 'value' } (the value as printed). */
 function parseSysctl(text) {
   const out = {};
@@ -152,28 +157,6 @@ function parsePs(text) {
     out.push({ pid: Number(m[1]), ppid: Number(m[2]), state: m[3][0], rssKiB: Number(m[4]), cpuMs, lstart, comm: m[7].trim() });
   }
   return out;
-}
-
-/**
- * One line of /sbin/mount:
- *   /dev/disk3s1s1 on / (apfs, sealed, local, read-only, journaled)
- *   //user@nas/TeslaCam on /path/car (smbfs, nodev, nosuid, mounted by _sentrysix)
- * The same shape as smbDarwin's parseMountLine (a copy, to be shared).
- */
-function parseMountLine(line) {
-  const m = String(line).match(/^(.*?) on (.*) \(([A-Za-z0-9_.-]+)((?:, [^()]*)?)\)$/);
-  if (!m) return null;
-  const options = [];
-  let mountedBy = null;
-  for (const opt of m[4] ? m[4].slice(2).split(', ') : []) {
-    if (opt.startsWith('mounted by ')) mountedBy = opt.slice('mounted by '.length);
-    else options.push(opt);
-  }
-  return { source: m[1], mountPoint: m[2], fsType: m[3], options, mountedBy };
-}
-
-function parseMount(text) {
-  return String(text || '').split('\n').map(parseMountLine).filter(Boolean);
 }
 
 /** smbutil statshares -m <dir>: "SMB_VERSION   SMB_3.1.1" -> "3.1.1" (verify the key on a Mac). */
