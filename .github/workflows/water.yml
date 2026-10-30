@@ -40,14 +40,14 @@ jobs:
           }
           try { node -v } catch {}
           try { nvidia-smi --query-gpu=name,driver_version,pci.bus_id --format=csv } catch {}
-      - name: TrueNAS reachability
+      - name: Test clips on the PC (read only)
         run: |
-          foreach ($p in 443, 80, 9000, 30015) {
-            $c = New-Object Net.Sockets.TcpClient
-            $ok = $c.ConnectAsync('192.168.1.57', $p).Wait(3000)
-            "192.168.1.57:$p open: $($ok -and $c.Connected)"
-            $c.Close()
+          foreach ($d in 'C:\Users\ktmcm\OneDrive\Desktop\2026-10-19 HW3', 'C:\Users\ktmcm\OneDrive\Desktop\2026-07-21 HW4') {
+            "== $d"
+            if (-not (Test-Path -LiteralPath $d)) { '  (missing)'; continue }
+            $f = Get-ChildItem -LiteralPath $d -Recurse -File
+            "  files: $($f.Count), MB: $([math]::Round((($f | Measure-Object Length -Sum).Sum)/1MB))"
+            # cloud-only OneDrive files carry the RecallOnDataAccess attribute (0x400000)
+            "  cloud-only: $(($f | Where-Object { ([int]$_.Attributes -band 0x400000) -ne 0 }).Count)"
+            $f | Select-Object -First 12 | ForEach-Object { '  ' + $_.FullName.Substring($d.Length) + '  ' + [math]::Round($_.Length/1MB,1) + ' MB' }
           }
-          curl.exe -sk -m 5 -o NUL -w "healthz HTTP %{http_code}`n" https://192.168.1.57:9000/healthz
-          curl.exe -s -m 5 -o NUL -w "plain http :9000 -> %{http_code}`n" http://192.168.1.57:9000/
-          Get-NetFirewallProfile | Format-Table Name, Enabled, DefaultOutboundAction
