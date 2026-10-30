@@ -8,9 +8,13 @@
 // SentryHelper.exe that works on this machine's files.
 
 const test = require('node:test');
+const { spawnSync } = require('child_process');
 const { crashAndRecover, assertRecovered, available } = require('./fixtures/winCrashPoints');
+const { needsTool } = require('./fixtures/platformSkip');
 
-const skip = process.platform === 'win32' ? 'the kill points use POSIX process groups'
+// (Windows: the kill ends the converter's process tree with taskkill, see
+// test/fixtures/crashPoints.js; the stand-in needs no SentryHelper.exe)
+const skip = process.platform === 'win32' ? needsTool(spawnSync('ffmpeg', ['-version']).status === 0, 'needs ffmpeg')
   : available() ? false : 'needs ffmpeg and build/noreplace-rename';
 
 for (const [label, point] of [

@@ -11,7 +11,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
+const { linuxOnly, needsTool } = require('./fixtures/platformSkip');
 const { normalizeLanes, lanesTotal, DEVICE_ID, LANES, nodeKeyOf, nodeDeviceOf } = require('../src/main/converter/contracts');
 const { createJobStore } = require('../src/main/converter/jobStore');
 const { createEncoderPlanner } = require('../src/main/converter/encoderPlanner');
@@ -945,6 +945,10 @@ test('the encoder block has one entry per device in use', () => {
 
 const HELPER = path.join(__dirname, '..', 'build', 'noreplace-rename');
 const canConvert = hasFfmpeg && fs.existsSync(HELPER);
+// The runtime runs as on Linux here (platform 'linux'): the GPUs are VA-API /
+// QSV render nodes (/dev/dri) and the arguments checked are Linux's. Windows
+// names its GPUs another way (the helper's gpu.list).
+const LINUX_GPUS = 'VA-API and QSV render nodes (/dev/dri) through the runtime as on Linux';
 
 // ffmpeg that writes down how it was called, then encodes on the CPU: the
 // GPU encoders become libx265 and the device arguments are left out.
@@ -972,7 +976,7 @@ child.on('exit', (code, signal) => process.exit(signal ? 1 : code));
   return { script, calls: () => (fs.existsSync(log) ? fs.readFileSync(log, 'utf8').trim().split('\n').map((line) => JSON.parse(line)) : []) };
 }
 
-test('end to end: a lanes job encodes each clip on its lane\'s GPU through the real runtime', { skip: linuxOnly(RENAME_HELPER) || needsTool(canConvert, 'needs ffmpeg and build/noreplace-rename'), timeout: 180_000 }, async () => {
+test('end to end: a lanes job encodes each clip on its lane\'s GPU through the real runtime', { skip: linuxOnly(LINUX_GPUS) || needsTool(canConvert, 'needs ffmpeg and build/noreplace-rename'), timeout: 180_000 }, async () => {
   const { createConverterRuntime } = require('../src/main/converter/runtime');
   const { createPosixOwnedFs } = require('../server/posixOwnedFs');
   const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');

@@ -12,10 +12,12 @@ const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
 const { open, makeBase, available, clipName, codecOf, sha256, leftovers } = require('./fixtures/crashPoints');
-const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
+const { ownedFsSkip } = require('./fixtures/ownedFsAdapter');
 const { createJobStore } = require('../src/main/converter/jobStore');
 
-const skip = linuxOnly(RENAME_HELPER) || needsTool(available(), 'needs ffmpeg and build/noreplace-rename');
+// (Linux: posixOwnedFs over build/noreplace-rename; Windows: winOwnedFs over
+// SentryHelper.exe)
+const skip = ownedFsSkip(available(), 'needs ffmpeg and build/noreplace-rename', 'needs ffmpeg and SentryHelper.exe (set SENTRY_HELPER)');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Bytes read in this process from files under a folder (the "share"),
@@ -52,7 +54,7 @@ test('replacing through staging reads each clip from the share twice and its con
   const sizes = fs.readdirSync(folder).map((name) => fs.statSync(path.join(folder, name)).size);
   let writes = 0;
   let env;
-  const reads = countReads(fs.realpathSync(path.join(base, 'footage')));
+  const reads = countReads(fs.realpathSync.native(path.join(base, 'footage')));
   // share reads from the slot's first record to the clip's result (one at a time)
   let slotStart = null;
   let slotBytes = 0;

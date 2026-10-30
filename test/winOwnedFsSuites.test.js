@@ -15,6 +15,7 @@ const path = require('path');
 const posix = require('../server/posixOwnedFs');
 const { createWinOwnedFs } = require('../server/platform/winOwnedFs');
 const { createLinuxFsHelper } = require('./fixtures/winFsHelperFake');
+const ownedFsAdapter = require('./fixtures/ownedFsAdapter');
 
 const helpers = [];
 posix.createPosixOwnedFs = (options = {}) => {
@@ -23,6 +24,14 @@ posix.createPosixOwnedFs = (options = {}) => {
   });
   helpers.push(helper);
   return createWinOwnedFs({ helper });
+};
+// Windows: the suites already make winOwnedFs (over the real SentryHelper.exe,
+// test/fixtures/ownedFsAdapter.js); here the stand-in takes the helper's place.
+// posixOwnedFs.test.js (the renameat2 helper's own tests) is Linux-only.
+ownedFsAdapter.makeWindowsHelper = () => {
+  const helper = createLinuxFsHelper();
+  helpers.push(helper);
+  return helper;
 };
 
 require(path.join(__dirname, 'posixOwnedFs.test.js'));

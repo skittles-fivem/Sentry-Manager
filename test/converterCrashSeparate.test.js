@@ -6,9 +6,11 @@
 
 const test = require('node:test');
 const { crashAndRecover, assertRecovered, available } = require('./fixtures/crashPoints');
-const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
+const { ownedFsSkip } = require('./fixtures/ownedFsAdapter');
 
-const skip = linuxOnly(RENAME_HELPER) || needsTool(available(), 'needs ffmpeg and build/noreplace-rename');
+// (Linux: posixOwnedFs over build/noreplace-rename; Windows: winOwnedFs over
+// SentryHelper.exe, the kill ending the converter's process tree)
+const skip = ownedFsSkip(available(), 'needs ffmpeg and build/noreplace-rename', 'needs ffmpeg and SentryHelper.exe (set SENTRY_HELPER)');
 
 for (const [label, point, networkMode = 'direct'] of [
   ['the encode', 'encode'],

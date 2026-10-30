@@ -28,7 +28,7 @@ const { canLinkFiles } = require('./fixtures/dirLink');
 const canSymlink = canLinkFiles();
 
 async function tmp() {
-  return fs.realpathSync(await fsp.mkdtemp(path.join(os.tmpdir(), 'win-owned-')));
+  return fs.realpathSync.native(await fsp.mkdtemp(path.join(os.tmpdir(), 'win-owned-')));
 }
 
 async function identity(file) {
@@ -216,7 +216,7 @@ test('identity parity per drive: Node and the helper must agree, on a drive that
 // A replacement set up as stagingSplit.test.js does, with the Windows adapter
 // and staging told it runs on Windows.
 function setup(helperOptions = {}, { sleep } = {}) {
-  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'win-staging-')));
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'win-staging-')));
   const tempRoot = path.join(root, 'tmp', 'sentry-six-converter');
   const footage = path.join(root, 'footage');
   const snapshotFolder = path.join(root, 'tmp', 'sentry-six-verification-abc');
@@ -315,7 +315,7 @@ test('a drive that fails the identity check refuses before anything is written b
 
 test('the converter\'s own work files are removed once a scanner lets go (EBUSY / EPERM tried again on Windows only)', async () => {
   for (const platform of ['win32', 'linux']) {
-    const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'win-private-')));
+    const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'win-private-')));
     try {
       const tempRoot = path.join(root, 'sentry-six-converter');
       fs.mkdirSync(tempRoot);

@@ -5,6 +5,13 @@
 // (test/converterCrash*.test.js). Run as a script (env BASE, POINT, MODE,
 // NETMODE, CONCURRENCY) it starts a job in BASE and dies at POINT; the test
 // then starts the converter again on the same folders and checks the result.
+//
+// On Windows the converter uses winOwnedFs over the real SentryHelper.exe
+// (test/fixtures/ownedFsAdapter.js), and dying is what the service's Job
+// Object does to node.exe and its ffmpegs: everything the converter started
+// is ended with taskkill /T /F, then the converter itself (TerminateProcess).
+// Windows has no SIGUSR2 either, so the encode and verification points are
+// taken where the converter starts that ffmpeg or ffprobe.
 
 const fs = require('fs');
 const { realTmpSync } = require('./tmp');
@@ -13,6 +20,8 @@ const crypto = require('crypto');
 const assert = require('node:assert/strict');
 const { spawn, spawnSync } = require('child_process');
 const { writeNodeTool } = require('./nodeTool');
+const { createOwnedFs, windowsHelperBuilt } = require('./ownedFsAdapter');
+const { killTree, writeTool, toolSpawn, markKilled, exitSignal } = require('./processTree');
 
 
 const REPO = path.join(__dirname, '..', '..');
@@ -25,7 +34,8 @@ const HELPER = path.join(REPO, 'build', 'noreplace-rename');
 const EVENT = path.join('TeslaCam', 'SentryClips', '2026-10-20_07-44-14');
 const clipName = (index) => `2026-10-20_07-${String(40 + index).padStart(2, '0')}-00-front.mp4`;
 
-const available = () => spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER);
+const WINDOWS = process.platform === 'win32';
+const available = () => spawnSync('ffmpeg', ['-version']).status === 0 && (WINDOWS ? windowsHelperBuilt() : fs.existsSync(HELPER));
 
 // One Tesla-like H.264 clip, made once per test process and copied (each copy
 // is a file of its own: its own inode, like the car's clips).
@@ -58,7 +68,15 @@ const codecOf = (file) => String(spawnSync('ffprobe', ['-v', 'error', '-select_s
   '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', file]).stdout).trim();
 
 // The whole process group, ffmpeg included, as docker kill stops a container.
+// Windows: every process the converter started (and what each started), then
+// the converter; the mark tells crash() it died here (processTree.js).
+const started = new Set();
 function die() {
+  if (WINDOWS) {
+    markKilled(process.env.BASE);
+    for (const pid of started) killTree(pid);
+    process.kill(process.pid, 'SIGKILL');
+  }
   try { process.kill(-process.pid, 'SIGKILL'); } catch (_) { /* not a group leader */ }
   process.kill(process.pid, 'SIGKILL');
 }
@@ -190,17 +208,23 @@ function toolWrapper(base, name, body) {
 
 // The runtime as server/converterHost.js composes it, with the kill point's hooks.
 async function open(base, { point = null, concurrency = 1, mode = 'replace', networkMode = 'direct', factories } = {}) {
-  process.env.SENTRY_NOREPLACE_RENAME = HELPER;
   const hooks = point ? POINTS[point] : {};
   if (point && !hooks) throw new Error(`unknown kill point ${point}`);
-  const realRename = createNoReplaceRename();
-  const owned = createPosixOwnedFs({ noReplace: {
-    available: realRename.available,
-    rename: async (from, to) => {
-      await realRename.rename(from, to);
-      if (hooks.onRename?.(from, to)) die();
-    }
-  } });
+  let owned;
+  if (WINDOWS) {
+    // the helper's no-replace moves, as noReplace.rename's below
+    owned = createOwnedFs({ afterMove: (from, to) => { if (hooks.onRename?.(from, to)) die(); } });
+  } else {
+    process.env.SENTRY_NOREPLACE_RENAME = HELPER;
+    const realRename = createNoReplaceRename();
+    owned = createPosixOwnedFs({ noReplace: {
+      available: realRename.available,
+      rename: async (from, to) => {
+        await realRename.rename(from, to);
+        if (hooks.onRename?.(from, to)) die();
+      }
+    } });
+  }
   const renameExclusive = Object.assign({}, owned.renameExclusive, {
     promote: async (request) => {
       if (hooks.onPromote?.(request)) die();
@@ -214,7 +238,7 @@ async function open(base, { point = null, concurrency = 1, mode = 'replace', net
     isRetryable: (error) => RETRYABLE.has(error?.code),
     checkPath: async (target) => fs.promises.access(target).then(() => true, () => false)
   };
-  if (hooks.ffmpeg || hooks.ffprobeKill || hooks.hold) process.on('SIGUSR2', die);
+  if (!WINDOWS && (hooks.ffmpeg || hooks.ffprobeKill || hooks.hold)) process.on('SIGUSR2', die);
   // an encode (it reports on -progress) or the verification's probe signals
   // the converter (its parent) to die there, and fails itself
   const signalParent = (match) => `if (joined.includes(${JSON.stringify(match)})) { process.kill(parent, 'SIGUSR2'); process.exit(1); }`;
@@ -228,13 +252,36 @@ async function open(base, { point = null, concurrency = 1, mode = 'replace', net
   try { process.kill(parent, 0); } catch (_) { process.exit(1); }
   return false;
 }, () => exec('ffmpeg', args));`;
-  const ffmpegPath = hooks.ffmpeg
-    ? toolWrapper(base, 'ffmpeg', signalParent('-progress'))
-    : hooks.hold
-      ? writeNodeTool(base, 'ffmpeg-crash.js', holdUntilReleased)
-      : 'ffmpeg';
-  const ffprobePath = hooks.ffprobeKill
-    ? toolWrapper(base, 'ffprobe', signalParent('sentry-six-verification-')) : 'ffprobe';
+  let ffmpegPath;
+  let ffprobePath;
+  let spawnTool = spawn;
+  if (WINDOWS) {
+    ffmpegPath = hooks.hold ? writeTool(base, 'ffmpeg-crash.js', holdUntilReleased) : 'ffmpeg';
+    ffprobePath = 'ffprobe';
+    // every process the converter starts is ended with it; an encode (it
+    // reports on -progress) or the verification's probe is where those
+    // points die, once it started
+    const runTool = toolSpawn(spawn);
+    spawnTool = (command, args = [], options) => {
+      const child = runTool(command, args, options);
+      if (child.pid) {
+        started.add(child.pid);
+        child.once('exit', () => started.delete(child.pid));
+      }
+      const joined = args.join(' ');
+      if ((hooks.ffmpeg && command === ffmpegPath && joined.includes('-progress'))
+        || (hooks.ffprobeKill && command === ffprobePath && joined.includes('sentry-six-verification-'))) die();
+      return child;
+    };
+  } else {
+    ffmpegPath = hooks.ffmpeg
+      ? toolWrapper(base, 'ffmpeg', signalParent('-progress'))
+      : hooks.hold
+        ? writeNodeTool(base, 'ffmpeg-crash.js', holdUntilReleased)
+        : 'ffmpeg';
+    ffprobePath = hooks.ffprobeKill
+      ? toolWrapper(base, 'ffprobe', signalParent('sentry-six-verification-')) : 'ffprobe';
+  }
   const storeFactory = (options) => {
     const store = (factories?.createJobStore || createJobStore)(options);
     if (!hooks.beforeWrite && !hooks.afterWrite) return store;
@@ -256,17 +303,17 @@ async function open(base, { point = null, concurrency = 1, mode = 'replace', net
     });
   };
   const runtime = await createConverterRuntime({
-    userDataPath: fs.realpathSync(path.join(base, 'data')),
-    tempPath: fs.realpathSync(path.join(base, 'temp')),
-    ffmpegPath, ffprobePath, spawn, fs: proxiedFs(hooks), pathApi: path, platform: process.platform,
+    userDataPath: fs.realpathSync.native(path.join(base, 'data')),
+    tempPath: fs.realpathSync.native(path.join(base, 'temp')),
+    ffmpegPath, ffprobePath, spawn: spawnTool, fs: proxiedFs(hooks), pathApi: path, platform: process.platform,
     removeOwned: owned.removeOwned, renameExclusive, network, autoConvert: false, gpuDecode: false,
     privateTempIdentityCleanup: true,
     networkBackoff: { initialMs: 50, maximumMs: 200 },
     factories: { ...(factories || {}), createJobStore: storeFactory }
   });
   const config = {
-    sourceRoot: fs.realpathSync(path.join(base, 'footage', 'TeslaCam')),
-    destinationRoot: mode === 'replace' ? null : fs.realpathSync(path.join(base, 'out')),
+    sourceRoot: fs.realpathSync.native(path.join(base, 'footage', 'TeslaCam')),
+    destinationRoot: mode === 'replace' ? null : fs.realpathSync.native(path.join(base, 'out')),
     codec: 'h265', profileId: 'custom', bitrateKbps: 250, networkMode, outputMode: mode,
     includedGroups: ['RecentClips', 'SavedClips', 'SentryClips'], groupOrder: ['SavedClips', 'SentryClips', 'RecentClips'],
     replacementConfirmed: mode === 'replace', concurrency, verifyMode: 'quick'
@@ -275,19 +322,23 @@ async function open(base, { point = null, concurrency = 1, mode = 'replace', net
 }
 
 // Runs a job in a child process (a process group of its own) that dies at the
-// kill point; resolves once it died.
-function crash(base, { point, concurrency = 1, mode = 'replace', networkMode = 'direct', timeout = 120_000 }) {
+// kill point; resolves once it died. `script` is the one to run (this file,
+// or winCrashPoints.js).
+function crash(base, { point, concurrency = 1, mode = 'replace', networkMode = 'direct', timeout = 120_000, script = __filename }) {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [__filename], {
+    const child = spawn(process.execPath, [script], {
       env: { ...process.env, BASE: base, POINT: point, CONCURRENCY: String(concurrency), MODE: mode, NETMODE: networkMode },
-      detached: true, stdio: ['ignore', 'ignore', 'pipe']
+      detached: !WINDOWS, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe']
     });
     let stderr = '';
     child.stderr.on('data', (chunk) => { stderr += chunk; });
-    const timer = setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch (_) { /* gone */ } }, timeout);
+    const timer = setTimeout(() => {
+      if (WINDOWS) killTree(child.pid);
+      else try { process.kill(-child.pid, 'SIGKILL'); } catch (_) { /* gone */ }
+    }, timeout);
     child.on('exit', (code, signal) => {
       clearTimeout(timer);
-      resolve({ code, signal, stderr });
+      resolve({ code, signal: exitSignal({ code, signal }, base), stderr });
     });
   });
 }

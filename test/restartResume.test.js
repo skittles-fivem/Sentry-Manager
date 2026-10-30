@@ -10,13 +10,16 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { writeNodeTool } = require('./fixtures/nodeTool');
-const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
+const { writeTool, exitSignal } = require('./fixtures/processTree');
+const { ownedFsSkip } = require('./fixtures/ownedFsAdapter');
 const { spawnSync } = require('child_process');
 const { open, HELPER } = require('./fixtures/replaceCrash');
 const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
 
-const skip = linuxOnly(RENAME_HELPER) || needsTool(spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER), 'needs ffmpeg and build/noreplace-rename');
+// (Linux: posixOwnedFs over build/noreplace-rename; Windows: winOwnedFs over
+// SentryHelper.exe)
+const skip = ownedFsSkip(spawnSync('ffmpeg', ['-version']).status === 0, 'needs ffmpeg and build/noreplace-rename', 'needs ffmpeg and SentryHelper.exe (set SENTRY_HELPER)',
+  { noReplaceHelper: HELPER });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function footage(base, clips = 4) {
@@ -34,7 +37,7 @@ async function footage(base, clips = 4) {
 // between clips (nothing staged, nothing half written).
 function holdingProbe(base) {
   const released = JSON.stringify(path.join(base, 'released'));
-  return writeNodeTool(base, 'ffprobe-hold.js', `if (joined.includes('07-42-00-front') && !fs.existsSync(${released})) {
+  return writeTool(base, 'ffprobe-hold.js', `if (joined.includes('07-42-00-front') && !fs.existsSync(${released})) {
   fs.writeFileSync(${JSON.stringify(path.join(base, 'reached'))}, '');
   until(() => fs.existsSync(${released}), () => exec('ffprobe', args));
 } else exec('ffprobe', args);`);
@@ -124,10 +127,11 @@ test('a crash while a job is paused: the converter still starts and the job stay
         fs.writeFileSync(path.join(base, 'released'), '');
         while ((await env.runtime.service.get(id)).state !== 'paused') await new Promise((r) => setTimeout(r, 50));
         fs.writeFileSync(path.join(base, 'job-id'), id);
+        require(${JSON.stringify(path.join(__dirname, 'fixtures', 'processTree.js'))}).markKilled(base);
         process.kill(process.pid, 'SIGKILL');
       })();
     `], { timeout: 120_000 });
-    assert.equal(child.signal, 'SIGKILL', 'the app died while the job was paused');
+    assert.equal(exitSignal(child, base), 'SIGKILL', 'the app died while the job was paused');
     const id = fs.readFileSync(path.join(base, 'job-id'), 'utf8');
     env = await open(base);
     await env.runtime.start();

@@ -13,9 +13,11 @@ const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
 const { open, makeBase, available, clipName } = require('./fixtures/crashPoints');
-const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
+const { ownedFsSkip } = require('./fixtures/ownedFsAdapter');
 
-const skip = linuxOnly(RENAME_HELPER) || needsTool(available(), 'needs ffmpeg and build/noreplace-rename');
+// (Linux: posixOwnedFs over build/noreplace-rename; Windows: winOwnedFs over
+// SentryHelper.exe)
+const skip = ownedFsSkip(available(), 'needs ffmpeg and build/noreplace-rename', 'needs ffmpeg and SentryHelper.exe (set SENTRY_HELPER)');
 
 test('a copy changed in place during its read-back is not accepted by the quick check; the original stays', { skip, timeout: 240_000 }, async () => {
   const { base, folder } = await makeBase(1);

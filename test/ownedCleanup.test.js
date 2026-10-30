@@ -13,18 +13,19 @@ const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
+const { ownedFsSkip, createOwnedFs } = require('./fixtures/ownedFsAdapter');
 const { createFileTransaction } = require('../src/main/converter/staging');
-const { createPosixOwnedFs } = require('../server/posixOwnedFs');
 
 const HELPER = path.join(__dirname, '..', 'build', 'noreplace-rename');
-const skip = linuxOnly(RENAME_HELPER) || needsTool(fs.existsSync(HELPER), 'needs build/noreplace-rename');
+// (Linux: posixOwnedFs over build/noreplace-rename; Windows: winOwnedFs over
+// SentryHelper.exe)
+const skip = ownedFsSkip(true, 'needs build/noreplace-rename', 'needs SentryHelper.exe (set SENTRY_HELPER)');
 const JOB = 'job-1';
 const ITEM = 'item-000001';
 const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 
 function setup({ identity = true } = {}) {
-  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'owned-cleanup-')));
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'owned-cleanup-')));
   const tempRoot = path.join(root, 'tmp', 'sentry-six-converter');
   const footage = path.join(root, 'footage');
   const snapshotFolder = path.join(root, 'tmp', 'sentry-six-verification-abc');
@@ -37,7 +38,7 @@ function setup({ identity = true } = {}) {
   const source = path.join(footage, '2026-10-20_07-40-00-front.mp4');
   fs.writeFileSync(source, crypto.randomBytes(400_000));
   const writes = [];
-  const owned = createPosixOwnedFs({ helperPath: HELPER });
+  const owned = createOwnedFs({ helperPath: HELPER });
   const staging = createFileTransaction({
     tempRoot,
     validatePublicationArtifact: async (value, context) => context.mode === 'reconcile'
