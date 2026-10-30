@@ -1,4 +1,5 @@
 import AppKit
+import SentryKit
 import SwiftUI
 
 /// The scenes: the main window (first open asks how it should run, 3.1),
@@ -33,7 +34,7 @@ struct SentrySixManagerApp: App {
         MenuBarExtra {
             // needsSetup comes from /api/auth/me once the shell is signed in;
             // until then the item stays, so the code can always be fetched
-            MenuBarContent(conversions: nil, needsSetup: service.mode != nil, criticalUpdateURL: nil)
+            MenuBarContent(needsSetup: service.mode != nil, criticalUpdateURL: nil)
                 .environment(service)
         } label: {
             Image(systemName: "shield")

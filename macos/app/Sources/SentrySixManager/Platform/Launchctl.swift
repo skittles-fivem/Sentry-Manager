@@ -1,4 +1,5 @@
 import Foundation
+import SentryKit
 
 /// A finished command: its exit status and what it printed.
 struct CommandResult: Sendable {

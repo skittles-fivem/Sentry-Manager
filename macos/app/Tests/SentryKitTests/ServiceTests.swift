@@ -62,14 +62,6 @@ final class AgentEnvironmentTests: XCTestCase {
         XCTAssertTrue(SocketPath.fits(String(repeating: "é", count: 51)))
     }
 
-    func testTheShortSocketFolderMustBeTheUsersOwn0700Folder() {
-        XCTAssertTrue(SocketFolderCheck.acceptable(isDirectory: true, isSymlink: false, owner: 501, mode: 0o700, uid: 501))
-        XCTAssertFalse(SocketFolderCheck.acceptable(isDirectory: true, isSymlink: false, owner: 502, mode: 0o700, uid: 501))
-        XCTAssertFalse(SocketFolderCheck.acceptable(isDirectory: true, isSymlink: false, owner: 501, mode: 0o755, uid: 501))
-        XCTAssertFalse(SocketFolderCheck.acceptable(isDirectory: false, isSymlink: true, owner: 501, mode: 0o700, uid: 501))
-        XCTAssertFalse(SocketFolderCheck.acceptable(isDirectory: false, isSymlink: false, owner: 501, mode: 0o700, uid: 501))
-    }
-
     func testTheEngineFolderFromTheLaunchersPath() {
         XCTAssertEqual(AgentEnvironment.engineFolder(launcherPath: "/Applications/Sentry Six Manager.app/Contents/MacOS/sentry-six-engine"), engine)
         XCTAssertNil(AgentEnvironment.engineFolder(launcherPath: "/usr/local/bin/sentry-six-engine"))
@@ -281,14 +273,16 @@ final class ServiceStatusTests: XCTestCase {
         XCTAssertEqual(t.update(healthOK: false, launchdRunning: nil, now: t0.addingTimeInterval(110)), .stopped)
         XCTAssertEqual(EngineState.running.text, "Sentry Six Manager is running")
         XCTAssertEqual(EngineState.starting.text, "Starting…")
+        XCTAssertEqual(EngineState.stopped.text, "Stopped")
         XCTAssertEqual(EngineState.notResponding.text, "Not responding")
         XCTAssertEqual(EngineStateTracker.pollInterval(onBattery: true), 15)
         XCTAssertEqual(EngineStateTracker.pollInterval(onBattery: false), 10)
     }
 
     func testMenuBarWords() {
-        let rows: [(type: String, status: String)] = [("conversion", "running"), ("conversion", "done"), ("scan", "running"), ("conversion", "running")]
-        XCTAssertEqual(MenuBarText.runningConversions(rows), 2)
+        let rows = [("conversion", "running"), ("conversion", "done"), ("scan", "running"), ("conversion", "running")].enumerated()
+            .map { Job(id: Double($0.offset), type: $0.element.0, status: $0.element.1) }
+        XCTAssertEqual(rows.runningConversions, 2)
         XCTAssertEqual(MenuBarText.conversions(2), "Converting: 2 jobs")
         XCTAssertEqual(MenuBarText.conversions(1), "Converting: 1 job")
         XCTAssertEqual(MenuBarText.conversions(0), "No conversions running")
@@ -335,24 +329,4 @@ final class AgentPlistTests: XCTestCase {
         XCTAssertEqual(bundled, AgentPlist.job() as NSDictionary)
     }
 
-    func testEngineJSON() throws {
-        let json = #"{"v":1,"port":9000,"pid":412,"version":"1.9.0","sha":"abc","tls":{"mode":"own","caPem":null,"caSha256":null,"leafPem":"x","leafSha256":"AB"},"writtenAt":1,"later":true}"#
-        let f = try XCTUnwrap(PublicEngineFile.parse(Data(json.utf8)))
-        XCTAssertEqual(f.port, 9000)
-        XCTAssertEqual(f.tls?.mode, "own")
-        XCTAssertNil(f.tls?.caPem)
-        XCTAssertNil(PublicEngineFile.parse(Data(#"{"v":2,"port":9000}"#.utf8)))
-        XCTAssertNil(PublicEngineFile.parse(Data(#"{"v":1,"port":0}"#.utf8)))
-        XCTAssertNotNil(PublicEngineFile.parse(Data(#"{"v":1,"port":9000,"tls":null}"#.utf8)))
-        let pem = "-----BEGIN CERTIFICATE-----\nAAEC\nAw==\n-----END CERTIFICATE-----\n"
-        XCTAssertEqual(PublicEngineFile.der(fromPEM: pem), Data([0, 1, 2, 3]))
-        XCTAssertNil(PublicEngineFile.der(fromPEM: "-----BEGIN PRIVATE KEY-----\nAAEC\n-----END PRIVATE KEY-----"))
-    }
-}
-
-final class FingerprintTests: XCTestCase {
-    func testColonHex() {
-        XCTAssertEqual(Fingerprint.colonHex([0x0a, 0xff, 0x00]), "0A:FF:00")
-        XCTAssertEqual(Fingerprint.colonHex([]), "")
-    }
 }

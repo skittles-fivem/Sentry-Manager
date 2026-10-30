@@ -96,36 +96,37 @@ public final class SignInModel {
     }
 }
 
-/// The menu bar's status line and conversions count (section 4).
+/// The menu bar's data (section 4): the status line, decided by
+/// EngineStateTracker from /healthz and launchd, and the conversions count
+/// from /api/jobs and the `jobs` topic. Its words are MenuBarText's.
 @MainActor
 @Observable
 public final class MenuBarModel {
-    public enum EngineStatus: Sendable, Equatable { case running, starting, stopped, unknown }
-
-    private let services: Services
-    public private(set) var status: EngineStatus = .unknown
-    public private(set) var conversions = 0
+    public private(set) var state: EngineState = .stopped
+    /// nil while signed out
+    public private(set) var conversions: Int?
     public private(set) var needsSetup = false
-    private var failures = 0
+    private var tracker = EngineStateTracker()
 
-    public init(services: Services) { self.services = services }
+    public init() {}
 
-    /// a /healthz answer (true = "ok") or a failure
-    public func health(ok: Bool) {
-        if ok { status = .running; failures = 0 }
-        else { failures += 1; status = failures >= 2 ? .stopped : .starting }
+    /// A Start (or the first open) began now: "Starting…" for up to a minute.
+    public func didStart(at now: Date) { tracker.didStart(at: now) }
+
+    /// One poll: /healthz answered "ok" or not, and what launchd says (nil: unknown).
+    public func health(ok: Bool, launchdRunning: Bool?, now: Date) {
+        state = tracker.update(healthOK: ok, launchdRunning: launchdRunning, now: now)
     }
 
-    public func update(jobs: [Job]) { conversions = jobs.filter { $0.isRunning && $0.isConversion }.count }
-    public func update(me: AuthMe) { needsSetup = me.needsSetup == true }
-
-    /// the line under the app's name (native wording)
-    public var statusText: String {
-        switch status {
-        case .running: return conversions > 0 ? "Running · converting \(Format.plural(Double(conversions), "job"))" : "Running"
-        case .starting: return Strings.Shell.starting
-        case .stopped: return Strings.Shell.stopped
-        case .unknown: return "…"
-        }
+    public func update(jobs: [Job]) { conversions = jobs.runningConversions }
+    public func update(me: AuthMe) {
+        needsSetup = me.needsSetup == true
+        if me.user == nil { conversions = nil }
     }
+    public func signedOut() { conversions = nil }
+
+    public var statusText: String { state.text }
+    public var conversionsText: String { MenuBarText.conversions(conversions) }
+    /// asked before Stop while conversions run; nil means stop at once
+    public var stopConfirm: String? { MenuBarText.stopConfirm(running: conversions ?? 0) }
 }

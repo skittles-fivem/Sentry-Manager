@@ -166,16 +166,9 @@ public enum InstallScript {
             let line = raw.trimmingCharacters(in: .whitespaces)
             for prefix in ["SETUP-CODE: ", "Setup code: "] where line.hasPrefix(prefix) {
                 let code = String(line.dropFirst(prefix.count))
-                if isSetupCode(code) { return code }
+                if LocalSignIn.isSetupCode(code) { return code }
             }
         }
         return nil
-    }
-
-    public static func isSetupCode(_ s: String) -> Bool {
-        let parts = s.split(separator: "-", omittingEmptySubsequences: false)
-        return parts.count == 3 && parts.allSatisfy { p in
-            p.count == 5 && p.unicodeScalars.allSatisfy { $0.isASCII && CharacterSet.alphanumerics.contains($0) }
-        }
     }
 }

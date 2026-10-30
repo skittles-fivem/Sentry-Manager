@@ -71,7 +71,7 @@ public final class ShellModel {
     public var pickerEntries: [VehiclePickerEntry] { vehicles.map(VehiclePickerEntry.init) }
     public var binItems: Int { Int(vehicles.reduce(0) { $0 + ($1.binItems ?? 0) }) }
     public var runningJobs: Int { jobs.filter(\.isRunning).count }
-    public var conversionRunning: Bool { jobs.contains { $0.isRunning && $0.isConversion } }
+    public var conversionRunning: Bool { jobs.runningConversions > 0 }
     public var openCount: Int { openNotifications.count }
     public var unreadOpenCount: Int { openNotifications.filter(\.isUnread).count }
     public var anyOpenCritical: Bool { openNotifications.contains { $0.level == "critical" } }

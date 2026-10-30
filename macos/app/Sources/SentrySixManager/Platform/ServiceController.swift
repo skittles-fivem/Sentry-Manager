@@ -2,6 +2,7 @@ import Foundation
 import IOKit.ps
 import Observation
 import Security
+import SentryKit
 
 /// The app's one view of the engine's service: which mode, whether it runs,
 /// and the actions on it (first open, Start/Stop, switching, uninstall).
@@ -9,10 +10,10 @@ import Security
 @MainActor
 @Observable
 final class ServiceController {
-    static let modeKey = "serviceMode"
-
     private(set) var mode: ServiceMode?
-    private(set) var state: EngineState = .stopped
+    /// The menu bar's data: the status line and the conversions count.
+    let menu = MenuBarModel()
+    var state: EngineState { menu.state }
     private(set) var agentNeedsApproval = false
     /// The plain line under a step that failed, as the step said it.
     var problem: String?
@@ -20,15 +21,14 @@ final class ServiceController {
     private(set) var working: String?
     /// From install.sh's output, the socket or the file; memory only.
     private(set) var setupCode: String?
-    private(set) var engine: PublicEngineFile?
+    private(set) var engine: EngineInfo?
 
     private let agent = AgentService()
     private let daemon = DaemonService()
-    private var tracker = EngineStateTracker()
     private var polling: Task<Void, Never>?
 
     init() {
-        mode = Self.installedMode(recorded: UserDefaults.standard.string(forKey: Self.modeKey).flatMap(ServiceMode.init(rawValue:)))
+        mode = Self.installedMode(recorded: UserDefaults.standard.string(forKey: ServiceMode.defaultsKey).flatMap(ServiceMode.init(rawValue:)))
     }
 
     /// The recorded choice, checked against what is really installed (2.3 step 1).
@@ -45,7 +45,7 @@ final class ServiceController {
     var daemonAlreadyInstalled: Bool { daemon.installed }
 
     private var engineJSONPath: String {
-        mode == .agent ? AgentPaths(home: NSHomeDirectory()).engineJSON : DaemonPaths.engineJSON
+        EnginePaths(mode: mode ?? .daemon, home: NSHomeDirectory()).engineJSON
     }
 
     // ---- first open (3.1)
@@ -64,7 +64,7 @@ final class ServiceController {
                 setupCode = readOwnSetupCode()
             }
             record(choice)
-            tracker.didStart(at: Date())
+            menu.didStart(at: Date())
             startPolling()
             await waitUntilRunning(seconds: 60)
         } catch is CancellationError {
@@ -76,14 +76,15 @@ final class ServiceController {
 
     private func record(_ m: ServiceMode) {
         mode = m
-        UserDefaults.standard.set(m.rawValue, forKey: Self.modeKey)
+        UserDefaults.standard.set(m.rawValue, forKey: ServiceMode.defaultsKey)
     }
 
     /// "In your login": the code is in the user's own data folder.
     private func readOwnSetupCode() -> String? {
-        guard let text = try? String(contentsOfFile: AgentPaths(home: NSHomeDirectory()).setupCode, encoding: .utf8) else { return nil }
+        guard let file = EnginePaths(mode: .agent, home: NSHomeDirectory()).setupCodeFile,
+              let text = try? String(contentsOfFile: file, encoding: .utf8) else { return nil }
         let code = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        return InstallScript.isSetupCode(code) ? code : nil
+        return LocalSignIn.isSetupCode(code) ? code : nil
     }
 
     /// The menu bar's Setup code…: the file in login mode, the admin prompt for the service.
@@ -102,7 +103,7 @@ final class ServiceController {
             case .daemon?: try await daemon.start()
             case nil: return
             }
-            tracker.didStart(at: Date())
+            menu.didStart(at: Date())
             await refresh()
         } catch is CancellationError {} catch { problem = String(describing: error) }
     }
@@ -144,7 +145,7 @@ final class ServiceController {
                 agentNeedsApproval = agent.state == .requiresApproval
             }
             record(target)
-            tracker.didStart(at: Date())
+            menu.didStart(at: Date())
             await waitUntilRunning(seconds: 60)
         } catch is CancellationError {} catch { problem = String(describing: error) }
     }
@@ -155,7 +156,7 @@ final class ServiceController {
         defer { working = nil }
         do {
             _ = try await daemon.install(update: true)
-            tracker.didStart(at: Date())
+            menu.didStart(at: Date())
             await waitUntilRunning(seconds: 60)
         } catch is CancellationError {} catch { problem = String(describing: error) }
     }
@@ -191,7 +192,7 @@ final class ServiceController {
             return false
         }
         // the stored session and the app's settings
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "Sentry Six Manager session"]
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: SessionCookie.keychainService]
         SecItemDelete(query as CFDictionary)
         UserDefaults.standard.removePersistentDomain(forName: ServiceNames.bundleID)
         mode = nil
@@ -212,7 +213,7 @@ final class ServiceController {
     }
 
     func refresh() async {
-        engine = (try? Data(contentsOf: URL(fileURLWithPath: engineJSONPath))).flatMap(PublicEngineFile.parse)
+        engine = (try? Data(contentsOf: URL(fileURLWithPath: engineJSONPath))).flatMap(EngineInfo.decode)
         let job: LaunchdJob?
         switch mode {
         case .agent?: job = await agent.job()
@@ -220,8 +221,8 @@ final class ServiceController {
         case nil: job = nil
         }
         if mode == .agent { agentNeedsApproval = agent.state == .requiresApproval }
-        let ok = await Self.healthz(port: engine?.port ?? ServiceNames.defaultPort)
-        state = tracker.update(healthOK: ok, launchdRunning: job?.running, now: Date())
+        let ok = await Self.healthz(port: engine?.portNumber ?? ServiceNames.defaultPort)
+        menu.health(ok: ok, launchdRunning: job?.running, now: Date())
     }
 
     nonisolated static var onBattery: Bool {

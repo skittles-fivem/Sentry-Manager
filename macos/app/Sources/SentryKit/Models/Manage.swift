@@ -102,6 +102,12 @@ public struct Job: Codable, Sendable, Equatable, Identifiable {
     public var isConversion: Bool { type == "conversion" }
 }
 
+extension Sequence where Element == Job {
+    /// The rows with type 'conversion' and status 'running' (the menu bar's
+    /// count, section 4, and the shell's conversion check).
+    public var runningConversions: Int { filter { $0.isRunning && $0.isConversion }.count }
+}
+
 public struct JobEnergy: Codable, Sendable, Equatable {
     public var wh: Double?
     public var avgW: Double?
@@ -277,6 +283,10 @@ public struct SecurityAnswer: Codable, Sendable, Equatable {
     public var account: String?
     public var elevated: Bool?
     public var fullDiskAccess: Bool?
+    /// on a Mac: 'daemon' or 'agent', ServiceMode's raw values
+    public var runMode: String?
+
+    public var serviceMode: ServiceMode? { runMode.flatMap(ServiceMode.init(rawValue:)) }
 }
 
 public struct TLSInfo: Codable, Sendable, Equatable {

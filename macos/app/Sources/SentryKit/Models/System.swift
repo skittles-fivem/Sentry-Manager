@@ -54,6 +54,10 @@ public struct SystemSecurity: Codable, Sendable, Equatable {
     public var account: String?
     public var elevated: Bool?
     public var fullDiskAccess: Bool?
+    /// on a Mac: 'daemon' or 'agent', ServiceMode's raw values
+    public var runMode: String?
+
+    public var serviceMode: ServiceMode? { runMode.flatMap(ServiceMode.init(rawValue:)) }
 }
 
 /// POST /api/studio/browse

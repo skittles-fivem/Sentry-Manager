@@ -41,5 +41,6 @@
   "confirmed": true,
   "account": "_sentrysix",
   "elevated": false,
-  "fullDiskAccess": null
+  "fullDiskAccess": null,
+  "runMode": "daemon"
 }

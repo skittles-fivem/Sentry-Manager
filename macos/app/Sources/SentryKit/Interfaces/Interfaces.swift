@@ -153,5 +153,4 @@ public struct SkinPrefs: Sendable {
     public static let selectedVehicle = "selectedVehicle"
     public static let interfaceOverride = "interfaceOverride"
     public static let lastSkin = "lastSkin"
-    public static let serviceMode = "serviceMode"
 }

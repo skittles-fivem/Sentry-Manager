@@ -1,4 +1,5 @@
 import Foundation
+import SentryKit
 
 /// The background service (3.4): install.sh through one administrator
 /// prompt, then the root-owned CLI for everything else.

@@ -1,19 +1,19 @@
 import AppKit
+import SentryKit
 import SwiftUI
 
-/// The menu bar item's menu (section 4). The conversions count comes from
-/// the app-wide event stream through `conversions` (nil while signed out);
-/// the menu never polls /api/stats.
+/// The menu bar item's menu (section 4). The status line and the
+/// conversions count are SentryKit's MenuBarModel (`service.menu`), fed by
+/// the app-wide event stream; the menu never polls /api/stats.
 struct MenuBarContent: View {
     @Environment(ServiceController.self) private var service
     @Environment(\.openWindow) private var openWindow
-    var conversions: Int?
     var needsSetup: Bool
     var criticalUpdateURL: URL?
 
     var body: some View {
         Text(service.state.text)
-        Text(MenuBarText.conversions(conversions))
+        Text(service.menu.conversionsText)
         if let url = criticalUpdateURL {
             Button(MenuBarText.criticalUpdate) { NSWorkspace.shared.open(url) }
         }
@@ -24,7 +24,7 @@ struct MenuBarContent: View {
             Button(MenuBarText.start) { Task { await service.start() } }
         } else {
             Button(MenuBarText.stop) {
-                if let question = MenuBarText.stopConfirm(running: conversions ?? 0), !Self.ask(question) { return }
+                if let question = service.menu.stopConfirm, !Self.ask(question) { return }
                 Task { await service.stop() }
             }
         }
@@ -34,7 +34,7 @@ struct MenuBarContent: View {
         Button(MenuBarText.logs) {
             // with the option key held: the service log in Finder
             if NSEvent.modifierFlags.contains(.option) {
-                let log = service.mode == .agent ? AgentPaths(home: NSHomeDirectory()).log : DaemonPaths.log
+                let log = EnginePaths(mode: service.mode ?? .daemon, home: NSHomeDirectory()).log
                 NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: log)])
             } else {
                 openMain()

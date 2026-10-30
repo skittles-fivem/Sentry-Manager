@@ -1,4 +1,5 @@
 import Foundation
+import SentryKit
 import ServiceManagement
 
 /// "In your login" (3.2): the LaunchAgent in the bundle, registered with

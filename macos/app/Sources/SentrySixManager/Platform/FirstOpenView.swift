@@ -1,4 +1,5 @@
 import AppKit
+import SentryKit
 import SwiftUI
 
 /// The small window at first open (3.1): how should it run?

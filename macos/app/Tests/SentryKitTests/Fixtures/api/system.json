@@ -59,7 +59,8 @@
     "uid": 0,
     "account": "_sentrysix",
     "elevated": false,
-    "fullDiskAccess": null
+    "fullDiskAccess": null,
+    "runMode": "daemon"
   },
   "smbVersions": {
     "3": "SMB 3.0 or newer (best the server offers)",

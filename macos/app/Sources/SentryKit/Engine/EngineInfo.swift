@@ -1,12 +1,5 @@
 import Foundation
 
-/// How the engine runs (3.1): a LaunchDaemon as _sentrysix, or a
-/// LaunchAgent in the user's login.
-public enum ServiceMode: String, Sendable, Codable, CaseIterable {
-    case background
-    case login
-}
-
 /// engine.json, the engine's public file (2.3).
 public struct EngineInfo: Codable, Sendable, Equatable {
     public var v: Double?
@@ -19,9 +12,25 @@ public struct EngineInfo: Codable, Sendable, Equatable {
 
     public static let knownVersion: Double = 1
 
+    /// the port, when it is a real one (1...65535)
+    public var portNumber: Int? {
+        guard let port, let n = Int(exactly: port), (1...65535).contains(n) else { return nil }
+        return n
+    }
+
     public var baseURL: URL? {
-        guard let port, port > 0, port < 65536 else { return nil }
-        return URL(string: "https://127.0.0.1:\(Int(port))")
+        guard let portNumber else { return nil }
+        return URL(string: "https://127.0.0.1:\(portNumber)")
+    }
+
+    /// The file without the ownership and certificate checks: the version
+    /// this app knows and a real port; `tls` may be null (TLS_MODE=off).
+    /// For the service side (the port to ask /healthz on, the version to
+    /// compare with the app's own engine). Signing in goes through
+    /// EngineLocator instead.
+    public static func decode(_ data: Data) -> EngineInfo? {
+        guard let info = try? JSON.decode(EngineInfo.self, from: data), info.v == knownVersion, info.portNumber != nil else { return nil }
+        return info
     }
 }
 
@@ -34,30 +43,34 @@ public struct EngineTLS: Codable, Sendable, Equatable {
     public var leafSha256: String?
 }
 
-/// Where the public file, the state and the same-Mac sign-in socket live.
+/// Where the public file, the setup code and the same-Mac sign-in socket
+/// live for a mode: the fixed paths of DaemonPaths (install.sh) or the
+/// user's AgentPaths (the launcher).
 public struct EnginePaths: Sendable, Equatable {
-    public static let serviceAccount = "_sentrysix"
-    public static let daemonPlist = "/Library/LaunchDaemons/io.github.skittles-fivem.sentry-six-manager.plist"
-    public static let agentLabel = "io.github.skittles-fivem.sentry-six-manager.agent"
-    public static let serviceCLI = "/Library/SentrySixManager/bin/sentry-six-manager"
-
     public var mode: ServiceMode
     public var home: String
 
     public init(mode: ServiceMode, home: String) { self.mode = mode; self.home = home }
 
-    public var publicFolder: String {
-        switch mode {
-        case .background: return "/Library/Application Support/SentrySixManager Public"
-        case .login: return home + "/Library/Application Support/SentrySixManager/public"
-        }
-    }
+    private var agent: AgentPaths { AgentPaths(home: home) }
 
-    public var engineJSON: String { publicFolder + "/engine.json" }
+    public var publicFolder: String { mode == .daemon ? DaemonPaths.publicDir : agent.publicDir }
+    public var engineJSON: String { mode == .daemon ? DaemonPaths.engineJSON : agent.engineJSON }
+    public var log: String { mode == .daemon ? DaemonPaths.log : agent.log }
 
     /// the setup code file, readable by the app only in login mode
-    public var setupCodeFile: String? {
-        mode == .login ? home + "/Library/Application Support/SentrySixManager/data/setup-code.txt" : nil
+    public var setupCodeFile: String? { mode == .agent ? agent.setupCode : nil }
+
+    /// The same-Mac sign-in socket (2.6); a too long login path falls back
+    /// to /private/tmp/sentrysix-<uid>/signin.sock (the launcher makes it).
+    public func socket(uid: UInt32) -> String { mode == .daemon ? DaemonPaths.socket : agent.socket(uid: uid) }
+}
+
+extension FileChecking {
+    /// The uid the engine's folders and files must belong to: _sentrysix
+    /// for the service, the user in login mode.
+    public func engineOwner(_ mode: ServiceMode) -> UInt32? {
+        mode == .daemon ? uid(ofUser: ServiceNames.serviceAccount) : currentUID
     }
 }
 
@@ -79,13 +92,8 @@ public struct EngineLocator: Sendable {
 
     public init(paths: EnginePaths, fs: FileChecking = PosixFileSystem()) { self.paths = paths; self.fs = fs }
 
-    /// the uid the folder and file must belong to
-    public func expectedOwner() -> UInt32? {
-        paths.mode == .background ? fs.uid(ofUser: EnginePaths.serviceAccount) : fs.currentUID
-    }
-
     public func lookup() -> EngineLookup {
-        guard let owner = expectedOwner() else { return .refused("no \(EnginePaths.serviceAccount) account") }
+        guard let owner = fs.engineOwner(paths.mode) else { return .refused("no \(ServiceNames.serviceAccount) account") }
         guard let dir = fs.status(paths.publicFolder) else { return .missing }
         if dir.kind == .symlink { return .refused("the folder is a symlink") }
         if dir.kind != .directory { return .refused("the folder is not a folder") }
@@ -104,7 +112,7 @@ public struct EngineLocator: Sendable {
         guard let info = try? JSON.decode(EngineInfo.self, from: data) else { return .refused("engine.json is not readable JSON") }
         guard let v = info.v else { return .refused("engine.json has no version") }
         if v != EngineInfo.knownVersion { return .tooNew }
-        guard info.baseURL != nil else { return .refused("engine.json has no port") }
+        guard info.portNumber != nil else { return .refused("engine.json has no port") }
         guard let tls = info.tls, tls.mode == "local-ca" || tls.mode == "own" else { return .refused("engine.json has no certificate") }
         if tls.mode == "local-ca" && (tls.caPem == nil || tls.caSha256 == nil) { return .refused("engine.json has no CA") }
         if tls.mode == "own" && tls.leafSha256 == nil { return .refused("engine.json has no certificate fingerprint") }

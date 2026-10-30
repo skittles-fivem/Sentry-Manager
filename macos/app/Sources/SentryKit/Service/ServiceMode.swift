@@ -6,6 +6,9 @@ public enum ServiceMode: String, Sendable, CaseIterable, Codable {
     case daemon
     /// A LaunchAgent in the user's login, from inside the app bundle.
     case agent
+
+    /// The app's record of the first-open choice in UserDefaults (2.3 step 1).
+    public static let defaultsKey = "serviceMode"
 }
 
 /// Names and paths both modes share with install.sh and the plists.

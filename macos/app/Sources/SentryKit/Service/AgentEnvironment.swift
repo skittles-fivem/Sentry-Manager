@@ -60,7 +60,9 @@ public struct AgentEnvironment: Sendable, Equatable {
     }
 
     /// "KEY=value" lines for execve, sorted so the order is stable.
-    public var envp: [String] {
+    public var envp: [String] { Self.envp(environment) }
+
+    public static func envp(_ environment: [String: String]) -> [String] {
         environment.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }
     }
 }
@@ -93,14 +95,5 @@ public enum LogRotation {
             try? fileManager.removeItem(atPath: move.to)
             try? fileManager.moveItem(atPath: move.from, toPath: move.to)
         }
-    }
-}
-
-/// The short socket folder under /private/tmp (2.6): used only when it is a
-/// real folder of this user with mode 0700. Anything else turns same-Mac
-/// sign-in off; the password still works.
-public enum SocketFolderCheck {
-    public static func acceptable(isDirectory: Bool, isSymlink: Bool, owner: UInt32, mode: UInt16, uid: UInt32) -> Bool {
-        isDirectory && !isSymlink && owner == uid && (mode & 0o7777) == 0o700
     }
 }

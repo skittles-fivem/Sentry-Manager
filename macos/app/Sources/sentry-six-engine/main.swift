@@ -51,14 +51,10 @@ func emptyFolder(_ path: String) {
 }
 
 func socketFolderUsable(_ dir: String, uid: UInt32) -> Bool {
-    var st = stat()
-    if lstat(dir, &st) != 0 {
-        guard mkdir(dir, 0o700) == 0 else { return false }
-        guard lstat(dir, &st) == 0 else { return false }
-    }
-    return SocketFolderCheck.acceptable(
-        isDirectory: (st.st_mode & S_IFMT) == S_IFDIR, isSymlink: (st.st_mode & S_IFMT) == S_IFLNK,
-        owner: UInt32(st.st_uid), mode: UInt16(st.st_mode & 0o7777), uid: uid)
+    let fs = PosixFileSystem()
+    if fs.status(dir) == nil && mkdir(dir, 0o700) != 0 { return false }
+    // the same rule the app applies before it connects (2.6)
+    return LocalSignIn.checkFolder(fs.status(dir), owner: uid) == .ok
 }
 
 let launcher = Bundle.main.executableURL?.resolvingSymlinksInPath().path ?? CommandLine.arguments[0]
@@ -91,7 +87,7 @@ if agent.socketMoved && !socketFolderUsable(SocketPath.shortFallbackDir(uid: uid
     env.removeValue(forKey: "LOCAL_SIGNIN_SOCKET")
     FileHandle.standardError.write(Data("sentry-six-engine: \(SocketPath.shortFallbackDir(uid: uid)) is not this user's own folder; same-Mac sign-in is off\n".utf8))
 }
-let envp = env.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }
+let envp = AgentEnvironment.envp(env)
 
 // 5. node, in place of this process
 let argv = agent.arguments

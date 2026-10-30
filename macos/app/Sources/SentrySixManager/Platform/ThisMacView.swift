@@ -1,3 +1,4 @@
+import SentryKit
 import SwiftUI
 
 /// Settings › This Mac (3.6, 3.7, 2.6): how it runs, the users who sign in

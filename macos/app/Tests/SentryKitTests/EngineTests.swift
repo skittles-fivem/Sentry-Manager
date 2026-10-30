@@ -39,7 +39,7 @@ final class EngineTests: XCTestCase {
     func fs(_ mode: ServiceMode, file: Data, dirOwner: UInt32? = nil, fileOwner: UInt32? = nil, dirMode: UInt16 = 0o755, fileMode: UInt16 = 0o644,
             dirKind: FileStatus.Kind = .directory, fileKind: FileStatus.Kind = .file) -> FakeFS {
         let p = paths(mode)
-        let owner: UInt32 = mode == .background ? 290 : 501
+        let owner: UInt32 = mode == .daemon ? 290 : 501
         var f = FakeFS()
         f.entries[p.publicFolder] = FileStatus(kind: dirKind, ownerUID: dirOwner ?? owner, mode: dirMode)
         f.entries[p.engineJSON] = FileStatus(kind: fileKind, ownerUID: fileOwner ?? owner, mode: fileMode)
@@ -61,10 +61,10 @@ final class EngineTests: XCTestCase {
             if case .refused = EngineLocator(paths: paths(mode), fs: fs(mode, file: good, dirOwner: 777)).lookup() {} else { XCTFail("someone else's folder") }
         }
         // the user's own file is not the service's
-        if case .refused = EngineLocator(paths: paths(.background), fs: fs(.background, file: good, dirOwner: 501, fileOwner: 501)).lookup() {} else { XCTFail() }
-        XCTAssertEqual(EngineLocator(paths: paths(.login), fs: FakeFS()).lookup(), .missing)
-        XCTAssertEqual(paths(.background).engineJSON, "/Library/Application Support/SentrySixManager Public/engine.json")
-        XCTAssertEqual(paths(.login).engineJSON, "/Users/ann/Library/Application Support/SentrySixManager/public/engine.json")
+        if case .refused = EngineLocator(paths: paths(.daemon), fs: fs(.daemon, file: good, dirOwner: 501, fileOwner: 501)).lookup() {} else { XCTFail() }
+        XCTAssertEqual(EngineLocator(paths: paths(.agent), fs: FakeFS()).lookup(), .missing)
+        XCTAssertEqual(paths(.daemon).engineJSON, "/Library/Application Support/SentrySixManager Public/engine.json")
+        XCTAssertEqual(paths(.agent).engineJSON, "/Users/ann/Library/Application Support/SentrySixManager/public/engine.json")
     }
 
     func testEngineJSONParsing() throws {
@@ -73,6 +73,31 @@ final class EngineTests: XCTestCase {
         if case .refused = EngineLocator.parse(json("not json")) {} else { XCTFail() }
         if case .refused = EngineLocator.parse(json(#"{"v":1,"port":0,"tls":{"mode":"own","leafSha256":"AA"}}"#)) {} else { XCTFail("no port") }
         if case .found = EngineLocator.parse(json(#"{"v":1,"port":9000,"tls":{"mode":"own","caPem":null,"caSha256":null,"leafSha256":"AA"},"newKey":1}"#)) {} else { XCTFail("own mode") }
+        // TLS_MODE=off writes tls: null; the app does not sign in to it
+        if case .refused = EngineLocator.parse(json(#"{"v":1,"port":9000,"tls":null}"#)) {} else { XCTFail("no tls") }
+    }
+
+    /// The service side's read: the port and version, without the pin checks.
+    func testEngineInfoForTheService() throws {
+        let text = #"{"v":1,"port":9000,"pid":412,"version":"1.9.0","sha":"abc","tls":{"mode":"own","caPem":null,"caSha256":null,"leafPem":"x","leafSha256":"AB"},"writtenAt":1,"later":true}"#
+        let f = try XCTUnwrap(EngineInfo.decode(json(text)))
+        XCTAssertEqual(f.portNumber, 9000)
+        XCTAssertEqual(f.version, "1.9.0")
+        XCTAssertEqual(f.tls?.mode, "own")
+        XCTAssertNil(f.tls?.caPem)
+        XCTAssertNil(EngineInfo.decode(json(#"{"v":2,"port":9000}"#)))
+        XCTAssertNil(EngineInfo.decode(json(#"{"v":1,"port":0}"#)))
+        XCTAssertNil(EngineInfo.decode(json(#"{"v":1,"port":65536}"#)))
+        XCTAssertNil(EngineInfo.decode(json(#"{"v":1,"port":9000.5}"#)))
+        XCTAssertNil(EngineInfo.decode(json("not json")))
+        XCTAssertEqual(EngineInfo.decode(json(#"{"v":1,"port":9000,"tls":null,"version":null,"sha":null}"#))?.portNumber, 9000)
+    }
+
+    func testPEM() {
+        let pem = "-----BEGIN CERTIFICATE-----\nAAEC\nAw==\n-----END CERTIFICATE-----\n"
+        XCTAssertEqual(PEM.certificates(pem), [Data([0, 1, 2, 3])])
+        XCTAssertEqual(PEM.certificates("-----BEGIN PRIVATE KEY-----\nAAEC\n-----END PRIVATE KEY-----"), [])
+        XCTAssertEqual(SHA256.fingerprint(Data()).count, 32 * 3 - 1)
     }
 
     func testPinPolicyLocalCA() throws {
@@ -156,14 +181,13 @@ final class LineServer: @unchecked Sendable {
 
 final class LocalSignInTests: XCTestCase {
     func testSocketPaths() {
-        XCTAssertEqual(LocalSignIn.socketPath(mode: .background, home: "/Users/ann", uid: 501), "/Library/Application Support/SentrySixManager Local/signin.sock")
-        XCTAssertEqual(LocalSignIn.socketPath(mode: .login, home: "/Users/ann", uid: 501), "/Users/ann/Library/Application Support/SentrySixManager/run/signin.sock")
-        let long = "/Users/" + String(repeating: "a", count: 60)
-        XCTAssertEqual(LocalSignIn.socketPath(mode: .login, home: long, uid: 501), "/private/tmp/sentrysix-501/signin.sock")
-        // exactly 103 bytes still fits
-        let base = "/Library/Application Support/SentrySixManager/run/signin.sock"
-        let fits = "/" + String(repeating: "b", count: 103 - base.utf8.count - 1)
-        XCTAssertEqual(LocalSignIn.socketPath(mode: .login, home: fits, uid: 1).utf8.count, 103)
+        XCTAssertEqual(EnginePaths(mode: .daemon, home: "/Users/ann").socket(uid: 501), "/Library/Application Support/SentrySixManager Local/signin.sock")
+        XCTAssertEqual(EnginePaths(mode: .agent, home: "/Users/ann").socket(uid: 501), "/Users/ann/Library/Application Support/SentrySixManager/run/signin.sock")
+        // a long home folder: AgentEnvironmentTests.testALongHomeFolderMovesTheSocketToPrivateTmp
+        XCTAssertEqual(EnginePaths(mode: .agent, home: "/Users/" + String(repeating: "a", count: 60)).socket(uid: 501), "/private/tmp/sentrysix-501/signin.sock")
+        XCTAssertNil(EnginePaths(mode: .daemon, home: "/Users/ann").setupCodeFile)
+        XCTAssertEqual(EnginePaths(mode: .agent, home: "/Users/ann").setupCodeFile, "/Users/ann/Library/Application Support/SentrySixManager/data/setup-code.txt")
+        XCTAssertEqual(EnginePaths(mode: .daemon, home: "/Users/ann").log, "/Library/Logs/SentrySixManager/service.log")
     }
 
     func testFolderChecks() {
@@ -176,15 +200,29 @@ final class LocalSignInTests: XCTestCase {
         }
         let okDir = FileStatus(kind: .directory, ownerUID: 501, mode: 0o700)
         let okSock = FileStatus(kind: .socket, ownerUID: 501, mode: 0o666)
-        XCTAssertEqual(LocalSignIn.check(socket: sock, mode: .login, fs: fs(okDir, okSock)), .ok)
-        XCTAssertEqual(LocalSignIn.check(socket: sock, mode: .login, fs: fs(nil, nil)), .missing)
-        XCTAssertNotEqual(LocalSignIn.check(socket: sock, mode: .login, fs: fs(FileStatus(kind: .directory, ownerUID: 501, mode: 0o755), okSock)), .ok)
-        XCTAssertNotEqual(LocalSignIn.check(socket: sock, mode: .login, fs: fs(FileStatus(kind: .symlink, ownerUID: 501, mode: 0o700), okSock)), .ok)
-        XCTAssertNotEqual(LocalSignIn.check(socket: sock, mode: .login, fs: fs(okDir, FileStatus(kind: .file, ownerUID: 501, mode: 0o600))), .ok)
-        XCTAssertNotEqual(LocalSignIn.check(socket: sock, mode: .login, fs: fs(okDir, FileStatus(kind: .symlink, ownerUID: 501, mode: 0o777))), .ok)
+        XCTAssertEqual(LocalSignIn.check(socket: sock, mode: .agent, fs: fs(okDir, okSock)), .ok)
+        XCTAssertEqual(LocalSignIn.check(socket: sock, mode: .agent, fs: fs(nil, nil)), .missing)
+        XCTAssertNotEqual(LocalSignIn.check(socket: sock, mode: .agent, fs: fs(FileStatus(kind: .directory, ownerUID: 501, mode: 0o755), okSock)), .ok)
+        XCTAssertNotEqual(LocalSignIn.check(socket: sock, mode: .agent, fs: fs(FileStatus(kind: .symlink, ownerUID: 501, mode: 0o700), okSock)), .ok)
+        XCTAssertNotEqual(LocalSignIn.check(socket: sock, mode: .agent, fs: fs(okDir, FileStatus(kind: .file, ownerUID: 501, mode: 0o600))), .ok)
+        XCTAssertNotEqual(LocalSignIn.check(socket: sock, mode: .agent, fs: fs(okDir, FileStatus(kind: .symlink, ownerUID: 501, mode: 0o777))), .ok)
         // the service's folder belongs to _sentrysix, not the user
-        XCTAssertNotEqual(LocalSignIn.check(socket: sock, mode: .background, fs: fs(okDir, okSock)), .ok)
-        XCTAssertEqual(LocalSignIn.check(socket: sock, mode: .background, fs: fs(FileStatus(kind: .directory, ownerUID: 290, mode: 0o700), okSock)), .ok)
+        XCTAssertNotEqual(LocalSignIn.check(socket: sock, mode: .daemon, fs: fs(okDir, okSock)), .ok)
+        XCTAssertEqual(LocalSignIn.check(socket: sock, mode: .daemon, fs: fs(FileStatus(kind: .directory, ownerUID: 290, mode: 0o700), okSock)), .ok)
+        // the launcher's short /private/tmp folder: the same rule
+        XCTAssertEqual(LocalSignIn.checkFolder(okDir, owner: 501), .ok)
+        XCTAssertNotEqual(LocalSignIn.checkFolder(okDir, owner: 502), .ok)
+        XCTAssertNotEqual(LocalSignIn.checkFolder(FileStatus(kind: .directory, ownerUID: 501, mode: 0o755), owner: 501), .ok)
+        XCTAssertNotEqual(LocalSignIn.checkFolder(FileStatus(kind: .symlink, ownerUID: 501, mode: 0o700), owner: 501), .ok)
+        XCTAssertNotEqual(LocalSignIn.checkFolder(FileStatus(kind: .file, ownerUID: 501, mode: 0o700), owner: 501), .ok)
+        XCTAssertEqual(LocalSignIn.checkFolder(nil, owner: 501), .missing)
+        // a real folder made the launcher's way
+        let dir = NSTemporaryDirectory() + "sk-fold-\(UUID().uuidString.prefix(8))"
+        XCTAssertEqual(mkdir(dir, 0o700), 0)
+        defer { rmdir(dir) }
+        XCTAssertEqual(LocalSignIn.checkFolder(PosixFileSystem().status(dir), owner: UInt32(getuid())), .ok)
+        XCTAssertEqual(chmod(dir, 0o755), 0)
+        XCTAssertNotEqual(LocalSignIn.checkFolder(PosixFileSystem().status(dir), owner: UInt32(getuid())), .ok)
     }
 
     static let token = "local1_AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
@@ -243,7 +281,7 @@ final class LocalSignInTests: XCTestCase {
         let t = FakeTransport { _ in .init(status: 200, body: json(#"{"ok":true,"user":"admin"}"#), headers: ["Set-Cookie": "__Host-sm_session=S1; HttpOnly; Secure"]) }
         let c = makeClient(t, token: nil)
         let line = Data(#"{"v":1,"token":"\#(Self.token)","port":9000}"#.utf8) + Data([0x0a])
-        let flow = LocalSignInFlow(client: c, socketPath: "/r/signin.sock", mode: .login, enginePort: 9000, fs: okFS("/r/signin.sock"), readLine: { _ in line })
+        let flow = LocalSignInFlow(client: c, socketPath: "/r/signin.sock", mode: .agent, enginePort: 9000, fs: okFS("/r/signin.sock"), readLine: { _ in line })
         let out = await flow.run()
         XCTAssertEqual(out, .signedIn(user: "admin"))
         let r = try XCTUnwrap(t.requests.first)
@@ -261,17 +299,17 @@ final class LocalSignInTests: XCTestCase {
     func testFallbacks() async throws {
         let refused = FakeTransport { _ in .init(status: 403, body: json(#"{"error":"Same-computer sign-in is turned off. Sign in with your password."}"#)) }
         let tokenLine = Data(#"{"v":1,"token":"\#(Self.token)","port":9000}"#.utf8)
-        var flow = LocalSignInFlow(client: makeClient(refused, token: nil), socketPath: "/r/s.sock", mode: .login, enginePort: 9000, fs: okFS("/r/s.sock"), readLine: { _ in tokenLine })
+        var flow = LocalSignInFlow(client: makeClient(refused, token: nil), socketPath: "/r/s.sock", mode: .agent, enginePort: 9000, fs: okFS("/r/s.sock"), readLine: { _ in tokenLine })
         var out = await flow.run()
         XCTAssertEqual(out, .showSheet(message: "Same-computer sign-in is turned off. Sign in with your password."))
 
         let setup = FakeTransport { _ in .init(status: 409, body: json(#"{"error":"Create the account first.","needsSetup":true}"#)) }
-        flow = LocalSignInFlow(client: makeClient(setup, token: nil), socketPath: "/r/s.sock", mode: .login, enginePort: 9000, fs: okFS("/r/s.sock"), readLine: { _ in tokenLine })
+        flow = LocalSignInFlow(client: makeClient(setup, token: nil), socketPath: "/r/s.sock", mode: .agent, enginePort: 9000, fs: okFS("/r/s.sock"), readLine: { _ in tokenLine })
         out = await flow.run()
         XCTAssertEqual(out, .needsSetup(code: nil))
 
         // the setup code from the socket
-        flow = LocalSignInFlow(client: makeClient(setup, token: nil), socketPath: "/r/s.sock", mode: .login, enginePort: 9000, fs: okFS("/r/s.sock"),
+        flow = LocalSignInFlow(client: makeClient(setup, token: nil), socketPath: "/r/s.sock", mode: .agent, enginePort: 9000, fs: okFS("/r/s.sock"),
                                readLine: { _ in Data(#"{"v":1,"needsSetup":true,"setupCode":"ABCDE-FGHIJ-KLMNO","port":9000}"#.utf8) })
         out = await flow.run()
         XCTAssertEqual(out, .needsSetup(code: "ABCDE-FGHIJ-KLMNO"))
@@ -279,7 +317,7 @@ final class LocalSignInTests: XCTestCase {
         // busy: one retry a second later, then the sheet
         let reads = Locked(0)
         let slept = Locked<[Double]>([])
-        flow = LocalSignInFlow(client: makeClient(refused, token: nil), socketPath: "/r/s.sock", mode: .login, enginePort: 9000, fs: okFS("/r/s.sock"),
+        flow = LocalSignInFlow(client: makeClient(refused, token: nil), socketPath: "/r/s.sock", mode: .agent, enginePort: 9000, fs: okFS("/r/s.sock"),
                                readLine: { _ in reads.update { $0 += 1 }; return Data(#"{"v":1,"error":"busy"}"#.utf8) },
                                sleep: { s in slept.update { $0.append(s) } })
         out = await flow.run()
@@ -289,7 +327,7 @@ final class LocalSignInTests: XCTestCase {
 
         // a folder that fails the check: no connect at all
         let connected = Locked(false)
-        flow = LocalSignInFlow(client: makeClient(refused, token: nil), socketPath: "/r/s.sock", mode: .login, enginePort: 9000, fs: FakeFS(),
+        flow = LocalSignInFlow(client: makeClient(refused, token: nil), socketPath: "/r/s.sock", mode: .agent, enginePort: 9000, fs: FakeFS(),
                                readLine: { _ in connected.set(true); return tokenLine })
         out = await flow.run()
         XCTAssertEqual(out, .showSheet(message: nil))
@@ -299,7 +337,7 @@ final class LocalSignInTests: XCTestCase {
     func testNoAutomaticSignInAfterSignOut() async {
         let t = FakeTransport { _ in .init(status: 200, body: json(#"{"ok":true,"user":"admin"}"#)) }
         let reads = Locked(0)
-        let flow = LocalSignInFlow(client: makeClient(t, token: nil), socketPath: "/r/s.sock", mode: .login, enginePort: 9000, fs: okFS("/r/s.sock"),
+        let flow = LocalSignInFlow(client: makeClient(t, token: nil), socketPath: "/r/s.sock", mode: .agent, enginePort: 9000, fs: okFS("/r/s.sock"),
                                    readLine: { _ in reads.update { $0 += 1 }; return Data(#"{"v":1,"token":"\#(Self.token)","port":9000}"#.utf8) })
         await flow.signedOut()
         let auto = await flow.runAutomatically()
@@ -317,7 +355,7 @@ final class LocalSignInTests: XCTestCase {
         let prefs = MemoryPrefs()
         let t = FakeTransport { _ in .init(status: 200, body: json(#"{"ok":true,"user":"admin"}"#), headers: ["Set-Cookie": "__Host-sm_session=S; Secure"]) }
         let c = makeClient(t, token: nil)
-        let flow = LocalSignInFlow(client: c, socketPath: "/r/s.sock", mode: .login, enginePort: 9000, fs: okFS("/r/s.sock"),
+        let flow = LocalSignInFlow(client: c, socketPath: "/r/s.sock", mode: .agent, enginePort: 9000, fs: okFS("/r/s.sock"),
                                    readLine: { _ in Data(#"{"v":1,"token":"\#(Self.token)","port":9000}"#.utf8) })
         _ = await flow.run()
         XCTAssertTrue(prefs.all.isEmpty)

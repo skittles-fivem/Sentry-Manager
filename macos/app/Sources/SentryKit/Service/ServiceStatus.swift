@@ -41,8 +41,8 @@ public enum EngineState: Sendable, Equatable {
     public var text: String {
         switch self {
         case .running: return "Sentry Six Manager is running"
-        case .starting: return "Starting…"
-        case .stopped: return "Stopped"
+        case .starting: return Strings.Shell.starting
+        case .stopped: return Strings.Shell.stopped
         case .notResponding: return "Not responding"
         }
     }
@@ -82,11 +82,6 @@ public struct EngineStateTracker: Sendable {
 
 /// The menu bar's words that depend on numbers (section 4).
 public enum MenuBarText {
-    /// rows from /api/jobs?limit=50: (type, status)
-    public static func runningConversions(_ rows: [(type: String, status: String)]) -> Int {
-        rows.filter { $0.type == "conversion" && $0.status == "running" }.count
-    }
-
     public static func conversions(_ count: Int?) -> String {
         guard let count else { return "Sign in to see conversions" }
         if count == 0 { return "No conversions running" }
@@ -153,8 +148,6 @@ public enum ServiceText {
     public static let update = "Update"
     public static let later = "Later"
     public static let serviceNewer = "The service is newer than this app. Download the new app."
-    public static let cantReach = "Can't reach Sentry Six Manager."
-    public static let cantReachHint = "Start it from the menu bar."
     public static let howItRuns = "How it runs"
     public static let change = "Change…"
     public static let uninstall = "Uninstall…"

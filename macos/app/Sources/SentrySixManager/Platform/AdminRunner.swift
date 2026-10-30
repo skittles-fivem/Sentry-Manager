@@ -1,4 +1,5 @@
 import Foundation
+import SentryKit
 
 /// Runs one step with administrator rights (3.4): `do shell script ... with
 /// administrator privileges`, one standard macOS password window. It runs in

@@ -94,6 +94,9 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(me.deployment, "macos")
         XCTAssertEqual(me.secure, true)
         XCTAssertNotNil(me.fingerprint)
+        // how the engine runs, in ServiceMode's words
+        XCTAssertEqual(try decode(SecurityAnswer.self, "security.json").serviceMode, .daemon)
+        XCTAssertEqual(try decode(SystemAnswer.self, "system.json").security?.serviceMode, .daemon)
         XCTAssertEqual(try decode(AuthMe.self, "auth-me-needs-setup.json").needsSetup, true)
 
         let v = try XCTUnwrap(try decode(VehiclesAnswer.self, "vehicles.json").vehicles?.first)

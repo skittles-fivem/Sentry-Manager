@@ -420,14 +420,28 @@ final class PageModelTests: XCTestCase {
         XCTAssertEqual(m.lastFailure?.code, "UNKNOWN_CHANNEL")
     }
 
-    @MainActor func testMenuBar() {
-        let m = MenuBarModel(services: services(FakeTransport { _ in .init(status: 200, body: Data()) }))
-        m.health(ok: true)
-        XCTAssertEqual(m.statusText, "Running")
-        m.health(ok: false)
-        XCTAssertEqual(m.statusText, "Starting…")
-        m.health(ok: false)
+    @MainActor func testMenuBar() throws {
+        let m = MenuBarModel()
+        let t0 = Date(timeIntervalSince1970: 1_000)
         XCTAssertEqual(m.statusText, "Stopped")
+        m.didStart(at: t0)
+        m.health(ok: false, launchdRunning: true, now: t0.addingTimeInterval(5))
+        XCTAssertEqual(m.statusText, "Starting…")
+        m.health(ok: true, launchdRunning: true, now: t0.addingTimeInterval(10))
+        XCTAssertEqual(m.statusText, "Sentry Six Manager is running")
+        m.health(ok: false, launchdRunning: false, now: t0.addingTimeInterval(20))
+        XCTAssertEqual(m.statusText, "Stopped")
+        // signed out: no count
+        XCTAssertEqual(m.conversionsText, "Sign in to see conversions")
+        XCTAssertNil(m.stopConfirm)
+        m.update(jobs: try JSON.decode(JobsAnswer.self, from: fixture("api/jobs.json")).jobs ?? [])
+        XCTAssertNotNil(m.conversions)
+        m.update(jobs: [Job(id: 1, type: "conversion", status: "running"), Job(id: 2, type: "conversion", status: "done")])
+        XCTAssertEqual(m.conversionsText, "Converting: 1 job")
+        XCTAssertEqual(m.stopConfirm, "Stop Sentry Six Manager? 1 conversion is running. It pauses safely and continues when it starts again.")
+        m.update(me: AuthMe(user: nil, needsSetup: true))
+        XCTAssertTrue(m.needsSetup)
+        XCTAssertNil(m.conversions)
     }
 }
 

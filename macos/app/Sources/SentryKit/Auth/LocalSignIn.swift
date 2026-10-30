@@ -8,23 +8,11 @@ import Darwin
 /// Same-Mac sign-in, the app's side (2.6): find and check the socket, read
 /// its one line, and trade the token for a session at POST /api/auth/local.
 public enum LocalSignIn {
-    /// sun_path holds 103 bytes and a NUL on macOS
-    public static let maxSocketPath = 103
     public static let maxLine = 4096
     public static let readTimeout: TimeInterval = 5
     public static let tokenPrefix = "local1_"
 
-    /// The socket's path for a mode; a too long login path falls back to
-    /// /private/tmp/sentrysix-<uid>/signin.sock (the launcher makes it).
-    public static func socketPath(mode: ServiceMode, home: String, uid: UInt32) -> String {
-        switch mode {
-        case .background:
-            return "/Library/Application Support/SentrySixManager Local/signin.sock"
-        case .login:
-            let p = home + "/Library/Application Support/SentrySixManager/run/signin.sock"
-            return p.utf8.count <= maxSocketPath ? p : "/private/tmp/sentrysix-\(uid)/signin.sock"
-        }
-    }
+    // The socket's path for a mode is EnginePaths.socket(uid:).
 
     public enum CheckResult: Sendable, Equatable {
         case ok
@@ -35,17 +23,24 @@ public enum LocalSignIn {
     /// The folder must be the right owner's, mode 0700, no symlinks; the
     /// socket must be a socket. Only then does the app connect.
     public static func check(socket: String, mode: ServiceMode, fs: FileChecking) -> CheckResult {
-        let folder = (socket as NSString).deletingLastPathComponent
-        let owner = mode == .background ? fs.uid(ofUser: EnginePaths.serviceAccount) : fs.currentUID
-        guard let owner else { return .refused("no \(EnginePaths.serviceAccount) account") }
-        guard let dir = fs.status(folder) else { return .missing }
+        guard let owner = fs.engineOwner(mode) else { return .refused("no \(ServiceNames.serviceAccount) account") }
+        let folder = checkFolder(fs.status((socket as NSString).deletingLastPathComponent), owner: owner)
+        guard folder == .ok else { return folder }
+        guard let sock = fs.status(socket) else { return .missing }
+        if sock.kind == .symlink { return .refused("the socket is a symlink") }
+        if sock.kind != .socket { return .refused("not a socket") }
+        return .ok
+    }
+
+    /// The folder around a socket: a real folder of `owner`, mode 0700. The
+    /// app checks it before connecting; the launcher checks the short
+    /// /private/tmp folder with it before it hands the path to the engine.
+    public static func checkFolder(_ dir: FileStatus?, owner: UInt32) -> CheckResult {
+        guard let dir else { return .missing }
         if dir.kind == .symlink { return .refused("the folder is a symlink") }
         if dir.kind != .directory { return .refused("the folder is not a folder") }
         if dir.ownerUID != owner { return .refused("the folder belongs to someone else") }
         if dir.mode & 0o777 != 0o700 { return .refused("the folder is not 0700") }
-        guard let sock = fs.status(socket) else { return .missing }
-        if sock.kind == .symlink { return .refused("the socket is a symlink") }
-        if sock.kind != .socket { return .refused("not a socket") }
         return .ok
     }
 
@@ -96,6 +91,8 @@ public enum LocalSignIn {
         }
     }
 
+    /// XXXXX-XXXXX-XXXXX from the server's alphabet (upper-case letters and
+    /// digits): the socket's line, install.sh's SETUP-CODE line, the file.
     public static func isSetupCode(_ s: String) -> Bool {
         let parts = s.split(separator: "-", omittingEmptySubsequences: false)
         return parts.count == 3 && parts.allSatisfy { $0.count == 5 && $0.allSatisfy { $0.isASCII && ($0.isUppercase || $0.isNumber) } }
