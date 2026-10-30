@@ -20,7 +20,9 @@ const { createPosixOwnedFs, createNoReplaceRename } = require('../server/posixOw
 const DARWIN = process.platform === 'darwin';
 const ownedFsAdapter = require('./fixtures/ownedFsAdapter');
 const WINDOWS_ADAPTER = process.platform === 'win32' && ownedFsAdapter.posixSuiteOnWindowsAdapter === true;
-const notHere = DARWIN || WINDOWS_ADAPTER ? false : linuxOnly(RENAME_HELPER);
+const notHere = DARWIN || WINDOWS_ADAPTER ? false
+  : process.platform === 'win32' ? 'on Windows these run in winOwnedFsSuites.test.js, on winOwnedFs over SentryHelper.exe'
+    : linuxOnly(RENAME_HELPER);
 const test = skipAll(notHere);
 const needs = (available, reason) => notHere || needsTool(available, reason);
 
