@@ -28,12 +28,13 @@ const DOCKER_OPENSSL_CANDIDATES = ['openssl', '/opt/homebrew/opt/openssl@3/bin/o
 function findDockerOpenssl(candidates = DOCKER_OPENSSL_CANDIDATES) {
   for (const bin of candidates) {
     const res = spawnSync(bin, ['version'], { encoding: 'utf8' });
-    if (res.status === 0 && /^OpenSSL /.test(res.stdout)) return bin;
+    // Docker's is OpenSSL 3; a Mac's PATH may hold LibreSSL or an OpenSSL 1.1
+    if (res.status === 0 && /^OpenSSL [3-9]\./.test(res.stdout)) return bin;
   }
   return null;
 }
 const dockerOpenssl = findDockerOpenssl();
-const needsDockerOpenssl = dockerOpenssl ? false : 'needs OpenSSL, the openssl Docker has (a Mac\'s own is LibreSSL)';
+const needsDockerOpenssl = dockerOpenssl ? false : 'needs OpenSSL 3, the openssl Docker has (a Mac\'s own is LibreSSL)';
 
 /** Run fn with Docker's kind of openssl first on PATH (tls.js runs openssl from PATH). */
 async function withDockerOpenssl(fn) {
@@ -403,7 +404,7 @@ test('Docker and Windows renew each other\'s certificates', { skip: needsDockerO
   }
 }));
 
-test('a LibreSSL openssl never stands in for Docker\'s', { skip: process.platform === 'win32' && 'shell scripts as commands', timeout: 60000 }, async () => {
+test('a LibreSSL or OpenSSL 1.1 openssl never stands in for Docker\'s', { skip: process.platform === 'win32' && 'shell scripts as commands', timeout: 60000 }, async () => {
   const dir = await tmp();
   try {
     const fake = async (name, version) => {
@@ -412,8 +413,12 @@ test('a LibreSSL openssl never stands in for Docker\'s', { skip: process.platfor
       return file;
     };
     const libre = await fake('libressl', 'LibreSSL 3.3.6');
+    // what Homebrew puts first on a GitHub Mac runner's PATH
+    const old = await fake('openssl11', 'OpenSSL 1.1.1w  11 Sep 2023');
     const real = await fake('openssl3', 'OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)');
     assert.equal(findDockerOpenssl([libre]), null);
+    assert.equal(findDockerOpenssl([old]), null);
+    assert.equal(findDockerOpenssl([old, real]), real);
     assert.equal(findDockerOpenssl([libre, path.join(dir, 'missing'), real]), real);
     assert.equal(findDockerOpenssl([path.join(dir, 'missing')]), null);
   } finally {

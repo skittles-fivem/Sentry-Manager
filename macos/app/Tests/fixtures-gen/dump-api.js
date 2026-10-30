@@ -19,6 +19,7 @@ const https = require('https');
 const net = require('net');
 const os = require('os');
 const path = require('path');
+const { footageTmp } = require('../../../../test/fixtures/tmp');
 const { spawn } = require('child_process');
 
 const REPO = path.join(__dirname, '..', '..', '..', '..');
@@ -98,7 +99,9 @@ function freePort() {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function dump(outDir = DEFAULT_OUT, { log = () => {} } = {}) {
-  const dir = fs.realpathSync(await fsp.mkdtemp(path.join(os.tmpdir(), 'sm-app-fixtures-')));
+  // a Mac refuses footage under its temp folder (/private), so there it is
+  // made in /Users/Shared; everywhere else in the temp folder
+  const dir = fs.realpathSync(await footageTmp('sm-app-fixtures-'));
   const state = path.join(dir, 'state');
   const footage = path.join(dir, 'cars', 'Model Y');
   await fsp.mkdir(state, { recursive: true });

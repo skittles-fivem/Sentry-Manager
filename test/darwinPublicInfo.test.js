@@ -265,7 +265,8 @@ test('the server as on a Mac writes engine.json once it listens, again on a host
   }
 });
 
-test('the server on Linux never writes it, even with PUBLIC_INFO_PATH', { timeout: 60000 }, async () => {
+// on a Mac the server is a Mac server, which does write it (the tests above)
+test('the server on Linux never writes it, even with PUBLIC_INFO_PATH', { timeout: 60000, skip: process.platform === 'darwin' && 'on a Mac the server is a Mac server' }, async () => {
   const dir = await realTmp('sm-pubinfo-srv-');
   const file = path.join(dir, 'public', 'engine.json');
   const s = await startServer(dir, { darwin: false, env: { PUBLIC_INFO_PATH: file, TLS_MODE: 'off' } });

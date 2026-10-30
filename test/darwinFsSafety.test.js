@@ -44,9 +44,11 @@ test('safePath on darwin: deny checks fold case, allow checks never do', async (
     // with "data": then the Linux rules refuse it too, the disk folded it
     const diskFolds = (await fsp.realpath(path.join(dir, 'Data')).catch(() => null)) === path.join(dir, 'data');
     assert.equal(await linuxGuard.resolve(path.join(dir, 'data', 'manager.db')), diskFolds ? null : path.join(dir, 'data', 'manager.db'), 'linux: byte compare, as before');
-    // a root spelled in another case allows nothing on darwin (allow never folds)
+    // allow never folds: a root spelled in another case allows nothing, unless
+    // the disk itself folds case, where realpath gives the folder's own name
+    // and that root is the same folder
     const upper = createRealGuard(() => [path.join(dir, 'Footage')], { platform: mac() });
-    assert.equal(await upper.resolve(path.join(dir, 'footage', 'a.mp4')), null);
+    assert.equal(await upper.resolve(path.join(dir, 'footage', 'a.mp4')), diskFolds ? path.join(dir, 'footage', 'a.mp4') : null);
   } finally {
     await fsp.rm(dir, { recursive: true, force: true });
   }
