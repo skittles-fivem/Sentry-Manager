@@ -171,3 +171,15 @@ run.** stdin at EOF from the start (NUL, a scheduled task, `start /b`) is read
 as "stop" and it exits at once. The app must also put it in its kill-on-close
 Job Object itself; `run` makes its own job for node, which nests fine on
 Windows 8+.
+
+## install-check after 8af6a0b (run 41065528939)
+
+Parse error gone; now `Creating the service failed (sc.exe exit code 1639)`.
+1639 is ERROR_INVALID_COMMAND_LINE: sc.exe rejected the argument list. Usual
+causes with `Run-Native 'sc.exe' @(...)`: PowerShell 5.1 re-quotes array
+arguments, so `binPath=` + a value with embedded quotes and spaces
+(`"C:\Program Files\...\SentryService.exe"`) arrives mangled; or a parameter
+sc.exe doesn't know (`DisplayName=` is valid, `depend=` too). Check what
+reaches sc.exe with the exact process command line; building the whole line as
+one string and starting it with `Start-Process -ArgumentList '<line>' -Wait
+-PassThru` (or `cmd /c`) avoids PowerShell's re-quoting.
