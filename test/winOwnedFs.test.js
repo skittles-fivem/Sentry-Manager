@@ -23,7 +23,9 @@ const { createLinuxFsHelper } = require('./fixtures/winFsHelperFake');
 
 const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 const noSleep = async () => {};
-const canSymlink = process.platform !== 'win32';
+const { canLinkFiles } = require('./fixtures/dirLink');
+// a file symlink on Windows: an administrator (the CI runner) or Developer Mode
+const canSymlink = canLinkFiles();
 
 async function tmp() {
   return fs.realpathSync(await fsp.mkdtemp(path.join(os.tmpdir(), 'win-owned-')));
@@ -120,7 +122,7 @@ test('a record with inode 0 (a drive without file identities) proves nothing and
   }
 });
 
-test('a link at the source\'s name is never moved (the helper does not follow it)', { skip: !canSymlink && 'symlinks need privileges on Windows' }, async () => {
+test('a link at the source\'s name is never moved (the helper does not follow it)', { skip: !canSymlink && 'file symlinks need admin rights or Developer Mode on Windows' }, async () => {
   const dir = await tmp();
   try {
     const real = path.join(dir, 'real.mp4');

@@ -261,7 +261,7 @@ test('footage, protect, Recycle Bin and policies never lose files', { timeout: 1
     assert.equal(r.data.moved.length, 2);
     assert.equal(fs.existsSync(path.join(root, 'TeslaCam/SentryClips/2020-01-02_12-30-00')), false, 'empty event folder removed');
     assert.ok(fs.existsSync(path.join(root, 'TeslaCam/SentryClips')), 'clip folders kept');
-    const binFiles = execFileSync('find', [path.join(root, '.sentry-recycle-bin'), '-type', 'f']).toString().trim().split('\n');
+    const binFiles = fs.readdirSync(path.join(root, '.sentry-recycle-bin'), { recursive: true, withFileTypes: true }).filter((e) => e.isFile()).map((e) => e.name);
     assert.equal(binFiles.length, 5);
     assert.ok(binFiles.every((f) => f.endsWith('.binned')), 'binned files are invisible to the converter');
     const rootListing = await s.call('POST', '/api/studio/readDir', { path: root });

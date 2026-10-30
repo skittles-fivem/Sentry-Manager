@@ -97,7 +97,9 @@ test('IPC saveVehicle: the same validation as a start', async () => {
   try {
     let out = await h.invoke('saveVehicle', { config: config(h.src) });
     assert.equal(out.ok, true, JSON.stringify(out));
-    assert.equal(h.calls.save[0].sourceRoot, fs.realpathSync(h.src));
+    // the real path as the app reads it (native: on Windows an 8.3 short
+    // name in the temp folder, RUNNER~1, comes back expanded)
+    assert.equal(h.calls.save[0].sourceRoot, fs.realpathSync.native(h.src));
     // replacing originals without the confirmation is refused
     out = await h.invoke('saveVehicle', { config: config(h.src, { replacementConfirmed: false }) });
     assert.equal(out.error.code, 'REPLACEMENT_CONFIRMATION_REQUIRED');

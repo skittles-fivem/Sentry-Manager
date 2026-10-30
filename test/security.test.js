@@ -219,10 +219,11 @@ test('HTTPS, the setup code, cookies and password confirmation', { skip: needsTl
   }
 });
 
-// Windows: a file symlink needs admin rights or Developer Mode, O_NOFOLLOW does
-// not exist and /, /etc are Linux's; folder links (junctions there) are covered
-// by the Recycle Bin and safeFs tests below.
-const fileLinks = notOnWindows('file symlinks, O_NOFOLLOW and the Linux root folders');
+// Windows: the server is started on links to / and /etc, Linux's own folders,
+// with file symlinks among them (admin rights or Developer Mode there); folder
+// links (junctions there) are covered by the real-path guard, Recycle Bin and
+// safeFs tests below and in platformWindows.test.js.
+const fileLinks = notOnWindows('links to / and /etc, the Linux root folders, and file symlinks');
 
 test('symlinks on a share never lead outside it', { skip: fileLinks, timeout: 60000 }, async () => {
   const dir = await tmp();
@@ -314,29 +315,38 @@ test('cookie parsing tolerates stray cookies and ignores duplicates', () => {
   assert.deepEqual(parseCookies('other=100%; sm_session=abc; sm_session=evil'), { other: '100%', sm_session: 'abc' });
 });
 
-test('the real-path guard: symlinked roots, the deny list, and a file swapped after the check', { skip: fileLinks }, async () => {
+// The roots and the deny list run on Windows too (the folder link is a
+// junction there, / is the drive's root and the system folder stands in for
+// /etc); the open descriptor part is /proc and O_NOFOLLOW, Linux's: Windows
+// matches an open file by device and inode instead (platformWindows.test.js).
+test('the real-path guard: symlinked roots, the deny list, and a file swapped after the check', async () => {
+  const win = process.platform === 'win32';
   const dir = await fsp.realpath(await tmp());
   const footage = path.join(dir, 'footage');
   const data = path.join(dir, 'data');
+  const top = path.parse(dir).root;
+  const system = win ? (process.env.SystemRoot || 'C:\\Windows') : '/etc';
+  const systemFile = win ? path.join(system, 'win.ini') : '/etc/passwd';
   await fsp.mkdir(path.join(footage, 'car/RecentClips'), { recursive: true });
   await fsp.mkdir(path.join(data, 'converted'), { recursive: true });
   await fsp.writeFile(path.join(data, 'manager.db'), 'secrets');
   await fsp.writeFile(path.join(footage, 'car/RecentClips/a.mp4'), 'clip');
-  await fsp.symlink(data, path.join(footage, 'sneaky')); // a "vehicle folder" that is a link to the data dir
+  await dirLink(data, path.join(footage, 'sneaky')); // a "vehicle folder" that is a link to the data dir
   const guard = createRealGuard(() => [
     { path: path.join(footage, 'car'), within: [footage] },
     { path: path.join(footage, 'sneaky'), within: [footage] },
     path.join(data, 'converted'),
-    { path: '/', within: ['/'] } // as if FOLDER_ROOTS=/ had been allowed
-  ], { deny: () => [data, '/etc'] });
+    { path: top, within: [top] } // as if FOLDER_ROOTS=/ had been allowed
+  ], { deny: () => [data, system] });
   try {
     assert.equal(await guard.resolve(path.join(footage, 'car/RecentClips/a.mp4')), path.join(footage, 'car/RecentClips/a.mp4'));
     assert.equal(await guard.resolve(path.join(footage, 'sneaky/manager.db')), null, 'a root that really lives elsewhere allows nothing');
     assert.equal(await guard.resolve(path.join(data, 'manager.db')), null, 'the deny list holds even under a root like /');
-    assert.equal(await guard.resolve('/etc/passwd'), null);
+    assert.equal(await guard.resolve(systemFile), null);
     assert.ok(await guard.resolve(path.join(data, 'converted/x/y.mp4'), { mustExist: false }), 'roots inside a denied folder still work');
     assert.equal(await guard.resolve('relative/path'), null);
     assert.equal(await guard.resolve(`${footage}/car/\0x`), null);
+    if (win) return;
 
     // swap a checked file for a link to the database: the open descriptor gives it away
     const clip = path.join(footage, 'car/RecentClips/a.mp4');

@@ -260,7 +260,11 @@ test('CRITICAL_UPDATE.txt is read the same way by the build and the server', { s
   try {
     for (const text of ['# only a comment\n', 'level: 3\nreason:  Fix "x" `id` $(id), \\ it\'s\tbad\n# reason: note\n', `level: 0012\r\nreason: ${'y'.repeat(400)}\r\n`, 'level: x\nreason: Fix', 'level: 2\nreason:\n', '  LEVEL: 1\n  Reason: a: b\n']) {
       fs.writeFileSync(path.join(dir, 'CRITICAL_UPDATE.txt'), text);
-      execFileSync('bash', ['-eo', 'pipefail', '-c', step], { cwd: dir, env: { ...process.env, GITHUB_OUTPUT: path.join(dir, 'out') } });
+      // run from a file, as Actions runs a step: on Windows a script given
+      // with -c goes through a command line that Git Bash parses again, and
+      // a backslash in it was lost on the way
+      fs.writeFileSync(path.join(dir, 'step.sh'), step);
+      execFileSync('bash', ['-eo', 'pipefail', 'step.sh'], { cwd: dir, env: { ...process.env, GITHUB_OUTPUT: path.join(dir, 'out') } });
       const out = fs.readFileSync(path.join(dir, 'out'), 'utf8');
       fs.rmSync(path.join(dir, 'out'));
       const want = criticalFromFile(text);
