@@ -38,7 +38,9 @@ jobs:
           $img = 'ghcr.io/skittles-fivem/sentry-manager:latest'
           docker pull -q $img
           docker rm -f sm-tests 2>$null | Out-Null
-          docker create --name sm-tests --user root -w /w --entrypoint node $img --disable-warning=ExperimentalWarning --test 'test/**/*.test.js' | Out-Null
+          # the encoding tests look for ffmpeg in ffmpeg_bin/ (not in git): the image's own
+          $run = 'mkdir -p ffmpeg_bin && ln -sf /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/lib/jellyfin-ffmpeg/ffprobe ffmpeg_bin/ && exec node --disable-warning=ExperimentalWarning --test "test/**/*.test.js"'
+          docker create --name sm-tests --user root -w /w --entrypoint sh $img -c $run | Out-Null
           docker cp "$env:GITHUB_WORKSPACE\." sm-tests:/w
           $sw = [Diagnostics.Stopwatch]::StartNew()
           docker start -a sm-tests > tests.log 2>&1
@@ -47,5 +49,7 @@ jobs:
           docker rm -f sm-tests | Out-Null
           Select-String -Path tests.log -Pattern '^not ok' -Context 0,12 | ForEach-Object { $_.Line; $_.Context.PostContext }
           Get-Content tests.log -Tail 9
+          # tests skipped for a missing tool would make the timing meaningless
+          Select-String -Path tests.log -Pattern '# SKIP' | Select-Object -First 5 | ForEach-Object { $_.Line }
           "Wall clock: " + [math]::Round($sw.Elapsed.TotalSeconds) + " s"
           exit $code
