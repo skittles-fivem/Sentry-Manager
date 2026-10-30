@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Compile check only (Linux, .NET SDK): the real build is the other agent's.
+       LangVersion 5 = what the inbox csc accepts (as Core). Not part of the build. -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <LangVersion>5</LangVersion>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <StartupObject>SentrySix.Shell.Program</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Core/*.cs" />
+    <Compile Include="../../Ui/**/*.cs" />
+    <Compile Include="../*.cs" />
+    <Reference Include="PresentationCore" /><Reference Include="PresentationFramework" /><Reference Include="WindowsBase" />
+    <Reference Include="System.Xaml" /><Reference Include="System.Windows.Forms" /><Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" /><Reference Include="System.ServiceProcess" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

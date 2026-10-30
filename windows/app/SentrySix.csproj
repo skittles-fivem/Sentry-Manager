@@ -1,0 +1,206 @@
+<Project>
+
+  <!-- obj\ and bin\ under the repository's build\ folder (git ignores it), not
+     beside the sources; set before the SDK is imported, as it must be -->
+  <PropertyGroup>
+    <SentryBuildDir>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', '..', 'build', 'windows-app'))</SentryBuildDir>
+    <BaseIntermediateOutputPath>$(SentryBuildDir)obj/</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(SentryBuildDir)bin/</BaseOutputPath>
+  </PropertyGroup>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <!--
+    SentrySix.exe: the native Windows app (WPF, .NET Framework 4.8, which
+    every Windows 10/11 has). One assembly: Shell/ (window, tray, navigation),
+    Ui/ (the five interfaces) and Core/ (the data layer, also built on its own
+    by Core/SentrySix.Core.csproj for its tests) are compiled together.
+
+    No XAML compilation: pages are code, themes are loose XAML read at run
+    time, so the .xaml files (and fonts and images under Ui/ and Shell/) are
+    copied next to the exe with their folders kept (Ui\Builtin\Fonts\...).
+
+      dotnet build -c Release windows\app\SentrySix.csproj
+
+    builds on Windows and, for checking, on Linux and macOS too
+    (EnableWindowsTargeting + the .NET Framework reference assemblies
+    package). windows\build.ps1 builds it into the package's app-ui\ folder;
+    otherwise the exe lands in build\windows-app\bin\Release\net48\.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>SentrySix</AssemblyName>
+    <RootNamespace>SentrySix</RootNamespace>
+    <StartupObject>SentrySix.Shell.Program</StartupObject>
+    <LangVersion>7.3</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- every item is listed below: nothing from bin/, obj/, Core.Tests/ by accident -->
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Deterministic>true</Deterministic>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Product>Sentry Six Manager</Product>
+    <AssemblyTitle>Sentry Six Manager</AssemblyTitle>
+    <Company>Sentry Six Manager</Company>
+    <Copyright>Sentry Six Manager contributors</Copyright>
+    <!-- the app icon: made from web/icon.png before compiling (target below) -->
+    <SentryIconPng>$(MSBuildProjectDirectory)/../../web/icon.png</SentryIconPng>
+    <SentryIconFile>$(BaseIntermediateOutputPath)SentrySix.ico</SentryIconFile>
+    <ApplicationIcon>$(SentryIconFile)</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- a manifest of the shell's own (DPI awareness, supported OS), once there is one -->
+  <PropertyGroup Condition="Exists('Shell/app.manifest')">
+    <ApplicationManifest>Shell/app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <!-- the .NET Framework 4.8 reference assemblies: Windows with the 4.8
+       targeting pack (windows-latest, Visual Studio) has them and downloads
+       nothing; anywhere else they come from NuGet -->
+  <ItemGroup Condition="!Exists('$(MSBuildProgramFiles32)/Reference Assemblies/Microsoft/Framework/.NETFramework/v4.8/mscorlib.dll')">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.ServiceProcess" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <SentryNotSources>**/bin/**;**/obj/**;**/_check/**;**/*Tests*/**;**/*Tests*.cs</SentryNotSources>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Shell/**/*.cs;Ui/**/*.cs;Core/**/*.cs" Exclude="$(SentryNotSources)" />
+
+    <Content Include="Shell/**/*.xaml;Ui/**/*.xaml;Shell/**/*.ttf;Ui/**/*.ttf;Shell/**/*.otf;Ui/**/*.otf;Shell/**/*.png;Ui/**/*.png;Shell/**/*.ico;Ui/**/*.ico"
+             Exclude="$(SentryNotSources)"
+             CopyToOutputDirectory="PreserveNewest" />
+    <!-- also as a file, for the tray icon and the window -->
+    <None Include="$(SentryIconFile)" Link="SentrySix.ico" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+  <!--
+    web/icon.png -> obj/SentrySix.ico, on every OS (no System.Drawing): the PNG
+    is decoded (8-bit RGB/RGBA, as the repo's icon is) and written as classic
+    32-bit icon frames at 16, 24, 32, 48, 64 and the PNG's own size, which
+    Explorer, the taskbar and WinForms' NotifyIcon all read.
+  -->
+  <UsingTask TaskName="SentryPngToIco" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Png ParameterType="System.String" Required="true" />
+      <Ico ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.IO.Compression" />
+      <Using Namespace="System.Collections.Generic" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        byte[] f = File.ReadAllBytes(Png);
+        Func<int, int> be = o => (f[o] << 24) | (f[o + 1] << 16) | (f[o + 2] << 8) | f[o + 3];
+        if (f.Length < 33 || be(0) != unchecked((int)0x89504E47)) { Log.LogError("{0} is not a PNG", Png); return false; }
+        int w = 0, h = 0, depth = 0, ctype = 0, interlace = 0;
+        var idat = new MemoryStream();
+        for (int p = 8; p + 8 <= f.Length; ) {
+          int len = be(p); string type = System.Text.Encoding.ASCII.GetString(f, p + 4, 4);
+          if (type == "IHDR") { w = be(p + 8); h = be(p + 12); depth = f[p + 16]; ctype = f[p + 17]; interlace = f[p + 20]; }
+          else if (type == "IDAT") idat.Write(f, p + 8, len);
+          else if (type == "IEND") break;
+          p += 12 + len;
+        }
+        int ch = ctype == 2 ? 3 : ctype == 6 ? 4 : 0;
+        if (depth != 8 || ch == 0 || interlace != 0) { Log.LogError("{0}: only 8-bit RGB/RGBA non-interlaced PNGs are supported", Png); return false; }
+        // zlib: 2-byte header, deflate data, 4-byte checksum
+        idat.Position = 2;
+        var raw = new MemoryStream();
+        using (var z = new DeflateStream(idat, CompressionMode.Decompress)) z.CopyTo(raw);
+        byte[] d = raw.ToArray();
+        int stride = w * ch;
+        var px = new byte[h * stride];
+        var prev = new byte[stride];
+        for (int y = 0; y < h; y++) {
+          int ft = d[y * (stride + 1)], s = y * (stride + 1) + 1;
+          var cur = new byte[stride];
+          for (int i = 0; i < stride; i++) {
+            int a = i >= ch ? cur[i - ch] : 0, b = prev[i], c = i >= ch ? prev[i - ch] : 0, x = d[s + i];
+            int v;
+            switch (ft) {
+              case 0: v = x; break;
+              case 1: v = x + a; break;
+              case 2: v = x + b; break;
+              case 3: v = x + ((a + b) >> 1); break;
+              default: { int pp = a + b - c, pa = Math.Abs(pp - a), pb = Math.Abs(pp - b), pc = Math.Abs(pp - c); v = x + (pa <= pb && pa <= pc ? a : pb <= pc ? b : c); break; }
+            }
+            cur[i] = (byte)v;
+          }
+          Buffer.BlockCopy(cur, 0, px, y * stride, stride);
+          prev = cur;
+        }
+        var sizes = new List<int>();
+        foreach (int sz in new[] { 16, 24, 32, 48, 64, 128, 256 }) if (sz < Math.Min(w, 256)) sizes.Add(sz);
+        sizes.Add(Math.Min(Math.Min(w, h), 256));
+        var frames = new List<byte[]>();
+        foreach (int n in sizes) {
+          // area average from the source into n x n, premultiplied so edges do not darken
+          var bmp = new MemoryStream();
+          var bw = new BinaryWriter(bmp);
+          bw.Write(40); bw.Write(n); bw.Write(n * 2); bw.Write((short)1); bw.Write((short)32);
+          bw.Write(0); bw.Write(0); bw.Write(0); bw.Write(0); bw.Write(0); bw.Write(0);
+          for (int ty = n - 1; ty >= 0; ty--) {
+            for (int tx = 0; tx < n; tx++) {
+              double x0 = (double)tx * w / n, x1 = (double)(tx + 1) * w / n, y0 = (double)ty * h / n, y1 = (double)(ty + 1) * h / n;
+              double sr = 0, sg = 0, sb = 0, sa = 0, wt = 0;
+              for (int sy = (int)y0; sy < Math.Min(h, (int)Math.Ceiling(y1)); sy++) {
+                double fy = Math.Min(y1, sy + 1) - Math.Max(y0, sy);
+                for (int sx = (int)x0; sx < Math.Min(w, (int)Math.Ceiling(x1)); sx++) {
+                  double k = fy * (Math.Min(x1, sx + 1) - Math.Max(x0, sx));
+                  int o = sy * stride + sx * ch;
+                  double al = ch == 4 ? px[o + 3] / 255.0 : 1.0;
+                  sr += px[o] * al * k; sg += px[o + 1] * al * k; sb += px[o + 2] * al * k; sa += al * k; wt += k;
+                }
+              }
+              double A = wt > 0 ? sa / wt : 0;
+              Func<double, byte> cl = q => (byte)Math.Max(0, Math.Min(255, Math.Round(q)));
+              if (sa > 0) { bw.Write(cl(sb / sa)); bw.Write(cl(sg / sa)); bw.Write(cl(sr / sa)); } else { bw.Write((byte)0); bw.Write((byte)0); bw.Write((byte)0); }
+              bw.Write(cl(A * 255));
+            }
+          }
+          // AND mask: all zero (the alpha channel decides), rows padded to 32 bits
+          bw.Write(new byte[((n + 31) / 32) * 4 * n]);
+          bw.Flush();
+          frames.Add(bmp.ToArray());
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(Ico)));
+        using (var o = new BinaryWriter(File.Create(Ico))) {
+          o.Write((short)0); o.Write((short)1); o.Write((short)frames.Count);
+          int off = 6 + 16 * frames.Count;
+          for (int i = 0; i < frames.Count; i++) {
+            int n = sizes[i];
+            o.Write((byte)(n >= 256 ? 0 : n)); o.Write((byte)(n >= 256 ? 0 : n)); o.Write((byte)0); o.Write((byte)0);
+            o.Write((short)1); o.Write((short)32); o.Write(frames[i].Length); o.Write(off);
+            off += frames[i].Length;
+          }
+          foreach (var fr in frames) o.Write(fr);
+        }
+        Log.LogMessage(MessageImportance.Normal, "Icon: {0} ({1} sizes) from {2}", Ico, frames.Count, Png);
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="SentryIcon" BeforeTargets="CoreCompile;CopyFilesToOutputDirectory;_CopyOutOfDateSourceItemsToOutputDirectory" Inputs="$(SentryIconPng);$(MSBuildProjectFullPath)" Outputs="$(SentryIconFile)">
+    <Error Condition="!Exists('$(SentryIconPng)')" Text="The app icon $(SentryIconPng) is missing." />
+    <SentryPngToIco Png="$(SentryIconPng)" Ico="$(SentryIconFile)" />
+  </Target>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+</Project>

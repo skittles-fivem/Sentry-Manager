@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests for SentrySix.Core against the real Node server (no test framework:
+    Program.cs runs every test and exits non-zero on a failure).
+      dotnet run -c Release
+    Needs node on PATH; starts server/index.js from the repository itself.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>SentrySix.Core.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core\SentrySix.Core.csproj" />
+  </ItemGroup>
+
+</Project>

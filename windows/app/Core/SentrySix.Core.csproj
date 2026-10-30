@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The app's data layer: the same JSON API, sign-in and live event stream the
+    web pages use, with no WPF in it. It ships inside SentrySix.exe (net48,
+    compiled with the csc that comes with Windows, which knows C# 5 only:
+    hence LangVersion 5 here, so a newer construct fails this build too) and
+    is tested on any OS through netstandard2.0 (Core.Tests, net8.0).
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net48;netstandard2.0</TargetFrameworks>
+    <LangVersion>5</LangVersion>
+    <RootNamespace>SentrySix.Core</RootNamespace>
+    <AssemblyName>SentrySix.Core</AssemblyName>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+</Project>
