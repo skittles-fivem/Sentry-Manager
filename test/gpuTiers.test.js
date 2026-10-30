@@ -121,81 +121,102 @@ test('the tiers and command lines the app uses on NVENC (Windows)', () => {
   assert.deepEqual(decodeTierCandidates({ codec: 'libx265', hardware: false }, decodeAccel, { video }), []);
 });
 
-// What FFmpeg 8 prints at -loglevel verbose for the zero-copy command
-// (-hwaccel cuda -hwaccel_output_format cuda ... -c:v hevc_nvenc), frames on
-// the GPU from decoder to encoder.
+// What FFmpeg 8.1 printed at -loglevel verbose for the zero-copy command
+// (-hwaccel cuda -hwaccel_output_format cuda ... -c:v hevc_nvenc) on water
+// (RTX 4070 Ti, run 41106279972), frames on the GPU from decoder to encoder.
+// The output stream line names the frames context's software format (nv12).
 const ZERO_COPY_LOG = [
-  '[h264 @ 0x1f0] Reinit context to 1280x960, pix_fmt: yuvj420p',
-  "Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'C:\\gputiers\\sources\\2026-10-19_00-01-29-front.mp4':",
-  '  Stream #0:0[0x1](und): Video: h264 (High), 1 reference frame (avc1 / 0x31637661), yuvj420p(pc, bt709, progressive, left), 1280x960, 4994 kb/s, 36.02 fps, 36 tbr, 90k tbn (default)',
-  '[vost#0:0/hevc_nvenc @ 0x2a0] Created video stream from input stream 0:0',
+  '[h264 @ 00000178af41f000] Reinit context to 1280x960, pix_fmt: yuv420p',
+  "Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'C:\\gputiers\\sources\\2026-10-19_07-33-24-front.mp4':",
+  '  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, progressive), 1280x960, 4994 kb/s, 36.02 fps, 36 tbr, 10k tbn (default)',
+  "[vist#0:0/h264 @ 00000178af41edc0] Selecting decoder 'h264' because of requested hwaccel method cuda",
+  '[vost#0:0/hevc_nvenc @ 00000178ad63dd00] Created video stream from input stream 0:0',
   'Stream mapping:',
   '  Stream #0:0 -> #0:0 (h264 (native) -> hevc (hevc_nvenc))',
-  '[h264 @ 0x2b0] Reinit context to 1280x960, pix_fmt: cuda',
-  '[graph 0 input from stream 0:0 @ 0x3c0] w:1280 h:960 pixfmt:cuda tb:1/90000 fr:36/1 sar:0/1 csp:bt709 range:pc',
-  '[hevc_nvenc @ 0x2c0] Loaded Nvenc version 13.0',
-  '[hevc_nvenc @ 0x2c0] Nvenc initialized successfully',
-  '[hevc_nvenc @ 0x2c0] supports NVENC',
+  '[vost#0:0/hevc_nvenc @ 00000178ad63dd00] Starting thread...',
+  '[h264 @ 00000178c664e980] Reinit context to 1280x960, pix_fmt: cuda',
+  '[graph -1 input from stream 0:0 @ 00000178c6f67c80] w:1280 h:960 pixfmt:cuda tb:1/10000 fr:36/1 sar:1/1 csp:unknown range:tv alpha:unspecified',
+  '[vost#0:0/hevc_nvenc @ 00000178ad63dd00] [enc:hevc_nvenc @ 00000178af41e0c0] Using input frames context (format cuda) with hevc_nvenc encoder.',
+  '[hevc_nvenc @ 00000178ad646a80] Loaded Nvenc version 13.1',
+  '[hevc_nvenc @ 00000178ad646a80] Nvenc initialized successfully',
   "Output #0, mp4, to 'C:\\gputiers\\zero-copy-verbose.mp4':",
-  '  Stream #0:0: Video: hevc (Main) (hvc1 / 0x31637668), cuda(pc, bt709, progressive, left), 1280x960, q=2-31, 3720 kb/s, 36 fps, 90k tbn (default)',
-  '[out#0/mp4 @ 0x4d0] Output file #0 (C:\\gputiers\\zero-copy-verbose.mp4):'
+  '  Stream #0:0(und): Video: hevc (Main), 1 reference frame (hvc1 / 0x31637668), nv12(tv, progressive, left), 1280x960 [SAR 1:1 DAR 4:3], q=2-31, 3902 kb/s, 36 fps, 18432 tbn (default)',
+  '[vost#0:0/hevc_nvenc @ 00000178ad63dd00] Non-monotonic DTS; previous: 733696, current: 733696; changing to 733697. This may result in incorrect timestamps in the output file.',
+  '[out#0/mp4 @ 00000178ad640000] Output file #0 (C:\\gputiers\\zero-copy-verbose.mp4):'
 ].join('\r\n');
 
 // The same command when NVDEC could not be set up: the decoder retried
-// get_format without CUDA, frames came out in system memory and a software
-// conversion was inserted in front of the encoder.
+// get_format without CUDA, frames came out in system memory, a software
+// conversion was inserted and the encoder opened its own CUDA device.
 const FALLBACK_LOG = [
   'Stream mapping:',
   '  Stream #0:0 -> #0:0 (h264 (native) -> hevc (hevc_nvenc))',
   '[h264 @ 0x2b0] Failed setup for format cuda: hwaccel initialisation returned error.',
-  '[h264 @ 0x2b0] Reinit context to 1280x960, pix_fmt: yuvj420p',
-  '[graph 0 input from stream 0:0 @ 0x3c0] w:1280 h:960 pixfmt:yuvj420p tb:1/90000 fr:36/1 sar:0/1 csp:bt709 range:pc',
+  '[h264 @ 0x2b0] Reinit context to 1280x960, pix_fmt: yuv420p',
+  '[graph -1 input from stream 0:0 @ 0x3c0] w:1280 h:960 pixfmt:yuv420p tb:1/10000 fr:36/1 sar:1/1 csp:unknown range:tv alpha:unspecified',
   "[format @ 0x3d0] auto-inserting filter 'auto_scale_0' between the filter 'Parsed_null_0' and the filter 'format'",
-  '[auto_scale_0 @ 0x3e0] w:1280 h:960 fmt:yuvj420p csp:bt709 range:pc sar:0/1 -> w:1280 h:960 fmt:nv12 csp:bt709 range:pc sar:0/1 flags:0x00000004',
-  '[hevc_nvenc @ 0x2c0] 1 CUDA capable devices found',
+  '[vost#0:0/hevc_nvenc @ 0x2a0] [enc:hevc_nvenc @ 0x2c0] Using device 0 (type cuda) with hevc_nvenc encoder.',
   "Output #0, mp4, to 'x.mp4':",
-  '  Stream #0:0: Video: hevc (Main) (hvc1 / 0x31637668), nv12(pc, bt709, progressive, left), 1280x960, q=2-31, 3720 kb/s, 36 fps, 90k tbn (default)'
+  '  Stream #0:0: Video: hevc (Main) (hvc1 / 0x31637668), nv12(tv, progressive, left), 1280x960, q=2-31, 3902 kb/s, 36 fps, 18432 tbn (default)'
 ].join('\n');
 
-test('zero-copy evidence: frames on the GPU from decoder to encoder', () => {
-  const evidence = zeroCopyEvidence(ZERO_COPY_LOG, 'cuda');
+test('zero-copy evidence: frames on the GPU from decoder to encoder (FFmpeg 8.1 as printed on water)', () => {
+  const evidence = zeroCopyEvidence(ZERO_COPY_LOG, 'cuda', { withLog: true });
   assert.equal(evidence.ok, true, evidence.reason);
   // the probing decoder (before "Stream mapping:") is not the one that runs
   assert.deepEqual(evidence.decoder, ['cuda']);
   assert.deepEqual(evidence.filterInput, ['cuda']);
   assert.deepEqual(evidence.encoderInput, ['cuda']);
+  assert.deepEqual(evidence.outputStream, ['nv12'], 'shown, not judged');
   assert.deepEqual(evidence.fallbacks, []);
+  assert.equal(evidence.noiseLines, 1);
   assert.ok(evidence.lines.some((line) => /pixfmt:cuda/.test(line)));
-  assert.ok(evidence.lines.some((line) => /Nvenc initialized successfully/.test(line)));
+  assert.ok(evidence.lines.some((line) => /Using input frames context \(format cuda\)/.test(line)));
+  assert.ok(evidence.lines.some((line) => /requested hwaccel method cuda/.test(line)));
+  assert.ok(!evidence.lines.some((line) => /Non-monotonic/.test(line)));
+  assert.equal(evidence.log[0], 'Stream mapping:');
+  assert.ok(!evidence.log.some((line) => /Non-monotonic/.test(line)));
+  assert.equal(zeroCopyEvidence(ZERO_COPY_LOG).log, undefined);
   assert.match(evidenceLabel(evidence), /^ok dec cuda > filter cuda > enc cuda$/);
-  // an AV1 encode's output line
-  assert.deepEqual(zeroCopyEvidence(ZERO_COPY_LOG.replace('hevc (Main) (hvc1 / 0x31637668)', 'av1 (Main) (av01 / 0x31307661)'), 'cuda').encoderInput, ['cuda']);
+  // AV1 the same way
+  const av1 = zeroCopyEvidence(ZERO_COPY_LOG.replace(/hevc_nvenc/g, 'av1_nvenc').replace('hevc (Main)', 'av1 (Main)'), 'cuda');
+  assert.equal(av1.ok, true, av1.reason);
+  // a second decoder context that printed a software format is listed, and
+  // as long as every frame reached the graph and the encoder as CUDA, passes
+  const extra = zeroCopyEvidence(ZERO_COPY_LOG.replace('[out#0', '[h264 @ 0000018a03c47c80] Reinit context to 1280x960, pix_fmt: yuv420p\r\n[out#0'), 'cuda');
+  assert.equal(extra.ok, true, extra.reason);
+  assert.deepEqual(extra.decoderContexts.map((c) => c.format), ['cuda', 'yuv420p']);
 });
 
 test('zero-copy evidence: a fallback to system memory fails, whichever way it shows', () => {
   const evidence = zeroCopyEvidence(FALLBACK_LOG, 'cuda');
   assert.equal(evidence.ok, false);
-  assert.deepEqual(evidence.decoder, ['yuvj420p']);
-  assert.deepEqual(evidence.filterInput, ['yuvj420p']);
-  assert.deepEqual(evidence.encoderInput, ['nv12']);
+  assert.deepEqual(evidence.decoder, ['yuv420p']);
+  assert.deepEqual(evidence.filterInput, ['yuv420p']);
+  assert.deepEqual(evidence.encoderInput, []);
+  assert.deepEqual(evidence.encoderDevice, ['cuda 0']);
   assert.equal(evidence.fallbacks.length, 2);
-  assert.match(evidence.reason, /fallback message; decoder frames yuvj420p; filter input yuvj420p; encoder input nv12/);
+  assert.match(evidence.reason, /fallback message; no decoder chose cuda; filter input yuv420p; no cuda frames context at the encoder \(encoder device cuda 0\)/);
   assert.match(evidenceLabel(evidence), /^FAIL /);
   // each sign alone is enough
-  const only = (line) => zeroCopyEvidence(ZERO_COPY_LOG.replace('[out#0/mp4', `${line}\n[out#0/mp4`), 'cuda');
+  const only = (line) => zeroCopyEvidence(ZERO_COPY_LOG.replace('[out#0', `${line}\n[out#0`), 'cuda');
   for (const line of [
     '[h264 @ 0x2b0] Failed setup for format cuda: hwaccel initialisation returned error.',
     '[h264 @ 0x2b0] Format cuda not usable, retrying get_format() without it.',
     '[vist#0:0/h264 @ 0x2b0] Hardware device setup failed for decoder: Generic error in an external library',
     "[format @ 0x3d0] auto-inserting filter 'auto_scale_0' between the filter 'Parsed_null_0' and the filter 'format'",
-    "[Parsed_hwdownload_0 @ 0x3d0] hwdownload"
+    '[Parsed_hwdownload_0 @ 0x3d0] hwdownload',
+    // the graph reconfigured half way for system-memory frames
+    '[graph -1 input from stream 0:0 @ 0x3c1] w:1280 h:960 pixfmt:yuv420p tb:1/10000 fr:36/1 sar:1/1'
   ]) assert.equal(only(line).ok, false, line);
   assert.equal(zeroCopyEvidence(ZERO_COPY_LOG.replace('pixfmt:cuda', 'pixfmt:nv12'), 'cuda').ok, false);
-  assert.equal(zeroCopyEvidence(ZERO_COPY_LOG.replace('cuda(pc,', 'yuv420p(pc,'), 'cuda').ok, false);
+  assert.equal(zeroCopyEvidence(ZERO_COPY_LOG.replace('Using input frames context (format cuda)', 'Using input frames context (format d3d11)'), 'cuda').ok, false);
+  assert.match(zeroCopyEvidence(ZERO_COPY_LOG.replace(/^.*Using input frames context.*$/m, ''), 'cuda').reason, /no cuda frames context at the encoder/);
+  assert.match(zeroCopyEvidence(ZERO_COPY_LOG.replace('pix_fmt: cuda', 'pix_fmt: yuv420p'), 'cuda').reason, /no decoder chose cuda/);
   // nothing printed about the frames: no proof
   const empty = zeroCopyEvidence('Stream mapping:\n  Stream #0:0 -> #0:0 (h264 (native) -> hevc (hevc_nvenc))\n', 'cuda');
   assert.equal(empty.ok, false);
-  assert.match(empty.reason, /no frame format printed/);
+  assert.match(empty.reason, /no filter graph input printed/);
 });
 
 test('zero-copy evidence helpers', () => {
