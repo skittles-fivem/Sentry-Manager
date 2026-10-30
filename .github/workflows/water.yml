@@ -182,3 +182,115 @@ jobs:
             $p = Join-Path $env:RUNNER_TEMP $d
             if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction Continue }
           }
+
+  # TEMPORARY (removed once the Replace crash-recovery stall is fixed):
+  # test/converterCrashParallel.test.js 20 times, with the fixture's trace.
+  stress:
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 150
+    defaults:
+      run:
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Pinned node and ffmpeg
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $pins = Get-Content -Raw -LiteralPath windows\versions.json | ConvertFrom-Json
+          $cache = Join-Path (Split-Path -Parent $env:RUNNER_WORKSPACE) '_sentry-tools'
+          New-Item -ItemType Directory -Force -Path $cache | Out-Null
+          $utf8 = New-Object Text.UTF8Encoding $false
+          function Get-Sha([string]$file) { (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLowerInvariant() }
+          foreach ($tool in 'node', 'ffmpeg') {
+            $pin = $pins.$tool
+            $want = ([string]$pin.sha256).ToLowerInvariant()
+            if ($want -notmatch '^[0-9a-f]{64}$') { throw "windows/versions.json: $tool has no SHA-256" }
+            if ([string]$pin.url -notmatch '^https://') { throw "windows/versions.json: the $tool url must be https" }
+            $dir = Join-Path $cache "$tool-$($pin.version)"
+            $marker = Join-Path $dir 'hashes.json'
+            $names = @($pin.files.PSObject.Properties | ForEach-Object { $_.Name })
+            $reuse = $false
+            if (Test-Path -LiteralPath $marker) {
+              $known = Get-Content -Raw -LiteralPath $marker | ConvertFrom-Json
+              $reuse = ($known.zip -eq $want)
+              foreach ($name in $names) {
+                $file = Join-Path $dir $name
+                if (-not $reuse -or -not (Test-Path -LiteralPath $file) -or (Get-Sha $file) -ne $known.files.$name) { $reuse = $false }
+              }
+            }
+            if ($reuse) {
+              Write-Host "$tool $($pin.version): reused from $dir"
+            } else {
+              if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
+              New-Item -ItemType Directory -Force -Path $dir | Out-Null
+              $zip = Join-Path $env:RUNNER_TEMP "$tool.zip"
+              Write-Host "Downloading $tool $($pin.version) from $($pin.url)"
+              Invoke-WebRequest -UseBasicParsing -Uri ([string]$pin.url) -OutFile $zip
+              $got = Get-Sha $zip
+              if ($got -ne $want) { throw "the $tool download does not match its pinned SHA-256 (expected $want, got $got)" }
+              $hashes = @{}
+              $z = [IO.Compression.ZipFile]::OpenRead($zip)
+              try {
+                foreach ($name in $names) {
+                  $from = [string]$pin.files.$name
+                  $entry = $z.GetEntry($from)
+                  if (-not $entry) { throw "the $tool archive has no $from" }
+                  $file = Join-Path $dir $name
+                  [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $file, $true)
+                  $hashes[$name] = Get-Sha $file
+                }
+              } finally { $z.Dispose() }
+              Remove-Item -LiteralPath $zip -Force
+              [IO.File]::WriteAllText($marker, (@{ zip = $want; files = $hashes } | ConvertTo-Json), $utf8)
+            }
+          }
+          $nodeExe = Join-Path $cache "node-$($pins.node.version)\node.exe"
+          $ffDir = Join-Path $cache "ffmpeg-$($pins.ffmpeg.version)"
+          [IO.File]::AppendAllText($env:GITHUB_ENV, "SENTRY_NODE=$nodeExe`nSENTRY_FFMPEG=$(Join-Path $ffDir 'ffmpeg.exe')`nSENTRY_FFPROBE=$(Join-Path $ffDir 'ffprobe.exe')`n", $utf8)
+          & $nodeExe -v
+          & (Join-Path $ffDir 'ffmpeg.exe') -hide_banner -version | Select-Object -First 1
+
+
+      - name: Helper (csc)
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          $bin = Join-Path $env:RUNNER_TEMP 'stress-helper'
+          New-Item -ItemType Directory -Force -Path $bin | Out-Null
+          $exe = Join-Path $bin 'SentryHelper.exe'
+          & $csc /nologo /optimize+ /platform:x64 /target:exe /reference:System.dll /reference:System.Core.dll /reference:System.Management.dll /reference:System.Web.Extensions.dll "/out:$exe" windows\helper\SentryHelper.cs
+          if ($LASTEXITCODE -ne 0) { throw 'csc could not compile SentryHelper.cs' }
+          [IO.File]::AppendAllText($env:GITHUB_ENV, "SENTRY_HELPER=$exe`n", (New-Object Text.UTF8Encoding $false))
+          [IO.File]::AppendAllText($env:GITHUB_PATH, "$(Split-Path -Parent $env:SENTRY_FFMPEG)`n", (New-Object Text.UTF8Encoding $false))
+
+      - name: converterCrashParallel x20
+        env:
+          REQUIRE_TOOLS: '1'
+          SENTRY_CRASH_TRACE: '1'
+        run: |
+          Write-Host "ffmpeg: $((Get-Command ffmpeg).Source)"
+          $pass = 0
+          $results = @()
+          for ($i = 1; $i -le 20; $i++) {
+            $t = [Diagnostics.Stopwatch]::StartNew()
+            $log = Join-Path $env:RUNNER_TEMP "stress-$i.log"
+            cmd /c "`"$env:SENTRY_NODE`" --disable-warning=ExperimentalWarning --test --test-reporter=spec test/converterCrashParallel.test.js > `"$log`" 2>&1"
+            $code = $LASTEXITCODE
+            if ($code -eq 0) { $pass++ }
+            $line = "run ${i}: exit $code in $([math]::Round($t.Elapsed.TotalSeconds)) s"
+            $results += $line
+            Write-Host "::group::$line"
+            Get-Content -Encoding UTF8 -LiteralPath $log | Write-Host
+            Write-Host '::endgroup::'
+            Get-Content -Encoding UTF8 -LiteralPath $log | Select-String -Pattern '(\u2716|\u2139 pass|\u2139 fail)' | ForEach-Object { Write-Host "  $_" }
+          }
+          $results | ForEach-Object { Write-Host $_ }
+          Write-Host "STRESS RESULT: $pass/20 passed"
+          [IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, "STRESS RESULT: $pass/20 passed`n", (New-Object Text.UTF8Encoding $false))
+          if ($pass -ne 20) { exit 1 }
