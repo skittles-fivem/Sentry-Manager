@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Sentry Six Manager as a launchd system daemon. install.sh copies it to
+  /Library/LaunchDaemons as it is: every path is fixed, so the Full Disk
+  Access grant for node keeps working across updates.
+
+  It runs node directly as the hidden account _sentrysix; nothing of ours
+  runs as root. Settings go in manager.env (the Docker .env keys). The
+  variables set here win over manager.env, so the paths cannot be moved
+  from there.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>io.github.skittles-fivem.sentry-six-manager</string>
+	<key>UserName</key>
+	<string>_sentrysix</string>
+	<key>GroupName</key>
+	<string>_sentrysix</string>
+	<key>InitGroups</key>
+	<true/>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Library/SentrySixManager/node/bin/node</string>
+		<string>--disable-warning=ExperimentalWarning</string>
+		<string>--env-file-if-exists=/Library/Application Support/SentrySixManager/manager.env</string>
+		<string>/Library/SentrySixManager/app/server/index.js</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>/</string>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>NODE_ENV</key>
+		<string>production</string>
+		<key>APP_ROOT</key>
+		<string>/Library/SentrySixManager/app</string>
+		<key>DATA_PATH</key>
+		<string>/Library/Application Support/SentrySixManager/data</string>
+		<key>RUN_DIR</key>
+		<string>/Library/Application Support/SentrySixManager/run</string>
+		<key>FOOTAGE_ROOT</key>
+		<string>/Library/Application Support/SentrySixManager/footage</string>
+		<key>FFMPEG_PATH</key>
+		<string>/Library/SentrySixManager/ffmpeg/ffmpeg</string>
+		<key>FFPROBE_PATH</key>
+		<string>/Library/SentrySixManager/ffmpeg/ffprobe</string>
+		<key>SENTRY_NOREPLACE_RENAME</key>
+		<string>/Library/SentrySixManager/bin/sentry-fsops</string>
+		<!-- Apple's frameworks may write ~/Library/Caches: keep that out of DATA -->
+		<key>HOME</key>
+		<string>/Library/Application Support/SentrySixManager/run/home</string>
+		<!-- launchd gives a daemon no private TMPDIR; /tmp is shared -->
+		<key>TMPDIR</key>
+		<string>/Library/Application Support/SentrySixManager/run/tmp</string>
+		<key>PATH</key>
+		<string>/usr/bin:/bin:/usr/sbin:/sbin</string>
+		<key>UV_THREADPOOL_SIZE</key>
+		<string>16</string>
+		<!-- the log goes to data/logs/manager.log; service.log gets only crashes -->
+		<key>SENTRY_CONSOLE</key>
+		<string>off</string>
+	</dict>
+	<key>RunAtLoad</key>
+	<true/>
+	<!-- a clean stop exits 0 and stays stopped; a crash restarts after 5 s -->
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>ThrottleInterval</key>
+	<integer>5</integer>
+	<!-- SIGTERM, then SIGKILL after a minute (Docker's stop_grace_period) -->
+	<key>ExitTimeOut</key>
+	<integer>60</integer>
+	<!-- unset or Standard means throttled CPU and disk, and the slow cores -->
+	<key>ProcessType</key>
+	<string>Interactive</string>
+	<!-- 027 (launchd takes it in decimal), as index.js sets for itself -->
+	<key>Umask</key>
+	<integer>23</integer>
+	<key>SoftResourceLimits</key>
+	<dict>
+		<key>NumberOfFiles</key>
+		<integer>8192</integer>
+	</dict>
+	<key>HardResourceLimits</key>
+	<dict>
+		<key>NumberOfFiles</key>
+		<integer>8192</integer>
+	</dict>
+	<key>StandardOutPath</key>
+	<string>/Library/Logs/SentrySixManager/service.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Library/Logs/SentrySixManager/service.log</string>
+</dict>
+</plist>

@@ -1,0 +1,26 @@
+{
+  "arch": "arm64",
+  "node": {
+    "version": "24.22.2",
+    "url": "https://nodejs.org/dist/v24.22.2/node-v24.22.2-darwin-arm64.tar.xz",
+    "sha256": "1f5ac075be50bed4780ea3be19a007fda95ea4d527d28d76d0b91de47d915115",
+    "files": {
+      "bin/node": "node-v24.22.2-darwin-arm64/bin/node"
+    },
+    "notices": {
+      "LICENSE": "node-v24.22.2-darwin-arm64/LICENSE"
+    }
+  },
+  "ffmpeg": {
+    "version": "8.1.3-1",
+    "url": "https://github.com/jellyfin/jellyfin-ffmpeg/releases/download/v8.1.3-1/jellyfin-ffmpeg_8.1.3-1_portable_macarm64-gpl.tar.xz",
+    "sha256": "22445d7299742749ad2eeb9ce87963d50def0357e45b3e6c7b69987c8365dbf6",
+    "files": {
+      "ffmpeg": "ffmpeg",
+      "ffprobe": "ffprobe"
+    },
+    "notices": {},
+    "requireEncoders": ["hevc_videotoolbox", "h264_videotoolbox", "libx265", "libsvtav1"],
+    "requireDecoders": ["libdav1d"]
+  }
+}
