@@ -406,7 +406,7 @@ test('on Linux a cancelled clip\'s files are deleted at once, not after ffmpeg c
 
 test('/info is the same shape with Windows options as without', { skip: !hasOpenssl && 'openssl missing', timeout: 60_000 }, async () => {
   const dir = await tmp();
-  const linux = await pairedWorker(dir, {}, { work: 'work-linux' });
+  const linux = await pairedWorker(dir, { platform: 'linux' }, { work: 'work-linux' });
   const win = await pairedWorker(dir, { platform: 'win32', rmRetry: (f, o) => fsp.rm(f, o), isInUse, keepAwake: async () => {} }, { work: 'work-win' });
   try {
     const a = await nodeInfo(linux.port, linux.node.token);

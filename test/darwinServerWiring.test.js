@@ -270,8 +270,9 @@ test('server as on a Mac: unsupervised, macOS security keys, quiet console, SIGH
   await fsp.mkdir(path.join(dir, 'run', 'tmp', 'old'), { recursive: true });
   await fsp.writeFile(path.join(dir, 'run', 'tmp', 'old', 'f'), 'x');
   await fsp.mkdir(path.join(dir, 'footage'), { recursive: true });
-  // a supervisor's switch is ignored on a Mac
-  const s = await start(dir, { darwin: true, env: { SENTRY_CONSOLE: 'off', SENTRY_SUPERVISED: '1' } });
+  // a supervisor's switch is ignored on a Mac; no ffmpeg at this path, so
+  // the VideoToolbox answer is "failed" here and on a real Mac alike
+  const s = await start(dir, { darwin: true, env: { SENTRY_CONSOLE: 'off', SENTRY_SUPERVISED: '1', FFMPEG_PATH: path.join(dir, 'no-ffmpeg') } });
   try {
     assert.ok(s.up, s.err());
     assert.deepEqual(await fsp.readdir(path.join(dir, 'run', 'tmp')), []);
@@ -288,9 +289,11 @@ test('server as on a Mac: unsupervised, macOS security keys, quiet console, SIGH
     assert.equal(sys.security.supervised, false);
     assert.equal(sys.security.account, '_sentrysix');
     assert.ok('fullDiskAccess' in sys.security);
-    // no /sbin/mount on this box: no drives, still a list
-    assert.deepEqual((await s.call('GET', '/api/system/volumes')).data, []);
-    // the service's own VideoToolbox answer for install.sh (no media engine here)
+    // no /sbin/mount on Linux: no drives, still a list (a real Mac lists its own)
+    const volumes = (await s.call('GET', '/api/system/volumes')).data;
+    if (process.platform === 'darwin') assert.ok(Array.isArray(volumes));
+    else assert.deepEqual(volumes, []);
+    // the service's own VideoToolbox answer for install.sh (no ffmpeg to run)
     const vt = path.join(dir, 'run', 'videotoolbox');
     for (let i = 0; i < 100 && !fs.existsSync(vt); i++) await new Promise((r) => setTimeout(r, 100));
     assert.equal(fs.readFileSync(vt, 'utf8'), 'failed\n');
@@ -308,7 +311,8 @@ test('server as on a Mac: unsupervised, macOS security keys, quiet console, SIGH
   }
 });
 
-test('server on Linux: today\'s security keys, and SIGHUP is not a stop', { timeout: 60000 }, async () => {
+// (on a Mac the server is a Mac's: the test above covers it there)
+test('server on Linux: today\'s security keys, and SIGHUP is not a stop', { timeout: 60000, skip: process.platform === 'darwin' && 'on a Mac the server takes its macOS keys' }, async () => {
   const dir = await realTmp('sm-linux-srv-');
   const s = await start(dir, { darwin: false });
   try {

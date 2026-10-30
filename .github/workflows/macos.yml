@@ -126,13 +126,51 @@ jobs:
           [ "$(lipo -archs build/sentry-fsops)" = arm64 ] || { echo "::error::sentry-fsops is not arm64 only"; exit 1; }
           echo "SENTRY_NOREPLACE_RENAME=$PWD/build/sentry-fsops" >> "$GITHUB_ENV"
 
+      # Logged only, never fails the job: what this Mac says about the
+      # facts the macOS code relies on (folders, open(2) flags, openssl).
+      - name: macOS facts (log only)
+        continue-on-error: true
+        run: |
+          probe() { echo "::group::$1"; bash -c "$1" 2>&1 || true; echo "::endgroup::"; }
+          probe 'ls -ld /Users/Shared && d=$(mktemp -d /Users/Shared/ssm-probe-XXXX) && echo writable $d && rmdir $d' || true
+          probe 'node -e "const fs=require('"'"'fs'"'"');const o=fs.constants;console.log({O_NOFOLLOW:o.O_NOFOLLOW,O_DIRECTORY:o.O_DIRECTORY,O_RDONLY:o.O_RDONLY})"' || true
+          probe 'node -e "const fs=require('"'"'fs'"'"'),os=require('"'"'os'"'"'),p=require('"'"'path'"'"');const d=fs.mkdtempSync(p.join(fs.realpathSync(os.tmpdir()),'"'"'nf-'"'"'));fs.writeFileSync(d+'"'"'/f'"'"','"'"'x'"'"');fs.symlinkSync(d+'"'"'/f'"'"',d+'"'"'/l'"'"');fs.symlinkSync(d,d+'"'"'/dl'"'"');const A=0x20000000;for(const [n,f] of [['"'"'any'"'"',A],['"'"'any|nofollow'"'"',A|fs.constants.O_NOFOLLOW],['"'"'dir any'"'"',A|fs.constants.O_DIRECTORY]]){for(const t of [d+'"'"'/f'"'"',d+'"'"'/l'"'"',d+'"'"'/dl/f'"'"',d,os.tmpdir()+'"'"'/x'"'"']){try{fs.closeSync(fs.openSync(t,f));console.log(n,t,'"'"'ok'"'"')}catch(e){console.log(n,t,e.code)}}}"' || true
+          probe 'node -e "const fs=require('"'"'fs'"'"'),os=require('"'"'os'"'"'),p=require('"'"'path'"'"');const d=fs.mkdtempSync(p.join(fs.realpathSync(os.tmpdir()),'"'"'cs-'"'"'));fs.mkdirSync(d+'"'"'/data'"'"');console.log(fs.realpathSync(d+'"'"'/Data'"'"'), require('"'"'fs'"'"').promises.realpath(d+'"'"'/Data'"'"').then(console.log))"' || true
+          probe 'sw_vers -productVersion' || true
+          probe 'mkdir -p /tmp/probe-open && printf x > /private/tmp/probe-open/f && node -e "const fs=require('"'"'fs'"'"');const c=fs.constants;for(const [n,fl] of [['"'"'RDONLY|NOFOLLOW|NOFOLLOW_ANY'"'"',c.O_RDONLY|c.O_NOFOLLOW|0x20000000],['"'"'RDONLY|NOFOLLOW_ANY'"'"',c.O_RDONLY|0x20000000],['"'"'DIR RDONLY|NOFOLLOW|NOFOLLOW_ANY|DIRECTORY'"'"',c.O_RDONLY|c.O_NOFOLLOW|0x20000000|c.O_DIRECTORY],['"'"'DIR RDONLY|NOFOLLOW_ANY|DIRECTORY'"'"',c.O_RDONLY|0x20000000|c.O_DIRECTORY]]){const p=n.startsWith('"'"'DIR'"'"')?'"'"'/private/tmp/probe-open'"'"':'"'"'/private/tmp/probe-open/f'"'"';try{fs.closeSync(fs.openSync(p,fl));console.log(n,'"'"'ok'"'"')}catch(e){console.log(n,e.code)}};console.log('"'"'O_DIRECTORY'"'"',c.O_DIRECTORY,'"'"'O_NOFOLLOW'"'"',c.O_NOFOLLOW)"' || true
+          probe 'ls -ld /Users/Shared && d=$(mktemp -d /Users/Shared/ssm-probe-XXXX) && echo writable $d && rmdir "$d"' || true
+          probe 'node -e "console.log(require('"'"'os'"'"').tmpdir(), require('"'"'fs'"'"').realpathSync(require('"'"'os'"'"').tmpdir()))"' || true
+          probe '/sbin/mount | head -20' || true
+          probe 'openssl version; which -a openssl; ls -l /opt/homebrew/opt/openssl@3/bin/openssl && /opt/homebrew/opt/openssl@3/bin/openssl version' || true
+          probe 'openssl version -d; grep -nE '"'"'x509_extensions|^\[ *v3_ca|basicConstraints|KeyIdentifier'"'"' /private/etc/ssl/openssl.cnf' || true
+          probe 'd=$(mktemp -d) && /usr/bin/openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out $d/k.pem && /usr/bin/openssl req -x509 -new -key $d/k.pem -sha256 -days 10 -subj '"'"'/O=t/CN=t'"'"' -addext '"'"'basicConstraints=critical,CA:TRUE,pathlen:0'"'"' -addext '"'"'keyUsage=critical,keyCertSign,cRLSign'"'"' -out $d/ca.crt && /usr/bin/openssl x509 -in $d/ca.crt -noout -text | grep -nE '"'"'X509v3|CA:'"'"' && node -e "const c=new (require('"'"'crypto'"'"').X509Certificate)(require('"'"'fs'"'"').readFileSync('"'"'$d/ca.crt'"'"'));console.log('"'"'node ca ='"'"',c.ca,'"'"'selfIssued ='"'"',c.checkIssued(c))"' || true
+          exit 0
+
+      # The whole log, then every failing test (file:line and name) once
+      # more at the very end, where it is easy to find.
       - name: Tests
         env:
           REQUIRE_TOOLS: '1'
         run: |
           echo "ffmpeg: $(command -v ffmpeg)"
           echo "ffprobe: $(command -v ffprobe)"
-          npm test
+          log="$RUNNER_TEMP/npm-test.log"
+          set +e
+          npm test 2>&1 | tee "$log"
+          code=${PIPESTATUS[0]}
+          set -e
+          fails=$(awk '/failing tests:/{on=1; next} on && /^test at /{loc=$3; getline; sub(/^[[:space:]]*/, ""); print loc "  " $0}' "$log")
+          echo
+          echo "=================== FAILING TESTS ==================="
+          if [ -n "$fails" ]; then
+            printf '%s\n' "$fails"
+            echo "($(printf '%s\n' "$fails" | wc -l | tr -d ' ') failing; npm test exit code $code)"
+            while IFS= read -r line; do echo "::error::$line"; done <<<"$fails"
+          else
+            echo "(none; npm test exit code $code)"
+          fi
+          echo "====================================================="
+          exit "$code"
 
   package:
     needs: test

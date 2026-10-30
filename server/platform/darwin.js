@@ -30,7 +30,7 @@ const PROGRAM_ROOT = '/Library/SentrySixManager';
 const CAFFEINATE = '/usr/bin/caffeinate';
 const SYSCTL = '/usr/sbin/sysctl';
 const MOUNT = '/sbin/mount';
-// O_NOFOLLOW_ANY (macOS 11+): no symlink anywhere in the path
+// O_NOFOLLOW_ANY (macOS 11+): no symlink anywhere in the path (sys/fcntl.h)
 const O_NOFOLLOW_ANY = 0x20000000;
 const EX_CONFIG = 78;
 const RESPAWN_MS = 5000;
@@ -277,7 +277,10 @@ function createDarwinPlatform({
       ...(opts.runCmd ? { runCmd: opts.runCmd } : {})
     }),
     // darwin only
-    openNoFollowFlags: fsSync.constants.O_RDONLY | fsSync.constants.O_NOFOLLOW | O_NOFOLLOW_ANY,
+    // O_NOFOLLOW_ANY alone: it refuses a symlink anywhere, the last name
+    // too (ELOOP), and open(2) answers EINVAL when O_NOFOLLOW is set with it
+    // (XNU vn_open_auth)
+    openNoFollowFlags: fsSync.constants.O_RDONLY | O_NOFOLLOW_ANY,
     fdInside,
     fsOps,
     volumeInfo,
