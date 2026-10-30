@@ -13,6 +13,12 @@
 // nvidia-smi exactly as on Linux. The ids are the same PCI slots, so a lane
 // saved on one system means the same GPU on the other, and nothing Windows-
 // only (adapter index, LUID) goes on the wire.
+//
+// On a Mac (Apple Silicon) there is one VideoToolbox device (darwinDevices.js),
+// listed only once a real hevc_videotoolbox test encode passed on it: an
+// older main sends whole-node clips to a node's first GPU whatever it says
+// it encodes, so a Mac that cannot reach its media engine (a VM) lists only
+// the CPU.
 
 const nodeFs = require('fs');
 const nodePath = require('path');
@@ -70,7 +76,13 @@ function createDeviceDiscovery({
   nameOf,
   nvidiaDeadlineMs = NVIDIA_DEADLINE_MS,
   // Windows: (op, args, options) => the helper's answer (winHelper.request)
-  requestHelper = null
+  requestHelper = null,
+  // Mac: the ffmpeg that test-encodes, or a test of its own (device) =>
+  // true when it passed; os and arch for darwinDevices (tests)
+  ffmpegPath = 'ffmpeg',
+  hevcProbe = null,
+  os,
+  arch
 } = {}) {
   const pfs = fs.promises || fs;
   const rdevOf = statRdev === undefined ? defaultStatRdev(fs) : statRdev;
@@ -207,8 +219,36 @@ function createDeviceDiscovery({
     return devices.sort((left, right) => left.adapter - right.adapter);
   }
 
+  // Mac: the VideoToolbox device, through the test-encode gate (made once)
+  let darwin = null;
+  function darwinDevices() {
+    if (!darwin) {
+      const { createDarwinDeviceDiscovery, createHevcGate } = require('./darwinDevices');
+      const { probeCandidate } = require('./encoderPlanner');
+      const probe = typeof hevcProbe === 'function' ? hevcProbe : async (device) => {
+        if (typeof runCommand !== 'function') return false;
+        const proof = await probeCandidate({
+          runProbe: runCommand, ffmpegPath, platform: 'darwin', family: 'h265',
+          candidate: { codec: 'hevc_videotoolbox', hardware: true }, device
+        });
+        return proof.usable === true;
+      };
+      darwin = {
+        discovery: createDarwinDeviceDiscovery({ runCommand, ...(os ? { os } : {}), ...(arch ? { arch } : {}) }),
+        gate: createHevcGate({ probe })
+      };
+    }
+    return darwin;
+  }
+
   return Object.freeze({
     async list() {
+      if (platform === 'darwin') {
+        const { discovery, gate } = darwinDevices();
+        let found;
+        try { found = await gate.filter(await discovery.list()); } catch (_) { found = []; }
+        return found.some((device) => device.id === CPU_DEVICE.id) ? found : [...found, CPU_DEVICE];
+      }
       if (platform === 'win32') {
         const d3d11 = await d3d11Devices().catch(() => []);
         const nvidia = (await nvidiaDevices().catch(() => [])).filter((device) => !d3d11.some((other) => other.id === device.id));

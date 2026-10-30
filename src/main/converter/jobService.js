@@ -314,6 +314,8 @@ function createConverterJobService(deps) {
   const scanner = deps.scanner;
   const planner = deps.planner;
   const staging = deps.stagingManager;
+  // (a Mac's VideoToolbox encodes take -allow_sw 0; nothing else uses it)
+  const platform = deps.platform || process.platform;
   // GPU decoding is an optimisation only. An encoder whose GPU decode proved
   // unusable is not offered it again; verify stops after repeated fallbacks.
   // With a GPU chosen per lane the records are per GPU: one GPU's broken
@@ -341,14 +343,15 @@ function createConverterJobService(deps) {
   // odd clip does not cost every later clip the faster path.
   const ZERO_COPY_FAILURE_LIMIT = 3;
   const zeroCopyRecord = deps.zeroCopyState || createZeroCopyState();
-  // The first zero-copy encode on each GPU and codec (VA-API, QSV and AMF)
-  // has its pictures checked against the original's, as a node's are: a
-  // driver that hands the encoder the wrong surfaces still makes a file that
-  // verifies. Once one matched, the others are trusted. Only one clip per
-  // GPU and codec is checked at a time; the others wait for its verdict.
+  // The first zero-copy encode on each GPU and codec (VA-API, QSV, AMF and
+  // VideoToolbox) has its pictures checked against the original's, as a
+  // node's are: a driver that hands the encoder the wrong surfaces still
+  // makes a file that verifies. Once one matched, the others are trusted.
+  // Only one clip per GPU and codec is checked at a time; the others wait
+  // for its verdict.
   // NVENC's zero-copy is proven and not checked.
   const pictureCheckedZeroCopy = (encoder) => typeof deps.comparePicture === 'function'
-    && /_(vaapi|qsv|amf)$/.test(encoder?.codec || '');
+    && /_(vaapi|qsv|amf|videotoolbox)$/.test(encoder?.codec || '');
   function noteZeroCopyFailure(key) {
     const failures = (zeroCopyRecord.failures.get(key) || 0) + 1;
     zeroCopyRecord.failures.set(key, failures);
@@ -358,8 +361,8 @@ function createConverterJobService(deps) {
   // then GPU decode, then (implicitly, after the list) CPU decode. A clip
   // whose lead-in frames are held (leadIn.js) skips zero-copy: the frame
   // repeat runs on system-memory frames, and a failure there must not rule
-  // zero-copy out for the clips that start on a keyframe. VA-API, QSV and
-  // AMF keep frames on the GPU only for 8-bit 4:2:0 sources with even
+  // zero-copy out for the clips that start on a keyframe. VA-API, QSV, AMF
+  // and VideoToolbox keep frames on the GPU only for 8-bit 4:2:0 sources with even
   // dimensions (video: what inspectVideo read); NVENC as it always did.
   function encodeDecodeTiers(encoder, { zeroCopy = true, video = null } = {}) {
     if (encoder?.hardware !== true || encoder.remote === true || typeof deps.decodeAccel !== 'function') return [];
@@ -1321,7 +1324,8 @@ function createConverterJobService(deps) {
       const hwFrames = Array.isArray(decodeAccel) && decodeAccel.includes('-hwaccel_output_format');
       const device = encoder.hardware === true ? laneDevice(encoder) : null;
       encodeArgs = buildEncodeArgs({
-        codec, encoder: encoder.codec, bitrate, quality, hwFrames, ...(device ? { device } : {}), ...(holdFrames > 0 ? { holdFrames } : {})
+        codec, encoder: encoder.codec, bitrate, quality, hwFrames, platform,
+        ...(device ? { device } : {}), ...(holdFrames > 0 ? { holdFrames } : {})
       });
       const args = [
         '-nostdin', '-hide_banner', '-loglevel', 'error', '-n',

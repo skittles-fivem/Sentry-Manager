@@ -638,6 +638,8 @@ async function createConverterRuntime(options = {}) {
     ...(typeof options.deviceNameOf === 'function' ? { nameOf: options.deviceNameOf } : {}),
     // Windows: the helper that lists the Direct3D adapters (gpu.list)
     ...(typeof options.requestHelper === 'function' ? { requestHelper: options.requestHelper } : {}),
+    // Mac: the VideoToolbox device is listed once this ffmpeg test-encoded on it
+    ...(platform === 'darwin' ? { ffmpegPath: options.ffmpegPath } : {}),
     ...(options.deviceDiscovery || {})
   });
   // One lookup at a time: callers while it runs share it, and its answer
@@ -698,7 +700,7 @@ async function createConverterRuntime(options = {}) {
   // choice made already, else null.
   // Windows: AMF without an adapter opens the system's default one (DXGI
   // adapter 0); QSV takes an Intel GPU itself, which the list can only tell
-  // when there is one.
+  // when there is one. A Mac has one VideoToolbox device.
   async function defaultDeviceOf(list, family, { able = () => true, probe = true } = {}) {
     let selected;
     try { selected = await planner.select(family, { probe }); } catch (_) { return null; }
@@ -715,6 +717,9 @@ async function createConverterRuntime(options = {}) {
       }
       if (selected.codec.endsWith('_qsv')) return onlyOne((device) => device.kind === 'd3d11' && device.vendor === 'intel');
       return null;
+    }
+    if (platform === 'darwin') {
+      return selected.codec.endsWith('_videotoolbox') ? onlyOne((device) => device.kind === 'videotoolbox') : null;
     }
     return list.find((device) => device.kind === 'dri' && pathApi.basename(device.node || '') === 'renderD128')?.id || null;
   }
@@ -808,6 +813,8 @@ async function createConverterRuntime(options = {}) {
     verifier: adapters.verifier,
     spawnProcess,
     ffmpegPath: options.ffmpegPath,
+    // Mac: VideoToolbox encodes with -allow_sw 0 (encoderPlanner)
+    ...(platform === 'darwin' ? { platform } : {}),
     // Decode on the encoder's GPU (falls back to CPU decoding automatically).
     decodeAccel: options.gpuDecode === false ? undefined : (encoder, accel = {}) => decodeAccelArgs(encoder, {
       platform, zeroCopy: accel.zeroCopy === true, ...(accel.device ? { device: accel.device } : {})

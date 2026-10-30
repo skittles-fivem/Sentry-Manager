@@ -129,7 +129,7 @@ function parseJobSettings(raw) {
  * isInUse(err) says a delete failed only because the file is in use,
  * keepAwake(on) keeps the machine from sleeping while clips are held }
  */
-function createNodeWorker({ db, log, audit = log, authority = () => null, workDir, ffmpegPath = 'ffmpeg', spawn = require('child_process').spawn, runtime, name = os.hostname(), platform = process.platform, now = Date.now, power = null, rmRetry = fsp.rm, isInUse = () => false, keepAwake = async () => {} }) {
+function createNodeWorker({ db, log, audit = log, authority = () => null, workDir, ffmpegPath = 'ffmpeg', spawn = require('child_process').spawn, runtime, name = os.hostname(), platform = process.platform, arch = process.arch, now = Date.now, power = null, rmRetry = fsp.rm, isInUse = () => false, keepAwake = async () => {} }) {
   let pairing = null; // { code, expiresAt, tries, byAddress }
   const jobs = new Map(); // id -> job
   const waiting = []; // uploaded jobs waiting for a slot, oldest first
@@ -396,10 +396,14 @@ function createNodeWorker({ db, log, audit = log, authority = () => null, workDi
         const slots = slotsFor(d.id, s, list);
         return {
           id: d.id, kind: d.kind, name: d.name, encoders: d.encoders, slots,
-          busy: running(d.id).length, encoding: encoding(d.id), capacity: slots + QUEUE
+          busy: running(d.id).length, encoding: encoding(d.id), capacity: slots + QUEUE,
+          // a Mac: its media engines, a hint for clips at once
+          ...(platform === 'darwin' && Number.isSafeInteger(d.device?.encodeEngines) ? { engines: d.device.encodeEngines } : {})
         };
       });
     }
+    // A Mac says what it is (optional fields; mains copy only what they know)
+    if (platform === 'darwin') Object.assign(out, { platform: 'darwin', arch, deployment: 'macos' });
     return out;
   }
 
@@ -557,7 +561,7 @@ function createNodeWorker({ db, log, audit = log, authority = () => null, workDi
     return new Promise((resolve) => {
       if (job.stopped) return resolve(false);
       const encodeArgs = buildEncodeArgs({
-        codec: settingsUsed.codec, encoder: attempt.encoder, bitrate: settingsUsed.bitrate, quality: settingsUsed.quality,
+        codec: settingsUsed.codec, encoder: attempt.encoder, bitrate: settingsUsed.bitrate, quality: settingsUsed.quality, platform,
         ...(attempt.device ? { device: attempt.device } : {}), ...(attempt.holdFrames > 0 ? { holdFrames: attempt.holdFrames } : {})
       });
       // The upload is read as MP4 and nothing else, from this one local file:
