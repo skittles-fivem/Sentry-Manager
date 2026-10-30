@@ -12,7 +12,8 @@ const fsp = require('fs/promises');
 const https = require('https');
 const http2 = require('http2');
 const net = require('net');
-const os = require('os');
+const { realTmp } = require('./fixtures/tmp');
+const { linuxOnly } = require('./fixtures/os');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 const { normalizeSmb, mountArgs, parseShare } = require('../server/mountSpec');
@@ -26,7 +27,7 @@ const REPO = path.join(__dirname, '..');
 const SERVER = path.join(REPO, 'server', 'index.js');
 const HELPER = path.join(__dirname, '..', 'build', 'noreplace-rename');
 const hasOpenssl = spawnSync('openssl', ['version']).status === 0;
-const tmp = (p = 'sm-sec-') => fsp.mkdtemp(path.join(os.tmpdir(), p));
+const tmp = (p = 'sm-sec-') => realTmp(p);
 const quiet = { info() {}, warn() {}, error() {} };
 
 function freePort() {
@@ -444,7 +445,7 @@ test('Recycle Bin: protecting a recording while a trash run is going keeps it', 
 
 const canSeparate = process.getuid?.() === 0 && spawnSync('setpriv', ['--version']).status === 0;
 
-test('the supervisor runs the app unprivileged and keeps mounts and the CA to itself', { skip: !canSeparate || !hasOpenssl, timeout: 120000 }, async () => {
+test('the supervisor runs the app unprivileged and keeps mounts and the CA to itself', { skip: linuxOnly('setpriv and /proc') || !canSeparate || !hasOpenssl, timeout: 120000 }, async () => {
   const dir = await tmp();
   await fsp.chmod(dir, 0o755);
   const footage = path.join(dir, 'footage');

@@ -13,6 +13,7 @@ const { parseCpuinfo, cleanModel } = require('../server/stats/cpu');
 const { osFromKernel } = require('../server/stats/host');
 const M = require('./fixtures/stats/machines');
 const { setup, fakeFs, fakeClock, fakeSpawn } = require('./fixtures/stats/helpers');
+const { linuxOnly } = require('./fixtures/os');
 
 const MiB = 1048576;
 const SHARES = () => [{ label: 'Footage share', path: '/footage/tesla' }, { label: 'Data volume', path: '/data' }];
@@ -285,7 +286,7 @@ test('garbage in every file of a full machine never throws', async () => {
   }
 });
 
-test('this machine: a sample of the real /proc and /sys (no GPU here)', async () => {
+test('this machine: a sample of the real /proc and /sys (no GPU here)', { skip: linuxOnly('reads the real /proc and /sys') }, async () => {
   const spawn = fakeSpawn();
   const stats = createStats({ spawn, ffmpegVersion: null, readShares: () => [{ label: 'Temp', path: require('os').tmpdir() }] });
   try {

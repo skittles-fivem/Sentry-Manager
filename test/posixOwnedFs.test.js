@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const crypto = require('crypto');
 const fs = require('fs');
 const fsp = require('fs/promises');
-const os = require('os');
+const { realTmp } = require('./fixtures/tmp');
 const path = require('path');
 const { spawn, spawnSync, execFileSync } = require('child_process');
 const { createPosixOwnedFs, createNoReplaceRename } = require('../server/posixOwnedFs');
@@ -23,7 +23,7 @@ function buildHelper() {
 const helperBuilt = buildHelper();
 
 async function tmp() {
-  return fsp.mkdtemp(path.join(os.tmpdir(), 'posix-owned-'));
+  return realTmp('posix-owned-');
 }
 
 async function identity(file) {

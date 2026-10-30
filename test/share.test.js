@@ -7,10 +7,10 @@ const fsp = require('fs/promises');
 const path = require('path');
 const { ShareManager, findMount, explainMountError } = require('../server/share');
 const { createLocalMounter } = require('../server/mounter');
-const os = require('os');
+const { realTmp } = require('./fixtures/tmp');
 const { Logger } = require('../server/log');
 
-const tmpDir = () => fsp.mkdtemp(path.join(os.tmpdir(), 'share-test-'));
+const tmpDir = () => realTmp('share-test-');
 const rmrf = (p) => fs.rmSync(p, { recursive: true, force: true });
 
 const MOUNTINFO = [

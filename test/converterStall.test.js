@@ -7,7 +7,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
-const os = require('os');
+const { realTmpSync } = require('./fixtures/tmp');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 
@@ -27,7 +27,7 @@ let fixtures = null;
 async function fixtureClips() {
   if (fixtures) return fixtures;
   const { createTeslaH264Fixture } = require(path.join(REPO, 'test/fixtures/ffmpegFixtures'));
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stall-fx-'));
+  const dir = realTmpSync('sm-stall-fx-');
   fixtures = [];
   for (let i = 0; i < 2; i++) {
     const file = path.join(dir, `base${i}.mp4`);
@@ -43,7 +43,7 @@ async function fixtureClips() {
 // The runtime as server/converterHost.js composes it, with an fs whose reads
 // a test can intercept (to make a clip vanish or the share go down).
 async function setup({ concurrency = 2, outputMode = 'replace', events = 2, ffmpegPath = 'ffmpeg', encodeStallMs } = {}) {
-  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stall-'));
+  const base = realTmpSync('sm-stall-');
   const root = path.join(base, 'footage', 'TeslaCam');
   const clips = [];
   fs.mkdirSync(root, { recursive: true });
@@ -232,7 +232,7 @@ test('a share that drops to its empty mount folder is waited for, not read as de
 
 test('a frozen encode is stopped and the job goes on', { skip, timeout: 120_000 }, async () => {
   // An ffmpeg that never reports progress for one clip, as with a hung GPU.
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stall-ff-'));
+  const dir = realTmpSync('sm-stall-ff-');
   const wrapper = path.join(dir, 'ffmpeg');
   fs.writeFileSync(wrapper, '#!/bin/sh\ncase "$*" in *-43-00-front*pipe:1*) exec sleep 600;; esac\nexec ffmpeg "$@"\n', { mode: 0o755 });
   const env = await setup({ concurrency: 2, events: 2, ffmpegPath: wrapper, encodeStallMs: 2000 });
@@ -278,7 +278,7 @@ test('discovery finds every clip past 10,000, so the time remaining covers them 
 });
 
 test('the scan skips a folder deleted while it runs', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stall-scan-'));
+  const root = realTmpSync('sm-stall-scan-');
   const teslacam = path.join(root, 'TeslaCam');
   for (const event of ['2026-10-20_07-44-14', '2026-10-20_07-45-14']) {
     fs.mkdirSync(path.join(teslacam, 'SentryClips', event), { recursive: true });
@@ -304,7 +304,7 @@ test('the scan skips a folder deleted while it runs', async () => {
 });
 
 test('the automatic window resumes a pause that has not settled yet', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stall-auto-'));
+  const dir = realTmpSync('sm-stall-auto-');
   let hour = 12;
   const calls = [];
   // An automatic job whose pause still waits on a worker: it reads as working.
