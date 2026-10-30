@@ -66,7 +66,9 @@ function runExe(exe, args) {
   return r.stdout;
 }
 
-const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-service-'));
+// the long, real form: .NET Framework's Path.GetFullPath expands 8.3 short
+// names, and a Windows runner's %TEMP% is one (C:\\Users\\RUNNER~1\\...)
+const tmpRoot = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'sm-service-')));
 test.after(() => fs.rmSync(tmpRoot, { recursive: true, force: true, maxRetries: 8, retryDelay: 200 }));
 
 let harnessExe = null;
@@ -95,6 +97,12 @@ test('the source keeps the contract: job object, stop over stdin, grace, restart
   assert.match(source, /LogLimit = 10L \* 1024 \* 1024/);
   assert.match(source, /"service\.log"/);
   assert.match(source, /Name = "SentrySixManager"/);
+  // giving up as a service ends the process without reporting STOPPED, so
+  // the SCM's recovery action (restart/5000) restarts it as Docker would
+  assert.match(source, /ServiceGaveUpCode = 1067\b/);
+  assert.match(source, /Environment\.Exit\(ServiceGaveUpCode\)/);
+  // run mode's copy to the window never blocks node's output
+  assert.match(source, /queue\.TryAdd\(/);
   for (const key of ['APP_ROOT', 'DATA_PATH', 'RUN_DIR', 'FOOTAGE_ROOT', 'FFMPEG_PATH', 'FFPROBE_PATH', 'SENTRY_HELPER', 'SENTRY_STOP_STDIN', 'UV_THREADPOOL_SIZE']) {
     assert.ok(source.includes(`"${key}"`), key);
   }
@@ -305,6 +313,26 @@ test('service.log rotates to one .1 copy at the size limit', { skip: noRunner },
   runExe(harness(), ['log', big, '100', '1', '250']);
   assert.equal(fs.statSync(big).size, 250);
   assert.equal(fs.existsSync(`${big}.1`), false);
+});
+
+test('when service.log cannot be rotated it keeps appending rather than lose output', { skip: noRunner }, () => {
+  // a folder named service.log.1 stands in for a copy that cannot be
+  // replaced (on Windows: service.log held open without delete sharing)
+  const dir = path.join(tmpRoot, 'logs-c');
+  const file = path.join(dir, 'service.log');
+  fs.mkdirSync(`${file}.1`, { recursive: true });
+  runExe(harness(), ['log', file, '1000', '5', '300']);
+  assert.equal(fs.readFileSync(file, 'utf8'), [...'abcde'].map((c) => c.repeat(300)).join(''));
+  assert.ok(fs.statSync(`${file}.1`).isDirectory());
+});
+
+test('run mode copies node\'s output to stdout and its own lines to stderr, in order', { skip: noRunner }, () => {
+  const r = compiler.kind === 'csc'
+    ? spawnSync(harness(), ['echo', '200'], { encoding: 'utf8' })
+    : spawnSync('mono', [harness(), 'echo', '200'], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, Array.from({ length: 200 }, (_, i) => `out ${i}\n`).join(''));
+  assert.equal(r.stderr.trim(), '[service] done');
 });
 
 // --- the real host, on Windows ---------------------------------------------

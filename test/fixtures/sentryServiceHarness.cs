@@ -74,6 +74,21 @@ namespace SentrySixManager.Tests
                     Console.Out.Write(sb.Append('}').ToString());
                     return 0;
                 }
+                case "echo":
+                {
+                    // run mode's copy to the window: node's output on stdout,
+                    // the host's lines on stderr, all there after Finish
+                    var echo = new ConsoleEcho();
+                    int count = int.Parse(args[1]);
+                    for (int i = 0; i < count; i++)
+                    {
+                        byte[] b = Encoding.ASCII.GetBytes("out " + i + "\n");
+                        echo.Out(b, b.Length);
+                    }
+                    echo.Err("[service] done");
+                    echo.Finish(5000);
+                    return 0;
+                }
                 case "log":
                 {
                     using (var log = new LogFile(args[1], long.Parse(args[2])))

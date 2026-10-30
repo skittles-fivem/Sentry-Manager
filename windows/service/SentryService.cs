@@ -22,9 +22,12 @@
 //   mcs -langversion:7.3 -r:System.ServiceProcess.dll SentryService.cs
 //
 // Exit codes: 0 stopped cleanly; 1 bad arguments or install layout;
-// 2 (run mode) node crashed 5 times within 60 s and was given up on.
+// 2 (run mode) node crashed 5 times within 60 s and was given up on. The
+// service in that case ends its process with 1067 (ERROR_PROCESS_ABORTED)
+// without reporting STOPPED, so Windows' recovery action restarts it.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -259,13 +262,18 @@ namespace SentrySixManager
 
     // Appends to service.log; at 10 MB the file becomes service.log.1 (the
     // one older copy, replacing the previous one) and a new file starts.
-    // Others may read the file while it is written.
+    // Others may read the file while it is written. If the rotation cannot
+    // happen (someone holds service.log open without delete sharing, say a
+    // tail in another window), it keeps appending past the limit rather than
+    // lose output, and tries again a minute later.
     public sealed class LogFile : IDisposable
     {
+        static readonly TimeSpan RetryRotation = TimeSpan.FromSeconds(60);
         readonly string path;
         readonly long limit;
         readonly object sync = new object();
         FileStream stream;
+        DateTime nextRotation = DateTime.MinValue;
 
         public LogFile(string path, long limit)
         {
@@ -280,11 +288,11 @@ namespace SentrySixManager
                 try
                 {
                     if (stream == null) Open();
-                    if (stream.Length > 0 && stream.Length + count > limit) Rotate();
+                    if (stream.Length > 0 && stream.Length + count > limit && DateTime.UtcNow >= nextRotation) Rotate();
                     stream.Write(data, offset, count);
                     stream.Flush();
                 }
-                catch (IOException) { CloseStream(); } // disk full or file locked: drop this piece, try again next time
+                catch (IOException) { CloseStream(); } // disk full: drop this piece, try again next time
                 catch (UnauthorizedAccessException) { CloseStream(); }
             }
         }
@@ -305,8 +313,15 @@ namespace SentrySixManager
         {
             CloseStream();
             string old = path + ".1";
-            if (File.Exists(old)) File.Delete(old);
-            File.Move(path, old);
+            try
+            {
+                // Replace swaps the files in one step, so the previous .1 is
+                // only lost once the new one is in place
+                if (File.Exists(old)) File.Replace(path, old, null);
+                else File.Move(path, old);
+            }
+            catch (IOException) { nextRotation = DateTime.UtcNow + RetryRotation; }
+            catch (UnauthorizedAccessException) { nextRotation = DateTime.UtcNow + RetryRotation; }
             Open();
         }
 
@@ -633,6 +648,64 @@ namespace SentrySixManager
         }
     }
 
+    // Run mode's copy of everything to this window (stdout for node's output,
+    // stderr for the host's own lines). service.log is what is kept; this copy
+    // must never hold node up, so it goes through a bounded queue to its own
+    // thread, and when whoever started us does not read our stdout or stderr
+    // (a full pipe blocks the writer) the copy is dropped, not the app.
+    sealed class ConsoleEcho
+    {
+        const int MaxQueued = 512; // pieces of node output, up to 64 KB each
+        readonly BlockingCollection<KeyValuePair<bool, byte[]>> queue =
+            new BlockingCollection<KeyValuePair<bool, byte[]>>(MaxQueued);
+        readonly Thread writer;
+
+        public ConsoleEcho()
+        {
+            writer = new Thread(() =>
+            {
+                Stream stdout = null, stderr = null;
+                try
+                {
+                    foreach (var item in queue.GetConsumingEnumerable())
+                    {
+                        try
+                        {
+                            Stream s = item.Key
+                                ? (stderr ?? (stderr = Console.OpenStandardError()))
+                                : (stdout ?? (stdout = Console.OpenStandardOutput()));
+                            s.Write(item.Value, 0, item.Value.Length);
+                            s.Flush();
+                        }
+                        catch (IOException) { } // the reader went away
+                    }
+                }
+                catch (ObjectDisposedException) { }
+            });
+            writer.IsBackground = true;
+            writer.Name = "console echo";
+            writer.Start();
+        }
+
+        public void Out(byte[] data, int count) { Add(false, data, count); }
+        public void Err(string line) { byte[] b = new UTF8Encoding(false).GetBytes(line + Environment.NewLine); Add(true, b, b.Length); }
+
+        void Add(bool err, byte[] data, int count)
+        {
+            var copy = new byte[count];
+            Buffer.BlockCopy(data, 0, copy, 0, count);
+            try { queue.TryAdd(new KeyValuePair<bool, byte[]>(err, copy)); } // full: dropped
+            catch (InvalidOperationException) { } // already finished
+        }
+
+        // at exit: let what is queued reach the window, but never wait long
+        public void Finish(int waitMs)
+        {
+            queue.CompleteAdding();
+            writer.Join(waitMs);
+        }
+    }
+
     // The supervisor loop shared by the service and run mode: start node,
     // restart it 5 s after it exits on its own, give up after 5 such exits
     // within 60 s, and on a stop ask node to stop and give it 60 s (Docker's
@@ -646,13 +719,13 @@ namespace SentrySixManager
 
         readonly Layout layout;
         readonly LogFile log;
-        readonly bool echo;
+        readonly ConsoleEcho echo;
         readonly ManualResetEvent stopRequested = new ManualResetEvent(false);
         readonly ManualResetEvent killNow = new ManualResetEvent(false);
         readonly List<DateTime> crashes = new List<DateTime>();
-        Stream console;
 
-        public Host(Layout layout, LogFile log, bool echo)
+        // echo: run mode's copy to this window, null for the service
+        public Host(Layout layout, LogFile log, ConsoleEcho echo)
         {
             this.layout = layout;
             this.log = log;
@@ -665,22 +738,13 @@ namespace SentrySixManager
         public void Say(string message)
         {
             log.Line("[service] " + message);
-            if (echo) Console.Error.WriteLine("[service] " + message);
+            if (echo != null) echo.Err("[service] " + message);
         }
 
         void Output(byte[] data, int count)
         {
             log.Write(data, 0, count);
-            if (echo)
-            {
-                try
-                {
-                    if (console == null) console = Console.OpenStandardOutput();
-                    console.Write(data, 0, count);
-                    console.Flush();
-                }
-                catch (IOException) { }
-            }
+            if (echo != null) echo.Out(data, count);
         }
 
         // Returns 0 after a requested stop, 2 after giving up on crashes.
@@ -772,6 +836,7 @@ namespace SentrySixManager
     public sealed class SentryService : ServiceBase
     {
         public const string Name = "SentrySixManager";
+        public const int ServiceGaveUpCode = 1067; // ERROR_PROCESS_ABORTED
         readonly Layout layout;
         Host host;
         LogFile log;
@@ -797,17 +862,26 @@ namespace SentrySixManager
             }
             Directory.CreateDirectory(layout.LogDir);
             log = new LogFile(layout.ServiceLog, Program.LogLimit);
-            host = new Host(layout, log, false);
+            host = new Host(layout, log, null);
             host.Say("service starting; data in " + layout.DataRoot);
             loop = new Thread(() =>
             {
                 int code = host.Run();
                 if (code != 0)
                 {
-                    // gave up on crashes: stop the service with an error code,
-                    // so the recovery actions set by install.ps1 can take over
-                    ExitCode = code;
-                    try { Stop(); } catch (InvalidOperationException) { }
+                    // Gave up on crashes. Docker would keep restarting
+                    // (restart: unless-stopped), so the service must not just
+                    // report STOPPED: Windows runs the recovery actions that
+                    // install.ps1 sets (sc.exe failure ... restart/5000) only
+                    // when a service ends without saying it stopped. So end
+                    // the process here; the SCM logs it as an unexpected end
+                    // (event 7031) and starts the service again 5 s later,
+                    // which keeps retrying for as long as the cause lasts.
+                    // 1067 is ERROR_PROCESS_ABORTED, what the SCM reports for
+                    // such an end anyway (2 would read "file not found").
+                    host.Say("ending the service so Windows restarts it");
+                    log.Dispose();
+                    Environment.Exit(ServiceGaveUpCode);
                 }
             });
             loop.Name = "supervisor";
@@ -830,9 +904,6 @@ namespace SentrySixManager
         {
             if (host == null || loop == null) return;
             host.RequestStop();
-            // Stop() called by the loop itself after giving up: it has
-            // already finished its work, there is nothing to wait for
-            if (Thread.CurrentThread == loop) return;
             // the loop enforces the 60 s itself; keep telling the SCM we are
             // still working so it does not give up on us first
             DateTime deadline = DateTime.UtcNow.AddSeconds(Host.GraceSeconds + 15);
@@ -906,7 +977,8 @@ namespace SentrySixManager
             }
             using (var log = new LogFile(layout.ServiceLog, LogLimit))
             {
-                var host = new Host(layout, log, true);
+                var echo = new ConsoleEcho();
+                var host = new Host(layout, log, echo);
                 int presses = 0;
                 // Ctrl+C (or Ctrl+Break): a graceful stop; a second one ends it now
                 Console.CancelKeyPress += (s, e) =>
@@ -930,7 +1002,9 @@ namespace SentrySixManager
                 stdinWatch.Start();
 
                 host.Say("running in the foreground; data in " + layout.DataRoot);
-                return host.Run();
+                int code = host.Run();
+                echo.Finish(2000);
+                return code;
             }
         }
     }
