@@ -12,7 +12,7 @@ const fsp = require('fs/promises');
 const https = require('https');
 const http2 = require('http2');
 const net = require('net');
-const { realTmp } = require('./fixtures/tmp');
+const { realTmp, footageTmp } = require('./fixtures/tmp');
 const path = require('path');
 const { linuxOnly, needsTool, tlsUsesOpenssl } = require('./fixtures/platformSkip');
 const { writeNodeTool } = require('./fixtures/nodeTool');
@@ -33,6 +33,8 @@ const needsOpenssl = needsTool(hasOpenssl, 'needs openssl');
 // the server's own certificates: openssl on Linux, made in Node on Windows
 const needsTlsTool = tlsUsesOpenssl() ? needsOpenssl : false;
 const tmp = (p = 'sm-sec-') => realTmp(p);
+// a server's footage (a Mac refuses it in the temp folder, fixtures/tmp.js)
+const footageDir = (p = 'sm-sec-') => footageTmp(p);
 const quiet = { info() {}, warn() {}, error() {} };
 
 function freePort() {
@@ -99,7 +101,7 @@ async function startServer(dir, env) {
 }
 
 test('HTTPS, the setup code, cookies and password confirmation', { skip: needsTlsTool, timeout: 120000 }, async () => {
-  const dir = await tmp();
+  const dir = await footageDir();
   await fsp.mkdir(path.join(dir, 'footage/TeslaCam/RecentClips'), { recursive: true });
   let s = await startServer(dir, {});
   try {
@@ -227,7 +229,7 @@ test('HTTPS, the setup code, cookies and password confirmation', { skip: needsTl
 const onWindows = process.platform === 'win32';
 
 test('symlinks on a share never lead outside it', { timeout: 60000 }, async () => {
-  const dir = await tmp();
+  const dir = await footageDir();
   const T = path.join(dir, 'footage/TeslaCam');
   const systemRoot = onWindows ? path.parse(dir).root : '/';
   const systemFolder = onWindows ? (process.env.SystemRoot || path.join(systemRoot, 'Windows')) : '/etc';
@@ -331,7 +333,8 @@ test('cookie parsing tolerates stray cookies and ignores duplicates', () => {
 // The roots and the deny list run on Windows too (the folder link is a
 // junction there, / is the drive's root and the system folder stands in for
 // /etc); the open descriptor part is /proc and O_NOFOLLOW, Linux's: Windows
-// matches an open file by device and inode instead (platformWindows.test.js).
+// matches an open file by device and inode instead (platformWindows.test.js),
+// and so does a Mac, given the path the file was opened by.
 test('the real-path guard: symlinked roots, the deny list, and a file swapped after the check', async () => {
   const win = process.platform === 'win32';
   const dir = await fsp.realpath(await tmp());
@@ -365,13 +368,15 @@ test('the real-path guard: symlinked roots, the deny list, and a file swapped af
     const clip = path.join(footage, 'car/RecentClips/a.mp4');
     const real = await guard.resolve(clip);
     const good = await fsp.open(real, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
-    assert.equal(await guard.fdInside(good.fd), true);
+    // (the path is for a Mac, which matches the file by device and inode:
+    // there is no /proc there; Linux reads the descriptor and ignores it)
+    assert.equal(await guard.fdInside(good.fd, real), true);
     await good.close();
     await fsp.rm(clip);
     await fsp.symlink(path.join(data, 'manager.db'), clip);
     await assert.rejects(fsp.open(real, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW), /ELOOP/, 'a final symlink is never followed');
     const dirFh = await fsp.open(path.join(data, 'manager.db'), fs.constants.O_RDONLY);
-    assert.equal(await guard.fdInside(dirFh.fd), false, 'a descriptor in the data dir is outside every root');
+    assert.equal(await guard.fdInside(dirFh.fd, path.join(data, 'manager.db')), false, 'a descriptor in the data dir is outside every root');
     await dirFh.close();
   } finally {
     await fsp.rm(dir, { recursive: true, force: true });

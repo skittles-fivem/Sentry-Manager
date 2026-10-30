@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const { spawnSync } = require('child_process');
 const fake = require('./fixtures/fakeMacCommand');
 const { notOnWindows } = require('./fixtures/platformSkip');
+const { footageTmpSync } = require('./fixtures/tmp');
 
 const REPO = path.join(__dirname, '..');
 const MACOS = path.join(REPO, 'macos');
@@ -581,7 +582,11 @@ test('the CLI: status, stop, start, setup-code, allow-folder', { skip: runsBash 
 
   assert.match(run(sb, cli, ['setup-code']).stdout, /Setup code: WXYZ-9876/);
 
-  const footage = path.join(sb.base, 'Volumes', 'TESLADRIVE');
+  // (on a Mac the temp folder is under /private, a system folder the CLI
+  // rightly refuses: there the drive stand-in goes in /Users/Shared)
+  const footageBase = process.platform === 'darwin' ? footageTmpSync('ssm-macos-') : sb.base;
+  if (footageBase !== sb.base) made.push(footageBase);
+  const footage = path.join(footageBase, 'Volumes', 'TESLADRIVE');
   fs.mkdirSync(path.join(footage, 'TeslaCam'), { recursive: true });
   clearCalls(sb);
   const allow = run(sb, cli, ['allow-folder', footage, '--write']);

@@ -14,7 +14,9 @@ const path = require('path');
 const { sendMedia } = require('../server/studioApi');
 
 test('a video request cancelled before or while it is answered closes its file', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-media-cancel-'));
+  // the real path, as the server's guard hands it over: a Mac opens with
+  // O_NOFOLLOW_ANY, so its /var -> /private/var link would be refused
+  const dir = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'sm-media-cancel-'));
   const file = path.join(dir, 'clip.mp4');
   fs.writeFileSync(file, Buffer.alloc(3 * 1024 * 1024, 7));
 

@@ -394,9 +394,12 @@ test('darwin: fdInside compares device and inode with the path, ino 0 means no',
   assert.equal(await mac({ fsp: fakeFsp }).fdInside(zero, '/x'), false);
 });
 
-test('darwin: openNoFollowFlags adds O_NOFOLLOW_ANY to O_RDONLY|O_NOFOLLOW', () => {
+test('darwin: openNoFollowFlags is O_RDONLY|O_NOFOLLOW_ANY, never with O_NOFOLLOW (open(2) answers EINVAL to both)', () => {
+  // the macOS values (sys/fcntl.h)
   const constants = { O_RDONLY: 0, O_NOFOLLOW: 0x100 };
-  assert.equal(mac({ fs: { ...fs, constants } }).openNoFollowFlags, 0x100 | 0x20000000);
+  const flags = mac({ fs: { ...fs, constants } }).openNoFollowFlags;
+  assert.equal(flags, 0x20000000);
+  assert.equal(flags & constants.O_NOFOLLOW, 0);
 });
 
 test('darwin: isSmbFsType, smbText and the mounter', async (t) => {

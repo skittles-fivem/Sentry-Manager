@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const fsp = require('fs/promises');
 const net = require('net');
-const { realTmp } = require('./fixtures/tmp');
+const { footageTmp } = require('./fixtures/tmp');
 const path = require('path');
 const { linuxOnly, needsTool } = require('./fixtures/platformSkip');
 const { spawn, spawnSync, execFileSync } = require('child_process');
@@ -103,8 +103,11 @@ async function startServer(dir, env = {}) {
   return { base, call, child, stop, output: () => output, setCookie: (c) => { cookie = c; }, getCookie: () => cookie };
 }
 
+// every test here gives the server its footage in this folder: on a Mac it
+// is made in /Users/Shared, since the temp folder is under /private, which
+// the macOS rules refuse (fixtures/tmp.js); elsewhere the real temp folder
 async function tmp() {
-  return realTmp('sm-server-');
+  return footageTmp('sm-server-');
 }
 
 async function waitFor(fn, ms = 20000) {
