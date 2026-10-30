@@ -124,13 +124,21 @@ function parseJobSettings(raw) {
 /**
  * deps: { db, log, audit, authority: () => this server's CA certificate (PEM)
  * or null, workDir, ffmpegPath, spawn, runtime: () => converter runtime
- * (selectEncoder, cpuEncoder), name, now }
+ * (selectEncoder, cpuEncoder), name, now, and from the platform (Windows):
+ * rmRetry(path, opts) deletes (retrying a file another program holds open),
+ * isInUse(err) says a delete failed only because the file is in use,
+ * keepAwake(on) keeps the machine from sleeping while clips are held }
  */
-function createNodeWorker({ db, log, audit = log, authority = () => null, workDir, ffmpegPath = 'ffmpeg', spawn = require('child_process').spawn, runtime, name = os.hostname(), platform = process.platform, now = Date.now, power = null }) {
+function createNodeWorker({ db, log, audit = log, authority = () => null, workDir, ffmpegPath = 'ffmpeg', spawn = require('child_process').spawn, runtime, name = os.hostname(), platform = process.platform, now = Date.now, power = null, rmRetry = fsp.rm, isInUse = () => false, keepAwake = async () => {} }) {
   let pairing = null; // { code, expiresAt, tries, byAddress }
   const jobs = new Map(); // id -> job
   const waiting = []; // uploaded jobs waiting for a slot, oldest first
   const badTokens = new Map(); // address -> [times]
+  // files a delete left behind because they were in use (Windows): tried
+  // again when a job ends and on the next start
+  const later = new Set();
+  let removingLater = null; // that retry, while it runs
+  let awake = false; // what keepAwake was last told
 
   const settings = () => {
     const s = db.get(SETTINGS_KEY, null) || {};
@@ -148,8 +156,25 @@ function createNodeWorker({ db, log, audit = log, authority = () => null, workDi
   const save = (next) => db.set(SETTINGS_KEY, next);
 
   // a fresh work folder on every start: files left by a restart are gone
-  fs.rmSync(workDir, { recursive: true, force: true });
+  // (on Windows one that cannot be deleted is logged and left, never stops
+  // the start; elsewhere the start fails, as before)
+  try {
+    fs.rmSync(workDir, { recursive: true, force: true });
+  } catch (err) {
+    if (platform !== 'win32') throw err;
+    log.warn(`Node: could not empty the work folder at once (${err.code || err.message}); deleting what it holds one by one`);
+    let names = [];
+    try { names = fs.readdirSync(workDir); } catch (e) { log.warn(`Node: could not list the work folder (${e.code || e.message})`); }
+    for (const entry of names) {
+      const file = path.join(workDir, entry);
+      try { fs.rmSync(file, { recursive: true, force: true }); } catch (e) {
+        log.warn(`Node: could not delete ${entry} from the work folder (${e.code || e.message})`);
+        if (isInUse(e) && later.size < 256) later.add(file);
+      }
+    }
+  }
   fs.mkdirSync(workDir, { recursive: true, mode: 0o700 });
+  if (later.size > 0) void removeLater();
 
   // ---- what the Nodes page shows and changes (signed in)
 
@@ -413,9 +438,46 @@ function createNodeWorker({ db, log, audit = log, authority = () => null, workDi
     } catch { return false; } finally { await handle?.close().catch(() => {}); }
   }
 
+  // A job's file deleted; one still in use (Windows) is kept for later
+  // instead of failing anything.
+  async function removeFile(file) {
+    try { await rmRetry(file, { force: true }); } catch (err) {
+      if (isInUse(err) && later.size < 256) later.add(file);
+    }
+  }
+  function removeLater() {
+    if (removingLater || later.size === 0) return removingLater || Promise.resolve();
+    removingLater = (async () => {
+      for (const file of [...later]) {
+        try {
+          await rmRetry(file, { recursive: true, force: true });
+          later.delete(file);
+        } catch (err) {
+          if (!isInUse(err)) {
+            later.delete(file);
+            log.warn(`Node: could not delete ${path.basename(file)} from the work folder (${err.code || err.message})`);
+          }
+        }
+      }
+    })().finally(() => { removingLater = null; });
+    return removingLater;
+  }
+
   async function removeFiles(job) {
-    await fsp.rm(job.input, { force: true }).catch(() => {});
-    await fsp.rm(job.output, { force: true }).catch(() => {});
+    await removeFile(job.input);
+    await removeFile(job.output);
+    // never waited for: no clip or request waits on another file's retries
+    void removeLater();
+  }
+
+  // Keeps the machine awake while any clip is held here (arriving, waiting,
+  // encoding, or done and not yet collected), told only when that changes.
+  function holdAwake() {
+    const want = jobs.size > 0;
+    if (want === awake) return;
+    awake = want;
+    const warn = (err) => log.warn(`Node: could not ${want ? 'keep this machine awake' : 'let this machine sleep again'} (${err?.message || err})`);
+    try { Promise.resolve(keepAwake(want)).catch(warn); } catch (err) { warn(err); }
   }
 
   function stopJob(job) {
@@ -426,7 +488,10 @@ function createNodeWorker({ db, log, audit = log, authority = () => null, workDi
     try { job.child?.kill('SIGKILL'); } catch { /* gone */ }
     job.upload?.destroy?.();
     jobs.delete(job.id);
-    return removeFiles(job);
+    holdAwake();
+    // on Windows its files only once ffmpeg has exited (an open file cannot
+    // be deleted there); elsewhere at once, as before
+    return (platform === 'win32' && job.child ? job.childClosed : Promise.resolve()).then(() => removeFiles(job));
   }
 
   // finished or failed jobs the main never collected
@@ -514,6 +579,7 @@ function createNodeWorker({ db, log, audit = log, authority = () => null, workDi
         return;
       }
       job.child = child;
+      job.childClosed = new Promise((done) => child.once('close', done));
       job.encoder = attempt.encoder;
       let stall;
       const watch = () => {
@@ -544,7 +610,12 @@ function createNodeWorker({ db, log, audit = log, authority = () => null, workDi
       });
       let errors = '';
       child.stderr.on('data', (chunk) => { errors = `${errors}${chunk}`.slice(-400); });
-      child.once('error', () => { clearTimeout(stall); resolve(false); });
+      child.once('error', () => {
+        clearTimeout(stall);
+        // never started: there is no 'close' to wait for
+        if (child.pid === undefined && job.child === child) job.child = null;
+        resolve(false);
+      });
       child.once('close', (code) => {
         clearTimeout(stall);
         job.child = null;
@@ -562,14 +633,16 @@ function createNodeWorker({ db, log, audit = log, authority = () => null, workDi
     try {
       for (const attempt of await attemptsFor(settingsUsed.codec, settingsUsed.holdFrames, settingsUsed.device || null)) {
         if (job.stopped) return;
-        await fsp.rm(job.output, { force: true }).catch(() => {});
+        await rmRetry(job.output, { force: true }).catch(() => {});
         if (job.stopped) return;
         if (await runFfmpeg(job, attempt, settingsUsed)) {
           const { size } = await fsp.stat(job.output);
           job.outputBytes = size;
           job.state = 'done';
           job.endedAt = now();
-          await fsp.rm(job.input, { force: true }).catch(() => {});
+          holdAwake();
+          await removeFile(job.input);
+          void removeLater();
           return;
         }
       }
@@ -579,6 +652,7 @@ function createNodeWorker({ db, log, audit = log, authority = () => null, workDi
       job.state = 'failed';
       job.error = 'encode-failed';
       job.endedAt = now();
+      holdAwake();
       log.warn(`Node: a clip from ${job.mainName} could not be encoded (${err.message})`);
       void removeFiles(job);
     }
@@ -616,6 +690,7 @@ function createNodeWorker({ db, log, audit = log, authority = () => null, workDi
       device: settingsUsed.device || null
     };
     jobs.set(id, job);
+    holdAwake();
     // The main cancelled before the job's id reached it (the upload was
     // whole, the answer was not): it can never ask for or delete this job.
     res.once('close', () => {

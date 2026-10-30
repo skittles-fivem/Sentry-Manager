@@ -1,0 +1,392 @@
+name: Windows
+
+# Builds, checks and publishes the native Windows package (no Docker, no WSL).
+#   - test: the whole test suite on Windows, with the pinned ffmpeg on PATH,
+#     the helper and service built with the csc.exe Windows ships, and
+#     REQUIRE_TOOLS=1 so a missing tool fails instead of skipping.
+#   - package: windows\build.ps1 makes the zip, SHA256SUMS and release.json.
+#   - install-check: installs that zip as a user would (install.ps1 in
+#     Windows PowerShell 5.1), checks the web UI over HTTPS and the service
+#     account, then uninstalls and checks nothing is left.
+#   - publish: on a push to main only, a GitHub Release with the zip,
+#     SHA256SUMS and release.json (what update notices and update.ps1 read).
+# Docker-only changes do not run it, and it never touches ghcr.io. Never on
+# pull requests: nobody else's code runs here with this repository's token.
+
+on:
+  push:
+    branches: [main, wip]
+    # (not the Dockerfile: build.ps1 takes the app file list from it)
+    paths-ignore:
+      - 'docker-compose*.yml'
+      - 'truenas/**'
+      - '.github/workflows/image.yml'
+      - '.github/workflows/water.yml'
+      - '.github/workflows/water-tests.yml'
+      - 'README.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+# Read-only by default; only publish may write (the release).
+permissions:
+  contents: read
+
+# A newer push replaces a build still running for an older one.
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      # (the tests never see a token)
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # The ffmpeg the package ships, checked against windows\versions.json.
+      # Only this job goes on without a pinned SHA-256 (and says so loudly),
+      # so the hash can be read from the log; package refuses to.
+      - name: Pinned ffmpeg
+        run: |
+          $pin = (Get-Content -Raw -LiteralPath windows/versions.json | ConvertFrom-Json).ffmpeg
+          $url = [string]$pin.url
+          if ($url -notmatch '^https://') { throw "windows/versions.json: the ffmpeg url must be https" }
+          $dl = Join-Path $env:RUNNER_TEMP 'ffmpeg-download'
+          New-Item -ItemType Directory -Force -Path $dl | Out-Null
+          $zip = Join-Path $dl 'ffmpeg.zip'
+          $ProgressPreference = 'SilentlyContinue'
+          Write-Host "Downloading ffmpeg $($pin.version) from $url"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
+          $want = ([string]$pin.sha256).ToLowerInvariant()
+          Write-Host "ffmpeg sha256: $got"
+          if ($want -eq 'update_me') {
+            Write-Host "::warning title=ffmpeg not verified::ffmpeg sha256: $got (windows/versions.json still says UPDATE_ME; check it against the publisher's and put it in the sha256 field. This test run used it unverified; package will not.)"
+          } elseif ($want -notmatch '^[0-9a-f]{64}$') {
+            throw "windows/versions.json: the ffmpeg sha256 is neither a SHA-256 nor UPDATE_ME"
+          } elseif ($got -ne $want) {
+            throw "the ffmpeg download does not match its pinned SHA-256 (expected $want, got $got)"
+          }
+          # only the two programs leave the archive, each to a fixed name
+          $bin = Join-Path $env:RUNNER_TEMP 'ffmpeg'
+          New-Item -ItemType Directory -Force -Path $bin | Out-Null
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $z = [IO.Compression.ZipFile]::OpenRead($zip)
+          try {
+            foreach ($name in 'ffmpeg.exe', 'ffprobe.exe') {
+              $from = [string]$pin.files.$name
+              $entry = $z.GetEntry($from)
+              if (-not $entry) { throw "the ffmpeg archive has no ${from}: fix its path in windows/versions.json" }
+              [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, (Join-Path $bin $name), $true)
+            }
+          } finally { $z.Dispose() }
+          Remove-Item -LiteralPath $dl -Recurse -Force
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value $bin
+          & (Join-Path $bin 'ffmpeg.exe') -hide_banner -version | Select-Object -First 1
+
+      # The same compiler and references as build.ps1. Each is built once its
+      # source exists; until then the tests that need it say so.
+      - name: Helper and service (csc)
+        run: |
+          $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          if (-not (Test-Path -LiteralPath $csc)) { throw "no .NET Framework 4.8 compiler at $csc" }
+          $out = Join-Path $env:GITHUB_WORKSPACE 'build\bin'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $programs = @(
+            @{ src = 'windows\helper\SentryHelper.cs'; exe = 'SentryHelper.exe'; refs = @('System.dll', 'System.Core.dll', 'System.Management.dll', 'System.Web.Extensions.dll') },
+            @{ src = 'windows\service\SentryService.cs'; exe = 'SentryService.exe'; refs = @('System.dll', 'System.Core.dll', 'System.ServiceProcess.dll') }
+          )
+          foreach ($p in $programs) {
+            if (-not (Test-Path -LiteralPath $p.src)) {
+              Write-Host "::notice::$($p.src) is not written yet; $($p.exe) is not built"
+              continue
+            }
+            $exe = Join-Path $out $p.exe
+            $cscArgs = @('/nologo', '/target:exe', '/optimize+', '/platform:x64', "/out:$exe") + @($p.refs | ForEach-Object { "/reference:$_" }) + $p.src
+            & $csc @cscArgs
+            if ($LASTEXITCODE -ne 0) { throw "csc could not compile $($p.src)" }
+            Write-Host "Built $exe"
+          }
+          $helper = Join-Path $out 'SentryHelper.exe'
+          if (Test-Path -LiteralPath $helper) { Add-Content -LiteralPath $env:GITHUB_ENV -Value "SENTRY_HELPER=$helper" }
+          $service = Join-Path $out 'SentryService.exe'
+          if (Test-Path -LiteralPath $service) { Add-Content -LiteralPath $env:GITHUB_ENV -Value "SENTRY_SERVICE_EXE=$service" }
+
+      - name: Tests
+        env:
+          REQUIRE_TOOLS: '1'
+        run: |
+          Write-Host "ffmpeg: $((Get-Command ffmpeg).Source)"
+          Write-Host "ffprobe: $((Get-Command ffprobe).Source)"
+          npm test
+
+  package:
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 30
+    outputs:
+      zip: ${{ steps.made.outputs.zip }}
+      version: ${{ steps.made.outputs.version }}
+      short: ${{ steps.made.outputs.short }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # build.ps1 refuses an unpinned download. Before it does, show the
+      # hashes the maintainer needs, so one run is enough to fill them in.
+      - name: Pinned downloads have a SHA-256
+        run: |
+          $pins = Get-Content -Raw -LiteralPath windows/versions.json | ConvertFrom-Json
+          $unset = @()
+          $ProgressPreference = 'SilentlyContinue'
+          foreach ($name in 'node', 'ffmpeg') {
+            $pin = $pins.$name
+            $want = ([string]$pin.sha256).ToLowerInvariant()
+            if ($want -match '^[0-9a-f]{64}$') { Write-Host "$name sha256 (pinned): $want"; continue }
+            if ($want -ne 'update_me') { throw "windows/versions.json: the $name sha256 is neither a SHA-256 nor UPDATE_ME" }
+            $url = [string]$pin.url
+            if ($url -notmatch '^https://') { throw "windows/versions.json: the $name url must be https" }
+            $file = Join-Path $env:RUNNER_TEMP "$name-unpinned.zip"
+            Invoke-WebRequest -Uri $url -OutFile $file
+            $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLowerInvariant()
+            Remove-Item -LiteralPath $file -Force
+            $unset += [pscustomobject]@{ name = $name; url = $url; sha256 = $got }
+          }
+          if (-not $unset.Count) { exit 0 }
+          # node publishes its own checksums; compare against those as well
+          $nodeNote = ''
+          $n = @($unset | Where-Object name -eq 'node')
+          if ($n.Count) {
+            try {
+              $sums = (Invoke-WebRequest -Uri "https://nodejs.org/dist/v$($pins.node.version)/SHASUMS256.txt").Content
+              $leaf = [IO.Path]::GetFileName(([Uri]$n[0].url).AbsolutePath)
+              $line = ($sums -split "`n") | Where-Object { $_ -match "^\s*[0-9a-f]{64}\s+$([regex]::Escape($leaf))\s*$" } | Select-Object -First 1
+              if (-not $line) { $nodeNote = "nodejs.org's SHASUMS256.txt has no line for $leaf" }
+              elseif ($line.Trim().Split(' ')[0] -eq $n[0].sha256) { $nodeNote = "node matches nodejs.org's SHASUMS256.txt" }
+              else { $nodeNote = "node does NOT match nodejs.org's SHASUMS256.txt: do not use it" }
+            } catch { $nodeNote = "could not read nodejs.org's SHASUMS256.txt ($($_.Exception.Message))" }
+          }
+          Write-Host ''
+          Write-Host '================ windows/versions.json needs these ================'
+          foreach ($u in $unset) { Write-Host "$($u.name) sha256: $($u.sha256)"; Write-Host "  from $($u.url)" }
+          if ($nodeNote) { Write-Host $nodeNote }
+          Write-Host '===================================================================='
+          $summary = @('### windows/versions.json needs its SHA-256 values', '')
+          $summary += @($unset | ForEach-Object { "- $($_.name): ``$($_.sha256)``" })
+          if ($nodeNote) { $summary += @('', $nodeNote) }
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $summary
+          foreach ($u in $unset) { Write-Host "::error title=$($u.name) not pinned::$($u.name) sha256: $($u.sha256)" }
+          Write-Host "::error::windows/versions.json still says UPDATE_ME for $(($unset | ForEach-Object name) -join ' and '). Check the values above against the publisher's own checksums, paste each into its sha256 field and push again."
+          exit 1
+
+      # Windows PowerShell 5.1, as people run it
+      - name: Build the package
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File windows\build.ps1
+          if ($LASTEXITCODE -ne 0) { Write-Host "::error::windows\build.ps1 failed (exit code $LASTEXITCODE)"; exit 1 }
+
+      - name: What was made
+        id: made
+        run: |
+          $zips = @(Get-ChildItem -LiteralPath dist -Filter 'SentrySixManager-*-win-x64.zip' -File)
+          if ($zips.Count -ne 1) { throw "expected one zip in dist, found $($zips.Count)" }
+          foreach ($f in 'SHA256SUMS', 'release.json') { if (-not (Test-Path -LiteralPath (Join-Path dist $f))) { throw "dist has no $f" } }
+          $rel = Get-Content -Raw -LiteralPath dist/release.json | ConvertFrom-Json
+          $version = [string]$rel.version
+          if ($version -notmatch '^[A-Za-z0-9][A-Za-z0-9._+-]{0,39}$') { throw "release.json has no usable version" }
+          if ([string]$rel.sha -ne $env:GITHUB_SHA) { throw "release.json names $($rel.sha), this run built $env:GITHUB_SHA" }
+          Get-Content -LiteralPath dist/SHA256SUMS
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value @("zip=$($zips[0].Name)", "version=$version", "short=$($env:GITHUB_SHA.Substring(0, 7))")
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-package
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  install-check:
+    needs: package
+    runs-on: windows-latest
+    timeout-minutes: 20
+    # Windows PowerShell 5.1 throughout: what install.ps1 and uninstall.ps1
+    # meet on people's PCs (the hosted runner is an administrator)
+    defaults:
+      run:
+        shell: powershell
+    env:
+      ZIP: ${{ needs.package.outputs.zip }}
+      PORT: '9000'
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-package
+          path: dist
+
+      - name: Unpack (checked against SHA256SUMS)
+        run: |
+          $zip = Join-Path $PWD "dist\$env:ZIP"
+          $line = Get-Content -LiteralPath dist\SHA256SUMS | Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($env:ZIP))$" } | Select-Object -First 1
+          if (-not $line) { throw "SHA256SUMS has no line for $env:ZIP" }
+          $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
+          if ($got -ne $line.Substring(0, 64)) { throw "$env:ZIP does not match SHA256SUMS" }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [IO.Compression.ZipFile]::ExtractToDirectory($zip, (Join-Path $PWD 'pkg'))
+
+      - name: Install
+        run: |
+          $ErrorActionPreference = 'Continue'
+          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File pkg\install.ps1
+          if ($LASTEXITCODE -ne 0) { Write-Host "::error::install.ps1 failed (exit code $LASTEXITCODE)"; exit 1 }
+
+      - name: The web UI answers over HTTPS
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $base = "https://127.0.0.1:$env:PORT"
+          $ok = $false
+          for ($i = 0; $i -lt 30; $i++) {
+            curl.exe -fsk --max-time 10 -o NUL "$base/healthz"
+            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            Start-Sleep -Seconds 2
+          }
+          if (-not $ok) { Write-Host "::error::$base/healthz did not answer"; exit 1 }
+          $code = curl.exe -sk --max-time 10 -o NUL -w '%{http_code}' "$base/login"
+          if ($code -ne '200') { Write-Host "::error::$base/login answered $code, expected 200"; exit 1 }
+          Write-Host "healthz and the login page answer on $base"
+
+      - name: The service runs as its own account, not an administrator
+        run: |
+          $account = 'NT SERVICE\SentrySixManager'
+          $svc = Get-CimInstance Win32_Service -Filter "Name='SentrySixManager'"
+          if (-not $svc) { throw 'the SentrySixManager service is not installed' }
+          if ($svc.State -ne 'Running') { throw "the service is $($svc.State), not Running" }
+          if ($svc.StartName -ne $account) { throw "the service logs on as $($svc.StartName), not $account" }
+          # what actually runs: the service host and node, both as that account
+          $dir = Join-Path $env:ProgramFiles 'SentrySixManager'
+          foreach ($name in 'SentryService.exe', 'node.exe') {
+            $procs = @(Get-CimInstance Win32_Process -Filter "Name='$name'" | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith("$dir\", [StringComparison]::OrdinalIgnoreCase) })
+            if (-not $procs.Count) { throw "no $name is running from $dir" }
+            foreach ($p in $procs) {
+              $o = Invoke-CimMethod -InputObject $p -MethodName GetOwner
+              if ("$($o.Domain)\$($o.User)" -ne $account) { throw "$name (pid $($p.ProcessId)) runs as $($o.Domain)\$($o.User), not $account" }
+            }
+          }
+          # neither the account nor every service (NT SERVICE\ALL SERVICES) is in Administrators
+          $mine = (New-Object Security.Principal.NTAccount $account).Translate([Security.Principal.SecurityIdentifier]).Value
+          $bad = @($mine, 'S-1-5-80-0')
+          $group = (New-Object Security.Principal.SecurityIdentifier 'S-1-5-32-544').Translate([Security.Principal.NTAccount]).Value -replace '^.*\\', ''
+          $members = @(([ADSI]"WinNT://./$group,group").psbase.Invoke('Members') | ForEach-Object {
+            $bytes = $_.GetType().InvokeMember('objectSid', 'GetProperty', $null, $_, $null)
+            [Security.Principal.SecurityIdentifier]::new([byte[]]$bytes, 0).Value
+          })
+          Write-Host "$group members: $($members -join ', ')"
+          foreach ($sid in $bad) { if ($members -contains $sid) { throw "$sid is in $group" } }
+          $rule = @(Get-NetFirewallRule -Name 'SentrySixManager-WebUI' -ErrorAction SilentlyContinue)
+          if (-not $rule.Count) { throw 'install.ps1 added no firewall rule' }
+          Write-Host "The service and node run as $account ($mine), which is not an administrator"
+
+      - name: Uninstall
+        run: |
+          $ErrorActionPreference = 'Continue'
+          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$env:ProgramFiles\SentrySixManager\uninstall.ps1" -RemoveData -Force
+          if ($LASTEXITCODE -ne 0) { Write-Host "::error::uninstall.ps1 failed (exit code $LASTEXITCODE)"; exit 1 }
+
+      - name: Nothing is left
+        run: |
+          $left = @()
+          if (Get-Service -Name 'SentrySixManager' -ErrorAction SilentlyContinue) { $left += 'the service' }
+          if (@(Get-NetFirewallRule -Name 'SentrySixManager-WebUI' -ErrorAction SilentlyContinue).Count) { $left += 'the firewall rule' }
+          $dir = Join-Path $env:ProgramFiles 'SentrySixManager'
+          foreach ($p in $dir, "$dir.new", "$dir.old", (Join-Path $env:ProgramData 'SentrySixManager')) {
+            if (Test-Path -LiteralPath $p) { $left += $p }
+          }
+          $running = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith("$dir\", [StringComparison]::OrdinalIgnoreCase) })
+          if ($running.Count) { $left += "$($running.Count) process(es) from $dir" }
+          if ($left.Count) { throw "uninstall left: $($left -join '; ')" }
+          Write-Host 'Uninstalled cleanly: no service, firewall rule, program files or data'
+
+      - name: Logs (on failure)
+        if: failure()
+        run: |
+          Get-Service -Name 'SentrySixManager' -ErrorAction SilentlyContinue | Format-List Name, Status, StartType
+          foreach ($f in 'service.log', 'manager.log') {
+            $p = Join-Path $env:ProgramData "SentrySixManager\data\logs\$f"
+            Write-Host "== $p"
+            if (Test-Path -LiteralPath $p) { Get-Content -LiteralPath $p -Tail 200 } else { Write-Host '(none)' }
+          }
+          Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = (Get-Date).AddHours(-1) } -MaxEvents 30 -ErrorAction SilentlyContinue |
+            Where-Object { $_.ProviderName -match 'SentrySix|Service Control Manager|\.NET Runtime|Application Error' } |
+            Format-List TimeCreated, ProviderName, Message
+
+  publish:
+    needs: [package, install-check]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-package
+          path: dist
+
+      # Never a draft or a pre-release: update notices and update.ps1 read
+      # the latest final release only. A published release with all three
+      # files (a re-run) is left as it was; one left a draft or short of a
+      # file by a run cut off is finished here.
+      - name: GitHub Release
+        working-directory: dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ZIP: ${{ needs.package.outputs.zip }}
+          VERSION: ${{ needs.package.outputs.version }}
+          SHORT: ${{ needs.package.outputs.short }}
+        run: |
+          [[ "$VERSION" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]{0,39}$ ]] || { echo "::error::no usable version"; exit 1; }
+          [[ "$SHORT" =~ ^[0-9a-f]{7}$ ]] || { echo "::error::no short commit id"; exit 1; }
+          sha256sum -c SHA256SUMS
+          tag="v$VERSION-$SHORT"
+          if have="$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft,assets 2>/dev/null)"; then
+            if jq -e --arg zip "$ZIP" '(.isDraft | not) and ([.assets[].name] as $n | [$zip, "SHA256SUMS", "release.json"] | all(. as $f | $n | index($f)))' <<<"$have" >/dev/null; then
+              echo "::notice::Release $tag already exists; left as it is"
+              exit 0
+            fi
+            echo "::notice::Release $tag is a draft or short of a file; finishing it"
+            gh release upload "$tag" "$ZIP" SHA256SUMS release.json --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+            exit 0
+          fi
+          level="$(jq -r '.critical.level // 0' release.json)"
+          reason="$(jq -r '.critical.reason // ""' release.json)"
+          {
+            echo "Sentry Six Manager $VERSION for Windows (x64), built from $GITHUB_SHA."
+            echo
+            echo "Unpack $ZIP and double-click Install.cmd. Running it again upgrades in place and keeps your data."
+            echo "Already installed: run update.ps1 in %ProgramFiles%\\SentrySixManager as administrator."
+            echo "Check the download against SHA256SUMS."
+            if [ "$level" != 0 ] && [ -n "$reason" ]; then echo; echo "Critical update (level $level): $reason"; fi
+          } > notes.md
+          gh release create "$tag" "$ZIP" SHA256SUMS release.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Sentry Six Manager $VERSION for Windows ($SHORT)" \
+            --notes-file notes.md \
+            --latest
