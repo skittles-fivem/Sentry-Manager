@@ -1,6 +1,6 @@
 // Dashboard: the instrument cluster. A storage speedometer, a fuel gauge for free
 // space, trip counters, warning lights, server telemetry and the black-box log.
-import { h, ico, api, app, car, size, perSec, pc, fixed, count, span, since, stampFull, watt, wh, cash, ok, toast, ask, act, local, segs, onSegs, pill, bar, panelHead, debounce, liveDraw } from '../core.js';
+import { h, ico, api, app, car, size, perSec, pc, fixed, count, span, since, stampFull, watt, wh, cash, ok, toast, ask, act, local, segs, onSegs, pill, bar, panelHead, debounce, liveDraw, onWindows, CPU_NA_WINDOWS } from '../core.js';
 import { dial, setDial, fuel, setFuel, spark } from '../gauges.js';
 
 const KEEP = 180; // samples kept for the sparklines (6 min at 2 s)
@@ -206,13 +206,14 @@ export default {
         meter('GPU', g.length ? pc(last('gpu')) : 'none', last('gpu'), 'gpu', { max: 100, sub: g.length ? g.map((x) => x.name).join(', ') : 'No GPU visible: encodes use the CPU' }),
         // with nodes: every server's power together, then this one's own
         allServers(p, tot, cur),
-        meter(p.combined && p.nodes?.length ? 'This server' : 'Power', watt(tot), ok(tot) ? Math.min(100, tot / 3) : null, 'power', { tone: 'org', sub: ok(tot) || p.todayWh ? `today ${wh(p.todayWh)}${ok(p.todayCost) ? ` ${cash(p.todayCost, cur)}` : ''} · week ${wh(p.weekWh)}${ok(p.weekCost) ? ` ${cash(p.weekCost, cur)}` : ''}${perHour !== null ? ` · ≈${cash(perHour, cur)}/h` : ''}${ok(s.price?.now) ? ` · ${cash(s.price.now, cur)}/kWh` : ''}${!ok(p.cpuW) && CPU_NA_SHORT[p.cpuUnavailable] ? ` · ${CPU_NA_SHORT[p.cpuUnavailable]}` : ''}` : CPU_NA[p.cpuUnavailable] || 'No power sensor readable' }),
+        meter(p.combined && p.nodes?.length ? 'This server' : 'Power', watt(tot), ok(tot) ? Math.min(100, tot / 3) : null, 'power', { tone: 'org', sub: ok(tot) || p.todayWh ? `today ${wh(p.todayWh)}${ok(p.todayCost) ? ` ${cash(p.todayCost, cur)}` : ''} · week ${wh(p.weekWh)}${ok(p.weekCost) ? ` ${cash(p.weekCost, cur)}` : ''}${perHour !== null ? ` · ≈${cash(perHour, cur)}/h` : ''}${ok(s.price?.now) ? ` · ${cash(s.price.now, cur)}/kWh` : ''}${!ok(p.cpuW) && CPU_NA_SHORT[p.cpuUnavailable] ? ` · ${CPU_NA_SHORT[p.cpuUnavailable]}` : ''}` : (p.cpuUnavailable === 'windows' && onWindows() ? CPU_NA_WINDOWS : CPU_NA[p.cpuUnavailable]) || 'No power sensor readable' }),
         meter('Network', `↓ ${perSec(last('rx'))}`, null, 'rx', { rate: true, pair: 'tx', subHtml: true, sub: `<span class="k-cyan">↓ download</span> · <span class="k-org">↑ upload ${h(perSec(last('tx')))}</span> · ${h(`${(s.network?.interfaces || []).map((i) => `${i.name}${ok(i.speedMbps) ? ` ${i.speedMbps} Mb/s` : ''}`).join(', ')} · ${s.network?.scope === 'host' ? 'whole server' : 'this container'}${s.network?.today ? ` · today ↓${size(s.network.today.rxB)} ↑${size(s.network.today.txB)}` : ''}`)}` }),
         meter('Disks', `R ${perSec(last('dr'))}`, null, 'dr', { rate: true, pair: 'dw', subHtml: true, sub: `<span class="k-cyan">— read</span> · <span class="k-org">— write ${h(perSec(last('dw')))}</span>` }),
         meter('Hottest', ok(t) ? `${Math.round(t)} °C` : '—', ok(t) ? t : null, 'temp', { tone: 'org', max: 100, sub: ok(t) ? 'CPU, GPU, disks and sensors' : 'No temperature sensor readable' })
       ].join('');
       const alerts = (s.alerts || []).map((a) => `<div class="note ${a.level === 'error' ? 'red' : 'org'}">${h(a.message)}</div>`).join('');
-      const unlock = (s.unlock || []).length ? `<details class="arch" id="d-unlock"${unlockOpen ? ' open' : ''}><summary>${count(s.unlock.length, 'more reading')} available with one line in docker-compose.yml</summary>${s.unlock.map((u) => `<p class="small"><b>${h(u.adds)}</b> <code>${h(u.compose || '')}</code></p>`).join('')}</details>` : '';
+      // (the optional lines are docker-compose.yml lines: none on Windows)
+      const unlock = (s.unlock || []).length && !onWindows() ? `<details class="arch" id="d-unlock"${unlockOpen ? ' open' : ''}><summary>${count(s.unlock.length, 'more reading')} available with one line in docker-compose.yml</summary>${s.unlock.map((u) => `<p class="small"><b>${h(u.adds)}</b> <code>${h(u.compose || '')}</code></p>`).join('')}</details>` : '';
       // (only when it changed: a redraw closed the readings box as it was read)
       const alertsHtml = alerts + unlock;
       if (alertsHtml !== drawnAlerts) {

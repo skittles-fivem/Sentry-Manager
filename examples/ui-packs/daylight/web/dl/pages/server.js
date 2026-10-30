@@ -1,7 +1,7 @@
 // Server & logs: what the server is doing (CPU, GPU, power, memory, disks,
 // network, temperatures, programs) and its log, newest first.
 
-import { api, esc, icon, bytes, pct, fin, meter, when, chip, details, confirmDialog, toast, fail, busy, store, plural, liveDraw } from '../core.js';
+import { api, esc, icon, bytes, pct, fin, meter, when, chip, details, confirmDialog, toast, fail, busy, store, plural, liveDraw, onWindows, CPU_NA_WINDOWS } from '../core.js';
 import { state } from '../state.js';
 
 const rate = (bps) => (fin(bps) ? `${bytes(bps)}/s` : '—');
@@ -38,6 +38,8 @@ const tile = (title, sub, body, wide = false) => `<div class="card tile${wide ? 
 // why a server's CPU watts are missing (/api/stats power.cpuUnavailable)
 const CPU_NA = { windows: 'CPU watts aren\'t available on Docker Desktop for Windows (Windows doesn\'t share them with Docker). NVIDIA GPU watts show when the card reports them.', vm: 'CPU watts aren\'t available inside a virtual machine.' };
 const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)' };
+// this server's own reason: on the Windows service it is that PC, not Docker Desktop
+const cpuWhy = (k) => (k === 'windows' && onWindows() ? CPU_NA_WINDOWS : CPU_NA[k]) || '';
 const rows = (list) => {
   const r = list.filter((x) => x && x[1] !== '' && x[1] !== null && x[1] !== undefined);
   return r.length ? `<dl class="kv">${r.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join('')}</dl>` : '';
@@ -67,7 +69,7 @@ function tiles(s, hist, showAll) {
   const p = s.power;
   // with helpers (nodes): every server's power together, and a line each
   const all = p?.combined && p.nodes?.length ? p.combined : null;
-  const why = CPU_NA[p?.cpuUnavailable] || '';
+  const why = cpuWhy(p?.cpuUnavailable);
   if (p && (all || why || fin(p.totalW) || p.todayWh > 0 || p.weekWh > 0)) {
     const cur = s.price?.currency || state.power?.currency || '$';
     const money = (c) => (fin(c) ? ` · about ${/^[a-z]+$/i.test(cur) ? `${c.toFixed(2)} ${cur}` : `${cur}${c.toFixed(2)}`}` : '');
@@ -164,7 +166,8 @@ export async function render(ctx) {
     if (!snap) return;
     $('#alerts').innerHTML = (snap.alerts || []).filter((a) => a?.message).map((a) => `<div class="note note-${a.level === 'error' ? 'bad' : 'warn'}" style="margin-bottom:12px">${icon('alert')}<span><b>${a.level === 'error' ? 'Problem' : 'Worth a look'}:</b> ${esc(a.message)}</span></div>`).join('');
     $('#tiles').innerHTML = tiles(snap, range === '24h' ? hist : null, showAll) || '<p class="muted">The server has no numbers to show here.</p>';
-    const unlock = (snap.unlock || []).filter((u) => u?.adds);
+    // the optional lines are docker-compose.yml lines: none on Windows
+    const unlock = (onWindows() ? [] : snap.unlock || []).filter((u) => u?.adds);
     $('#unlock').innerHTML = unlock.length ? `More numbers are available with one optional line each in docker-compose.yml: ${unlock.map((u) => `${esc(u.adds)}${u.compose ? ` (<code>${esc(u.compose)}</code>)` : ''}`).join('; ')}. Every number stays on this server.` : 'Every number stays on this server.';
     view.querySelectorAll('[data-more]').forEach((b) => { b.onclick = () => { showAll[b.dataset.more] = !showAll[b.dataset.more]; drawStats(); }; });
   };

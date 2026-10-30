@@ -4,7 +4,7 @@
 
 import {
   $, $$, esc, icon, api, state, current, setVehicle, bytes, rate, pct, plural, ago, when, whenFull, watts, energy, money, num, fin,
-  ring, meter, toast, confirmDialog, loadNotes, dayParts, empty, liveDraw
+  ring, meter, toast, confirmDialog, loadNotes, dayParts, empty, liveDraw, onWindows, CPU_NA_WINDOWS
 } from '../core.js';
 import { follow, counts, STATE_TEXT, ACTIVE, CODEC } from '../conv.js';
 
@@ -87,6 +87,8 @@ function attention(stats) {
 // why a server's CPU watts are missing (/api/stats power.cpuUnavailable)
 const CPU_NA = { windows: 'CPU watts aren\'t available on Docker Desktop for Windows (Windows doesn\'t share them with Docker). NVIDIA GPU watts show when the card reports them.', vm: 'CPU watts aren\'t available inside a virtual machine.' };
 const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)' };
+// this server's own reason: on the Windows service it is that PC, not Docker Desktop
+const cpuWhy = (k) => (k === 'windows' && onWindows() ? CPU_NA_WINDOWS : CPU_NA[k]) || '';
 
 // Nodes' power with this server's (/api/stats power.combined and
 // power.nodes): every server together and a line each; '' with no nodes
@@ -132,7 +134,7 @@ function serverHtml(s, hist) {
       ${allServers(p, cur)}
       <div class="stat"><span class="stat-label"><span>${icon('bolt', 'ico-sm')} Power${p.combined && p.nodes?.length ? ' · this server' : ''}</span><span>${s.price ? `${money(s.price.now, cur)}/kWh${s.price.rate ? ` · ${esc(s.price.rate)}` : ''}` : ''}</span></span>
         <span class="stat-val">${fin(p.totalW) ? watts(p.totalW) : 'not measured'}</span>
-        <span class="muted tiny">${fin(p.cpuW) ? `CPU ${watts(p.cpuW)} · ` : ''}${fin(p.gpuW) ? `GPU ${watts(p.gpuW)} · ` : ''}today ${energy(p.todayWh)}${fin(p.todayCost) ? ` (${money(p.todayCost, cur)})` : ''} · week ${energy(p.weekWh)}${fin(p.weekCost) ? ` (${money(p.weekCost, cur)})` : ''}${CPU_NA[p.cpuUnavailable] ? `<br>${esc(CPU_NA[p.cpuUnavailable])}` : ''}</span></div>
+        <span class="muted tiny">${fin(p.cpuW) ? `CPU ${watts(p.cpuW)} · ` : ''}${fin(p.gpuW) ? `GPU ${watts(p.gpuW)} · ` : ''}today ${energy(p.todayWh)}${fin(p.todayCost) ? ` (${money(p.todayCost, cur)})` : ''} · week ${energy(p.weekWh)}${fin(p.weekCost) ? ` (${money(p.weekCost, cur)})` : ''}${cpuWhy(p.cpuUnavailable) ? `<br>${esc(cpuWhy(p.cpuUnavailable))}` : ''}</span></div>
     </div>
     ${(s.gpus || []).length ? `<hr class="soft"><div class="stat-grid">${s.gpus.map((g) => `<div class="stat"><span class="stat-label"><span>GPU · ${esc(g.name || g.vendor || g.id)}</span><span>${fin(g.tempC) ? `${num(g.tempC)} °C` : ''}</span></span>
         <span class="stat-val">${pct(g.busy)} busy${fin(g.video) ? ` · video ${pct(g.video)}` : ''}</span>${meter(g.busy)}${fin(g.video) ? meter(g.video, 'violet') : ''}
@@ -144,7 +146,7 @@ function serverHtml(s, hist) {
         <span class="stat-val">R ${rate(d.readBps)} · W ${rate(d.writeBps)}</span>${fin(d.busy) ? meter(d.busy) : ''}</div>`).join('')}</div>` : ''}
     ${temps.length ? `<details class="more-info"><summary>${icon('temp', 'ico-sm')} Temperatures${hottest ? ` · hottest ${esc(hottest.label)} ${num(hottest.value)} °C` : ''}</summary><div class="row" style="margin-top:6px">${temps.map((t) => `<span class="chip${t.value >= 80 ? ' red' : t.value >= 65 ? ' amber' : ''}">${esc(t.label)} ${num(t.value)} °C</span>`).join('')}</div></details>` : ''}
     ${(s.processes?.top || []).length ? `<details class="more-info"><summary>Busiest processes (${esc(s.processes.scope || '')})</summary><div class="table-wrap"><table class="tbl stack-sm"><thead><tr><th>Process</th><th>CPU</th><th>Memory</th></tr></thead><tbody>${s.processes.top.slice(0, 8).map((x) => `<tr><td data-label="Process">${esc(x.name)} <span class="muted tiny">${esc(x.pid)}</span></td><td data-label="CPU">${pct(x.cpu, 1)}</td><td data-label="Memory">${bytes(x.memB)}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
-    ${(s.unlock || []).length ? `<details class="more-info"><summary>See more of the server</summary><ul class="list small">${s.unlock.map((u) => `<li><div>${esc(u.adds)}: add <code>${esc(u.compose)}</code> to the compose file.</div></li>`).join('')}</ul></details>` : ''}
+    ${(s.unlock || []).length && !onWindows() ? `<details class="more-info"><summary>See more of the server</summary><ul class="list small">${s.unlock.map((u) => `<li><div>${esc(u.adds)}: add <code>${esc(u.compose)}</code> to the compose file.</div></li>`).join('')}</ul></details>` : ''}
     <p class="muted tiny" style="margin-top:12px">${esc(s.host?.hostname || '')} · ${esc(s.host?.os || '')} ${esc(s.host?.kernel || '')} · up ${esc(Math.round((s.host?.uptimeS || 0) / 3600))} h · Sentry Six ${esc(s.host?.version || '')}</p><div class="actions start"><a class="btn sm" href="/api/stats/export.csv?range=24h" download>${icon('download')} Export 24 h (CSV)</a><a class="btn sm" href="/api/stats/export.csv?range=15m" download>Last 15 min</a></div>`;
 }
 

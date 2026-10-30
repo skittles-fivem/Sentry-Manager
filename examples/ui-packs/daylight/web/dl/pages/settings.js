@@ -1,7 +1,7 @@
 // Settings: vehicles (with a guided "add my vehicle"), account, look,
 // interface packs, security, updates, system and the electricity price.
 
-import { api, upload, esc, enc, icon, bytes, plural, when, ago, chip, kv, details, emptyState, confirmDialog, modal, toast, fail, busy, store, fin, liveDraw, clockPref } from '../core.js';
+import { api, upload, esc, enc, icon, bytes, plural, when, ago, chip, kv, details, emptyState, confirmDialog, modal, toast, fail, busy, store, fin, liveDraw, clockPref, onWindows, whereRunning, toldHow, WIN_UPDATE } from '../core.js';
 import { state, loadVehicles, shareHealth, setVehicle, vehicleById } from '../state.js';
 import { go, setTheme, currentTheme, signOut } from '../app.js';
 
@@ -100,18 +100,20 @@ async function addVehicle({ el, ctx }) {
   const d = store.get('addVehicleDraft', null) || {};
   const draft = { step: 1, type: d.type === 'path' ? 'path' : 'smb', name: '', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', source: { version: state.system?.smbDefaultVersion || '3.1.1', encrypt: true } };
   const STEPS = ['Where', 'Details', 'Check'];
+  // on the Windows service a folder is one on this PC, not one mounted into a container
+  const win = () => onWindows() || state.system?.deployment === 'windows';
   const draw = () => {
     let body = '';
     if (draft.step === 1) {
       body = `<h2>Where does the car’s footage live?</h2><p class="muted" style="margin:6px 0 18px">Pick the one that matches your setup.</p>
         <div class="choices"><button type="button" class="choice" data-type="smb" aria-pressed="${draft.type === 'smb'}"><span class="choice-icon">${icon('network')}</span><span><b>On a network share</b><span>A NAS, a TeslaUSB or another computer sharing a folder (SMB).</span></span></button>
-          <button type="button" class="choice" data-type="path" aria-pressed="${draft.type === 'path'}"><span class="choice-icon">${icon('folder')}</span><span><b>In a folder on this server</b><span>A folder you mounted into the container yourself.</span></span></button></div>`;
+          <button type="button" class="choice" data-type="path" aria-pressed="${draft.type === 'path'}"><span class="choice-icon">${icon('folder')}</span><span><b>In a folder on this server</b><span>${win() ? 'A folder on a drive of this PC.' : 'A folder you mounted into the container yourself.'}</span></span></button></div>`;
     } else if (draft.step === 2) {
-      body = `<h2>Tell us about it</h2><p class="muted" style="margin:6px 0 18px">${draft.type === 'smb' ? 'The share’s address and an account that can read it.' : 'The folder’s path inside the container.'}</p>
+      body = `<h2>Tell us about it</h2><p class="muted" style="margin:6px 0 18px">${draft.type === 'smb' ? 'The share’s address and an account that can read it.' : win() ? 'The folder’s path on this PC.' : 'The folder’s path inside the container.'}</p>
         <form class="form-grid" id="veh-form">
           <label class="field"><span>Vehicle name</span><input class="input" name="name" value="${esc(draft.name)}" placeholder="My Model Y" required></label>
           ${timezoneField(draft.timezone)}
-          ${draft.type === 'smb' ? smbFields(draft.source, versions) : `<label class="field full"><span>Folder</span><input class="input mono" name="path" value="${esc(draft.source.path || '')}" placeholder="/footage/model-y" autocapitalize="none" spellcheck="false"><span class="hint">A folder you mounted into the container (bind mount or Docker volume).</span></label>`}
+          ${draft.type === 'smb' ? smbFields(draft.source, versions) : `<label class="field full"><span>Folder</span><input class="input mono" name="path" value="${esc(draft.source.path || '')}" placeholder="${win() ? 'D:\\TeslaCam' : '/footage/model-y'}" autocapitalize="none" spellcheck="false"><span class="hint">${win() ? 'An internal or USB drive of this PC. For a NAS, use a network share.' : 'A folder you mounted into the container (bind mount or Docker volume).'}</span></label>`}
         </form>`;
     } else {
       const s = draft.source;
@@ -329,7 +331,7 @@ async function iface({ el, ctx }) {
 
 // ---------- security ----------
 async function security({ el }) {
-  const sec = await api('/api/security');
+  const [sec] = await Promise.all([api('/api/security'), whereRunning]);
   const tls = sec.tls || {};
   const host = String(sec.currentHost || '').replace(/:\d+$/, '').replace(/^\[|\]$/g, '');
   const covered = !host || (tls.hostnames || []).map((h) => h.toLowerCase()).includes(host.toLowerCase());
@@ -363,7 +365,7 @@ async function security({ el }) {
   }
   el.innerHTML = `<div class="card stack"><h2>Security</h2>
     <div class="note ${sec.https ? 'note-good' : 'note-bad'}">${icon(sec.https ? 'lock' : 'alert')}<span>${sec.https ? '<b>This connection is encrypted (HTTPS).</b> Your password and footage can’t be read on the way.' : '<b>This connection isn’t encrypted.</b> Others on the network could read your password and footage. Use https:// or a reverse proxy that does HTTPS.'}</span></div>
-    ${details('About the server process', `<p class="small">${sec.runningAsRoot ? 'It runs as root (not supervised). Fine while developing; the Docker image runs it as an ordinary user.' : 'It runs as an ordinary user; only the supervisor can connect shares.'}</p>`)}
+    ${details('About the server process', `<p class="small">${onWindows() ? (sec.elevated ? 'It runs as an administrator. Fine for trying it out; the service runs it as its own ordinary account.' : `It runs as ${esc(sec.account || 'its own service account')}, an ordinary account, not an administrator.`) : sec.runningAsRoot ? 'It runs as root (not supervised). Fine while developing; the Docker image runs it as an ordinary user.' : 'It runs as an ordinary user; only the supervisor can connect shares.'}</p>`)}
     <h3>Certificate</h3>${certBody}</div>`;
   el.querySelector('#hosts')?.addEventListener('submit', (e) => { e.preventDefault(); save(String(new FormData(e.target).get('hostnames') || '').split(/[\s,]+/).filter(Boolean), e.submitter); });
   el.querySelector('#add-host')?.addEventListener('click', (e) => save([...(tls.editable || []), host], e.currentTarget));
@@ -375,10 +377,16 @@ async function updates({ el }) {
     const cur = u.current || {};
     const running = `${cur.sha ? `${esc(cur.sha.slice(0, 7))}${u.tag ? ` (${esc(u.tag)})` : ''}` : 'built from source'}${cur.builtAt ? ` · built ${esc(String(cur.builtAt).slice(0, 10))}` : ''}`;
     const how = '<code>docker compose pull &amp;&amp; docker compose up -d</code>';
+    // the Windows build updates from a release: the server's own words, else the Windows steps
+    const told = toldHow(u);
+    const release = told || onWindows() ? esc(told || WIN_UPDATE) : '';
+    const off = release
+      ? (told || cur.sha ? `Checking for updates is turned off (UPDATE_CHECK=off). ${release}` : 'This copy runs from source. To update it, get the new code and start it again.')
+      : u.image ? `Checking for updates is turned off (UPDATE_CHECK=off). To update, run ${how}.` : 'This copy was built from source. To update it, build the image again from the new code.';
     el.innerHTML = `<div class="card stack"><h2>Updates</h2>
-      ${u.updateAvailable ? `<div class="note note-good">${icon('sparkle')}<span><b>An update is ready.</b> Run ${how} where you set up Sentry Six Manager. Settings, footage and the Recycle Bin stay as they are.</span></div>`
+      ${u.updateAvailable ? `<div class="note note-good">${icon('sparkle')}<span><b>An update is ready.</b> ${release || `Run ${how} where you set up Sentry Six Manager.`} Settings, footage and the Recycle Bin stay as they are.</span></div>`
         : u.enabled ? `<div class="note note-good">${icon('checkCircle')}<span>You’re up to date${u.checkedAt ? ` (checked ${esc(ago(u.checkedAt))})` : ''}.</span></div>`
-          : `<div class="note">${icon('info')}<span>${u.image ? `Checking for updates is turned off (UPDATE_CHECK=off). To update, run ${how}.` : 'This copy was built from source. To update it, build the image again from the new code.'}</span></div>`}
+          : `<div class="note">${icon('info')}<span>${off}</span></div>`}
       ${kv([['Running', `<span class="mono">${running}</span>`], u.enabled ? ['Newest', u.latest ? `<span class="mono">${esc(u.latest.revision ? u.latest.revision.slice(0, 7) : '')}</span> · published ${esc(String(u.latest.created || '').slice(0, 10))}` : esc(u.error || 'not checked yet')] : null])}
       ${u.enabled ? '<div><button class="btn" type="button" id="check">Check now</button></div>' : ''}</div>`;
     el.querySelector('#check')?.addEventListener('click', (e) => busy(e.currentTarget, async () => {
@@ -389,7 +397,8 @@ async function updates({ el }) {
       } catch (err) { fail(err); }
     }));
   };
-  draw(await api('/api/updates'));
+  const [u] = await Promise.all([api('/api/updates'), whereRunning]);
+  draw(u);
 }
 
 // ---------- system and the electricity price ----------

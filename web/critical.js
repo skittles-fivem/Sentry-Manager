@@ -15,11 +15,28 @@
     return;
   }
   const RECHECK_MS = 10 * 60 * 1000;
+  // ---- how to install (no DOM; test/deploymentWording.test.js runs it) ----
+  // What the bar says under the reason. The server's own words come first
+  // (status().how in /api/updates, plain text: the Windows build's release
+  // updates give them); then the Windows steps when the server is the
+  // Windows service (deployment, GET /api/info); else Docker's command and
+  // the TrueNAS line, as they always were.
   const COMMAND = 'docker compose pull && docker compose up -d';
+  const WIN_UPDATE = 'Run update.ps1 as administrator, or download the latest release and run Install.cmd.';
+  function howToInstall(st, deployment) {
+    const told = typeof st?.how === 'string' ? st.how.trim() : '';
+    if (told) return { run: told, code: null, nas: null };
+    if (deployment === 'windows') return { run: WIN_UPDATE, code: null, nas: null };
+    return { run: 'Run where you set it up:', code: COMMAND, nas: 'TrueNAS: docker pull the image in System → Shell, then Stop and Start the app.' };
+  }
+  // ---- how to install: end ----
   const ID = 'sentry-critical-update';
   let bar = null;
   let spacer = null;
   let reasonEl = null;
+  let howEl = null;
+  // 'docker', 'windows' or 'linux' once asked (only while a critical update shows)
+  let deployment = null;
   let collapsed = false;
 
   const css = `
@@ -76,16 +93,9 @@
     title.textContent = 'Critical update: install now';
     reasonEl = document.createElement('span');
     reasonEl.className = 'cu-reason';
-    const how = document.createElement('span');
-    how.className = 'cu-how';
-    const run = document.createElement('span');
-    run.textContent = 'Run where you set it up:';
-    const code = document.createElement('code');
-    code.textContent = COMMAND;
-    const nas = document.createElement('span');
-    nas.textContent = 'TrueNAS: docker pull the image in System → Shell, then Stop and Start the app.';
-    how.append(run, code, nas);
-    body.append(title, reasonEl, how);
+    howEl = document.createElement('span');
+    howEl.className = 'cu-how';
+    body.append(title, reasonEl, howEl);
     bar.append(svg, body);
     // keeps the page's own content below the bar
     spacer = document.createElement('div');
@@ -108,9 +118,20 @@
     document.documentElement.style.setProperty('--critical-update-bar', `${h}px`);
   }
 
-  function show(critical) {
+  /** The how line: a span of words, then the command and the TrueNAS line where they apply. */
+  function fillHow(parts) {
+    const run = document.createElement('span');
+    run.textContent = parts.run;
+    const nodes = [run];
+    if (parts.code) nodes.push(Object.assign(document.createElement('code'), { textContent: parts.code }));
+    if (parts.nas) nodes.push(Object.assign(document.createElement('span'), { textContent: parts.nas }));
+    howEl.replaceChildren(...nodes);
+  }
+
+  function show(critical, how) {
     if (!bar) build();
     reasonEl.textContent = critical.reason || '';
+    fillHow(how);
     if (!bar.isConnected) {
       document.body.prepend(spacer);
       document.body.prepend(bar);
@@ -125,13 +146,26 @@
     document.documentElement.style.removeProperty('--critical-update-bar');
   }
 
+  async function whereRunning() {
+    try {
+      const res = await fetch('/api/info', { credentials: 'same-origin', cache: 'no-store' });
+      const info = res.ok ? await res.json() : null;
+      return typeof info?.deployment === 'string' ? info.deployment : null;
+    } catch {
+      return null;
+    }
+  }
+
   async function check() {
     try {
       const res = await fetch('/api/updates', { credentials: 'same-origin', headers: { 'X-Requested-With': 'sentry-six-manager' }, cache: 'no-store' });
       if (!res.ok) return;
       const st = await res.json();
-      if (st && st.critical && typeof st.critical.reason === 'string') show(st.critical);
-      else hide();
+      if (st && st.critical && typeof st.critical.reason === 'string') {
+        // without the server's own words, ask once whether this is the Windows service
+        if (!deployment && !(typeof st.how === 'string' && st.how.trim())) deployment = st.deployment || await whereRunning();
+        show(st.critical, howToInstall(st, deployment));
+      } else hide();
     } catch {
       // offline or signed out: try again later
     }

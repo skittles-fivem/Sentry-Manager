@@ -1,5 +1,5 @@
 // Settings: vehicles, account, interface (UI packs), updates, security, system, power, appearance.
-import { esc, api, upload, state, current, setVehicle, loadVehicles, bytes, isoish, icon, toast, confirmDialog, busy, fin, store, liveDraw, clockPref } from '../core.js';
+import { esc, api, upload, state, current, setVehicle, loadVehicles, bytes, isoish, icon, toast, confirmDialog, busy, fin, store, liveDraw, clockPref, onWindows, whereRunning, toldHow, WIN_UPDATE } from '../core.js';
 import { seg, wireSeg, chip } from '../ui.js';
 
 const TABS = [['vehicles', 'Vehicles'], ['account', 'Account'], ['interface', 'Interface'], ['updates', 'Updates'], ['security', 'Security'], ['system', 'System'], ['power', 'Electricity'], ['appearance', 'Appearance']];
@@ -87,6 +87,7 @@ async function vehicles(box, { params, go }) {
 function vehicleForm(v) {
   const versions = state.system?.smbVersions || { '3.1.1': 'SMB 3.1.1 (recommended)', '3.02': 'SMB 3.02', '3.0': 'SMB 3.0', 3: 'SMB 3.0 or newer' };
   const s = v?.source || { type: 'smb', version: state.system?.smbDefaultVersion || '3.1.1', encrypt: true };
+  const win = onWindows() || state.system?.deployment === 'windows';
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return `<form class="card form-card" id="veh-form" novalidate>
     <header class="card-h"><h2>${v ? `Edit ${esc(v.name)}` : 'Add a vehicle'}</h2></header>
@@ -94,7 +95,7 @@ function vehicleForm(v) {
       <label class="field">Name<input class="input" name="name" required value="${esc(v?.name || '')}" placeholder="Daily driver"></label>
       <label class="field">Time zone<input class="input" name="timezone" value="${esc(v?.timezone || tz)}" placeholder="America/Chicago"></label>
     </div>
-    <div class="field">Footage source${seg('srctype', [['smb', 'SMB share'], ['path', 'Folder in the container']], s.type === 'path' ? 'path' : 'smb', 'Footage source')}</div>
+    <div class="field">Footage source${seg('srctype', [['smb', 'SMB share'], ['path', win ? 'Folder on this PC' : 'Folder in the container']], s.type === 'path' ? 'path' : 'smb', 'Footage source')}</div>
     <div data-src="smb"${s.type === 'path' ? ' hidden' : ''}>
       <div class="grid2">
         <label class="field span2">Share<input class="input mono" name="share" value="${esc(s.share || '')}" placeholder="//192.168.1.50/TeslaCam" spellcheck="false"></label>
@@ -109,8 +110,8 @@ function vehicleForm(v) {
       <p class="faint small">SMB 3 only, every connection signed. Use a NAS account with access to this share only.</p>
     </div>
     <div data-src="path"${s.type === 'path' ? '' : ' hidden'}>
-      <label class="field">Folder<input class="input mono" name="path" value="${esc(s.path || '')}" placeholder="/footage/weekend-car" spellcheck="false"></label>
-      <p class="faint small">A folder mounted into the container (bind mount or Docker CIFS volume).</p>
+      <label class="field">Folder<input class="input mono" name="path" value="${esc(s.path || '')}" placeholder="${win ? 'D:\\TeslaCam' : '/footage/weekend-car'}" spellcheck="false"></label>
+      <p class="faint small">${win ? 'A folder on a drive of this PC (internal or USB). For a NAS, use SMB share.' : 'A folder mounted into the container (bind mount or Docker CIFS volume).'}</p>
     </div>
     <p class="faint small">Adding a vehicle or changing where its footage comes from asks for your password.</p>
     <div class="row-actions">${v ? '<button class="btn danger" type="button" id="veh-del">Remove vehicle…</button>' : ''}<a class="btn" href="#/settings/vehicles">Cancel</a><button class="btn primary" type="submit">${v ? 'Save' : 'Add vehicle'}</button></div>
@@ -198,12 +199,16 @@ async function iface(box) {
 
 // ---------- updates ----------
 async function updates(box) {
-  const u = await api('/api/updates');
+  const [u] = await Promise.all([api('/api/updates'), whereRunning]);
   const cur = u.current || {};
   const running = `${cur.sha ? `${cur.sha.slice(0, 7)}${u.tag ? ` (${u.tag})` : ''}` : 'built from source'}${cur.builtAt ? ` · built ${String(cur.builtAt).slice(0, 10)}` : ''}`;
   const l = u.latest;
+  // the Windows build updates from a release: the server's own words, else the Windows steps
+  const told = toldHow(u);
+  const release = told || onWindows() ? esc(told || WIN_UPDATE) : '';
   box.innerHTML = `<section class="card"><header class="card-h"><h2>Updates</h2>${u.updateAvailable ? chip('update available', 'green') : ''}</header>
-    <p class="small muted">${u.enabled ? 'Updates come as a new image. To install one, run <code>docker compose pull &amp;&amp; docker compose up -d</code> where you set up Sentry Six Manager. Settings, footage and the Recycle Bin stay.' : u.image ? 'Checking for updates is turned off (UPDATE_CHECK=off). To update, run <code>docker compose pull &amp;&amp; docker compose up -d</code>.' : 'This copy was built from source. To update it, build the image again from the new code.'}</p>
+    <p class="small muted">${release ? (u.enabled ? `Updates come as a new release. ${release} Settings, footage and the Recycle Bin stay.` : told || cur.sha ? `Checking for updates is turned off (UPDATE_CHECK=off). ${release}` : 'This copy runs from source. To update it, get the new code and start it again.')
+      : u.enabled ? 'Updates come as a new image. To install one, run <code>docker compose pull &amp;&amp; docker compose up -d</code> where you set up Sentry Six Manager. Settings, footage and the Recycle Bin stay.' : u.image ? 'Checking for updates is turned off (UPDATE_CHECK=off). To update, run <code>docker compose pull &amp;&amp; docker compose up -d</code>.' : 'This copy was built from source. To update it, build the image again from the new code.'}</p>
     <dl class="kv"><dt>running</dt><dd class="mono">${esc(running)}</dd>${u.image ? `<dt>image</dt><dd class="mono">${esc(u.image)}</dd>` : ''}
       ${u.enabled ? `<dt>newest</dt><dd class="mono">${l ? esc(`${l.revision ? `${l.revision.slice(0, 7)} · ` : ''}published ${String(l.created || '').slice(0, 10)}`) : esc(u.error || 'not checked yet')}</dd><dt>checked</dt><dd>${esc(isoish(u.checkedAt))}</dd>` : ''}</dl>
     ${u.enabled ? `<div class="row-actions"><button class="btn" type="button" id="upd-check">${icon('refresh')}Check now</button></div>` : ''}</section>`;
@@ -216,13 +221,13 @@ async function updates(box) {
 
 // ---------- security ----------
 async function security(box) {
-  const sec = await api('/api/security');
+  const [sec] = await Promise.all([api('/api/security'), whereRunning]);
   const tls = sec.tls || {};
   const host = (sec.currentHost || '').replace(/:\d+$/, '').replace(/^\[|\]$/g, '');
   const covered = !host || (tls.hostnames || []).map((h) => h.toLowerCase()).includes(host.toLowerCase());
   const fp = (s) => esc(s || '?').replace(/:/g, ':<wbr>');
   let body = `<dl class="kv"><dt>this connection</dt><dd>${sec.https ? 'HTTPS (encrypted)' : '<b class="bad-text">not encrypted</b>: use https:// or a reverse proxy that does HTTPS.'}</dd>
-    <dt>server process</dt><dd>${sec.runningAsRoot ? 'runs as root (not supervised; fine for development, not for the Docker image)' : 'runs as an unprivileged user'}</dd>`;
+    <dt>server process</dt><dd>${onWindows() ? (sec.elevated ? 'runs as an administrator (fine for trying it out, not for the service)' : `runs as ${esc(sec.account || 'its own service account')}, not an administrator`) : sec.runningAsRoot ? 'runs as root (not supervised; fine for development, not for the Docker image)' : 'runs as an unprivileged user'}</dd>`;
   if (sec.tlsMode === 'off') body += '<dt>HTTPS</dt><dd>turned off (TLS_MODE=off): only behind a reverse proxy that does HTTPS.</dd></dl>';
   else if (tls.mode === 'own') body += `<dt>certificate</dt><dd>your own (TLS_CERT_FILE) · valid until ${esc(tls.certificate?.validTo || '?')}</dd><dt>fingerprint</dt><dd class="mono small">${fp(tls.certificate?.fingerprint)}</dd></dl>`;
   else if (tls.error) body += `<dt>certificate</dt><dd>${esc(tls.error)}</dd></dl>`;
@@ -260,7 +265,8 @@ async function security(box) {
 
 // ---------- system ----------
 async function system(box) {
-  const [sys, ctx] = await Promise.all([api('/api/system'), api('/api/stats').catch(() => ({}))]);
+  const [sys, ctx] = await Promise.all([api('/api/system'), api('/api/stats').catch(() => ({})), whereRunning]);
+  const vol = onWindows() || sys.deployment === 'windows' ? 'data folder' : 'data volume';
   const dataVol = (ctx.filesystems || []).find((f) => !f.vehicle)?.path;
   state.system = sys;
   const caps = sys.converter?.capabilities || {};
@@ -271,8 +277,8 @@ async function system(box) {
     <dt>safe rename helper</dt><dd>${sys.nativeHelper ? 'installed' : 'missing (link + unlink fallback)'}</dd>
     <dt>GPUs</dt><dd>${gpus.length ? gpus.map(esc).join('<br>') : 'none visible (the CPU encoders are used)'}</dd>
     ${(sys.gpu?.hints || []).length ? `<dt>GPU hints</dt><dd class="small">${sys.gpu.hints.map(esc).join('<br>')}</dd>` : ''}
-    <dt>data volume free</dt><dd class="num">${bytes(sys.dataFree)}</dd>
-    <dt>data volume</dt><dd class="mono small">${esc(dataVol || '—')}</dd><dt>converted copies</dt><dd class="mono small">${esc(dataVol ? `${dataVol}/converted` : '—')}</dd>
+    <dt>${vol} free</dt><dd class="num">${bytes(sys.dataFree)}</dd>
+    <dt>${vol}</dt><dd class="mono small">${esc(dataVol || '—')}</dd><dt>converted copies</dt><dd class="mono small">${esc(dataVol ? `${dataVol}/converted` : '—')}</dd>
     <dt>server time zone</dt><dd>${esc(sys.timezone)}</dd>
     <dt>HTTPS</dt><dd>${sys.security?.https ? 'on' : 'off'} · TLS mode ${esc(sys.security?.tlsMode)} · ${sys.security?.supervised ? 'supervised' : 'not supervised'}${fin(sys.security?.uid) ? ` · uid ${sys.security.uid}` : ''}</dd>
   </dl></section>`;

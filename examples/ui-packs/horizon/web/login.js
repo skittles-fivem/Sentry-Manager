@@ -249,11 +249,30 @@
       return '/';
     }
   })();
+  // On the Windows service (public GET /api/info) the setup code and the
+  // certificate fingerprint are in the install window and service.log, not
+  // in docker logs. The page's own words are Docker's; they change here.
+  const askWindows = fetch('/api/info', { credentials: 'same-origin' })
+    .then((r) => (r.ok ? r.json() : {}))
+    .then((info) => info?.deployment === 'windows', () => false);
+  let logWhere = 'the container log';
+  function windowsWords() {
+    logWhere = 'the install window';
+    for (const code of document.querySelectorAll('code')) {
+      if (code.textContent !== 'docker logs sentry-six-manager') continue;
+      code.textContent = '%ProgramData%\\SentrySixManager\\data\\logs\\service.log';
+      const before = code.previousSibling;
+      if (before?.nodeType !== Node.TEXT_NODE) continue;
+      const t = before.textContent;
+      before.textContent = /container log: $/.test(t) ? t.replace(/container log: $/, 'install window and in ') : `${t}the install window, ${/\bin $/.test(t) ? 'in ' : ''}`;
+    }
+  }
   const me = await fetch('/api/auth/me', { credentials: 'same-origin' }).then((r) => r.json()).catch(() => ({}));
   if (me.user) {
     location.replace(next);
     return;
   }
+  if (await askWindows) windowsWords();
   $('host').textContent = location.host;
   if (location.protocol !== 'https:') $('insecure').hidden = false;
   if (me.fingerprint) {
@@ -265,7 +284,7 @@
   const form = $('form');
   if (setup) {
     $('title').textContent = 'Create your account';
-    $('lead').textContent = 'First start. Type the setup code from the container log, then choose the user name and password that will protect this server.';
+    $('lead').textContent = `First start. Type the setup code from ${logWhere}, then choose the user name and password that will protect this server.`;
     $('confirm-row').hidden = false;
     $('code-row').hidden = false;
     $('go').textContent = 'Create account';
@@ -298,7 +317,7 @@
     if (setup) {
       if (String(f.get('password')).length < 8) { $('err').textContent = 'Choose a password of at least 8 characters.'; return; }
       if (f.get('password') !== f.get('confirm')) { $('err').textContent = 'The two passwords are not the same.'; return; }
-      if (!f.get('code')) { $('err').textContent = 'Type the setup code from the container log.'; return; }
+      if (!f.get('code')) { $('err').textContent = `Type the setup code from ${logWhere}.`; return; }
     }
     $('go').disabled = true;
     document.body.classList.add('igniting');

@@ -141,7 +141,9 @@
     notes: [],
     // open: the days the reader opened (none opens by itself)
     footage: { category: 'all', date: '', offset: 0, data: null, selected: new Set(), expanded: new Set(), open: new Set(), vehicleId: null, dayRecs: new Map() },
-    system: null
+    system: null,
+    // 'docker', 'windows' or 'linux' (GET /api/info); null (Docker's words) until known
+    deployment: null
   };
   const current = () => state.vehicles.find((v) => v.id === state.vehicleId) || state.vehicles[0] || null;
 
@@ -177,6 +179,12 @@
     b.hidden = !text;
     b.textContent = text || '';
     b.className = `count ${cls}`;
+  }
+
+  // Docker, Windows or plain Linux: only the wording of a few lines depends on it
+  async function loadDeployment() {
+    const info = await api('/api/info').catch(() => null);
+    if (typeof info?.deployment === 'string') state.deployment = info.deployment;
   }
 
   async function loadVehicles() {
@@ -319,7 +327,28 @@
   // through esc().
 
   // ---- server monitor: drawing (no DOM here; test/screens.test.js runs it) ----
-  const fin = (n) => typeof n === 'number' && Number.isFinite(n);
+  // ---- deployment wording (no DOM; test/deploymentWording.test.js runs it) ----
+  // The same pages run in the Docker image and as the Windows service. The
+  // server says which (deployment in GET /api/info and /api/system: 'docker',
+  // 'windows' or 'linux'). Docker's words stay exactly as they were; on
+  // Windows the lines that point at compose, docker logs or the container
+  // say what to do there instead. Until the server has said, it is Docker.
+  const onWindows = (d) => d === 'windows';
+  const WIN_LOGS = '%ProgramData%\\SentrySixManager\\data\\logs\\service.log';
+  const WIN_UPDATE = 'Run update.ps1 as administrator, or download the latest release and run Install.cmd.';
+  // CPU watts on this Windows PC: only from Windows' own energy meter
+  const CPU_NA_WINDOWS = 'CPU watts show only when Windows has an energy meter for the processor (most PCs don\'t). NVIDIA GPU watts show when the card reports them.';
+  /** The server's own words on how to update (status().how, plain text) as one sentence, or ''. */
+  const toldHow = (u) => {
+    const how = typeof u?.how === 'string' ? u.how.trim() : '';
+    return how ? (/[.!?]$/.test(how) ? how : `${how}.`) : '';
+  };
+  /** Where the certificate fingerprint is printed, as HTML. */
+  const printedIn = (d) => (onWindows(d)
+    ? `the install window or <code>${esc(WIN_LOGS)}</code>`
+    : 'the container log (<code>docker logs sentry-six-manager</code>)');
+  // ---- deployment wording: end ----
+  const fin =(n) => typeof n === 'number' && Number.isFinite(n);
   const clampPct = (n) => Math.max(0, Math.min(100, Math.round((fin(n) ? n : 0) * 10) / 10));
   const SIZE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
   const sizeUnit = (b) => {
@@ -542,7 +571,7 @@
   };
   const CPU_NA_SHORT = { windows: 'CPU n/a (Windows)', vm: 'CPU n/a (VM)' };
 
-  function powerTile(p, enc, price, currency, seen = null) {
+  function powerTile(p, enc, price, currency, seen = null, deployment = null) {
     if (!p) return '';
     // A built-in GPU (an APU such as the Ryzen 8700G's 780M) is part of the
     // CPU chip: its reading and the CPU package's are the same power, so the
@@ -559,7 +588,8 @@
     const energy = (wh, c) => (fin(wh) ? esc(`${energyText(wh)}${fin(c) ? ` · ${money(c, currency)}` : ''}`) : '');
     // with nodes: every server's power together first, then this server's own
     const all = serversPower(p, energy);
-    const why = CPU_NA[p.cpuUnavailable] || '';
+    // ('windows' on this server itself, when it is the Windows service: that PC, not Docker Desktop)
+    const why = (onWindows(deployment) && p.cpuUnavailable === 'windows' ? CPU_NA_WINDOWS : CPU_NA[p.cpuUnavailable]) || '';
     if (!all && !why && !fin(total) && !p.cpuSource && !p.gpuSource && !(p.todayWh > 0) && !(p.weekWh > 0)) return '';
     const label = chip ? (fin(p.discreteW) || bars.length === 2 ? 'whole chip + GPU' : 'whole chip (CPU + built-in GPU)')
       : parts.length === 2 ? 'CPU + GPU' : parts.length ? (parts[0][0] === 'GPU' ? 'GPU (CPU not measured)' : 'CPU package') : '';
@@ -803,7 +833,7 @@
    * `seen` (optional, kept by the caller while the page is open) keeps rows
    * that come and go in place; see steady().
    */
-  function serverBody(s, { range = '15m', hist = null, currency = '$', more = {}, seen = null } = {}) {
+  function serverBody(s, { range = '15m', hist = null, currency = '$', more = {}, seen = null, deployment = null } = {}) {
     const day = range === '24h' && hist?.series ? hist.series : null;
     const usable = (pts) => Array.isArray(pts) && pts.filter(fin).length > 1;
     const pts = {
@@ -835,13 +865,14 @@
     }).join('');
     if (shown) seen.set('gpus', shown);
     const tiles = [
-      cpuTile(s.cpu, pts.cpu, Boolean(day), seen), gpus, powerTile(s.power, s.encoder, s.price, currency, seen), memoryTile(s.memory, seen),
+      cpuTile(s.cpu, pts.cpu, Boolean(day), seen), gpus, powerTile(s.power, s.encoder, s.price, currency, seen, deployment), memoryTile(s.memory, seen),
       storageTile(s.filesystems, s.disks, more.disks, fin(s.at) ? s.at : Date.now()), networkTile(s.network, { rx: pts.rx, tx: pts.tx }, Boolean(day)),
       sensorsTile(s.sensors, more.sensors, Number(s.cpu?.sockets) || 1, seen), processTile(s.processes, s.encoder, list.length > 0, seen)
     ].join('');
     // (Logs: the last tile of the same section)
     const alerts = (Array.isArray(s.alerts) ? s.alerts : []).filter((a) => a && a.message).map((a) => `<div class="nd-alert${a.level === 'error' ? ' bad' : ''}"><b>${a.level === 'error' ? 'Problem' : 'Warning'}</b>${esc(a.message)} · <a href="#/overview/logs">Logs</a></div>`).join('');
-    const unlock = (Array.isArray(s.unlock) ? s.unlock : []).filter((u) => u && u.adds);
+    // the optional lines are docker-compose.yml lines: none on Windows
+    const unlock = (Array.isArray(s.unlock) && !onWindows(deployment) ? s.unlock : []).filter((u) => u && u.adds);
     const foot = unlock.length
       ? `<p>Shown only when the server provides it. More with one optional line each in <code>docker-compose.yml</code>:</p>
         <ul>${unlock.map((u) => `<li>${esc(u.adds)}${u.compose ? `: <code>${esc(u.compose)}</code>` : ''}</li>`).join('')}</ul><p>Every number stays on this server.</p>`
@@ -907,7 +938,7 @@
       root.querySelector('.nd-sub').innerHTML = sub;
       root.querySelector('.nd-chipbox').innerHTML = s ? alertChip(s.alerts) : '';
       body.innerHTML = s ? serverBody(s, {
-        range: monitor.range, hist: monitor.hist, more: monitor.more, seen: monitor.seen,
+        range: monitor.range, hist: monitor.hist, more: monitor.more, seen: monitor.seen, deployment: state.deployment,
         currency: s.price?.currency || state.power?.currency || '$'
       }) : '';
       // the process list: 8 rows and half of the ninth (there is more below),
@@ -1034,7 +1065,7 @@
   function logsPart() {
     return `<div class="nd-tile nd-logs" id="ov-logs" role="region" aria-label="Logs">
       <div class="nd-title"><span>Logs</span><span class="muted">newest first</span></div>
-      <div class="nd-logs-bar"><p class="muted small">Warnings and errors from the server, the converter and the container. Kept in the data folder (<code>logs/manager.log</code>), so nothing needs a shell on the server.</p>
+      <div class="nd-logs-bar"><p class="muted small">Warnings and errors from the server, the converter and the ${onWindows(state.deployment) ? 'service' : 'container'}. Kept in the data folder (<code>logs/manager.log</code>), so nothing needs a shell on the server.</p>
         <div class="nd-logs-actions"><label class="check small"><input type="checkbox" id="log-all" data-kept${logs.all ? ' checked' : ''}> Everything</label>
           <button type="button" class="btn sm" id="log-refresh">Refresh</button><a class="btn sm" href="/api/logs/download" download>Download</a><button type="button" class="btn sm" id="log-clear">Clear</button></div></div>
       <p class="sr-only" id="log-status" role="status"></p>
@@ -2006,6 +2037,7 @@
     const [settings, upd, sys, sec, ui] = await Promise.all([api('/api/settings'), api('/api/updates'), api('/api/system').catch(() => null), api('/api/security').catch(() => null), api('/api/ui-packs').catch(() => null)]);
     if (seq !== renderSeq) return; // the user moved on while this loaded
     state.system = sys || state.system;
+    if (sys?.deployment) state.deployment = sys.deployment;
     state.power = settings.power || state.power || null;
     // (the Logs are on the Overview)
     const sections = [['vehicles', 'Vehicles'], ['updates', 'Updates'], ['account', 'Account'], ui && ['interface', 'Interface'], sec && ['security', 'Security'], (sys || settings.power) && ['system', 'System']].filter(Boolean);
@@ -2037,7 +2069,7 @@
         <dt>Safe rename helper</dt><dd>${sys.nativeHelper ? 'installed' : 'missing (link + unlink fallback)'}</dd>
         <dt>GPUs</dt><dd>${sys.gpu.gpus.length || sys.gpu.nvidia.length ? [...sys.gpu.nvidia.map((g) => `${/^nvidia\b/i.test(g.name || '') ? '' : 'NVIDIA '}${esc(g.name)} (driver ${esc(g.driver)})`), ...sys.gpu.gpus.filter((g) => g.vendor !== 'nvidia').map((g) => (g.virtual ? `${esc(g.name)} · ${esc(g.node)} · not a GPU, not used for encoding` : `${esc(g.name || g.vendorName)} · ${esc(g.node)}${g.passedThrough ? (g.encodes ? ` · encodes ${Object.entries(g.encodes).filter(([, x]) => x).map(([k]) => k.toUpperCase()).join(', ') || 'nothing'}` : '') : ' · not passed into the container'}`))].join('<br>') : 'none visible (the CPU encoders are used)'}</dd>
         ${sys.gpu.hints.length ? `<dt>GPU hints</dt><dd>${sys.gpu.hints.map(esc).join('<br>')}</dd>` : ''}
-        <dt>Data volume free</dt><dd>${bytes(sys.dataFree)}</dd>
+        <dt>Data ${onWindows(sys.deployment || state.deployment) ? 'folder' : 'volume'} free</dt><dd>${bytes(sys.dataFree)}</dd>
         <dt>Server time zone</dt><dd>${esc(sys.timezone)}</dd></dl></div>`;
     }
     if (settings.power) html += powerCard(settings.power, sys?.timezone);
@@ -2169,19 +2201,24 @@
     pick(show);
   }
 
-  function updatesCard(u) {
+  function updatesCard(u, deployment = state.deployment) {
     const cur = u.current || {};
     const running = `${cur.sha ? `${esc(cur.sha.slice(0, 7))}${u.tag ? ` (${esc(u.tag)})` : ''}` : 'built from source'}${cur.builtAt ? ` · built ${esc(String(cur.builtAt).slice(0, 10))}` : ''}`;
     const how = '<code>docker compose pull &amp;&amp; docker compose up -d</code>';
+    // The Windows build (and any server that says how itself) updates from a
+    // release, not an image: the server's words, else the Windows steps.
+    const told = toldHow(u);
+    const release = told || onWindows(deployment) ? esc(told || WIN_UPDATE) : '';
     if (!u.enabled) {
       return `<div class="card" data-section="updates"><h2>Updates</h2>
-        <p>${u.image ? `Checking for updates is turned off (UPDATE_CHECK=off). To update, run ${how} where you set up Sentry Six Manager.` : 'This copy was built from source. To update it, build the image again from the new code.'}</p>
+        <p>${release ? (told || cur.sha ? `Checking for updates is turned off (UPDATE_CHECK=off). ${release}` : 'This copy runs from source. To update it, get the new code and start it again.')
+    : u.image ? `Checking for updates is turned off (UPDATE_CHECK=off). To update, run ${how} where you set up Sentry Six Manager.` : 'This copy was built from source. To update it, build the image again from the new code.'}</p>
         <dl class="kv" style="margin-top:16px"><dt>Running</dt><dd class="mono">${running}</dd></dl></div>`;
     }
     const l = u.latest;
     const latest = l ? `${l.revision ? `${esc(l.revision.slice(0, 7))} · ` : ''}published ${esc(String(l.created || '').slice(0, 10) || '?')}` : u.error ? esc(u.error) : 'not checked yet';
     return `<div class="card" data-section="updates"><h2>Updates</h2>
-      <p>Updates come as a new image. To install one, run ${how} where you set up Sentry Six Manager. Settings, footage and the Recycle Bin stay as they are.</p>
+      <p>${release ? `Updates come as a new release. To install one: ${release}` : `Updates come as a new image. To install one, run ${how} where you set up Sentry Six Manager.`} Settings, footage and the Recycle Bin stay as they are.</p>
       <dl class="kv" style="margin-top:16px"><dt>Running</dt><dd class="mono">${running}</dd>
         <dt>Newest</dt><dd${l ? ' class="mono"' : ''}>${latest}${u.checkedAt ? ` <span class="muted">(checked ${when(u.checkedAt)})</span>` : ''}</dd></dl>
       ${u.updateAvailable ? '<div class="note green">An update is available.</div>' : ''}
@@ -2271,14 +2308,20 @@
     };
   }
 
-  function securityCard(sec) {
+  // the Windows service's account (/api/security on Windows: account, elevated)
+  function serviceAccount(sec) {
+    if (sec.elevated) return 'runs as an administrator (fine for trying it out with SentryService.exe run, not for the service)';
+    return `runs as ${esc(sec.account || 'its own service account')}, not an administrator`;
+  }
+
+  function securityCard(sec, deployment = state.deployment) {
     const tls = sec.tls || {};
     const ca = tls.ca;
     const host = (sec.currentHost || '').replace(/:\d+$/, '').replace(/^\[|\]$/g, '');
     const covered = !host || (tls.hostnames || []).map((h) => h.toLowerCase()).includes(host.toLowerCase());
     let body = `<dl class="kv" style="margin-top:16px">
       <dt>This connection</dt><dd>${sec.https ? 'HTTPS (encrypted)' : '<b class="bad-text">not encrypted</b>: others on the network could read your password and the footage. Use https:// or a reverse proxy that does HTTPS.'}</dd>
-      <dt>Server process</dt><dd>${sec.runningAsRoot ? 'runs as root (not supervised; fine for development, not for the Docker image)' : 'runs as an unprivileged user; only the supervisor can mount shares'}</dd>`;
+      <dt>Server process</dt><dd>${onWindows(deployment) ? serviceAccount(sec) : sec.runningAsRoot ? 'runs as root (not supervised; fine for development, not for the Docker image)' : 'runs as an unprivileged user; only the supervisor can mount shares'}</dd>`;
     if (sec.tlsMode === 'off') {
       body += '<dt>HTTPS</dt><dd>turned off (TLS_MODE=off): only use this behind a reverse proxy that does HTTPS.</dd></dl>';
     } else if (tls.mode === 'own') {
@@ -2291,7 +2334,7 @@
         <dt>Certificate</dt><dd>Sentry Six Manager's own · stays the same until ${esc(tls.certificate?.validTo || '?')}, then renews by itself</dd>
         <dt>Certificate covers</dt><dd>${esc((tls.hostnames || []).join(', '))}</dd>
         <dt>Certificate authority</dt><dd>valid until ${esc(ca?.validTo || '?')} · fingerprint <span class="mono small">${esc(ca?.fingerprint || '?').replace(/:/g, ':<wbr>')}</span></dd></dl>
-        <p style="margin-top:14px">Every phone, tablet and computer shows the browser's certificate warning once; continue past it (Advanced, then Proceed / visit this website / Accept the Risk) and the device remembers. To be sure it is this server, compare the certificate fingerprint above with the one in the browser's certificate details or the container log (<code>docker logs sentry-six-manager</code>). If a device that continued before warns again and you changed nothing here, don't continue.</p>
+        <p style="margin-top:14px">Every phone, tablet and computer shows the browser's certificate warning once; continue past it (Advanced, then Proceed / visit this website / Accept the Risk) and the device remembers. To be sure it is this server, compare the certificate fingerprint above with the one in the browser's certificate details or ${printedIn(deployment)}. If a device that continued before warns again and you changed nothing here, don't continue.</p>
         <p style="margin-top:10px">No warning at all: install the certificate authority on a device instead (download it below and compare its fingerprint before trusting it). It can only vouch for local names and private IP addresses.</p>
         ${covered ? '' : `<div class="note amber">You opened this page as <b>${esc(host)}</b>, which the certificate does not cover, so it warns even on devices with the certificate authority installed. <button class="btn sm" type="button" id="sec-add-host" data-host="${esc(host)}">Add ${esc(host)}</button></div>`}
         <details class="more" style="margin-top:10px"><summary>How to install the certificate authority</summary>
@@ -2340,14 +2383,15 @@
     if (add) add.onclick = () => save([...(sec.tls?.editable || []), add.dataset.host]);
   }
 
-  function vehicleForm(v) {
+  function vehicleForm(v, deployment = state.deployment) {
+    const win = onWindows(deployment);
     const versions = state.system?.smbVersions || { '3.1.1': 'SMB 3.1.1 (recommended)', '3.02': 'SMB 3.02', '3.0': 'SMB 3.0', 3: 'SMB 3.0 or newer' };
     const s = v?.source || { type: 'smb', version: state.system?.smbDefaultVersion || '3.1.1', encrypt: true };
     return `<form id="veh" class="form" style="margin-top:22px;padding-top:22px;border-top:1px solid var(--border)">
       <h3 class="full">${v ? `Edit ${esc(v.name)}` : 'Add a vehicle'}</h3>
       <label class="field">Name<input class="input" name="name" required value="${esc(v?.name || '')}" placeholder="Daily Driver"></label>
       <label class="field">Time zone<input class="input" name="timezone" value="${esc(v?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone)}" placeholder="America/Chicago"></label>
-      <div class="field full">Footage source<div class="seg" id="src-type"><button type="button" data-type="smb" class="${s.type !== 'path' ? 'on' : ''}">SMB share</button><button type="button" data-type="path" class="${s.type === 'path' ? 'on' : ''}">Folder in the container</button></div></div>
+      <div class="field full">Footage source<div class="seg" id="src-type"><button type="button" data-type="smb" class="${s.type !== 'path' ? 'on' : ''}">SMB share</button><button type="button" data-type="path" class="${s.type === 'path' ? 'on' : ''}">${win ? 'Folder on this PC' : 'Folder in the container'}</button></div></div>
       <div class="full form" data-src="smb"${s.type === 'path' ? ' hidden' : ''}>
         <label class="field full">Share<input class="input" name="share" value="${esc(s.share || '')}" placeholder="//192.168.1.50/TeslaCam"></label>
         <label class="field">User name<input class="input" name="username" value="${esc(s.username || '')}" autocomplete="off"></label>
@@ -2357,11 +2401,11 @@
         <label class="field">Port (optional)<input class="input" name="port" inputmode="numeric" value="${esc(s.port || '')}" placeholder="445"></label>
         <label class="check full"><input type="checkbox" name="encrypt"${s.encrypt === false ? '' : ' checked'}> Encrypt the connection (recommended). Without it the connection is still signed, so nobody can change the footage, but others on the network could watch it.</label>
         <div class="full smb-test"><button class="btn" type="button" id="smb-test">Test connection</button><p class="small" id="smb-test-result" role="status" aria-live="polite"></p></div>
-        <p class="muted small full">Only SMB 3 is allowed and every connection is signed, so a man in the middle cannot read or change footage, or pose as your NAS. Files on the share can never run as programs inside the container. Use a dedicated NAS account with access to this share only.</p>
+        <p class="muted small full">Only SMB 3 is allowed and every connection is signed, so a man in the middle cannot read or change footage, or pose as your NAS. ${win ? 'Files on the share are never run as programs.' : 'Files on the share can never run as programs inside the container.'} Use a dedicated NAS account with access to this share only.</p>
       </div>
       <div class="full" data-src="path"${s.type === 'path' ? '' : ' hidden'}>
-        <label class="field">Folder<input class="input" name="path" value="${esc(s.path || '')}" placeholder="/footage/weekend-car"></label>
-        <p class="muted small" style="margin-top:8px">A folder you mounted into the container yourself (bind mount or Docker CIFS volume).</p>
+        <label class="field">Folder<input class="input" name="path" value="${esc(s.path || '')}" placeholder="${win ? 'D:\\TeslaCam' : '/footage/weekend-car'}"></label>
+        <p class="muted small" style="margin-top:8px">${win ? 'A folder on a drive of this PC (an internal or USB drive). For a NAS, use SMB share.' : 'A folder you mounted into the container yourself (bind mount or Docker CIFS volume).'}</p>
       </div>
       <div class="full form-actions">${v ? '<button class="btn danger" type="button" id="veh-del">Remove vehicle</button>' : ''}<a class="btn" href="#/settings">Cancel</a><button class="btn solid" type="submit">${v ? 'Save' : 'Add vehicle'}</button></div>
     </form>`;
@@ -2583,7 +2627,7 @@
       document.documentElement.classList.toggle('reduce-effects', Boolean(s.appearance?.reduceEffects));
       clockPref.h24 = Boolean(s.appearance?.clock24);
       $('clock-24').checked = clockPref.h24;
-      await Promise.all([loadVehicles(), loadNotes()]);
+      await Promise.all([loadVehicles(), loadNotes(), loadDeployment()]);
     } catch {
       // shown by render
     }

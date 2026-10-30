@@ -14,8 +14,24 @@
       return '/';
     }
   })();
-  const me = await fetch('/api/auth/me').then((r) => r.json()).catch(() => ({}));
+  // deployment (public GET /api/info): on the Windows service the setup code
+  // and the fingerprint are in the install window and service.log, not in
+  // docker logs; the page's own words are Docker's
+  const [me, info] = await Promise.all([
+    fetch('/api/auth/me').then((r) => r.json()).catch(() => ({})),
+    fetch('/api/info').then((r) => (r.ok ? r.json() : {})).catch(() => ({}))
+  ]);
   if (me.user) return location.replace(safeNext);
+  const windows = info?.deployment === 'windows';
+  if (windows) {
+    const code = (text) => Object.assign(document.createElement('code'), { textContent: text });
+    const log = '%ProgramData%\\SentrySixManager\\data\\logs\\service.log';
+    $('code-row').querySelector('span').replaceChildren('Printed in the install window and in ', code(log));
+    // after the line break: where else the fingerprint is shown
+    const br = $('fingerprint').querySelector('br');
+    while (br?.nextSibling) br.nextSibling.remove();
+    br?.after('The same as in the install window, in ', code(log), ' and in your browser\'s certificate details.');
+  }
   if (location.protocol !== 'https:') $('insecure').hidden = false;
   if (me.fingerprint) {
     // a line may break after each colon, never inside a byte
@@ -25,7 +41,7 @@
   const setup = me.needsSetup;
   if (setup) {
     $('title').textContent = 'Create your account';
-    $('lead').textContent = 'This is the first start. Enter the setup code from the container log, then choose the user name and password that protect this Sentry Six Manager.';
+    $('lead').textContent = `This is the first start. Enter the setup code from ${windows ? 'the install window' : 'the container log'}, then choose the user name and password that protect this Sentry Six Manager.`;
     $('confirm-row').hidden = false;
     $('code-row').hidden = false;
     $('submit').textContent = 'Create account';

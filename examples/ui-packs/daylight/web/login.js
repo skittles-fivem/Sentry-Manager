@@ -41,9 +41,28 @@
     }
   })();
 
+  // On the Windows service (public GET /api/info) the setup code and the
+  // certificate fingerprint are in the install window and service.log, not
+  // in docker logs. The page's own words are Docker's; they change here.
+  const askWindows = fetch('/api/info', { credentials: 'same-origin' })
+    .then((r) => (r.ok ? r.json() : {}))
+    .then((info) => info?.deployment === 'windows', () => false);
+  let logWhere = 'the container log';
+  function windowsWords() {
+    logWhere = 'the install window';
+    for (const code of document.querySelectorAll('code')) {
+      if (code.textContent !== 'docker logs sentry-six-manager') continue;
+      code.textContent = '%ProgramData%\\SentrySixManager\\data\\logs\\service.log';
+      const before = code.previousSibling;
+      if (before?.nodeType !== Node.TEXT_NODE) continue;
+      const t = before.textContent;
+      before.textContent = /container log: $/.test(t) ? t.replace(/container log: $/, 'install window and in ') : `${t}the install window, ${/\bin $/.test(t) ? 'in ' : ''}`;
+    }
+  }
   let setup = false;
-  fetch('/api/auth/me', { credentials: 'same-origin' }).then((r) => r.json()).catch(() => ({})).then((me) => {
+  fetch('/api/auth/me', { credentials: 'same-origin' }).then((r) => r.json()).catch(() => ({})).then(async (me) => {
     if (me.user) return location.replace(next);
+    if (await askWindows) windowsWords();
     if (location.protocol !== 'https:') $('insecure').hidden = false;
     if (me.fingerprint) {
       $('fingerprint').querySelector('.mono').textContent = me.fingerprint;
@@ -52,7 +71,7 @@
     setup = Boolean(me.needsSetup);
     if (setup) {
       $('title').textContent = 'Let’s set things up';
-      $('lead').textContent = 'This is the first start. Enter the setup code from the container log, then pick the user name and password that will protect your footage.';
+      $('lead').textContent = `This is the first start. Enter the setup code from ${logWhere}, then pick the user name and password that will protect your footage.`;
       $('confirm-row').hidden = false;
       $('code-row').hidden = false;
       $('submit').textContent = 'Create my account';
@@ -74,7 +93,7 @@
     if (setup) {
       if (String(f.get('password')).length < 8) { err.textContent = 'Choose a password of at least 8 characters.'; return; }
       if (f.get('password') !== f.get('confirm')) { err.textContent = 'The two passwords don’t match.'; return; }
-      if (!String(f.get('code') || '').trim()) { err.textContent = 'Enter the setup code from the container log.'; return; }
+      if (!String(f.get('code') || '').trim()) { err.textContent = `Enter the setup code from ${logWhere}.`; return; }
     }
     const btn = $('submit');
     btn.disabled = true;

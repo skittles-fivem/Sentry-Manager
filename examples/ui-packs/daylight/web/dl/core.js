@@ -452,3 +452,23 @@ document.addEventListener('pointerdown', (e) => { pressing = e.button === 0 ? e.
 document.addEventListener('pointerup', () => { pressing = null; setTimeout(catchUp, 0); }, true);
 document.addEventListener('pointercancel', () => { pressing = null; setTimeout(catchUp, 0); }, true);
 document.addEventListener('selectionchange', () => { if (!pressing) catchUp(); });
+
+// Where the server runs (public GET /api/info: 'docker', 'windows' or
+// 'linux'), asked once when the pack loads. Only the wording of a few lines
+// depends on it: on Windows they say update.ps1, Install.cmd and service.log
+// instead of compose, docker logs and the container. Until the answer is in
+// (or without one) the lines read as on Docker.
+export const WIN_LOGS = '%ProgramData%\\SentrySixManager\\data\\logs\\service.log';
+export const WIN_UPDATE = 'Run update.ps1 as administrator, or download the latest release and run Install.cmd.';
+// this server's CPU watts on Windows: only from Windows' own energy meter
+export const CPU_NA_WINDOWS = 'CPU watts show only when Windows has an energy meter for the processor (most PCs don\'t). NVIDIA GPU watts show when the card reports them.';
+export const where = { deployment: null };
+export const onWindows = () => where.deployment === 'windows';
+export const whereRunning = fetch('/api/info', { credentials: 'same-origin' })
+  .then((r) => (r.ok ? r.json() : {}))
+  .then((info) => { if (typeof info?.deployment === 'string') where.deployment = info.deployment; return where.deployment; }, () => null);
+/** The server's own words on how to update (/api/updates how, plain text) as one sentence, or ''. */
+export function toldHow(u) {
+  const how = typeof u?.how === 'string' ? u.how.trim() : '';
+  return how ? (/[.!?]$/.test(how) ? how : `${how}.`) : '';
+}

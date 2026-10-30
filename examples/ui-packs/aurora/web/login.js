@@ -17,6 +17,24 @@
       return '/';
     }
   })();
+  // On the Windows service (public GET /api/info) the setup code and the
+  // certificate fingerprint are in the install window and service.log, not
+  // in docker logs. The page's own words are Docker's; they change here.
+  const askWindows = fetch('/api/info', { credentials: 'same-origin' })
+    .then((r) => (r.ok ? r.json() : {}))
+    .then((info) => info?.deployment === 'windows', () => false);
+  let logWhere = 'the container log';
+  function windowsWords() {
+    logWhere = 'the install window';
+    for (const code of document.querySelectorAll('code')) {
+      if (code.textContent !== 'docker logs sentry-six-manager') continue;
+      code.textContent = '%ProgramData%\\SentrySixManager\\data\\logs\\service.log';
+      const before = code.previousSibling;
+      if (before?.nodeType !== Node.TEXT_NODE) continue;
+      const t = before.textContent;
+      before.textContent = /container log: $/.test(t) ? t.replace(/container log: $/, 'install window and in ') : `${t}the install window, ${/\bin $/.test(t) ? 'in ' : ''}`;
+    }
+  }
   let me = {};
   try {
     me = await fetch('/api/auth/me', { credentials: 'same-origin' }).then((r) => r.json());
@@ -27,6 +45,7 @@
     location.replace(next);
     return;
   }
+  if (await askWindows) windowsWords();
   if (location.protocol !== 'https:') $('insecure').hidden = false;
   if (me.fingerprint) {
     const box = $('fingerprint').querySelector('.mono');
@@ -36,7 +55,7 @@
   const setup = Boolean(me.needsSetup);
   if (setup) {
     $('title').textContent = 'Create your account';
-    $('lead').textContent = 'First start: enter the setup code from the container log, then choose the user name and password that protect this server.';
+    $('lead').textContent = `First start: enter the setup code from ${logWhere}, then choose the user name and password that protect this server.`;
     $('confirm-row').hidden = false;
     $('code-row').hidden = false;
     submit.textContent = 'Create account';
@@ -83,7 +102,7 @@
     if (setup) {
       if (password.length < 8) { err.textContent = 'Choose a password of at least 8 characters.'; return; }
       if (password !== f.get('confirm')) { err.textContent = 'The passwords do not match.'; return; }
-      if (!String(f.get('code') || '').trim()) { err.textContent = 'Enter the setup code from the container log.'; return; }
+      if (!String(f.get('code') || '').trim()) { err.textContent = `Enter the setup code from ${logWhere}.`; return; }
     }
     submit.disabled = true;
     const label = submit.textContent;

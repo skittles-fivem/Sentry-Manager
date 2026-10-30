@@ -1,5 +1,5 @@
 // Overview: live telemetry console from /api/stats and /api/stats/history.
-import { esc, api, state, current, bytes, rate, pct, num, watts, energy, money, dur, ago, when, isoish, tod, fin, store, toast, confirmDialog, busy, plural, icon, debounce, liveDraw } from '../core.js';
+import { esc, api, state, current, bytes, rate, pct, num, watts, energy, money, dur, ago, when, isoish, tod, fin, store, toast, confirmDialog, busy, plural, icon, debounce, liveDraw, onWindows, CPU_NA_WINDOWS } from '../core.js';
 import { TimeChart, HeatStrip, C, PALETTE, coreBars } from '../charts.js';
 import { split, seg, wireSeg, meter, chip } from '../ui.js';
 
@@ -214,7 +214,8 @@ export default {
       const all = p.combined && (p.nodes || []).length ? p.combined : null;
       const split = (w, c, g, na) => [fin(w) ? watts(w) : null, fin(c) ? `cpu ${watts(c)}` : null, fin(g) ? `gpu ${watts(g)}` : null].filter(Boolean).join(' · ') || 'not measured';
       $('#power-big').textContent = all ? watts(all.totalW) : watts(tot);
-      const why = CPU_NA[p.cpuUnavailable] || '';
+      // (this server's own reason: on the Windows service it is that PC, not Docker Desktop)
+      const why = (p.cpuUnavailable === 'windows' && onWindows() ? CPU_NA_WINDOWS : CPU_NA[p.cpuUnavailable]) || '';
       $('#power-sub').textContent = all ? `all servers · ${all.reporting}/${all.servers} reporting` : p.cpuSource || p.gpuSource ? `measured · ${[p.cpuSource, p.gpuSource].filter(Boolean).join(' + ')}` : why ? CPU_NA_SHORT[p.cpuUnavailable] : 'no power sensor readable';
       const perHour = fin(tot) && fin(s.price?.now) ? (tot / 1000) * s.price.now : null;
       $('#power-kv').innerHTML = (all ? kv([
@@ -263,7 +264,8 @@ export default {
       $('#proc-table').innerHTML = `<thead><tr><th>pid</th><th>name</th><th class="r">cpu</th><th class="r">mem</th><th class="r">gpu</th></tr></thead><tbody>${procs.slice(0, 12).map((x) => `<tr><td class="num faint">${esc(x.pid)}</td><td class="mono">${esc(x.name)}</td><td class="r num">${pct(x.cpu, 1)}</td><td class="r num">${bytes(x.memB)}</td><td class="r num">${fin(x.gpuVideo) ? pct(x.gpuVideo) : '—'}</td></tr>`).join('')}</tbody>`;
       // alerts / unlock hints
       const alerts = (s.alerts || []).map((a) => `<div class="alert ${a.level === 'error' ? 'bad' : 'warn'}">${icon('alert')}<span>${esc(a.message)}</span></div>`).join('');
-      const unlock = (s.unlock || []).length ? `<details class="unlock"><summary>${plural(s.unlock.length, 'more number')} available with one line in docker-compose.yml</summary>${s.unlock.map((u) => `<div class="small"><b>${esc(u.adds)}</b> <code>${esc(u.compose || '')}</code></div>`).join('')}</details>` : '';
+      // (the optional lines are docker-compose.yml lines: none on Windows)
+      const unlock = (s.unlock || []).length && !onWindows() ? `<details class="unlock"><summary>${plural(s.unlock.length, 'more number')} available with one line in docker-compose.yml</summary>${s.unlock.map((u) => `<div class="small"><b>${esc(u.adds)}</b> <code>${esc(u.compose || '')}</code></div>`).join('')}</details>` : '';
       // (kept open across redraws: it closed every few seconds as it was read)
       const box = $('#ov-alerts');
       const open = box.querySelector('details.unlock')?.open === true;
