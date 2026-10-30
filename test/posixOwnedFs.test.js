@@ -22,7 +22,7 @@ const hasFfmpeg = spawnSync('ffmpeg', ['-version']).status === 0;
 function buildHelper() {
   if (fs.existsSync(HELPER)) return true;
   fs.mkdirSync(path.dirname(HELPER), { recursive: true });
-  if (DARWIN) return spawnSync('cc', ['-O2', '-Wall', '-Wextra', '-mmacosx-version-min=13.5', '-o', HELPER, HELPER_SRC]).status === 0;
+  if (DARWIN) return spawnSync('cc', ['-arch', 'arm64', '-O2', '-Wall', '-Wextra', '-Werror', '-mmacosx-version-min=13.5', '-o', HELPER, HELPER_SRC]).status === 0;
   return spawnSync('cc', ['-O2', '-o', HELPER, HELPER_SRC]).status === 0;
 }
 const helperBuilt = buildHelper();

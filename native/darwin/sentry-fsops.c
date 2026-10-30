@@ -31,6 +31,10 @@
 #include <sys/mount.h>
 #include <unistd.h>
 
+#if defined(__APPLE__) && !defined(__arm64__)
+#error "sentry-fsops is built for Apple Silicon (arm64) only"
+#endif
+
 /* In <sys/stdio.h> since macOS 11; older SDKs lack the define. */
 #ifndef RENAME_NOFOLLOW_ANY
 #define RENAME_NOFOLLOW_ANY 0x00000010
