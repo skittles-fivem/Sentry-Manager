@@ -507,3 +507,43 @@ test('a Linux QSV zero-copy encode reports its lane\'s render node as its GPU (S
     await rig.close();
   }
 });
+
+test('a Windows QSV or AMF encode on a chosen adapter reports the GPU\'s id as its GPU (System page stats)', async () => {
+  // the arguments name only the adapter index; the Windows stats engine names
+  // the GPU by its id (pci:...), so that is what the live encode carries
+  const liveDevices = async (device, works) => {
+    let rig = null;
+    const seen = [];
+    const spawnProcess = (command, args) => {
+      const child = new EventEmitter();
+      child.stdout = new EventEmitter();
+      child.stderr = new EventEmitter();
+      child.pid = 4242;
+      let done = false;
+      const finish = (code, signal = null) => { if (!done) { done = true; setImmediate(() => child.emit('close', code, signal)); } };
+      child.kill = (signal) => finish(null, signal || 'SIGTERM');
+      setTimeout(() => {
+        if (args.includes('pipe:1')) seen.push(...rig.service.activeEncodes().map((entry) => [entry.device, entry.encoder]));
+        child.stdout.emit('data', 'fps=100\nprogress=end\n');
+        finish(0);
+      }, 30);
+      return child;
+    };
+    rig = createRig({ platform: 'win32', device, works, spawnProcess });
+    try {
+      assert.equal((await rig.run()).state, 'completed');
+      return { seen, encodes: rig.encodes(), tierOf: rig.tierOf };
+    } finally {
+      await rig.close();
+    }
+  };
+  for (const [device, encoder] of [[WIN_INTEL, 'hevc_qsv'], [WIN_AMD, 'hevc_amf']]) {
+    const { seen, encodes: [encode], tierOf } = await liveDevices(device, (name) => name === encoder || name.startsWith('lib'));
+    assert.equal(tierOf(encode.args), 'zero-copy');
+    assert.ok(encode.args.includes(`d3d11va=dx:${device.adapter}`));
+    assert.deepEqual(seen, [[device.id, encoder]]);
+  }
+  // a Windows GPU that cannot encode the codec: its clip runs on the CPU, which names no GPU
+  const cpu = await liveDevices(WIN_INTEL, (name) => name.startsWith('lib'));
+  assert.deepEqual(cpu.seen, [[null, 'libx265']]);
+});

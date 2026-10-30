@@ -11,7 +11,9 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { linuxOnly, needsTool } = require('./fixtures/platformSkip');
+const { needsTool } = require('./fixtures/platformSkip');
+const { ownedFsSkip, createOwnedFs } = require('./fixtures/ownedFsAdapter');
+const { toolSpawn } = require('./fixtures/processTree');
 const { normalizeLanes, lanesTotal, DEVICE_ID, LANES, nodeKeyOf, nodeDeviceOf } = require('../src/main/converter/contracts');
 const { createJobStore } = require('../src/main/converter/jobStore');
 const { createEncoderPlanner } = require('../src/main/converter/encoderPlanner');
@@ -944,11 +946,14 @@ test('the encoder block has one entry per device in use', () => {
 // ---- end to end: the real runtime and converter, two (pretend) GPUs
 
 const HELPER = path.join(__dirname, '..', 'build', 'noreplace-rename');
-const canConvert = hasFfmpeg && fs.existsSync(HELPER);
-// The runtime runs as on Linux here (platform 'linux'): the GPUs are VA-API /
-// QSV render nodes (/dev/dri) and the arguments checked are Linux's. Windows
-// names its GPUs another way (the helper's gpu.list).
-const LINUX_GPUS = 'VA-API and QSV render nodes (/dev/dri) through the runtime as on Linux';
+// The runtime runs as on this system. Linux: the GPUs are VA-API / QSV render
+// nodes (/dev/dri). Windows: the same two Intel GPUs as DXGI lists them (the
+// helper's gpu.list), Direct3D 11 adapters 0 and 1 with no render node, and
+// the converter replaces files through winOwnedFs and SentryHelper.exe.
+const WINDOWS = process.platform === 'win32';
+const WIN_UHD = Object.freeze({ ...UHD, kind: 'd3d11', node: null, adapter: 0, luid: '0xd1a6' });
+const WIN_ARC = Object.freeze({ ...ARC, kind: 'd3d11', node: null, adapter: 1, luid: '0xd1b2' });
+const endToEndSkip = ownedFsSkip(hasFfmpeg, 'needs ffmpeg and build/noreplace-rename', 'needs ffmpeg and SentryHelper.exe (set SENTRY_HELPER)', { noReplaceHelper: HELPER });
 
 // ffmpeg that writes down how it was called, then encodes on the CPU: the
 // GPU encoders become libx265 and the device arguments are left out.
@@ -976,12 +981,12 @@ child.on('exit', (code, signal) => process.exit(signal ? 1 : code));
   return { script, calls: () => (fs.existsSync(log) ? fs.readFileSync(log, 'utf8').trim().split('\n').map((line) => JSON.parse(line)) : []) };
 }
 
-test('end to end: a lanes job encodes each clip on its lane\'s GPU through the real runtime', { skip: linuxOnly(LINUX_GPUS) || needsTool(canConvert, 'needs ffmpeg and build/noreplace-rename'), timeout: 180_000 }, async () => {
+test('end to end: a lanes job encodes each clip on its lane\'s GPU through the real runtime', { skip: endToEndSkip, timeout: 180_000 }, async () => {
   const { createConverterRuntime } = require('../src/main/converter/runtime');
-  const { createPosixOwnedFs } = require('../server/posixOwnedFs');
   const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
   const { spawn } = require('child_process');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-lanes-e2e-'));
+  const [uhd, arc] = WINDOWS ? [WIN_UHD, WIN_ARC] : [UHD, ARC];
   let runtime;
   try {
     const event = path.join(dir, 'footage', 'TeslaCam', 'SentryClips', '2026-10-20_07-44-14');
@@ -992,20 +997,19 @@ test('end to end: a lanes job encodes each clip on its lane\'s GPU through the r
     for (let i = 1; i < 4; i++) fs.copyFileSync(first, path.join(event, `2026-10-20_07-4${i}-00-front.mp4`));
     for (const name of ['data', 'temp', 'out']) fs.mkdirSync(path.join(dir, name));
     const ffmpeg = loggingFfmpeg(dir);
-    process.env.SENTRY_NOREPLACE_RENAME = HELPER;
-    const owned = createPosixOwnedFs();
+    const owned = createOwnedFs({}, { noReplaceHelper: HELPER });
     runtime = await createConverterRuntime({
-      userDataPath: fs.realpathSync(path.join(dir, 'data')), tempPath: fs.realpathSync(path.join(dir, 'temp')),
-      ffmpegPath: ffmpeg.script, ffprobePath: 'ffprobe', spawn, fs, pathApi: path, platform: 'linux',
+      userDataPath: fs.realpathSync.native(path.join(dir, 'data')), tempPath: fs.realpathSync.native(path.join(dir, 'temp')),
+      ffmpegPath: ffmpeg.script, ffprobePath: 'ffprobe', spawn: toolSpawn(spawn), fs, pathApi: path, platform: WINDOWS ? 'win32' : 'linux',
       removeOwned: owned.removeOwned, renameExclusive: owned.renameExclusive, autoConvert: false,
-      factories: { createDeviceDiscovery: () => ({ list: async () => [UHD, ARC, CPU] }) }
+      factories: { createDeviceDiscovery: () => ({ list: async () => [uhd, arc, CPU] }) }
     });
     await runtime.start();
     const id = await runtime.service.start({
-      sourceRoot: fs.realpathSync(path.join(dir, 'footage', 'TeslaCam')), destinationRoot: fs.realpathSync(path.join(dir, 'out')),
+      sourceRoot: fs.realpathSync.native(path.join(dir, 'footage', 'TeslaCam')), destinationRoot: fs.realpathSync.native(path.join(dir, 'out')),
       codec: 'h265', profileId: 'custom', bitrateKbps: 250, networkMode: 'direct', outputMode: 'separate',
       includedGroups: ['RecentClips', 'SavedClips', 'SentryClips'], replacementConfirmed: false, verifyMode: 'quick',
-      lanes: [{ device: ARC.id, concurrency: 1 }, { device: UHD.id, concurrency: 1 }]
+      lanes: [{ device: arc.id, concurrency: 1 }, { device: uhd.id, concurrency: 1 }]
     });
     await Promise.race([runtime.service.whenIdle(id), sleep(120_000)]);
     const job = await runtime.service.get(id);
@@ -1013,14 +1017,22 @@ test('end to end: a lanes job encodes each clip on its lane\'s GPU through the r
     assert.equal(job.items.filter((item) => item.resultCode === 'converted').length, 4);
     assert.ok(job.items.every((item) => item.encoder === 'hevc_qsv'), 'the QSV encoder proved on each GPU');
     const encodes = ffmpeg.calls().filter((args) => args.includes('pipe:1'));
-    // (QSV names its GPU as a child device, or for zero-copy as the VA-API device it derives from)
-    const on = (node) => encodes.filter((args) => args.includes(`qsv=qsvenc:hw_any,child_device=${node}`) || args.includes(`vaapi=va:${node}`));
-    assert.equal(on(ARC.node).length + on(UHD.node).length, encodes.length, 'every clip named its GPU');
-    assert.ok(on(ARC.node).length >= 1 && on(UHD.node).length >= 1, 'both GPUs converted');
-    assert.ok(on(ARC.node).every((args) => args[args.indexOf('-hwaccel_device') + 1] === ARC.node
-      || (args[args.indexOf('-hwaccel_device') + 1] === 'va' && args.includes(`vaapi=va:${ARC.node}`))), 'decoded on the same GPU');
+    // QSV names its GPU as a child device (Linux: its render node; Windows: its
+    // Direct3D 11 adapter), or for zero-copy as the VA-API (Linux) or Direct3D
+    // 11 (Windows) device it derives from
+    const qsvDevice = (gpu) => (WINDOWS ? `qsv=qsvenc:hw_any,child_device_type=d3d11va,child_device=${gpu.adapter}` : `qsv=qsvenc:hw_any,child_device=${gpu.node}`);
+    const zeroCopyDevice = (gpu) => (WINDOWS ? `d3d11va=dx:${gpu.adapter}` : `vaapi=va:${gpu.node}`);
+    const on = (gpu) => encodes.filter((args) => args.includes(qsvDevice(gpu)) || args.includes(zeroCopyDevice(gpu)));
+    assert.equal(on(arc).length + on(uhd).length, encodes.length, 'every clip named its GPU');
+    assert.ok(on(arc).length >= 1 && on(uhd).length >= 1, 'both GPUs converted');
+    // decoded on the same GPU: by its own device, or the zero-copy device named above
+    const decoder = WINDOWS ? String(arc.adapter) : arc.node;
+    const zeroCopyDecoder = WINDOWS ? 'dx' : 'va';
+    assert.ok(on(arc).every((args) => args[args.indexOf('-hwaccel_device') + 1] === decoder
+      || (args[args.indexOf('-hwaccel_device') + 1] === zeroCopyDecoder && args.includes(zeroCopyDevice(arc)))), 'decoded on the same GPU');
     const probes = ffmpeg.calls().filter((args) => args.includes('testsrc2=duration=0.5:size=640x360:rate=8'));
-    assert.ok(probes.some((args) => args.includes(`qsv=qsvenc:hw_any,child_device=${ARC.node}`)), 'proved on the Arc with its own arguments');
+    assert.ok(probes.some((args) => args.includes(qsvDevice(arc))), 'proved on the Arc with its own arguments');
+    if (WINDOWS) assert.ok(ffmpeg.calls().every((args) => !args.some((arg) => arg.includes('/dev/'))), 'nothing Linux-only in a Windows line');
   } finally {
     await runtime?.shutdown().catch(() => {});
     fs.rmSync(dir, { recursive: true, force: true });

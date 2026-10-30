@@ -114,6 +114,15 @@ function renderDevice(args) {
   return null;
 }
 
+// Windows: an Intel or AMD GPU's arguments name it only by its Direct3D 11
+// adapter index, so a hardware encode on a chosen one reports the GPU's id
+// ("pci:0000:03:00.0"), which is how the Windows stats engine names that
+// GPU too. Linux GPUs are never 'd3d11', so nothing changes there.
+function adapterDevice(encoder) {
+  const device = encoder?.hardware === true ? encoder.device : null;
+  return device?.kind === 'd3d11' && typeof device.id === 'string' ? device.id : null;
+}
+
 // What the process has learned about zero-copy per GPU and codec. The
 // runtime makes one and hands it to every converter service it builds (the
 // job service and each benchmark level), so a GPU's first zero-copy clip is
@@ -1354,7 +1363,7 @@ function createConverterJobService(deps) {
       encoder: encoder.codec,
       hardware: encoder.hardware === true,
       decode: Array.isArray(decodeAccel) && decodeAccel.length > 0 ? 'gpu' : 'cpu',
-      device: encoder.remote === true ? null : renderDevice([...(decodeAccel || []), ...encodeArgs]),
+      device: encoder.remote === true ? null : renderDevice([...(decodeAccel || []), ...encodeArgs]) || adapterDevice(encoder),
       // the paired server encoding this clip (Nodes), else null
       node: encoder.remote === true ? (encoder.device?.name || encoder.device?.id || null) : null,
       // the lane (chosen GPU) this clip runs on; null without lanes
