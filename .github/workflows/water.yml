@@ -54,7 +54,7 @@ jobs:
 
   # The converter's decode tiers on this PC's real GPUs (docs/plans/windows.md,
   # section 8): tools/gpuTiers.js copies a minute of the owner's HW3 and HW4
-  # clips (read only) into the runner's temp folder and encodes them on every
+  # clips (read only; three whole minutes of each) into the runner's temp folder and encodes them on every
   # GPU, codec and tier the app would try, with the app's own arguments,
   # verifier and picture check. The JSON report is kept as an artifact.
   gpu:
@@ -156,7 +156,7 @@ jobs:
           $report = Join-Path $env:RUNNER_TEMP 'gpu-report\gpu-tiers.json'
           & $env:SENTRY_NODE tools\gpuTiers.js --ffmpeg $env:SENTRY_FFMPEG --ffprobe $env:SENTRY_FFPROBE `
             --clips 'C:\Users\ktmcm\OneDrive\Desktop\2026-10-19' --clips 'C:\Users\ktmcm\OneDrive\Desktop\2026-07-21' `
-            --out $out --report $report
+            --out $out --report $report --minutes 3
           $code = $LASTEXITCODE
           $text = Join-Path $env:RUNNER_TEMP 'gpu-report\gpu-tiers.txt'
           if (Test-Path -LiteralPath $text) {
