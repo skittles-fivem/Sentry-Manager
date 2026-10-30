@@ -126,6 +126,8 @@ function shortfallOf(picked, asked) {
 // RTX 4070 Ti) prints, for frames that stay in CUDA memory:
 //  - fftools/ffmpeg_demux.c: "[vist#0:0/h264 @ ..] Selecting decoder 'h264'
 //    because of requested hwaccel method cuda"
+//  - libavcodec/nvdec.c: "[h264 @ ..] NVDEC capabilities:", "format
+//    supported: yes, max_mb_count: 65536"
 //  - the decoder, once get_format has chosen (libavcodec/h264_slice.c):
 //    "[h264 @ ..] Reinit context to 1280x960, pix_fmt: cuda"
 //  - the filter graph's input, printed again whenever the graph is
@@ -167,7 +169,7 @@ const ENCODER_FRAMES = /Using input frames context \(format ([a-z0-9_]+)\) with 
 const ENCODER_DEVICE = /Using device (\S+) \(type ([a-z0-9_]+)\) with (\S+) encoder/;
 const STREAM_VIDEO = /^\s*Stream #\d+:\d+[^:]*: Video: (.*)$/;
 // Informational: hwaccel/NVENC lines that say which device did what.
-const HW_INFO = /Selecting decoder|hwaccel|Using device|Nvenc|CUDA capable devices|GPU #|Stream #\d+:\d+ -> #/i;
+const HW_INFO = /Selecting decoder|hwaccel|NVDEC capabilities|format supported|Using device|Nvenc|CUDA capable devices|GPU #|Stream #\d+:\d+ -> #/i;
 // Per-packet noise that says nothing about the frames.
 const NOISE = /Non-monotonic DTS|^ {4}Last message repeated|non monotonically increasing dts/;
 
@@ -204,12 +206,13 @@ const addOnce = (list, value) => { if (!list.includes(value)) list.push(value); 
 // fallbacks, noiseLines, lines, reason } (+ log, the lines after "Stream
 // mapping:" less the noise, when withLog).
 //
-// Judged: every filter graph input and the encoder's input frames context
-// must be the expected format, at least one decoder must have chosen it, and
-// no fallback message may appear. Every decoded frame enters the graph
+// Judged: every decoder context after "Stream mapping:", every filter graph
+// input and the encoder's input frames context must be the expected format,
+// and no fallback message may appear. Every decoded frame enters the graph
 // through its input, and a frame in another format reconfigures the graph
-// (a new input line), so those two lines account for every frame. A decoder
-// context that printed a software format is listed in decoderContexts.
+// (a new input line), so the whole log is read, not a head and a tail (the
+// first water run joined the two and read the probing decoder's yuv420p
+// line from the tail as if it came after the mapping).
 function zeroCopyEvidence(stderr, expected = 'cuda', { withLog = false } = {}) {
   const evidence = {
     ok: false, expected, decoder: [], decoderContexts: [], filterInput: [], encoderInput: [], encoderDevice: [], outputStream: [],
@@ -258,6 +261,7 @@ function zeroCopyEvidence(stderr, expected = 'cuda', { withLog = false } = {}) {
   const problems = [];
   if (evidence.fallbacks.length) problems.push('fallback message');
   if (!evidence.decoder.includes(expected)) problems.push(`no decoder chose ${expected}`);
+  if (wrong(evidence.decoder).length) problems.push(`decoder frames ${wrong(evidence.decoder).join('/')}`);
   if (!evidence.filterInput.length) problems.push('no filter graph input printed');
   if (wrong(evidence.filterInput).length) problems.push(`filter input ${wrong(evidence.filterInput).join('/')}`);
   if (!evidence.encoderInput.length) problems.push(`no ${expected} frames context at the encoder${evidence.encoderDevice.length ? ` (encoder device ${evidence.encoderDevice.join('/')})` : ''}`);

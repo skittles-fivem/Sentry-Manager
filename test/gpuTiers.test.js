@@ -123,7 +123,7 @@ test('the tiers and command lines the app uses on NVENC (Windows)', () => {
 
 // What FFmpeg 8.1 printed at -loglevel verbose for the zero-copy command
 // (-hwaccel cuda -hwaccel_output_format cuda ... -c:v hevc_nvenc) on water
-// (RTX 4070 Ti, run 41106279972), frames on the GPU from decoder to encoder.
+// (RTX 4070 Ti, runs 41106279972 and 41111295446), frames on the GPU from decoder to encoder.
 // The output stream line names the frames context's software format (nv12).
 const ZERO_COPY_LOG = [
   '[h264 @ 00000178af41f000] Reinit context to 1280x960, pix_fmt: yuv420p',
@@ -134,6 +134,8 @@ const ZERO_COPY_LOG = [
   'Stream mapping:',
   '  Stream #0:0 -> #0:0 (h264 (native) -> hevc (hevc_nvenc))',
   '[vost#0:0/hevc_nvenc @ 00000178ad63dd00] Starting thread...',
+  '[h264 @ 00000178c664e980] NVDEC capabilities:',
+  '[h264 @ 00000178c664e980] format supported: yes, max_mb_count: 65536',
   '[h264 @ 00000178c664e980] Reinit context to 1280x960, pix_fmt: cuda',
   '[graph -1 input from stream 0:0 @ 00000178c6f67c80] w:1280 h:960 pixfmt:cuda tb:1/10000 fr:36/1 sar:1/1 csp:unknown range:tv alpha:unspecified',
   '[vost#0:0/hevc_nvenc @ 00000178ad63dd00] [enc:hevc_nvenc @ 00000178af41e0c0] Using input frames context (format cuda) with hevc_nvenc encoder.',
@@ -173,6 +175,7 @@ test('zero-copy evidence: frames on the GPU from decoder to encoder (FFmpeg 8.1 
   assert.ok(evidence.lines.some((line) => /pixfmt:cuda/.test(line)));
   assert.ok(evidence.lines.some((line) => /Using input frames context \(format cuda\)/.test(line)));
   assert.ok(evidence.lines.some((line) => /requested hwaccel method cuda/.test(line)));
+  assert.ok(evidence.lines.some((line) => /NVDEC capabilities/.test(line)));
   assert.ok(!evidence.lines.some((line) => /Non-monotonic/.test(line)));
   assert.equal(evidence.log[0], 'Stream mapping:');
   assert.ok(!evidence.log.some((line) => /Non-monotonic/.test(line)));
@@ -181,10 +184,10 @@ test('zero-copy evidence: frames on the GPU from decoder to encoder (FFmpeg 8.1 
   // AV1 the same way
   const av1 = zeroCopyEvidence(ZERO_COPY_LOG.replace(/hevc_nvenc/g, 'av1_nvenc').replace('hevc (Main)', 'av1 (Main)'), 'cuda');
   assert.equal(av1.ok, true, av1.reason);
-  // a second decoder context that printed a software format is listed, and
-  // as long as every frame reached the graph and the encoder as CUDA, passes
+  // a decoder context after the mapping that printed a software format fails
   const extra = zeroCopyEvidence(ZERO_COPY_LOG.replace('[out#0', '[h264 @ 0000018a03c47c80] Reinit context to 1280x960, pix_fmt: yuv420p\r\n[out#0'), 'cuda');
-  assert.equal(extra.ok, true, extra.reason);
+  assert.equal(extra.ok, false);
+  assert.match(extra.reason, /decoder frames yuv420p/);
   assert.deepEqual(extra.decoderContexts.map((c) => c.format), ['cuda', 'yuv420p']);
 });
 
@@ -196,7 +199,7 @@ test('zero-copy evidence: a fallback to system memory fails, whichever way it sh
   assert.deepEqual(evidence.encoderInput, []);
   assert.deepEqual(evidence.encoderDevice, ['cuda 0']);
   assert.equal(evidence.fallbacks.length, 2);
-  assert.match(evidence.reason, /fallback message; no decoder chose cuda; filter input yuv420p; no cuda frames context at the encoder \(encoder device cuda 0\)/);
+  assert.match(evidence.reason, /fallback message; no decoder chose cuda; decoder frames yuv420p; filter input yuv420p; no cuda frames context at the encoder \(encoder device cuda 0\)/);
   assert.match(evidenceLabel(evidence), /^FAIL /);
   // each sign alone is enough
   const only = (line) => zeroCopyEvidence(ZERO_COPY_LOG.replace('[out#0', `${line}\n[out#0`), 'cuda');
@@ -212,7 +215,7 @@ test('zero-copy evidence: a fallback to system memory fails, whichever way it sh
   assert.equal(zeroCopyEvidence(ZERO_COPY_LOG.replace('pixfmt:cuda', 'pixfmt:nv12'), 'cuda').ok, false);
   assert.equal(zeroCopyEvidence(ZERO_COPY_LOG.replace('Using input frames context (format cuda)', 'Using input frames context (format d3d11)'), 'cuda').ok, false);
   assert.match(zeroCopyEvidence(ZERO_COPY_LOG.replace(/^.*Using input frames context.*$/m, ''), 'cuda').reason, /no cuda frames context at the encoder/);
-  assert.match(zeroCopyEvidence(ZERO_COPY_LOG.replace('pix_fmt: cuda', 'pix_fmt: yuv420p'), 'cuda').reason, /no decoder chose cuda/);
+  assert.match(zeroCopyEvidence(ZERO_COPY_LOG.replace('pix_fmt: cuda', 'pix_fmt: yuv420p'), 'cuda').reason, /no decoder chose cuda; decoder frames yuv420p/);
   // nothing printed about the frames: no proof
   const empty = zeroCopyEvidence('Stream mapping:\n  Stream #0:0 -> #0:0 (h264 (native) -> hevc (hevc_nvenc))\n', 'cuda');
   assert.equal(empty.ok, false);
