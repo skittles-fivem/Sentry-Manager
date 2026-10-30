@@ -11,16 +11,22 @@ const { spawn, spawnSync, execFileSync } = require('child_process');
 const { createPosixOwnedFs, createNoReplaceRename } = require('../server/posixOwnedFs');
 
 const REPO = path.join(__dirname, '..');
-const HELPER_SRC = path.join(__dirname, '..', 'native', 'noreplace-rename.c');
-const HELPER = path.join(__dirname, '..', 'build', 'noreplace-rename');
+// On a Mac the same tests run against the macOS helper, which takes a
+// subcommand before FROM TO.
+const DARWIN = process.platform === 'darwin';
+const HELPER_SRC = DARWIN ? path.join(__dirname, '..', 'native', 'darwin', 'sentry-fsops.c') : path.join(__dirname, '..', 'native', 'noreplace-rename.c');
+const HELPER = DARWIN ? path.join(__dirname, '..', 'build', 'sentry-fsops') : path.join(__dirname, '..', 'build', 'noreplace-rename');
+const ARGS_FOR = DARWIN ? (from, to) => ['rename-excl', from, to] : undefined;
 const hasFfmpeg = spawnSync('ffmpeg', ['-version']).status === 0;
 
 function buildHelper() {
   if (fs.existsSync(HELPER)) return true;
   fs.mkdirSync(path.dirname(HELPER), { recursive: true });
+  if (DARWIN) return spawnSync('cc', ['-O2', '-Wall', '-Wextra', '-mmacosx-version-min=13.5', '-o', HELPER, HELPER_SRC]).status === 0;
   return spawnSync('cc', ['-O2', '-o', HELPER, HELPER_SRC]).status === 0;
 }
 const helperBuilt = buildHelper();
+const noHelper = DARWIN ? 'could not build build/sentry-fsops' : 'no C compiler';
 
 async function tmp() {
   return realTmp('posix-owned-');
@@ -32,9 +38,9 @@ async function identity(file) {
   return { device: String(st.dev), inode: String(st.ino), size: Number(st.size), sha256 };
 }
 
-const adapters = () => createPosixOwnedFs({ helperPath: HELPER });
+const adapters = () => createPosixOwnedFs({ helperPath: HELPER, argsFor: ARGS_FOR });
 
-test('remove deletes only the exact recorded file', { skip: !helperBuilt && 'no C compiler' }, async () => {
+test('remove deletes only the exact recorded file', { skip: !helperBuilt && noHelper }, async () => {
   const dir = await tmp();
   try {
     const { removeOwned } = adapters();
@@ -60,7 +66,7 @@ test('remove deletes only the exact recorded file', { skip: !helperBuilt && 'no 
   }
 });
 
-test('remove refuses symlinks and honours the guard', { skip: !helperBuilt && 'no C compiler' }, async () => {
+test('remove refuses symlinks and honours the guard', { skip: !helperBuilt && noHelper }, async () => {
   const dir = await tmp();
   try {
     const { removeOwned } = adapters();
@@ -91,7 +97,7 @@ test('remove refuses symlinks and honours the guard', { skip: !helperBuilt && 'n
   }
 });
 
-test('promote never replaces and only moves the verified source', { skip: !helperBuilt && 'no C compiler' }, async () => {
+test('promote never replaces and only moves the verified source', { skip: !helperBuilt && noHelper }, async () => {
   const dir = await tmp();
   try {
     const { renameExclusive } = adapters();
@@ -123,7 +129,7 @@ test('promote never replaces and only moves the verified source', { skip: !helpe
   }
 });
 
-test('identity-only checks: device, inode, size and the recorded modification time, no read; without the time the full check', { skip: !helperBuilt && 'no C compiler' }, async () => {
+test('identity-only checks: device, inode, size and the recorded modification time, no read; without the time the full check', { skip: !helperBuilt && noHelper }, async () => {
   const dir = await tmp();
   try {
     const { removeOwned, renameExclusive } = adapters();
@@ -183,7 +189,38 @@ test('without the helper, promotion falls back to link + unlink', async () => {
   }
 });
 
-test('the real converter replaces originals in place with telemetry intact', { skip: (!hasFfmpeg && 'ffmpeg missing') || (!helperBuilt && 'no C compiler'), timeout: 600000 }, async () => {
+test('ENOTSUP from the helper falls back to link + unlink, like EOPNOTSUPP', async () => {
+  const dir = await tmp();
+  try {
+    for (const code of ['ENOTSUP', 'EOPNOTSUPP', 'EINVAL', 'ENOSYS']) {
+      const calls = [];
+      const { renameExclusive } = createPosixOwnedFs({ noReplace: { available: true, async rename(from, to) {
+        calls.push([from, to]);
+        throw Object.assign(new Error('no'), { code });
+      } } });
+      const from = path.join(dir, `${code}.partial`);
+      const to = path.join(dir, `${code}.mp4`);
+      await fsp.writeFile(from, code);
+      const r = await renameExclusive.promote({ from, to, expectedSource: await identity(from), removeSource: true });
+      assert.deepEqual(r, { atomicNoReplace: true, sourceRemoved: true }, code);
+      assert.deepEqual(calls, [[from, to]]);
+      assert.equal(fs.readFileSync(to, 'utf8'), code);
+      assert.equal(fs.existsSync(from), false);
+    }
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('on Linux ENOTSUP is EOPNOTSUPP and noreplace-rename never prints ENOTSUP', { skip: process.platform !== 'linux' && 'Linux only' }, () => {
+  // So adding ENOTSUP to the fallback list changes nothing on Linux.
+  assert.equal(os.constants.errno.ENOTSUP, os.constants.errno.EOPNOTSUPP);
+  const src = fs.readFileSync(path.join(REPO, 'native', 'noreplace-rename.c'), 'utf8');
+  assert.ok(src.includes('case EOPNOTSUPP: return "EOPNOTSUPP";'));
+  assert.ok(!src.includes('ENOTSUP"'), 'the Linux helper has no ENOTSUP answer');
+});
+
+test('the real converter replaces originals in place with telemetry intact', { skip: (!hasFfmpeg && 'ffmpeg missing') || (!helperBuilt && noHelper), timeout: 600000 }, async () => {
   const { createConverterRuntime } = require(path.join(REPO, 'src/main/converter/runtime'));
   const { createEncoderPlanner } = require(path.join(REPO, 'src/main/converter/encoderPlanner'));
   const { createTeslaH264Fixture } = require(path.join(REPO, 'test/fixtures/ffmpegFixtures'));
@@ -245,7 +282,7 @@ test('the real converter replaces originals in place with telemetry intact', { s
   }
 });
 
-test('a file written to while the adapter hashes it is a mismatch, even if the bytes it read were right', { skip: !helperBuilt && 'no C compiler' }, async () => {
+test('a file written to while the adapter hashes it is a mismatch, even if the bytes it read were right', { skip: !helperBuilt && noHelper }, async () => {
   const dir = await tmp();
   const originalOpen = fsp.open;
   try {
