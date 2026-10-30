@@ -274,10 +274,14 @@ namespace SentrySix.Core.Tests
                 string before = Environment.GetEnvironmentVariable("SENTRY_PORT");
                 try
                 {
-                    Environment.SetEnvironmentVariable("SENTRY_PORT", "12345");
-                    Assert.Equal(12345, LocalServer.Port());
-                    Environment.SetEnvironmentVariable("SENTRY_PORT", null);
-                    Assert.Equal(9000, LocalServer.Port());
+                    // (on Windows the port comes from manager.env, not SENTRY_PORT)
+                    if (!LocalServer.IsWindows)
+                    {
+                        Environment.SetEnvironmentVariable("SENTRY_PORT", "12345");
+                        Assert.Equal(12345, LocalServer.Port());
+                        Environment.SetEnvironmentVariable("SENTRY_PORT", null);
+                        Assert.Equal(9000, LocalServer.Port());
+                    }
                     Assert.Equal("https://127.0.0.1:12345/", ServerAddress.Local(12345).BaseUri.ToString());
                 }
                 finally
@@ -493,7 +497,7 @@ namespace SentrySix.Core.Tests
                 main = NewApi(mainPrompt);
                 var session = new Session(main);
                 var info = await session.Info();
-                Assert.Equal("linux", info["deployment"].Str, "/api/info");
+                Assert.Equal(LocalServer.IsWindows ? "windows" : "linux", info["deployment"].Str, "/api/info");
                 Assert.Equal(1, mainPrompt.Calls, "asked once");
                 var me = await main.Get("/api/auth/me");
                 Assert.Equal(me["fingerprint"].Str, mainPrompt.LastSha, "same fingerprint as the sign-in page");
