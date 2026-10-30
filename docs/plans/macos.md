@@ -97,7 +97,7 @@ Notes:
 - **`folderRoots` must be set on darwin.** `checkFolder` refuses any path outside `folderRoots` (vehicles.js:116-117). Without a darwin default, the `/Volumes/TESLADRIVE` placeholder and the "Drives on this Mac" picker would always be refused, with Docker text. `/Volumes` exposes every attached disk, so the default is owner question 6.
 - **`SIGHUP` is darwin-only.** On Linux today SIGHUP's default action kills node with a signal status. Adding it there would change Docker, so `shutdownSignals` keeps Linux at SIGTERM and SIGINT (index.js:1637-1638). launchd itself sends SIGTERM; SIGHUP covers a `run` in a closed Terminal.
 - **Startup checks on darwin** (`checkArch()` and friends, called once from index.js):
-  - **Architecture.** If `process.arch !== 'arm64'`, or `sysctl.proc_translated` is 1, log one line and exit 78 (EX_CONFIG): "Sentry Six Manager for macOS needs an Apple Silicon Mac and the arm64 Node that came with it. This process is x86_64 (running under Rosetta)." The second sentence drops "(running under Rosetta)" on an Intel Mac. The check takes injected `arch` and `run`, so it is tested here. It only fires when someone runs a foreign node by hand: the installer refuses Intel Macs and installs arm64 binaries only.
+  - **Architecture.** If `process.arch !== 'arm64'`, or `sysctl.proc_translated` is 1, log one line and exit 78 (EX_CONFIG): "Sentry Six Manager for macOS needs an Apple Silicon Mac and the arm64 Node that came with it. This process is x86_64 (running under Rosetta)." The second sentence drops "(running under Rosetta)" on an Intel Mac. The check takes injected `arch` and `run`, so it is tested here. It only fires when someone runs a foreign node by hand: the installer refuses Intel Macs and installs arm64 binaries only. The line goes to stderr, so it reaches service.log even with `SENTRY_CONSOLE=off`. Under launchd, exit 78 counts as a failed exit, so `KeepAlive` retries it every 5 s and logs the line each time; that is accepted for a hand-swapped node.
   - Canonicalize every configured root once with `realpathSync.native`, because `/tmp`, `/var` and `/etc` are symlinks into `/private`.
   - Empty `run/tmp`.
 
@@ -133,7 +133,7 @@ EnvironmentVariables NODE_ENV=production APP_ROOT DATA_PATH RUN_DIR FOOTAGE_ROOT
                      SENTRY_NOREPLACE_RENAME=…/bin/sentry-fsops HOME=<state>/run/home TMPDIR=<state>/run/tmp
                      PATH=/usr/bin:/bin:/usr/sbin:/sbin UV_THREADPOOL_SIZE=16 SENTRY_CONSOLE=off
 RunAtLoad true   KeepAlive {SuccessfulExit false}   ThrottleInterval 5   ExitTimeOut 60
-ProcessType Interactive   Umask 23   Soft/HardResourceLimits NumberOfFiles 8192
+ProcessType Interactive   Umask 23 (decimal, = 0027)   Soft/HardResourceLimits NumberOfFiles 8192
 StandardOutPath = StandardErrorPath = /Library/Logs/SentrySixManager/service.log
 ```
 
@@ -331,7 +331,7 @@ All of these: verify on a Mac.
 
 Facts from FFmpeg `libavcodec/videotoolboxenc.c`:
 
-- Only `h264_videotoolbox`, `hevc_videotoolbox` and `prores_videotoolbox` exist. **There is no `av1_videotoolbox` encoder.** Jellyfin's 8.1.3-1 mac builds have only the AV1 *decode* hwaccel, and no Mac has an AV1 hardware encoder.
+- Only `h264_videotoolbox`, `hevc_videotoolbox` and `prores_videotoolbox` exist. **There is no `av1_videotoolbox` encoder.** Jellyfin's 8.1.3-1 mac builds have only the AV1 *decode* hwaccel, and no Apple chip so far is known to have an AV1 hardware encoder.
 - There is **no option to pick a GPU**, and on Apple Silicon there is nothing to pick: one GPU, one media engine.
 - `allow_sw` defaults to 0, which sets RequireHardwareAcceleratedVideoEncoder. A Mac that cannot reach the hardware (for example a VM) therefore fails the probe ("Cannot create compression session") instead of silently using software.
 - **`-q:v` works on arm64 ffmpeg** (`vtenc_qscale_enabled`, TARGET_CPU_ARM64). We ship only arm64 ffmpeg and refuse translated processes, so constant quality is always available. There is no bitrate fallback for quality levels.
@@ -456,9 +456,9 @@ Every command is called by absolute path, and **none needs root**:
 **install.sh** (root; bash 3.2 compatible; `curl -fsSL <raw>/macos/install.sh | sudo bash`, or `sudo bash install.sh --from <tarball>`). Steps in order:
 
 1. Root check.
-2. `sw_vers -productVersion` must be ≥ 13.5.
-3. **Apple Silicon check.** `sysctl -n hw.optional.arm64` must print `1`. On Intel the key is usually missing ("unknown oid", non-zero exit) rather than 0; missing, empty or anything else counts as Intel, and the installer stops: "Sentry Six Manager for macOS needs an Apple Silicon Mac (M1 or later). This Mac has an Intel processor. Use the Docker version instead." `uname -m` is never used, because it says `x86_64` in a Rosetta shell.
-4. **Not under Rosetta.** If `sysctl -n sysctl.proc_translated` prints `1`, stop: "This installer is running under Rosetta. Open Terminal without Rosetta (Get Info > uncheck Open using Rosetta), or run it with `arch -arm64`."
+2. **Apple Silicon check.** `sysctl -n hw.optional.arm64` must print `1`. On Intel the key is usually missing ("unknown oid", non-zero exit) rather than 0; missing, empty or anything else counts as Intel, and the installer stops: "Sentry Six Manager for macOS needs an Apple Silicon Mac (M1 or later). This Mac has an Intel processor. Use the Docker version instead." `uname -m` is never used, because it says `x86_64` in a Rosetta shell.
+3. **Not under Rosetta.** If `sysctl -n sysctl.proc_translated` prints `1`, stop: "This installer is running under Rosetta. Open Terminal without Rosetta (Get Info > uncheck Open using Rosetta), or run it with `arch -arm64`."
+4. `sw_vers -productVersion` must be ≥ 13.5. This comes after the two checks above, so an old Intel Mac gets the Intel message, not a version message.
 5. Find the newest `macos-v*` release.
 6. Download over HTTPS and run `shasum -a 256 -c`.
 7. `xattr -dr com.apple.quarantine` only after the hash check (curl adds no quarantine anyway). Then `codesign --verify` on node and sentry-fsops only. The SHA-256 is the trust anchor for ffmpeg, whose signature is believed ad-hoc.
@@ -522,7 +522,7 @@ Re-running install.sh upgrades in place.
   - `setup-code.txt` has mode 0600;
   - `launchctl kill TERM` gives "Stopped cleanly", "last exit code = 0", and no ffmpeg or caffeinate left;
   - `kill -9` on node gives a restart within about 5 s;
-  - an x86_64 run (`arch -x86_64 /bin/bash install.sh`, if Rosetta is installed on the runner) stops at step 4;
+  - an x86_64 run (`arch -x86_64 /bin/bash install.sh`, if Rosetta is installed on the runner) stops at step 3;
   - a non-root `mount_smbfs` against a Homebrew Samba on `127.0.0.1:4445` (SMB3, encryption required and desired), including the wrong-password-while-mounted case, a guest-allowed share, and the `/etc/nsmb.conf` override case;
   - a clean uninstall.
 - `publish` runs only from `main`.
@@ -573,7 +573,7 @@ Everything below runs on this Linux box with an injected `platform` and fake spa
 - share.test.js:77, 99
 - converterStall.test.js:199
 
-The fix is a new `test/fixtures/tmp.js` with `realTmp(prefix)` (mkdtemp under `fs.realpathSync(os.tmpdir())`). Raw `mkdtemp(path.join(os.tmpdir(), …))` appears at 21 sites in 14 test files. M1 converts all 21, so the guard test that greps for the raw form can be strict with no allowlist. **This is Linux-safe:** on Linux `os.tmpdir()` is already real, so every path is unchanged. Other results from the same run:
+The fix is a new `test/fixtures/tmp.js` with `realTmp(prefix)` and `realTmpSync(prefix)` (mkdtemp under `fs.realpathSync(os.tmpdir())`). Temp folders made straight under `os.tmpdir()` are far more common than the critique counted: 21 async `mkdtemp(path.join(os.tmpdir(), …))` sites, plus 73 `mkdtempSync` ones and a few variants, about 98 sites in 49 test files. Most never reach a path check, so they pass through a symlinked `TMPDIR`. M1 converts only the sites that fail with a symlinked `TMPDIR`, and adds no grep guard: a strict one would have to cover all 98 sites. **This is Linux-safe:** on Linux `os.tmpdir()` is already real, so every path is unchanged. Other results from the same run:
 
 - 0 case collisions among 20,484 created paths.
 - No GNU-only tools (`stat -c`, `sed -i`, `timeout`, `readlink -f`) are used.
@@ -638,7 +638,7 @@ Ownership follows windows-handoff.md. The Windows session owns `server/platform/
 
 | # | unit | files |
 |---|---|---|
-| M1 | Test tmp fixture: `realTmp()`, the guard test, Linux-only skip helpers, all 21 raw mkdtemp sites converted | `test/fixtures/tmp.js`, `test/fixtures/os.js`, the affected tests |
+| M1 | Test tmp fixture: `realTmp()`/`realTmpSync()`, Linux-only skip helpers, the sites that fail with a symlinked `TMPDIR` converted | `test/fixtures/tmp.js`, `test/fixtures/os.js`, the affected tests |
 | M2 | `sentry-fsops` (`rename-excl`, `volinfo`, phase-2 root ops) + `posixOwnedFs` `argsFor` and `ENOTSUP` (Linux identical) | `native/darwin/sentry-fsops.c`, `server/posixOwnedFs.js`, `test/posixOwnedFs.test.js`, `test/darwinFsOps.test.js` |
 | M4 | SMB mounter as a standalone module with fakes | `server/platform/smbDarwin.js`, `test/smbDarwin.test.js`, fixtures |
 | M5 | VideoToolbox discovery | `src/main/converter/darwinDevices.js`, `test/darwinDevices.test.js`, fixtures |
