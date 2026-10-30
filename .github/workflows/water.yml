@@ -148,17 +148,19 @@ jobs:
           [IO.File]::AppendAllText($env:GITHUB_ENV, "SENTRY_HELPER=$exe`n", (New-Object Text.UTF8Encoding $false))
           Write-Host "Built $exe"
 
-      - name: GPU tiers (HW3 and HW4 clips)
+      # TEMPORARY (NVENC rate-control experiment): tools/nvencRate.js on the
+      # clips hevc_nvenc overshot; restore the full GPU tier run afterwards.
+      - name: NVENC rate control (overshooting clips)
         run: |
           $ErrorActionPreference = 'Stop'
           nvidia-smi --query-gpu=name,driver_version,pci.bus_id --format=csv
           $out = Join-Path $env:RUNNER_TEMP 'gputiers'
-          $report = Join-Path $env:RUNNER_TEMP 'gpu-report\gpu-tiers.json'
-          & $env:SENTRY_NODE tools\gpuTiers.js --ffmpeg $env:SENTRY_FFMPEG --ffprobe $env:SENTRY_FFPROBE `
+          $report = Join-Path $env:RUNNER_TEMP 'gpu-report\nvenc-rate.json'
+          & $env:SENTRY_NODE tools\nvencRate.js --ffmpeg $env:SENTRY_FFMPEG --ffprobe $env:SENTRY_FFPROBE `
             --clips 'C:\Users\ktmcm\OneDrive\Desktop\2026-10-19' --clips 'C:\Users\ktmcm\OneDrive\Desktop\2026-07-21' `
-            --out $out --report $report --minutes 3
+            --out $out --report $report
           $code = $LASTEXITCODE
-          $text = Join-Path $env:RUNNER_TEMP 'gpu-report\gpu-tiers.txt'
+          $text = Join-Path $env:RUNNER_TEMP 'gpu-report\nvenc-rate.txt'
           if (Test-Path -LiteralPath $text) {
             $fence = '```'
             [IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, "${fence}text`n$([IO.File]::ReadAllText($text))`n${fence}`n", (New-Object Text.UTF8Encoding $false))
