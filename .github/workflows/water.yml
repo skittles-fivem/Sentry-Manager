@@ -40,11 +40,14 @@ jobs:
           }
           try { node -v } catch {}
           try { nvidia-smi --query-gpu=name,driver_version,pci.bus_id --format=csv } catch {}
-      - name: Disks and network
+      - name: TrueNAS reachability
         run: |
-          Get-CimInstance Win32_LogicalDisk | Format-Table DeviceID, FileSystem, @{n='FreeGB';e={[math]::Round($_.FreeSpace/1GB)}}, @{n='SizeGB';e={[math]::Round($_.Size/1GB)}}
-          Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' } | Format-Table InterfaceAlias, IPAddress
-          foreach ($h in '192.168.1.57') {
-            $r = Test-NetConnection $h -Port 9000 -WarningAction SilentlyContinue
-            "$($h):9000 reachable: $($r.TcpTestSucceeded)"
+          foreach ($p in 443, 80, 9000, 30015) {
+            $c = New-Object Net.Sockets.TcpClient
+            $ok = $c.ConnectAsync('192.168.1.57', $p).Wait(3000)
+            "192.168.1.57:$p open: $($ok -and $c.Connected)"
+            $c.Close()
           }
+          curl.exe -sk -m 5 -o NUL -w "healthz HTTP %{http_code}`n" https://192.168.1.57:9000/healthz
+          curl.exe -s -m 5 -o NUL -w "plain http :9000 -> %{http_code}`n" http://192.168.1.57:9000/
+          Get-NetFirewallProfile | Format-Table Name, Enabled, DefaultOutboundAction
