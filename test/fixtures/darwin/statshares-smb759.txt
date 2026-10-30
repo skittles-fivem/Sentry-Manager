@@ -1,0 +1,19 @@
+==================================================================================================
+SHARE                         ATTRIBUTE TYPE                VALUE
+==================================================================================================
+TeslaCam
+                              SERVER_NAME                   nas
+                              USER_ID                       502
+                              SMB_NEGOTIATE                 SMBV_NEG_SMB3_ENABLED
+                              SMB_VERSION                   SMB_3.02
+                              SMB_SHARE_TYPE                DISK
+                              SIGNING_SUPPORTED             TRUE
+                              SIGNING_REQUIRED              TRUE
+                              SIGNING_ON                    TRUE
+                              ENCRYPTION_REQUIRED           TRUE
+                              EXTENDED_SECURITY_SUPPORTED   TRUE
+                              LARGE_FILE_SUPPORTED          TRUE
+                              FILE_IDS_SUPPORTED            TRUE
+                              DFS_SUPPORTED                 TRUE
+
+--------------------------------------------------------------------------------------------------

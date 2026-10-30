@@ -1,0 +1,11 @@
+==================================================================================================
+SHARE                         ATTRIBUTE TYPE                VALUE
+==================================================================================================
+TeslaCam
+                              SERVER_NAME                   nas
+                              SMB_VERSION                   SMB_3.1.1
+                              SMB_CURR_ENCRYPT_ALGORITHM    OFF
+                              SIGNING_ON                    FALSE
+                              GUEST_ACCESS                  TRUE
+                              FILE_IDS_SUPPORTED            TRUE
+

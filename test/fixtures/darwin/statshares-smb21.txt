@@ -1,0 +1,10 @@
+==================================================================================================
+SHARE                         ATTRIBUTE TYPE                VALUE
+==================================================================================================
+TeslaCam
+                              SERVER_NAME                   nas
+                              SMB_VERSION                   SMB_2.1
+                              SIGNING_SUPPORTED             TRUE
+                              SIGNING_ON                    FALSE
+                              FILE_IDS_SUPPORTED            TRUE
+

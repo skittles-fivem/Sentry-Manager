@@ -1,0 +1,25 @@
+==================================================================================================
+SHARE                         ATTRIBUTE TYPE                VALUE
+==================================================================================================
+TeslaCam
+                              SERVER_NAME                   nas._smb._tcp.local
+                              USER_ID                       502
+                              SMB_NEGOTIATE                 SMBV_NEG_SMB2_ENABLED
+                              SMB_NEGOTIATE                 SMBV_NEG_SMB3_ENABLED
+                              SMB_VERSION                   SMB_3.1.1
+                              SMB_ENCRYPT_ALGORITHMS        AES_128_CCM_ENABLED
+                              SMB_ENCRYPT_ALGORITHMS        AES_128_GCM_ENABLED
+                              SMB_CURR_ENCRYPT_ALGORITHM    AES_128_GCM
+                              SMB_SIGN_ALGORITHMS           AES_128_GMAC_ENABLED
+                              SMB_CURR_SIGN_ALGORITHM       AES_128_GMAC
+                              SMB_SHARE_TYPE                DISK
+                              SIGNING_SUPPORTED             TRUE
+                              SIGNING_ON                    TRUE
+                              EXTENDED_SECURITY_SUPPORTED   TRUE
+                              LARGE_FILE_SUPPORTED          TRUE
+                              FILE_IDS_SUPPORTED            TRUE
+                              MULTI_CHANNEL_SUPPORTED       TRUE
+                              SESSION_RECONNECT_TIME        0:0
+                              SESSION_RECONNECT_COUNT       0
+
+--------------------------------------------------------------------------------------------------
