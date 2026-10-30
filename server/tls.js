@@ -19,9 +19,10 @@
 // behind a reverse proxy that does HTTPS (set TRUST_PROXY=true there).
 //
 // On Docker the certificates are made with the openssl command. Windows has
-// no openssl, so there x509.js makes the same certificates in-process with
-// node:crypto (same names, lifetimes, extensions and constraints). Either one
-// can renew a certificate made by the other.
+// no openssl, and a Mac's is LibreSSL, so there x509.js makes the same
+// certificates in-process with node:crypto (same names, lifetimes,
+// extensions and constraints). Either one can renew a certificate made by
+// the other.
 
 const crypto = require('crypto');
 const fs = require('fs');
@@ -126,11 +127,12 @@ function certInfo(pem) {
 }
 
 class TlsManager {
-  constructor({ dir, log, hostnames = [], certFile = null, keyFile = null, platform = process.platform }) {
+  constructor({ dir, log, hostnames = [], certFile = null, keyFile = null, platform = process.platform, issuer = null }) {
     this.dir = dir;
     this.platform = platform;
-    // Windows: certificates from x509.js, never the openssl command
-    this.inProcess = platform === 'win32';
+    // Windows and macOS: certificates from x509.js, never the openssl command
+    // (issuer 'openssl' or 'x509' picks one, for tests)
+    this.inProcess = issuer ? issuer === 'x509' : (platform === 'win32' || platform === 'darwin');
     this.log = log;
     this.extraHostnames = hostnames;
     this.ownCert = certFile && keyFile ? { certFile, keyFile } : null;
@@ -232,7 +234,8 @@ class TlsManager {
     await renameReplace(`${this.files.caCrt}.tmp`, this.files.caCrt);
     await fsp.writeFile(path.join(this.dir, 'ca-names.json'), JSON.stringify(extraDns));
     await rmRetry(this.files.crt, { force: true });
-    const where = this.platform === 'win32' ? this.files.caCrt : '/data/tls/ca.crt';
+    // (Docker keeps its literal text whatever DATA_PATH is)
+    const where = this.platform === 'win32' || this.platform === 'darwin' ? this.files.caCrt : '/data/tls/ca.crt';
     this.log?.warn(`Created a new HTTPS certificate authority. Install ${where} on your devices (Settings > Security) to trust the page.`);
   }
 

@@ -18,6 +18,9 @@
 //   - On Windows (the native build) SentryService.exe runs this process as
 //     its own service account; what differs from Linux (default folders,
 //     path rules, retries, the share mounter) comes from server/platform.
+//   - On a Mac (the native build, Apple Silicon only) launchd runs this
+//     process as the hidden account _sentrysix; it mounts shares itself and
+//     keeps its own certificate, as on Windows.
 
 process.env.UV_THREADPOOL_SIZE = process.env.UV_THREADPOOL_SIZE || '16';
 // the database holds password hashes and SMB passwords: nothing we create is world-readable
@@ -31,7 +34,7 @@ const os = require('os');
 const path = require('path');
 const zlib = require('zlib');
 const { spawn } = require('child_process');
-const { Logger } = require('./log');
+const { Logger, consoleOff } = require('./log');
 const { ManagerDB } = require('./db');
 const { Auth, parseCookies } = require('./auth');
 const { VehicleManager } = require('./vehicles');
@@ -40,8 +43,8 @@ const { RecycleBin, formatBytes } = require('./recycleBin');
 const { Policies } = require('./policies');
 const { Jobs, Notifications } = require('./activity');
 const { ImageUpdates, criticalFromFile } = require('./imageUpdates');
-// The Windows package's update notice reads GitHub Releases instead of the
-// image registry (BUILD_INFO channel "windows"). Docker always takes
+// The Windows and macOS packages' update notice reads GitHub Releases
+// instead of the image registry (BUILD_INFO channel "windows" or "macos"). Docker always takes
 // ImageUpdates; until releaseUpdates.js is in this tree, so does every build.
 const { ReleaseUpdates, chooseUpdates } = (() => {
   try {
@@ -63,6 +66,7 @@ const { hiddenPath, readDir, stat, sendMedia, readTextConfined } = require('./st
 const { createRealGuard, isInside } = require('./safePath');
 const platform = require('./platform');
 const { watchStopLine, windowsAccount, refuseRequestPath, createAwakeVotes } = require('./platform/runtime');
+const { canonicalRoot, emptyDir, darwinAccount } = require('./platform/darwinRuntime');
 const { continueTemplate, fingerprintFallback } = require('./continueWording');
 const { VERSIONS, DEFAULT_VERSION, securitySummary } = require('./mountSpec');
 const { TlsManager, localTlsSource, supervisorTlsSource, parseHostnames } = require('./tls');
@@ -78,14 +82,18 @@ const { run } = require('./proc');
 const { Telemetry } = require('./telemetry');
 const { createSpeedIndex } = require('./speedIndex');
 
-const APP_ROOT = path.resolve(process.env.APP_ROOT || path.join(__dirname, '..'));
+// macOS: every root as the disk spells it (/tmp, /var and /etc are links
+// into /private there); the paths as given everywhere else
+const rootPath = (p) => (platform.name === 'darwin' ? canonicalRoot(p, platform.realpathSync) : p);
+const APP_ROOT = rootPath(path.resolve(process.env.APP_ROOT || path.join(__dirname, '..')));
 const SRC = path.join(APP_ROOT, 'src');
 const WEB = path.join(APP_ROOT, 'web');
 // defaults: /data, /run/sentry-six-manager, /footage, ffmpeg on the PATH in
-// Docker; %ProgramData%\SentrySixManager\... and the bundled ffmpeg.exe on Windows
-const DATA = path.resolve(process.env.DATA_PATH || platform.defaults.data);
-const RUN_DIR = path.resolve(process.env.RUN_DIR || platform.defaults.run);
-const FOOTAGE_ROOT = path.resolve(process.env.FOOTAGE_ROOT || platform.defaults.footage);
+// Docker; %ProgramData%\SentrySixManager\... and the bundled ffmpeg.exe on Windows;
+// /Library/Application Support/SentrySixManager/... and the bundled ffmpeg on a Mac
+const DATA = rootPath(path.resolve(process.env.DATA_PATH || platform.defaults.data));
+const RUN_DIR = rootPath(path.resolve(process.env.RUN_DIR || platform.defaults.run));
+const FOOTAGE_ROOT = rootPath(path.resolve(process.env.FOOTAGE_ROOT || platform.defaults.footage));
 const PORT = Number(process.env.PORT || 9000);
 const HOST = process.env.HOST || '0.0.0.0';
 const FFMPEG = process.env.FFMPEG_PATH || platform.defaults.ffmpeg;
@@ -101,8 +109,9 @@ const TRUST_PROXY = process.env.TRUST_PROXY === 'true';
 //   stopChannel  the supervisor asks this process to stop (and its
 //                disconnect means stop)
 // SENTRY_STOP_STDIN=1 (Windows): a "stop" line on stdin is the graceful
-// stop, as SIGTERM is in Docker.
-const SUPERVISED = process.env.SENTRY_SUPERVISED === '1' && typeof process.send === 'function';
+// stop, as SIGTERM is in Docker. A Mac is never supervised: launchd runs
+// this process directly and stops it with SIGTERM.
+const SUPERVISED = platform.name !== 'darwin' && process.env.SENTRY_SUPERVISED === '1' && typeof process.send === 'function';
 const SWITCHES = Object.freeze({
   ipcMounter: SUPERVISED,
   ipcTls: SUPERVISED && Boolean(process.env.SENTRY_TLS_DIR),
@@ -226,7 +235,10 @@ function confirmRequired() {
 }
 
 async function main() {
-  const logger = new Logger({ level: process.env.LOG_LEVEL || 'info', file: path.join(DATA, 'logs', 'manager.log') });
+  // macOS: an x86_64 or Rosetta process says so on stderr and exits 78
+  if (platform.name === 'darwin' && !platform.checkArch()) return;
+  // SENTRY_CONSOLE=off (the macOS service): the log file only, not stdout
+  const logger = new Logger({ level: process.env.LOG_LEVEL || 'info', file: path.join(DATA, 'logs', 'manager.log'), silent: consoleOff(process.env) });
   logger.captureConsole();
   const log = logger.scope('server');
   fs.mkdirSync(DATA, { recursive: true });
@@ -247,13 +259,20 @@ async function main() {
   // (a no-op on Linux: Docker's host decides that)
   const awake = createAwakeVotes(platform.keepAwake);
 
-  // Docker: over IPC to the supervisor, or mount.cifs here; Windows: the helper
+  // macOS: TMPDIR (run/tmp) starts empty; run/home is kept
+  if (platform.name === 'darwin') emptyDir(path.join(RUN_DIR, 'tmp'));
+
+  // Docker: over IPC to the supervisor, or mount.cifs here; Windows: the
+  // helper; macOS: mount_smbfs as this process's own account
   const mounter = platform.mounter({
     ipc: SWITCHES.ipcMounter, channel: process, footageRoot: FOOTAGE_ROOT, credDir: RUN_DIR, log: logger.scope('smb'),
     uid: Number(process.env.PUID ?? process.getuid?.() ?? 0), gid: Number(process.env.PGID ?? process.getgid?.() ?? 0)
   });
-  // a PATH-style list: ":" between folders in Docker, ";" on Windows (C:\...)
-  const folderRoots = [FOOTAGE_ROOT, ...(process.env.FOLDER_ROOTS || '').split(platform.listDelimiter).filter(Boolean)];
+  // a PATH-style list: ":" between folders in Docker, ";" on Windows (C:\...);
+  // macOS: the footage folder, /Volumes and /Users/Shared plus FOLDER_ROOTS
+  const folderRoots = platform.name === 'darwin'
+    ? platform.folderRoots(FOOTAGE_ROOT)
+    : [FOOTAGE_ROOT, ...(process.env.FOLDER_ROOTS || '').split(platform.listDelimiter).filter(Boolean)];
   // FOOTAGE_PATH comes from the container environment (trusted), not the UI
   if (process.env.FOOTAGE_PATH) folderRoots.push(process.env.FOOTAGE_PATH);
   const protectedDirs = [DATA, APP_ROOT, RUN_DIR];
@@ -265,8 +284,23 @@ async function main() {
       if (!protectedDirs.some((x) => platform.samePath(x, d)) && !folderRoots.some((r) => platform.isInside(d, path.resolve(r)))) protectedDirs.push(d);
     }
   }
+  // macOS: the system's folders no folder vehicle may overlap (/System,
+  // /private, /usr, the program folder, manager.env, ...)
+  if (platform.name === 'darwin') {
+    for (const d of platform.systemDirs()) if (!protectedDirs.some((x) => platform.samePath(x, d))) protectedDirs.push(d);
+  }
+  // (macOS: a share's "mounted" is the mounter's probe, from /sbin/mount)
   const vehicles = new VehicleManager({ db, footageRoot: FOOTAGE_ROOT, folderRoots, protectedDirs, logger, mounter, platform: platform.name });
   const smbTester = createSmbTester({ mounter, vehicles, log: logger.scope('vehicles'), platform: platform.name });
+  // macOS: shares outlive the app there; the ones a crash or a stop left
+  // behind are taken off before the vehicles mount theirs again
+  if (platform.name === 'darwin') {
+    const swept = await mounter.sweep().catch((err) => {
+      log.warn(`Could not check for shares left from before: ${err.message}`);
+      return [];
+    });
+    if (swept.length) log.info(`Disconnected ${swept.length} share(s) left from before`);
+  }
   vehicles.bootstrapFromEnv();
   let speedIndex = null;
   const inventory = new Inventory({ vehicles, db, log: logger.scope('inventory'), onChange: () => announce('inventory'), onScanned: () => speedIndex?.kick() });
@@ -325,6 +359,8 @@ async function main() {
     // Windows: counters come from the helper (perf.sample), and a share's
     // "mounted" from the mounter's connections (Docker: /proc and mountinfo)
     ...(winHelper ? { helper: winHelper, smbConnected: (unc) => mounter.isConnected?.(unc) === true } : {}),
+    // macOS: counters from ps, vm_stat, netstat, ioreg, ... (stats/platform/darwin.js)
+    ...(platform.name === 'darwin' ? { platform: platform.name } : {}),
     isBusy: () => converterRunning() || benchmarking !== null,
     readShares: () => [{ label: 'Data volume', path: DATA }, ...vehicles.list().map((v) => ({ label: v.name, path: vehicles.rootOf(v), vehicle: true, network: v.source?.type === 'smb' }))],
     // every running ffmpeg (a benchmark's too), to name processes and GPU clients
@@ -380,13 +416,21 @@ async function main() {
   // The converter's owned-file operations: Docker keeps converterHost's own
   // default (posixOwnedFs). Windows: the helper's (winOwnedFs), its GPU list
   // (gpu.list) and a check, per footage drive, that originals can be
-  // replaced safely there.
+  // replaced safely there. macOS: posixOwnedFs with sentry-fsops as the
+  // no-replace rename, and the same check per footage folder (never on a
+  // share: a Mac cannot move a file there without risking another).
+  const footageFolders = () => vehicles.list().map((v) => { try { return vehicles.studioRoot(v); } catch (_) { return null; } }).filter(Boolean);
   const host = createConverterHost({
     ...(winHelper ? {
       platform: platform.name,
       helper: winHelper,
       requestHelper: (op, args, opts) => winHelper.request(op, args, opts),
-      replacementRoots: () => vehicles.list().map((v) => { try { return vehicles.studioRoot(v); } catch (_) { return null; } }).filter(Boolean)
+      replacementRoots: footageFolders
+    } : {}),
+    ...(platform.name === 'darwin' ? {
+      platform: platform.name,
+      owned: platform.ownedFs({ volumeInfo: platform.volumeInfo }),
+      replacementRoots: footageFolders
     } : {}),
     remoteNodes: {
       list: () => nodes.list(),
@@ -439,7 +483,7 @@ async function main() {
   let bridge = null;
   let clipThumbs = null;
 
-  // (Windows package: GitHub Releases; Docker: the image registry)
+  // (Windows and macOS packages: GitHub Releases; Docker: the image registry)
   const Updates = chooseUpdates(buildInfo) === 'release' && ReleaseUpdates ? ReleaseUpdates : ImageUpdates;
   const updates = new Updates({
     db, log: logger.scope('updates'), buildInfo, notes, ownCritical: readOwnCritical(), enabled: !/^(off|false|0|no)$/i.test(process.env.UPDATE_CHECK || '')
@@ -644,7 +688,7 @@ async function main() {
     deployment: platform.deployment,
     converter: host.runtime ? { ready: true, capabilities: host.runtime.capabilities } : { ready: false, error: host.lastError?.code || null },
     nativeHelper: host.helperAvailable,
-    gpu: await detectGpus(winHelper ? { requestHelper: (op, args, opts) => winHelper.request(op, args, opts) } : {}),
+    gpu: await detectGpus(winHelper ? { requestHelper: (op, args, opts) => winHelper.request(op, args, opts) } : platform.name === 'darwin' ? { platform: platform.name, runImpl: run } : {}),
     // footage drives where originals cannot be replaced safely (Windows only;
     // always empty on Docker)
     replacementRoots: host.replacementRoots(),
@@ -652,7 +696,9 @@ async function main() {
     timezone: process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone,
     security: {
       https: isSecure(req), tlsMode: TLS_MODE, supervised: SUPERVISED,
-      runningAsRoot: process.getuid?.() === 0, uid: process.getuid?.() ?? null
+      runningAsRoot: process.getuid?.() === 0, uid: process.getuid?.() ?? null,
+      // macOS: the service account and whether node has Full Disk Access
+      ...(platform.name === 'darwin' ? darwinAccount() : {})
     },
     smbVersions: VERSIONS,
     smbDefaultVersion: DEFAULT_VERSION
@@ -669,7 +715,8 @@ async function main() {
       https: isSecure(req), tlsMode: TLS_MODE, trustProxy: TRUST_PROXY, tls,
       supervised: SUPERVISED, runningAsRoot: process.getuid?.() === 0,
       currentHost: cleanHost(req), confirmed: auth.recentlyConfirmed(req),
-      ...(platform.name === 'win32' ? windowsAccount() : {})
+      ...(platform.name === 'win32' ? windowsAccount() : {}),
+      ...(platform.name === 'darwin' ? darwinAccount() : {})
     };
   });
   r.add('PUT', '/api/security/hostnames', async (req, res, { body, user }) => {
@@ -1725,8 +1772,9 @@ async function main() {
     log.info('Stopped cleanly');
     process.exit(0);
   };
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
+  // SIGTERM and SIGINT; macOS also SIGHUP (`run` in a Terminal window that
+  // was closed). Linux leaves SIGHUP alone, as before.
+  for (const signal of platform.name === 'darwin' ? platform.shutdownSignals : ['SIGTERM', 'SIGINT']) process.on(signal, () => shutdown(signal));
   if (platform.name === 'win32') {
     // Ctrl+Break in a console, and the console window being closed
     // (`SentryService.exe run`); SIGTERM never comes on Windows

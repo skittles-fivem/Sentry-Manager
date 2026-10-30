@@ -15,6 +15,14 @@ const CONSOLE = { log: console.log.bind(console), error: console.error.bind(cons
 const SECRET = /\b(pass(?:word)?|pwd|secret|token|cookie|authorization)(\s*[=:]\s*)("[^"]*"|'[^']*'|[^\s,;&]+)/gi;
 const URL_CREDENTIALS = /(\b[a-z][a-z0-9+.-]*:\/\/)[^/\s:@]+:[^/\s@]+@/gi;
 
+/**
+ * SENTRY_CONSOLE=off (the macOS service): lines go only to the log file.
+ * launchd keeps service.log open, so only raw stderr (a crash) lands there.
+ */
+function consoleOff(env = process.env) {
+  return /^off$/i.test(String(env.SENTRY_CONSOLE || '').trim());
+}
+
 function redact(text) {
   return String(text).replace(SECRET, '$1$2***').replace(URL_CREDENTIALS, '$1***@');
 }
@@ -233,4 +241,4 @@ class Logger extends EventEmitter {
 
 const ARCHIVE_NAME = /^manager-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.log$/;
 
-module.exports = { Logger, redact, LEVELS };
+module.exports = { Logger, redact, consoleOff, LEVELS };
