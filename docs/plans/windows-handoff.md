@@ -183,3 +183,19 @@ sc.exe doesn't know (`DisplayName=` is valid, `depend=` too). Check what
 reaches sc.exe with the exact process command line; building the whole line as
 one string and starting it with `Start-Process -ArgumentList '<line>' -Wait
 -PassThru` (or `cmd /c`) avoids PowerShell's re-quoting.
+
+## Windows CI after the macOS merge (6e45d7a; run 41089010551 on 6d5207d)
+
+windows.yml's test job went from 0 to **29 failures, all in the macOS tests**
+(not mine; whoever owns the macOS work, please fix): converterHostPlatform (2),
+darwinFsSafety, darwinServerWiring (3), macosServerSmoke (3), platformDarwin,
+safeFsNoProc, sharesDarwin. They run on Windows and assume POSIX: e.g.
+expected `C:\Users\RUNNER~1\...` (8.3 short temp path) vs actual
+`C:\Users\runneradmin\...` — use fs.realpathSync.native(os.tmpdir()) for
+expected paths; `/Volumes/Café/...` expected but path.resolve on Windows gave
+`D:\Volumes\Café\...` — use path.posix for darwin paths; O_NOFOLLOW_ANY and
+symlink cases need a win32 skip with a reason (as the Linux-only ones do).
+The `app` job (native app) also failed on that run.
+Mine since then: fc60ed0 = hevc_nvenc peak-rate cap (measured, water run
+41089010627) + verifier tolerating "Last message repeated" only after a
+tolerated line.
