@@ -107,7 +107,7 @@ class RecycleBin {
     const recordings = inv.recordings.filter((r) => wanted.has(r.id));
     const result = { moved: [], skipped: [], bytes: 0 };
     const jobId = this.jobs.start({ type: reason === 'policy' ? 'policy' : 'trash', vehicleId, title: `Move ${recordings.length} recording(s) to the Recycle Bin` });
-    const realRoot = await fsp.realpath(root).catch(() => root);
+    const realRoot = await this.platform.realpath(root).catch(() => root);
     for (const rec of recordings) {
       await this.withLock(vehicleId, async () => {
         // protection is read again here: it may have been set after this run started

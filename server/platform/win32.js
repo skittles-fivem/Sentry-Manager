@@ -155,6 +155,9 @@ function createWin32Platform({ env = process.env, appRoot, exists = fs.existsSyn
       appDir,
       data,
       run,
+      // the install home holds manager.env (the passwords) beside data\ and
+      // run\; a root inside it (the default footage folder) still works
+      home,
       `${systemDrive}\\$Recycle.Bin`,
       `${systemDrive}\\System Volume Information`
     ].filter(Boolean),

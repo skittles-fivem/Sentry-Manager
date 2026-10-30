@@ -51,7 +51,7 @@ const { createConverterBridge } = require('./converterBridge');
 const { hiddenPath, readDir, stat, sendMedia, readTextConfined } = require('./studioApi');
 const { createRealGuard, isInside } = require('./safePath');
 const platform = require('./platform');
-const { watchStopLine, windowsAccount, namesValidOnWindows } = require('./platform/runtime');
+const { watchStopLine, windowsAccount, refuseRequestPath } = require('./platform/runtime');
 const { VERSIONS, DEFAULT_VERSION, securitySummary } = require('./mountSpec');
 const { TlsManager, localTlsSource, supervisorTlsSource, parseHostnames } = require('./tls');
 const { Router, HttpError, sendJson, readJson, readRaw, serveFile } = require('./http');
@@ -1233,7 +1233,7 @@ async function main() {
     announce('inventory');
     announce('bin');
     return out.skipped.length && !out.moved.length
-      ? { success: false, error: out.skipped[0].reason === 'protected' ? 'This recording is protected.' : out.skipped[0].reason === 'converting' ? 'This recording is being converted right now.' : 'Could not move it to the Recycle Bin.' }
+      ? { success: false, error: out.skipped[0].reason === 'protected' ? 'This recording is protected.' : out.skipped[0].reason === 'converting' ? 'This recording is being converted right now.' : out.skipped[0].reason === 'in-use' ? 'This recording is open in another program. Try again in a moment.' : 'Could not move it to the Recycle Bin.' }
       : { success: true };
   });
   // (the viewer's 12/24-hour clock is the manager's, Settings > Appearance)
@@ -1307,13 +1307,13 @@ async function main() {
         return sendJson(res, 400, { error: 'Bad request' });
       }
       if (p.includes('\0') || p.includes('\\') || path.posix.normalize(p) !== p) return sendJson(res, 400, { error: 'Bad request' });
-      // Windows reads some names as something else: "app.js::$DATA" is the
-      // file's data stream, "app.js." and "APP.JS " are app.js, "NUL" a
-      // device. Such a path never names a file we serve.
-      if (platform.name === 'win32' && !namesValidOnWindows(p, platform)) return sendJson(res, 400, { error: 'Bad request' });
-
       const user = auth.user(req);
       const isApi = p.startsWith('/api/');
+      // Windows reads some names as something else: "app.js::$DATA" is the
+      // file's data stream, "app.js." and "APP.JS " are app.js, "NUL" a
+      // device. Such a path never names a file we serve. API paths are not
+      // files: a vehicle named "Aux" has the id "aux" and must keep working.
+      if (refuseRequestPath(p, platform)) return sendJson(res, 400, { error: 'Bad request' });
       const publicStatic = PUBLIC_STATIC.has(p) || (p.startsWith('/web/fonts/') && !p.slice(11).includes('/'));
 
       if (isApi) {

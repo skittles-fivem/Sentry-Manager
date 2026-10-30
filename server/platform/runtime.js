@@ -49,4 +49,14 @@ function namesValidOnWindows(p, platform) {
   return parts.every((seg, i) => (seg === '' && (i === 0 || i === parts.length - 1)) || platform.validName(seg));
 }
 
-module.exports = { watchStopLine, windowsAccount, namesValidOnWindows };
+/**
+ * Should the request path `p` be refused with 400 before anything else?
+ * Only on Windows, and only for paths that become file paths (the web and
+ * Studio files). API paths are routes, not files: a vehicle named "Aux"
+ * has the id "aux", and /api/vehicles/aux/days must work as on Docker.
+ */
+function refuseRequestPath(p, platform) {
+  return platform.name === 'win32' && !String(p).startsWith('/api/') && !namesValidOnWindows(p, platform);
+}
+
+module.exports = { watchStopLine, windowsAccount, namesValidOnWindows, refuseRequestPath };

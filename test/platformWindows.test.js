@@ -25,7 +25,7 @@ const { RecycleBin } = require('../server/recycleBin');
 const { Policies } = require('../server/policies');
 const { Auth } = require('../server/auth');
 const { ManagerDB } = require('../server/db');
-const { watchStopLine, windowsAccount, namesValidOnWindows } = require('../server/platform/runtime');
+const { watchStopLine, windowsAccount, namesValidOnWindows, refuseRequestPath } = require('../server/platform/runtime');
 
 const REPO = path.join(__dirname, '..');
 const tmp = () => fsp.mkdtemp(path.join(os.tmpdir(), 'sm-win-'));
@@ -177,6 +177,18 @@ test('request paths: Windows refuses names it would read differently', () => {
   const bad = ['/web/app.js::$DATA', '/web/app.js.', '/web/app.js ', '/web/NUL', '/studio/con.html', '/web/a:b'];
   for (const p of ok) assert.equal(namesValidOnWindows(p, platform), true, p);
   for (const p of bad) assert.equal(namesValidOnWindows(p, platform), false, p);
+});
+
+test('request paths: API routes with a reserved name still work on Windows', () => {
+  const win = platform.forPlatform('win32');
+  const linux = platform.forPlatform('linux');
+  // a vehicle named "Aux" or "COM1" gets that id; it must work as on Docker
+  for (const p of ['/api/vehicles/aux/days', '/api/vehicles/com1/recordings', '/api/vehicles/nul', '/api/vehicles/prn/policy']) {
+    assert.equal(refuseRequestPath(p, win), false, p);
+  }
+  for (const p of ['/web/NUL', '/studio/con.html', '/web/app.js::$DATA']) assert.equal(refuseRequestPath(p, win), true, p);
+  // Linux refuses none of them, as before
+  for (const p of ['/web/NUL', '/api/vehicles/aux/days']) assert.equal(refuseRequestPath(p, linux), false, p);
 });
 
 test('log: on Windows a log file held open is written to and rotated later', () => {

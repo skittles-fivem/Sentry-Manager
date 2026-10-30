@@ -84,7 +84,7 @@ test('Windows: the system and the app folders are denied', () => {
   const run = win.defaults.run;
   assert.deepEqual(win.denyRoots({ data, appRoot: APP, run }), [
     'C:\\Windows', 'C:\\Program Files', 'C:\\Program Files (x86)', APP, data, run,
-    'C:\\$Recycle.Bin', 'C:\\System Volume Information'
+    'C:\\ProgramData\\SentrySixManager', 'C:\\$Recycle.Bin', 'C:\\System Volume Information'
   ]);
 });
 
