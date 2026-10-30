@@ -295,7 +295,7 @@ function createStats(options = {}) {
       memory,
       gpus: gpus.map(({ powerSource, ...g }) => g),
       // (why the CPU's watts are missing: 'windows', 'vm' or null)
-      power: { ...pw, cpuUnavailable: cpuUnavailable({ cpuW: pw.cpuW, wsl: host.static?.wsl === true, virtual: cpu.info.virtual === true, windows: platform === 'win32' }), todayWh: es.todayWh, weekWh: es.weekWh, todayCost: es.todayCost, weekCost: es.weekCost, priceNow },
+      power: { ...pw, cpuUnavailable: cpuUnavailable({ cpuW: pw.cpuW, wsl: host.static?.wsl === true, virtual: cpu.info.virtual === true, windows: platform === 'win32' && power.meter === false }), todayWh: es.todayWh, weekWh: es.weekWh, todayCost: es.todayCost, weekCost: es.weekCost, priceNow },
       disks: diskList,
       filesystems: fsList,
       network: { ...net, today: used.today, week: used.week, month: used.month },

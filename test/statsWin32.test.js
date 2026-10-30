@@ -73,6 +73,8 @@ test('Windows: the whole body from the helper\'s performance counters', async ()
     assert.equal(cpu.threads, 32);
     assert.deepEqual(cpu.perCore, W.LOADS, 'one per logical CPU, "_Total" left out');
     assert.equal(cpu.usage, Math.round(mean(W.LOADS) * 10) / 10);
+    // (needs '% Processor Performance Base' in perf.sample's cpu set, which the
+    // recorded answers carry; a helper without it gives null, tested below)
     assert.equal(cpu.freqMHz, 5590, 'the fastest core: 4300 MHz at 130 %');
     assert.equal(cpu.tempC, null);
     assert.equal(cpu.load, null, 'Windows has no load average');
@@ -208,7 +210,7 @@ test('Windows: rates over two readings, and a process that started in between', 
   }
 });
 
-test('Windows: a counter that went back is a reset (no rate), a 32-bit one wraps', async () => {
+test('Windows: a counter that went back is a reset (no rate)', async () => {
   // the Ethernet adapter was disabled and enabled, a disk taken offline and back, an ffmpeg's engine counter reset
   const reset = W.edited(W.RECORDED.perf[2], (r) => {
     r.sets.net['Intel[R] Ethernet Controller I226-V']['Bytes Received/sec'] = '1000';
@@ -224,7 +226,7 @@ test('Windows: a counter that went back is a reset (no rate), a 32-bit one wraps
     assert.equal(snap.disks[0].busy, null);
     assert.equal(snap.disks[1].writeBps, 125829120, 'the other disk is not affected');
     assert.equal(snap.power.cpuW, null, 'no rate from a reset energy counter');
-    assert.equal(snap.power.cpuUnavailable, 'windows');
+    assert.equal(snap.power.cpuUnavailable, null, 'the PC has the counters: a gap, not "not available on this PC"');
     // the data used starts a new count instead of a bogus number
     assert.deepEqual(snap.network.today, { rxB: 25000000, txB: 2000000 });
   } finally {
@@ -233,7 +235,7 @@ test('Windows: a counter that went back is a reset (no rate), a 32-bit one wraps
 
   assert.equal(counterDelta('100', '250'), 150);
   assert.equal(counterDelta('250', '100'), null, '64-bit: a step back is a reset');
-  assert.equal(counterDelta(String(2 ** 32 - 100), '50', 32), 150, '32-bit: wrapped once');
+  assert.equal(counterDelta(String(2 ** 32 - 100), '50', 32), 150, '32-bit: wrapped once (no counter read today is of that kind)');
   assert.equal(counterDelta('18446744073709551000', '18446744073709551615'), 615, 'exact past 2^53');
   assert.equal(counterDelta(null, '5'), null);
   assert.equal(counterDelta('x', '5'), null);
@@ -413,6 +415,24 @@ test('Windows: where a share lives (drive letter, UNC path)', () => {
   assert.deepEqual(p.locate('c:\\ProgramData\\SentrySixManager\\data', false), { fsType: 'ntfs', source: 'C:', disk: 'Disk 0 (C:)', smbVersion: null, mounted: null });
   assert.deepEqual(p.locate('\\\\nas\\tesla\\Model 3', true), { fsType: 'smb3', source: '//nas/tesla', disk: null, smbVersion: null, mounted: true });
   assert.equal(p.locate('D:\\x', true).mounted, false, 'a network vehicle on a local drive is not connected');
+
+  // with the Windows mounter's answer: a lost share is not mounted, as mountinfo says it on Linux
+  const asked = [];
+  const connected = new Set(['\\\\nas\\tesla']);
+  const q = createProviders({
+    now: () => 0, spawn: fakeSpawn(), timers: W.manualTimers(), intervalMs: 2000, log: null, appPid: 1,
+    options: { helper: null, os: W.fakeOs(), smbConnected: (root) => { asked.push(root); return connected.has(root); } }
+  });
+  assert.equal(q.locate('\\\\nas\\tesla\\Model 3', true).mounted, true);
+  assert.equal(q.locate('\\\\nas\\other\\Model Y', true).mounted, false);
+  connected.clear();
+  assert.equal(q.locate('\\\\nas\\tesla\\Model 3', true).mounted, false, 'the connection was lost');
+  assert.deepEqual(asked, ['\\\\nas\\tesla', '\\\\nas\\other', '\\\\nas\\tesla'], 'asked by share root');
+  const broken = createProviders({
+    now: () => 0, spawn: fakeSpawn(), timers: W.manualTimers(), intervalMs: 2000, log: null, appPid: 1,
+    options: { helper: null, os: W.fakeOs(), smbConnected: () => { throw new Error('x'); } }
+  });
+  assert.equal(broken.locate('\\\\nas\\tesla', true).mounted, false);
 });
 
 test('Windows: helpers for names and ids', () => {
@@ -421,7 +441,13 @@ test('Windows: helpers for names and ids', () => {
   assert.equal(luidKey('bogus'), null);
   assert.equal(hexId(4318), '0x10de');
   assert.equal(hexId('0x10DE'), '0x10de');
-  assert.equal(hexId('4098'), '0x1002');
+  assert.equal(hexId(4098), '0x1002');
+  // a four-character string is hex as Windows writes it (PCI\\VEN_8086), even when it is all digits
+  assert.equal(hexId('10de'), '0x10de');
+  assert.equal(hexId('8086'), '0x8086');
+  assert.equal(hexId('1002'), '0x1002');
+  assert.equal(hexId('4318'), '0x4318');
+  assert.equal(hexId('bogus'), null);
   assert.equal(perfInstanceName('Intel(R) Ethernet Controller I226-V #2'), 'Intel[R] Ethernet Controller I226-V _2');
   assert.equal(diskKind({ busType: 'NVMe', mediaType: 'SSD' }), 'nvme');
   assert.equal(diskKind({ busType: 11, mediaType: 4 }), 'ssd');
@@ -440,5 +466,119 @@ test('Linux is picked unless win32 is asked for', async () => {
     assert.equal(snap.power.cpuSource === null || snap.power.cpuSource === 'rapl', true);
   } finally {
     s.done();
+  }
+});
+
+test('Windows: the PC clock stepping back is a break in the readings, not old answers', async () => {
+  // readings 1 and 2 with Windows's clock an hour earlier (a manual change, or
+  // the time service correcting it after a resume); the counters go on
+  const HOUR = 36000000000n; // in 100 ns
+  const back = (r) => W.edited(r, (x) => { x.t100ns = String(BigInt(x.t100ns) - HOUR); });
+  // (a fourth reading 2 s on, its counters not moved, to see it stays fresh)
+  const still = W.edited(back(W.RECORDED.perf[2]), (x) => { x.t100ns = String(BigInt(x.t100ns) + 20000000n); });
+  const w = winSetup({ helper: W.fakeHelper({ perf: [W.RECORDED.perf[0], back(W.RECORDED.perf[1]), back(W.RECORDED.perf[2]), still] }) });
+  const ref = winSetup();
+  try {
+    w.helper.phase = 0;
+    w.stats.touch();
+    await w.stats.settle();
+    // the step: kept as the newest, with no rates this once (as a first reading)
+    w.helper.phase = 1;
+    w.clock.advance(2000);
+    w.timers.fire();
+    await w.stats.settle();
+    w.clock.advance(300);
+    w.stats.sampleNow();
+    await w.stats.settle();
+    const atStep = w.stats.snapshot();
+    assert.equal(atStep.cpu.usage, null);
+    assert.equal(atStep.power.cpuW, null);
+    assert.equal(atStep.power.cpuUnavailable, null, 'a gap, not "not available on this PC"');
+    // the next reading has rates again, the same as without the step
+    w.helper.phase = 2;
+    w.clock.advance(1700);
+    w.timers.fire();
+    await w.stats.settle();
+    w.clock.advance(300);
+    w.stats.sampleNow();
+    await w.stats.settle();
+    const after = w.stats.snapshot();
+    const expect = await sampled(ref, 2);
+    assert.notEqual(after.cpu.usage, null);
+    assert.equal(after.cpu.usage, expect.cpu.usage);
+    assert.equal(after.disks[1].writeBps, expect.disks[1].writeBps);
+    assert.notEqual(after.power.cpuW, null);
+    assert.equal(after.power.cpuW, expect.power.cpuW);
+    // and the readings go on while the clock is behind: nothing goes stale
+    w.helper.phase = 3;
+    w.stats.touch();
+    w.clock.advance(1700);
+    w.timers.fire();
+    await w.stats.settle();
+    w.clock.advance(300);
+    w.stats.sampleNow();
+    await w.stats.settle();
+    const later = w.stats.snapshot();
+    assert.equal(later.disks[1].writeBps, 0, 'fresh numbers (nothing moved), not null');
+  } finally {
+    w.done();
+    ref.done();
+  }
+});
+
+test('Windows: the PC clock jumping far ahead of ours is a break too', async () => {
+  const DAY = 864000000000n; // in 100 ns
+  const ahead = W.edited(W.RECORDED.perf[1], (x) => { x.t100ns = String(BigInt(x.t100ns) + DAY); });
+  const w = winSetup({ helper: W.fakeHelper({ perf: [W.RECORDED.perf[0], ahead] }) });
+  try {
+    const snap = await sampled(w, 1);
+    assert.equal(snap.cpu.usage, null, 'no rate averaged over a day that did not pass');
+    assert.equal(snap.network.interfaces[0].rxBps, null);
+  } finally {
+    w.done();
+  }
+});
+
+test('Windows: a PC with Energy Meter counters never says "not available" while waiting for watts', async () => {
+  const w = winSetup();
+  try {
+    // only the first reading: no watts yet
+    const first = await sampled(w, 0);
+    assert.equal(first.power.cpuW, null);
+    assert.equal(first.power.cpuUnavailable, null);
+    const snap = await sampled(w, 1);
+    assert.equal(snap.power.cpuW !== null, true);
+    // the helper stalls: watts gone, still no "not available on this PC"
+    w.helper.request = () => new Promise(() => {});
+    w.clock.advance(11000);
+    w.stats.sampleNow();
+    const later = w.stats.snapshot();
+    assert.equal(later.power.cpuW, null);
+    assert.equal(later.power.cpuUnavailable, null);
+  } finally {
+    w.done();
+  }
+
+  // before any reading came (a helper that has not answered yet): no reason either
+  const hung = winSetup({ helper: W.fakeHelper({ ops: { 'perf.sample': 'hang' } }) });
+  try {
+    hung.stats.touch();
+    assert.equal(hung.stats.sampleNow().power.cpuUnavailable, null);
+  } finally {
+    hung.done();
+  }
+});
+
+test('Windows: perf.sample exactly as the protocol lists the cpu set (no "% Processor Performance Base"): no clock, the rest the same', async () => {
+  const strip = (r) => W.edited(r, (x) => {
+    for (const inst of Object.values(x.sets.cpu)) delete inst['% Processor Performance Base'];
+  });
+  const w = winSetup({ helper: W.fakeHelper({ perf: [strip(W.RECORDED.perf[0]), strip(W.RECORDED.perf[1])] }) });
+  try {
+    const snap = await sampled(w, 1);
+    assert.equal(snap.cpu.freqMHz, null);
+    assert.deepEqual(snap.cpu.perCore, W.LOADS);
+  } finally {
+    w.done();
   }
 });

@@ -42,11 +42,11 @@ const INFO_EVERY_MS = 10 * 60 * 1000;
 // a failed sys.info / gpu.list is asked again after a minute, not ten
 const INFO_RETRY_MS = 60 * 1000;
 const FIRST_FOLLOW_UP_MS = 400; // the second sample (the first rates) comes soon after the first
+// (a counter of the 32-bit kinds, PERF_COUNTER_COUNTER, wraps at 2^32;
+// every counter read here today is 64-bit, PERF_COUNTER_BULK_COUNT or a
+// 100 ns timer, which never wraps in practice, so a step back is a reset.
+// counterDelta still takes bits = 32 for a counter of that kind.)
 const TWO_32 = 1n << 32n;
-// counters of the 32-bit kinds (PERF_COUNTER_COUNTER, PERF_COUNTER_RAWCOUNT):
-// they wrap at 2^32. Everything else read here is 64-bit and never wraps in
-// practice, so a step back there is a reset.
-const COUNTER_BITS = { 'Disk Reads/sec': 32, 'Disk Writes/sec': 32 };
 // Energy Meter "Energy" counts picowatt-hours (EMI_MEASUREMENT_UNIT), "Power" milliwatts
 const J_PER_PWH = 3.6e-9;
 const MW = 1000;
@@ -83,12 +83,15 @@ function counterDelta(prev, cur, bits = 64) {
 /** "AMD Ryzen 9 9950X 16-Core Processor" / "Intel(R) UHD Graphics 770" without the trademark signs. */
 const cleanName = (s) => String(s || '').replace(/\((R|TM|tm|r)\)/g, '').replace(/\s+/g, ' ').trim() || null;
 
-/** 0x10de, '0x10DE', '10de' or 4318 -> '0x10de'. */
+/**
+ * 0x10de, '0x10DE', '10de', '8086' or 4318 -> '0x10de'. A string of four
+ * characters is the id in hex as Windows writes it (PCI\\VEN_8086): '8086' is
+ * Intel, not 8086 in decimal. A decimal id only ever comes as a JSON number.
+ */
 function hexId(v) {
   if (typeof v === 'number' && Number.isInteger(v) && v >= 0) return `0x${v.toString(16).padStart(4, '0')}`;
   const s = String(v ?? '').trim().toLowerCase();
   if (/^0x[0-9a-f]{1,8}$/.test(s)) return `0x${s.slice(2).padStart(4, '0')}`;
-  if (/^\d+$/.test(s)) return `0x${Number(s).toString(16).padStart(4, '0')}`;
   if (/^[0-9a-f]{4}$/.test(s)) return `0x${s}`;
   return null;
 }
@@ -269,17 +272,39 @@ class PerfSource {
       return;
     }
     r.then(({ ok, result }) => {
-      const s = ok ? this.parse(result, began) : null;
-      // an answer older than the one kept (it should not happen) is dropped
-      if (s && !(this.cur && s.t <= this.cur.t)) {
-        this.prev = this.cur;
-        this.cur = s;
-      }
+      this.accept(ok ? this.parse(result, began) : null);
       this.polls++;
       const took = this.now() - began;
       const next = this.polls === 1 ? Math.min(FIRST_FOLLOW_UP_MS, this.intervalMs) : Math.max(Math.round(this.intervalMs / 2), this.intervalMs - (Number.isFinite(took) && took > 0 ? took : 0));
       this.schedule(next);
     });
+  }
+
+  /**
+   * Keep a new reading. Its time (t100ns) is Windows's wall clock, which can
+   * step: a manual change, or the time service correcting the clock after a
+   * resume. A reading whose time is before the kept one, or that moved
+   * much further than our own clock did, is a break, not an old answer to
+   * throw away: it is kept as the newest, with nothing before it, so that
+   * one sample has no rates (the same as the very first) and the next has
+   * them again. (Only one perf.sample is ever in flight, so answers cannot
+   * arrive out of order.)
+   */
+  accept(s) {
+    if (!s) return;
+    const c = this.cur;
+    // the same reading again (the same time to the 100 ns): nothing new
+    if (c && s.t === c.t) return;
+    let broken = !c || s.t < c.t;
+    if (!broken) {
+      const wallMs = Number(s.t - c.t) / 1e4;
+      const ourMs = s.at - c.at;
+      // our readings are taken when the request starts, the helper's when it
+      // answers: allow a slow answer and a few intervals of slack
+      broken = Number.isFinite(ourMs) && Math.abs(wallMs - ourMs) > this.staleMs + Math.max(5000, 2 * this.intervalMs);
+    }
+    this.prev = broken ? null : c;
+    this.cur = s;
   }
 
   /**
@@ -295,11 +320,7 @@ class PerfSource {
       if (!this.busy.has('perf') && (this.cur === null || t - this.cur.at >= this.intervalMs / 2)) {
         const r = this.ask('perf', 'perf.sample', { sets: SETS }, Math.max(5000, 2 * this.intervalMs));
         r?.then(({ ok, result }) => {
-          const s = ok ? this.parse(result, t) : null;
-          if (s && !(this.cur && s.t <= this.cur.t)) {
-            this.prev = this.cur;
-            this.cur = s;
-          }
+          this.accept(ok ? this.parse(result, t) : null);
         });
       }
     }
@@ -631,8 +652,8 @@ class WinDisks {
       let writeBps = null;
       let busy = null;
       if (c && p && pair.seconds > 0) {
-        const r = counterDelta(p['Disk Read Bytes/sec'], c['Disk Read Bytes/sec'], COUNTER_BITS['Disk Read Bytes/sec']);
-        const w = counterDelta(p['Disk Write Bytes/sec'], c['Disk Write Bytes/sec'], COUNTER_BITS['Disk Write Bytes/sec']);
+        const r = counterDelta(p['Disk Read Bytes/sec'], c['Disk Read Bytes/sec']);
+        const w = counterDelta(p['Disk Write Bytes/sec'], c['Disk Write Bytes/sec']);
         // a counter that went back (the disk was taken offline and back) gives no rate this time
         if (r !== null && w !== null) {
           readBps = Math.round(r / pair.seconds);
@@ -923,6 +944,11 @@ class WinPower {
   constructor({ src }) {
     this.src = src;
     this.sockets = new Map();
+    // whether this PC has Energy Meter package counters: null until a
+    // reading has come, then true for good once one had them. Only false
+    // makes cpuUnavailable say 'windows'; a passing gap (the first reading,
+    // a stalled helper, a counter reset) leaves cpuW null with no reason.
+    this.meter = null;
   }
 
   probe() {}
@@ -942,11 +968,13 @@ class WinPower {
    * CPU package W from the Energy Meter counters (Windows 10 and 11 have them
    * on many Intel and AMD PCs): the energy used between two readings over
    * the time between them, every package together. null without them (then
-   * cpuUnavailable says 'windows'), and on the first reading.
+   * `meter` is false and cpuUnavailable says 'windows'), and on the first
+   * reading.
    */
   cpu() {
     this.sockets = new Map();
     const pair = this.src.current();
+    if (pair?.cur && this.meter !== true) this.meter = Object.keys(setOf(pair.cur, 'energy')).some((inst) => packageSocket(inst) !== null);
     if (!pair?.prev || !(pair.seconds > 0) || pair.seconds > 60) return null;
     const cur = setOf(pair.cur, 'energy');
     const prev = setOf(pair.prev, 'energy');
@@ -1023,12 +1051,27 @@ class WinHost {
  * Where a share lives, for the Shares list (the Linux build reads
  * /proc/<pid>/mountinfo): a UNC path (\\host\share\…, an SMB vehicle) is an
  * SMB 3 share; a drive letter is that volume, on its disk.
+ *
+ * Whether an SMB share is connected comes from the Windows mounter
+ * (`smbConnected('\\\\host\\share')`, true or false), as mountinfo says it on
+ * Linux, so a lost share shows as not mounted there too. Without it given,
+ * a UNC path is taken as connected.
  */
-function locator(src) {
+function locator(src, smbConnected) {
   return (p, network) => {
     const s = String(p || '');
     const unc = /^\\\\([^\\/?.][^\\/]*)\\([^\\/]+)/.exec(s);
-    if (unc) return { fsType: 'smb3', source: `//${unc[1]}/${unc[2]}`, disk: null, smbVersion: null, mounted: true };
+    if (unc) {
+      let mounted = true;
+      if (typeof smbConnected === 'function') {
+        try {
+          mounted = smbConnected(`\\\\${unc[1]}\\${unc[2]}`) === true;
+        } catch {
+          mounted = false;
+        }
+      }
+      return { fsType: 'smb3', source: `//${unc[1]}/${unc[2]}`, disk: null, smbVersion: null, mounted };
+    }
     const m = /^([a-z]):/i.exec(path.win32.normalize(s));
     if (!m) return network ? { mounted: false } : null;
     const letter = `${m[1].toUpperCase()}:`;
@@ -1042,8 +1085,9 @@ function locator(src) {
 /**
  * The Windows providers for createStats (the same members as linux.js).
  * `ctx.options.helper` is the SentryHelper client (server/platform/winHelper.js:
- * request(op, args, { timeoutMs }), available()); `ctx.options.os` stands in
- * for node:os in tests.
+ * request(op, args, { timeoutMs }), available()); `ctx.options.smbConnected`
+ * says whether an SMB share is connected (see locator); `ctx.options.os`
+ * stands in for node:os in tests.
  */
 function createProviders(ctx) {
   const { now, spawn, timers, intervalMs, log, appPid, options = {} } = ctx;
@@ -1065,7 +1109,7 @@ function createProviders(ctx) {
     host: new WinHost({ src, version: options.version, osMod }),
     // the compose lines of index.js UNLOCK mean nothing here
     unlockable: false,
-    locate: locator(src),
+    locate: locator(src, options.smbConnected),
     start: () => src.start(),
     stop: () => src.stop(),
     idle: () => src.idle()
