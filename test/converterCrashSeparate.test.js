@@ -27,7 +27,7 @@ for (const [label, point, networkMode = 'direct'] of [
   ['the clip\'s result was written', 'after-result'],
   ['the clip\'s private files were being removed', 'cleanup-unrecorded']
 ]) {
-  test(`a separate output folder, killed when ${label}: the job finishes by itself`, { skip, timeout: 180_000 }, async () => {
+  test(`a separate output folder, killed when ${label}: the job finishes by itself`, { skip, timeout: 420_000 }, async () => {
     assertRecovered(await crashAndRecover({ point, mode: 'separate', networkMode }), { mode: 'separate' });
   });
 }

@@ -61,12 +61,11 @@ async function crashAndRecover({ point, mode = 'replace', networkMode = 'direct'
   const before = Object.fromEntries(names.map((name) => [name, points.sha256(path.join(folder, name))]));
   const died = await crash(base, { point, concurrency, mode, networkMode });
   let env;
-  let timer;
   try {
     env = await points.open(base, { concurrency, mode, networkMode });
     await env.runtime.start();
     const [listed] = await env.runtime.service.list();
-    await Promise.race([env.runtime.service.whenIdle(listed.id), new Promise((resolve) => { timer = setTimeout(resolve, 90_000); })]);
+    await points.waitForJob(env.runtime, listed.id);
     const job = await env.runtime.service.get(listed.id);
     const clipsAfter = names.map((name) => {
       const output = mode === 'replace' ? path.join(folder, name)
@@ -79,7 +78,6 @@ async function crashAndRecover({ point, mode = 'replace', networkMode = 'direct'
     });
     return { died, job, clips: clipsAfter, leftovers: points.leftovers(base, folder), names: fs.readdirSync(folder).sort(), expectedNames: names };
   } finally {
-    clearTimeout(timer);
     await env?.runtime.shutdown().catch(() => {});
     fs.rmSync(base, { recursive: true, force: true });
   }

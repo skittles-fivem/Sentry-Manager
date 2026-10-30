@@ -44,7 +44,7 @@ const CASES = [
 ];
 
 for (const [label, point] of CASES) {
-  test(`replacing originals, killed when ${label}: the job finishes by itself`, { skip, timeout: 180_000 }, async () => {
+  test(`replacing originals, killed when ${label}: the job finishes by itself`, { skip, timeout: 420_000 }, async () => {
     assertRecovered(await crashAndRecover({ point }));
   });
 }
@@ -57,7 +57,7 @@ for (const [label, point] of [
   ['the telemetry writer', 'writer'],
   ['the conversion had just taken the original\'s name', 'after-final']
 ]) {
-  test(`replacing originals through local staging, killed when ${label}: the job finishes by itself`, { skip, timeout: 180_000 }, async () => {
+  test(`replacing originals through local staging, killed when ${label}: the job finishes by itself`, { skip, timeout: 420_000 }, async () => {
     assertRecovered(await crashAndRecover({ point, networkMode: 'staging' }));
   });
 }
@@ -68,7 +68,7 @@ for (const [label, point, fromState] of [
   ['an encode', 'encode', 'encoding'],
   ['the copy beside the original (half written)', 'temp-torn', 'copying']
 ]) {
-  test(`a job an earlier version parked after a stop during ${label} finishes by itself`, { skip, timeout: 180_000 }, async () => {
+  test(`a job an earlier version parked after a stop during ${label} finishes by itself`, { skip, timeout: 420_000 }, async () => {
     assertRecovered(await crashAndRecover({
       point,
       networkMode: 'staging',

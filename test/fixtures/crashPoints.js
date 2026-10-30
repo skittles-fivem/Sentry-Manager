@@ -412,6 +412,44 @@ function leftovers(base, folder) {
 }
 
 
+// Waits for the restarted job to finish. A slow machine (a CI runner with
+// every crash suite and their ffmpegs at once) can take minutes for what
+// takes seconds here, so there is no fixed limit on the time: the job is
+// waited for while it moves (its record or a running encode changes), and
+// given up on once nothing has changed for STALL_MS (a converter that waits
+// on something that never comes), or after WAIT_MS in all. Resolves why the
+// wait ended: 'finished', 'stalled' or 'too long'.
+const STALL_MS = 60_000;
+const WAIT_MS = 240_000;
+async function waitForJob(runtime, id, note = () => {}) {
+  let finished = false;
+  runtime.service.whenIdle(id).then(() => { finished = true; }, () => { finished = true; });
+  const started = Date.now();
+  let seenJob = null;
+  let seenEncodes = null;
+  let changed = started;
+  while (!finished) {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    if (finished) break;
+    const job = await runtime.service.get(id).catch(() => null);
+    const jobNow = JSON.stringify([job?.revision, job?.state]);
+    const encodesNow = JSON.stringify(typeof runtime.activeEncodes === 'function' ? runtime.activeEncodes() : []);
+    if (jobNow !== seenJob && job) {
+      note(`job ${job.state} revision ${job.revision} phase ${job.replacementPhase || '-'}: `
+        + job.items.map((item) => `${path.basename(item.relativePath).slice(11, 19)} ${item.state}${item.failure?.code ? `/${item.failure.code}` : ''}`).join(', '));
+    }
+    if (jobNow !== seenJob || encodesNow !== seenEncodes) {
+      seenJob = jobNow;
+      seenEncodes = encodesNow;
+      changed = Date.now();
+    } else if (Date.now() - changed > STALL_MS) {
+      return 'stalled';
+    }
+    if (Date.now() - started > WAIT_MS) return 'too long';
+  }
+  return 'finished';
+}
+
 // Dies at the point, starts again on the same folders, waits for the job.
 // Returns what a test checks: the job, each clip's codec (and whether a
 // separate run kept the original), and anything left behind.
@@ -421,36 +459,28 @@ async function crashAndRecover({ point, mode = 'replace', networkMode = 'direct'
   const before = Object.fromEntries(names.map((name) => [name, sha256(path.join(folder, name))]));
   const crashStarted = Date.now();
   const died = await crash(base, { point, concurrency, mode, networkMode });
-  trace(`the crash took ${Date.now() - crashStarted} ms`);
   let env;
   try {
     env = await open(base, { concurrency, mode, networkMode });
     if (beforeStart) await beforeStart(env);
     traceProcesses('before the restart');
-    let ticker = null;
-    if (TRACE) {
-      env.runtime.service.subscribe((event) => {
-        if (/snapshot|progress/i.test(event.type)) return;
-        trace(`event ${event.type} ${event.itemId || ''} ${event.code || event.status || event.reason || ''}`);
-      });
-    }
-    trace('restart');
+    // what the restarted converter did, for a test that fails (and, with
+    // SENTRY_CRASH_TRACE=1, on stderr as it happens)
+    const restartStarted = Date.now();
+    const timeline = [`the crash took ${restartStarted - crashStarted} ms`];
+    const note = (text) => {
+      if (timeline.length < 400) timeline.push(`+${((Date.now() - restartStarted) / 1000).toFixed(1)}s ${text}`);
+      trace(text);
+    };
+    env.runtime.service.subscribe((event) => {
+      if (/snapshot|progress/i.test(event.type)) return;
+      note(`event ${event.type} ${event.itemId || ''} ${event.code || event.status || event.reason || ''}`.trim());
+    });
+    note('restart');
     await env.runtime.start();
     const [listed] = await env.runtime.service.list();
-    if (TRACE) {
-      ticker = setInterval(async () => {
-        const job = await env.runtime.service.get(listed.id).catch(() => null);
-        if (!job) return;
-        trace(`job ${job.state} phase=${job.replacementPhase || '-'} recovery=${JSON.stringify(job.recovery || null)} active=${job.activeItemId || '-'} `
-          + job.items.map((item) => `${item.relativePath?.slice(-14)}:${item.state}/${item.resultCode || '-'}/${item.failure?.code || '-'}/a${item.attempts || 0}`
-            + `/owned=${Object.keys(item.ownedPaths || {}).join('+') || '-'}`).join(' '));
-      }, 1000);
-    }
-    let waited;
-    await Promise.race([env.runtime.service.whenIdle(listed.id), new Promise((resolve) => { waited = setTimeout(resolve, 90_000); })]);
-    clearTimeout(waited);
-    clearInterval(ticker);
-    trace('wait over');
+    const outcome = await waitForJob(env.runtime, listed.id, note);
+    note(`wait over: ${outcome}`);
     traceProcesses('after the wait');
     const job = await env.runtime.service.get(listed.id);
     const clipsAfter = names.map((name) => {
@@ -461,7 +491,7 @@ async function crashAndRecover({ point, mode = 'replace', networkMode = 'direct'
         originalKept: fs.existsSync(path.join(folder, name)) && sha256(path.join(folder, name)) === before[name]
       };
     });
-    return { died, job, clips: clipsAfter, leftovers: leftovers(base, folder), names: fs.readdirSync(folder).sort(), expectedNames: names };
+    return { died, job, timeline, clips: clipsAfter, leftovers: leftovers(base, folder), names: fs.readdirSync(folder).sort(), expectedNames: names };
   } finally {
     await env?.runtime.shutdown().catch(() => {});
     fs.rmSync(base, { recursive: true, force: true });
@@ -473,7 +503,8 @@ function assertRecovered(result, { mode = 'replace' } = {}) {
   // (what each clip was doing, when the job had not finished)
   const clipStates = () => result.job.items.map((item) => `${item.relativePath}: ${item.state} ${item.resultCode || ''}`
     + ` ${item.failure?.code || ''} attempts ${item.attempts || 0}`).join('; ');
-  assert.equal(result.job.state, 'completed', `finished by itself: ${JSON.stringify(result.job.recovery || null)} (${clipStates()})`);
+  assert.equal(result.job.state, 'completed', `finished by itself: ${JSON.stringify(result.job.recovery || null)} (${clipStates()})`
+    + `\n${(result.timeline || []).join('\n')}`);
   assert.equal(result.job.recovery ?? null, null);
   for (const item of result.job.items) {
     assert.equal(item.state, 'completed', `${item.relativePath}: ${item.state} ${item.resultCode || ''}`);
@@ -487,7 +518,7 @@ function assertRecovered(result, { mode = 'replace' } = {}) {
   assert.deepEqual(result.leftovers, [], 'nothing left behind');
 }
 
-module.exports = { POINTS, open, crash, crashAndRecover, assertRecovered, makeBase, leftovers, available, clipName, sha256, codecOf, HELPER, EVENT };
+module.exports = { POINTS, open, crash, crashAndRecover, waitForJob, assertRecovered, makeBase, leftovers, available, clipName, sha256, codecOf, HELPER, EVENT };
 
 if (require.main === module) {
   (async () => {

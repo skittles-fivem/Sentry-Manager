@@ -40,15 +40,15 @@ for (const [label, point] of [
   // after the save slot
   ['the clip\'s private files were being removed', 'cleanup-unrecorded']
 ]) {
-  test(`Windows adapter: replacing originals, killed when ${label}: the job finishes by itself`, { skip, timeout: 180_000 }, async () => {
+  test(`Windows adapter: replacing originals, killed when ${label}: the job finishes by itself`, { skip, timeout: 420_000 }, async () => {
     assertRecovered(await crashAndRecover({ point }));
   });
 }
 
-test('Windows adapter: replacing originals through local staging, killed when the conversion had just taken the original\'s name', { skip, timeout: 180_000 }, async () => {
+test('Windows adapter: replacing originals through local staging, killed when the conversion had just taken the original\'s name', { skip, timeout: 420_000 }, async () => {
   assertRecovered(await crashAndRecover({ point: 'after-final', networkMode: 'staging' }));
 });
 
-test('Windows adapter: a separate output folder, killed when the conversion had just taken its name', { skip, timeout: 180_000 }, async () => {
+test('Windows adapter: a separate output folder, killed when the conversion had just taken its name', { skip, timeout: 420_000 }, async () => {
   assertRecovered(await crashAndRecover({ point: 'after-final', mode: 'separate' }), { mode: 'separate' });
 });
