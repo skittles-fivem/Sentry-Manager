@@ -96,8 +96,8 @@ test('a guarded removal whose content is not the recorded one is put back, not d
     assert.deepEqual(await win.removeOwned.remove({ target: backup, expected: b, guard: { target: final, expected: await identity(final) } }),
       { removed: false, ownershipMismatch: true });
     assert.deepEqual(fs.readdirSync(dir).sort(), ['BACKUP-clip.mp4', 'clip.mp4']);
-    assert.ok(win.helper.calls.some((call) => call.op === 'fs.guardedRemove' && call.args.expected.sha256 === sha('OLD')),
-      'the helper hashed it through the handle it deletes with');
+    assert.deepEqual(win.helper.calls.filter((call) => call.op !== 'fs.identity'), [],
+      'proven by Node before anything moves (as posixOwnedFs): never moved, never asked to delete');
   } finally {
     await fsp.rm(dir, { recursive: true, force: true });
   }
@@ -213,7 +213,7 @@ test('identity parity per drive: Node and the helper must agree, on a drive that
 
 // A replacement set up as stagingSplit.test.js does, with the Windows adapter
 // and staging told it runs on Windows.
-function setup(helperOptions = {}) {
+function setup(helperOptions = {}, { sleep } = {}) {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'win-staging-')));
   const tempRoot = path.join(root, 'tmp', 'sentry-six-converter');
   const footage = path.join(root, 'footage');
@@ -237,7 +237,7 @@ function setup(helperOptions = {}) {
     validatePublicationArtifact: async () => true,
     removeOwned: owned.removeOwned, renameExclusive: owned.renameExclusive,
     privateTempCleanup: 'identity',
-    sleep: async (ms) => { delays.push(ms); }
+    sleep: sleep ? async (ms) => { delays.push(ms); return sleep(ms); } : async (ms) => { delays.push(ms); }
   });
   const operation = {
     jobId: 'job-1', itemId: 'item-000001', codec: 'h265', source, sourceRoot: footage, expectedSource,
@@ -274,6 +274,25 @@ test('an original that stays locked: the clip gives up untouched, as "in use" (r
     assert.deepEqual(env.delays, [1000, 3000, 9000]);
     assert.deepEqual(fs.readFileSync(env.source), env.original, 'the original is as it was');
     assert.deepEqual(fs.readdirSync(env.footage), [path.basename(env.source)], 'its copy is gone, no backup was made');
+  } finally {
+    env.done();
+  }
+});
+
+test('a cancel ends the wait for a locked original at once: the clip fails untouched, as in use', async () => {
+  // staging's waits never end by themselves here: only the abort ends one
+  const env = setup({}, { sleep: () => new Promise(() => {}) });
+  try {
+    const prepared = await env.staging.prepareReplacement(env.operation);
+    env.owned.helper.busy['fs.renameExpected'] = 1000;
+    const controller = new AbortController();
+    const swap = env.staging.swapReplacement({ prepared, persistTransaction: env.operation.persistTransaction, signal: controller.signal });
+    while (env.delays.length === 0) await new Promise((resolve) => setImmediate(resolve));
+    controller.abort();
+    await assert.rejects(swap, (error) => error.code === 'FILE_IN_USE' && error.retryable === true);
+    assert.deepEqual(env.delays, [1000], 'one wait, cut short');
+    assert.deepEqual(fs.readFileSync(env.source), env.original, 'the original is as it was');
+    assert.deepEqual(fs.readdirSync(env.footage), [path.basename(env.source)]);
   } finally {
     env.done();
   }

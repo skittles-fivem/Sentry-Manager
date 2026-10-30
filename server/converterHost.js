@@ -131,22 +131,38 @@ function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobeP
   // Drives where replacing originals is not possible although the adapter
   // is (Windows: the identity check per drive, see winOwnedFs.checkVolume).
   // Docker's adapter has no such check: nothing is listed there.
-  const rootChecks = new Map(); // root -> { available, reason? }
+  // Keyed by the folder's real path (on Windows without letter case, so
+  // C:\Footage and c:\footage are one entry); the spelling it was first given
+  // is kept for display.
+  const rootChecks = new Map(); // key -> { root, verdict: { available, reason? } }
+  const rootKey = (real) => (platform === 'win32' ? real.toLowerCase() : real);
   async function checkReplacementRoots(roots = replacementRoots?.() || []) {
     const check = owned.renameExclusive?.replacementSupport;
     if (typeof check !== 'function') return [];
     const out = [];
-    for (const root of new Set((roots || []).filter((r) => typeof r === 'string' && r))) {
+    const seen = new Set();
+    for (const root of (roots || []).filter((r) => typeof r === 'string' && r)) {
+      let real = null;
       let verdict;
       try {
-        verdict = await check(realpath(root));
+        real = realpath(root);
       } catch (error) {
         verdict = { available: false, reason: `the folder cannot be read (${error?.code || 'error'})` };
       }
-      const before = rootChecks.get(root);
-      rootChecks.set(root, verdict);
+      const key = real === null ? rootKey(root) : rootKey(real);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (!verdict) {
+        try {
+          verdict = await check(real);
+        } catch (error) {
+          verdict = { available: false, reason: `the folder cannot be read (${error?.code || 'error'})` };
+        }
+      }
+      const before = rootChecks.get(key);
+      rootChecks.set(key, { root: before?.root || root, verdict });
       if (rootChecks.size > 256) rootChecks.delete(rootChecks.keys().next().value);
-      if (!verdict.available && before?.reason !== verdict.reason) {
+      if (!verdict.available && before?.verdict?.reason !== verdict.reason) {
         log?.warn?.(`Replacing originals is unavailable for ${root}: ${verdict.reason}`);
       }
       out.push({ root, ...verdict });
@@ -180,7 +196,7 @@ function createConverterHost({ dataDir, tempDir, ffmpegPath = 'ffmpeg', ffprobeP
     // the Windows helper may crash and come back: read at each request
     get helperAvailable() { return owned.helperAvailable; },
     checkReplacementRoots,
-    replacementRoots: () => [...rootChecks].map(([root, verdict]) => ({ root, ...verdict }))
+    replacementRoots: () => [...rootChecks.values()].map(({ root, verdict }) => ({ root, ...verdict }))
   };
 }
 

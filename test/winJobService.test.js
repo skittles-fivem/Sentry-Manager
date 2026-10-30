@@ -62,3 +62,25 @@ test('an original that is open in another program when first read is read again 
     await h.close();
   }
 });
+
+test('a cancel ends the wait for an original that is open in another program at once', { timeout: 30_000 }, async () => {
+  const reads = [];
+  const h = createHarness({
+    clips: 1, devices: [CPU], defaultDevice: null, gpuDecode: false,
+    stageSource: async () => {
+      reads.push(Date.now());
+      throw Object.assign(new Error('in use'), { code: 'FILE_IN_USE', retryable: true });
+    }
+  });
+  try {
+    const id = await h.service.start(h.config({ networkMode: 'staging', lanes: [{ device: 'cpu', concurrency: 1 }] }));
+    while (reads.length === 0) await new Promise((resolve) => setTimeout(resolve, 5));
+    const asked = Date.now();
+    await h.service.cancel(id);
+    await h.service.whenIdle(id);
+    assert.ok(Date.now() - asked < 2000, `ended ${Date.now() - asked} ms after the cancel, not after the 5 s wait`);
+    assert.equal(reads.length, 1, 'not read again');
+  } finally {
+    await h.close();
+  }
+});

@@ -84,3 +84,31 @@ test('Linux host: no drive checks (Docker unchanged)', { timeout: 60_000 }, asyn
     fs.rmSync(base, { recursive: true, force: true });
   }
 });
+
+test('Windows host: one entry per real folder, its letter case ignored; the first spelling is shown', { timeout: 60_000 }, async () => {
+  const base = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'conv-host-roots-')));
+  const footage = path.join(base, 'Footage');
+  fs.mkdirSync(footage);
+  // (on a case-sensitive test machine a second folder stands in for the
+  // other spelling; on Windows it is the same folder)
+  const lower = path.join(base, 'footage');
+  if (!fs.existsSync(lower)) fs.mkdirSync(lower);
+  const linked = path.join(base, 'linked');
+  let canLink = true;
+  try { fs.symlinkSync(footage, linked, 'junction'); } catch (_) { canLink = false; }
+  const log = logger();
+  const host = createConverterHost({
+    dataDir: path.join(base, 'data'), tempDir: path.join(base, 'temp'), log,
+    platform: 'win32', helper: createLinuxFsHelper()
+  });
+  try {
+    const roots = [footage, lower, ...(canLink ? [linked] : []), footage];
+    const out = await host.checkReplacementRoots(roots);
+    assert.deepEqual(out.map((entry) => entry.root), [footage]);
+    await host.checkReplacementRoots([lower]);
+    assert.deepEqual(host.replacementRoots(), [{ root: footage, available: true, fsName: 'NTFS' }]);
+  } finally {
+    await host.stop();
+    fs.rmSync(base, { recursive: true, force: true });
+  }
+});

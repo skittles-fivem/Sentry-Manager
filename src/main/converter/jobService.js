@@ -2434,7 +2434,21 @@ function createConverterJobService(deps) {
         if (error?.code === 'FILE_IN_USE' && busyRetries < QUICK_RETRY_LIMIT
             && Object.keys(ownershipFor(runtime, item.id)?.ownedPaths || {}).length === 0) {
           busyRetries += 1;
-          await clock.sleep(Math.min(backoff.initialMs * 5 ** busyRetries, backoff.maximumMs));
+          // any abort (cancel, stop, another clip's recovery) ends the wait
+          const signal = runtime.abortController.signal;
+          if (signal.aborted) throw serviceError('CANCELLED');
+          let onAbort;
+          try {
+            await Promise.race([
+              clock.sleep(Math.min(backoff.initialMs * 5 ** busyRetries, backoff.maximumMs)),
+              new Promise((_, reject) => {
+                onAbort = () => reject(serviceError('CANCELLED'));
+                signal.addEventListener('abort', onAbort, { once: true });
+              })
+            ]);
+          } finally {
+            signal.removeEventListener('abort', onAbort);
+          }
           continue;
         }
         const affectedPath = typeof error.path === 'string' ? error.path : item.sourcePath;

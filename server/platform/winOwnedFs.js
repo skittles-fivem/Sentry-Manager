@@ -18,6 +18,17 @@
 // identities the converter recorded with Node are what the helper checks.
 // checkVolume() proves that per drive before originals are replaced there.
 //
+// The content is always hashed here, by Node, with the file held open, before
+// the helper is asked to move or delete it (as posixOwnedFs does: a file is
+// never moved before it is proven). The helper is then given the write time
+// at which the content was proven and checks it through the handle it acts
+// with, so a write after the hash is a mismatch. The helper never has to
+// hash a whole clip (which on a slow share would outlast its time limit).
+//
+// A helper call that timed out, or whose helper crashed mid-call (ETIMEDOUT,
+// EHELPER), may or may not have been carried out: the names are looked at
+// again and what is actually on disk is what counts.
+//
 // A sharing violation (another program has the file open without sharing
 // it) fails a helper call before anything changed: it comes back as EBUSY and
 // is tried again a few times here, then passed on as EBUSY (never as a
@@ -33,6 +44,14 @@ const BUSY_DELAYS_MS = [50, 100, 200, 400, 800, 1600, 1600];
 // a drive whose check failed is checked again after this long (the owner may
 // have fixed it); a drive that passed stays passed
 const RECHECK_FAILED_MS = 60_000;
+// a move or removal through the helper: no hashing, but a slow share (SMB on
+// Wi-Fi) can take a while to answer. The client's own default is 30 s.
+const MOVE_TIMEOUT_MS = 120_000;
+// failures that say nothing about the drive (a lock, a helper restart or
+// timeout, the helper not running): never kept as the drive's verdict
+const TRANSIENT = new Set(['EBUSY', 'EHELPER', 'ETIMEDOUT', 'ENOSYS', 'EAGAIN']);
+// the outcome of a mutating helper call that ended so is unknown
+const OUTCOME_UNKNOWN = new Set(['ETIMEDOUT', 'EHELPER']);
 const FAT_FAMILY = /^(?:fat|fat12|fat16|fat32|vfat|exfat)$/i;
 
 function errorWithCode(message, code) {
@@ -91,17 +110,17 @@ function createWinOwnedFs({ helper, fs: fileSystem = fs, pathApi = nodePath, sle
     return !/^[\\/][\\/][?.][\\/]/.test(p);
   }
 
-  async function call(op, args) {
+  async function call(op, args, timeoutMs = MOVE_TIMEOUT_MS) {
     if (!helperUp()) throw errorWithCode('SentryHelper.exe is not running.', 'ENOSYS');
-    return helper.request(op, args);
+    return helper.request(op, args, { timeoutMs });
   }
 
   // A helper call that failed on a sharing violation changed nothing: tried
   // again after a short wait, a few times.
-  async function callRetryingBusy(op, args) {
+  async function callRetryingBusy(op, args, timeoutMs) {
     for (let attempt = 0; ; attempt += 1) {
       try {
-        return await call(op, args);
+        return await call(op, args, timeoutMs);
       } catch (err) {
         if (err?.code !== 'EBUSY' || attempt >= busyDelaysMs.length) throw err;
         await sleep(busyDelaysMs[attempt]);
@@ -209,12 +228,63 @@ function createWinOwnedFs({ helper, fs: fileSystem = fs, pathApi = nodePath, sle
 
   const quarantineName = (target) => pathApi.join(pathApi.dirname(target), `.sentry-owned-remove-${crypto.randomBytes(8).toString('hex')}`);
   const identityMismatch = (err) => ['EIDENTITY', 'ELOOP'].includes(err?.code);
+  const outcomeUnknown = (err) => OUTCOME_UNKNOWN.has(err?.code);
+  const sameFile = (id, stat) => Boolean(id) && !id.reparse && !id.directory && sameHelperIdentity(id, stat);
 
-  // verifiesContent / identityChecks: as posixOwnedFs. remove() has the helper
-  // hash the whole file through the handle it then deletes with; a guarded
-  // removal first moves the file aside (checked by the same handle), checks
-  // the guard is still the verified final, and only then deletes it, so a
-  // final that changed meanwhile puts the backup back.
+  // The helper's check for a file whose content Node has just proven: its
+  // identity and the write time at which it was proven.
+  const provenExpected = (expected, stat) => helperExpected({ ...expected, mtimeNs: String(stat.mtimeNs) }, { identityOnly: true });
+
+  // A move to the quarantine name whose answer never came: moved if the
+  // quarantine name now is the file, not moved if its own name still is.
+  // Anything else is passed on as the failure it was.
+  async function settleMove(err, from, to, stat) {
+    if (!outcomeUnknown(err)) throw err;
+    const [atFrom, atTo] = await Promise.all([identityOf(from).catch(() => undefined), identityOf(to).catch(() => undefined)]);
+    if (sameFile(atTo, stat)) return true;
+    if (sameFile(atFrom, stat) && atTo === null) return false;
+    throw err;
+  }
+
+  // A file moved aside goes back to its own name. When that is impossible
+  // (still locked after the retries, the name taken meanwhile) the failure is
+  // passed on, never hidden: the converter keeps the clip's cleanup pending,
+  // and a later cleanup finds the file under its quarantine name by the
+  // recorded identity (staging's removeQuarantined).
+  async function putBack(quarantine, target, stat) {
+    try {
+      await callRetryingBusy('fs.renameNoReplace', { from: quarantine, to: target });
+      return;
+    } catch (err) {
+      if (outcomeUnknown(err)) {
+        const atTarget = await identityOf(target).catch(() => undefined);
+        if (sameFile(atTarget, stat)) return;
+      }
+      throw errorWithCode(`A file moved aside for removal could not be put back (${err?.code || 'error'}).`, 'EPUTBACK');
+    }
+  }
+
+  // The helper deletes the proven file through a handle that checks its
+  // identity and proven write time. Resolves true when it is gone.
+  async function removeProven(target, expected, stat) {
+    try {
+      await callRetryingBusy('fs.guardedRemove', { path: target, expected: provenExpected(expected, stat) });
+      return true;
+    } catch (err) {
+      if (outcomeUnknown(err)) {
+        const now = await identityOf(target).catch(() => undefined);
+        if (now === null) return true;
+      }
+      throw err;
+    }
+  }
+
+  // verifiesContent / identityChecks: as posixOwnedFs. The target is proven
+  // first (hashed with it held open, or with identityOnly its recorded time);
+  // only then is it removed. A guarded removal moves the proven file aside
+  // (checked by the handle that moves it), checks that the guard is still the
+  // verified final, and only then deletes it, so a final that changed
+  // meanwhile puts the backup back.
   const removeOwned = Object.freeze({
     atomicOwnershipCheck: true,
     guardedRemoval: true,
@@ -225,51 +295,61 @@ function createWinOwnedFs({ helper, fs: fileSystem = fs, pathApi = nodePath, sle
           || (guard !== undefined && (!guard || !validPath(guard.target) || !validExpected(guard.expected)))) {
         return { removed: false, ownershipMismatch: true };
       }
-      const quick = identityOnlyFor(expected, identityOnly);
-      if (!guard) {
-        try {
-          await callRetryingBusy('fs.guardedRemove', { path: target, expected: helperExpected(expected, { identityOnly: quick }) });
-          return { removed: true };
-        } catch (err) {
-          if (err?.code === 'ENOENT') return { removed: false, missing: true };
-          if (identityMismatch(err)) return { removed: false, ownershipMismatch: true };
-          throw err;
-        }
-      }
       let guarded = null;
+      let victim = null;
       try {
-        guarded = await openVerified(guard.target, guard.expected,
-          { identityOnly: identityOnlyFor(guard.expected, guard.identityOnly) });
-        if (guarded.status !== 'verified') return { removed: false, ownershipMismatch: true, guardMismatch: true };
-        await flush(guard.target, guarded.fh);
+        if (guard) {
+          guarded = await openVerified(guard.target, guard.expected,
+            { identityOnly: identityOnlyFor(guard.expected, guard.identityOnly) });
+          if (guarded.status !== 'verified') return { removed: false, ownershipMismatch: true, guardMismatch: true };
+          await flush(guard.target, guarded.fh);
+        }
+        victim = await openVerified(target, expected, { identityOnly: identityOnlyFor(expected, identityOnly) });
+        if (victim.status === 'missing') return { removed: false, missing: true };
+        if (victim.status !== 'verified') return { removed: false, ownershipMismatch: true };
+        const stat = victim.stat;
+        // the helper opens it next: Node's handle is let go of first
+        await victim.fh.close().catch(() => {});
+        victim = null;
+
+        if (!guard) {
+          try {
+            await removeProven(target, expected, stat);
+            return { removed: true };
+          } catch (err) {
+            if (err?.code === 'ENOENT') return { removed: false, missing: true };
+            if (identityMismatch(err)) return { removed: false, ownershipMismatch: true };
+            throw err;
+          }
+        }
 
         const quarantine = quarantineName(target);
         try {
-          // identity (and the time, when that is the check) only: the content
-          // is hashed by the removal below, through the handle that deletes
-          await callRetryingBusy('fs.renameExpected', { from: target, to: quarantine,
-            expected: helperExpected(expected, { identityOnly: quick, content: false }), replace: false });
+          const moved = await callRetryingBusy('fs.renameExpected', { from: target, to: quarantine,
+            expected: provenExpected(expected, stat), replace: false })
+            .then(() => true, (err) => settleMove(err, target, quarantine, stat));
+          if (!moved) throw errorWithCode('The file could not be moved aside.', 'ETIMEDOUT');
         } catch (err) {
           if (err?.code === 'ENOENT') return { removed: false, missing: true };
           if (identityMismatch(err)) return { removed: false, ownershipMismatch: true };
           throw err;
         }
-        const putBack = () => callRetryingBusy('fs.renameNoReplace', { from: quarantine, to: target }).catch(() => {});
         const finalNow = await identityOf(guard.target).catch(() => null);
         if (!finalNow || finalNow.reparse || !sameHelperIdentity(finalNow, guarded.stat)) {
-          await putBack();
+          await putBack(quarantine, target, stat);
           return { removed: false, ownershipMismatch: true, guardMismatch: true };
         }
         try {
-          await callRetryingBusy('fs.guardedRemove', { path: quarantine, expected: helperExpected(expected, { identityOnly: quick }) });
+          await removeProven(quarantine, expected, stat);
         } catch (err) {
-          // not the recorded content after all (or still locked): back to its name
-          await putBack();
+          // written to since it was proven (or still locked): back to its name
+          await putBack(quarantine, target, stat);
           if (identityMismatch(err)) return { removed: false, ownershipMismatch: true };
           throw err;
         }
         return { removed: true };
       } finally {
+        await victim?.fh?.close().catch(() => {});
         await guarded?.fh?.close().catch(() => {});
       }
     }
@@ -308,8 +388,11 @@ function createWinOwnedFs({ helper, fs: fileSystem = fs, pathApi = nodePath, sle
       const proven = { ...expectedSource, mtimeNs: String(source.stat.mtimeNs) };
       await source.fh.close().catch(() => {});
       try {
-        await callRetryingBusy('fs.renameExpected', { from, to,
-          expected: helperExpected(proven, { identityOnly: true }), replace: false });
+        const moved = await callRetryingBusy('fs.renameExpected', { from, to,
+          expected: helperExpected(proven, { identityOnly: true }), replace: false })
+          .then(() => true, (err) => settleMove(err, from, to, source.stat));
+        // the helper did not answer and nothing moved: as a lock, tried later
+        if (!moved) throw errorWithCode('The file could not be moved.', 'EBUSY');
       } catch (err) {
         if (identityMismatch(err)) return { atomicNoReplace: true, sourceRemoved: false, ownershipMismatch: true };
         throw err; // EEXIST (taken), ENOENT, EBUSY (still locked), EXDEV ...
@@ -326,85 +409,111 @@ function createWinOwnedFs({ helper, fs: fileSystem = fs, pathApi = nodePath, sle
   // (their checks then fail safe).
   const volumes = new Map(); // dev -> { at, promise }
 
+  // A verdict that came from a failure saying nothing about the drive (a
+  // lock, a helper restart or timeout) is marked transient: it is not kept,
+  // and staging fails such a clip as one to try again, not as a drive that
+  // cannot replace originals.
+  const failed = (what, err, fsName) => ({
+    available: false, ...(fsName ? { fsName } : {}),
+    reason: `${what} (${err?.code || 'error'})`,
+    ...(TRANSIENT.has(err?.code) ? { transient: true } : {})
+  });
+
   async function probeVolume(dir) {
     const probe = pathApi.join(dir, `.sentry-six-identity-${crypto.randomBytes(8).toString('hex')}`);
     let fh;
     try {
       fh = await pfs.open(probe, 'wx');
     } catch (err) {
-      return { available: false, reason: `the converter cannot create files in ${dir} (${err?.code || 'error'})` };
+      return failed(`the converter cannot create files in ${dir}`, err);
     }
-    let nodeStat;
+    let handleStat;
     let content;
     try {
       content = crypto.randomBytes(16);
       await fh.writeFile(content);
+      // the checks at replace time compare what a handle reports
+      // (openVerified, staging's own reads), so that is checked too
+      handleStat = await fh.stat({ bigint: true }).catch(() => null);
     } finally {
       await fh.close().catch(() => {});
     }
+    let nodeStat;
+    let reopened;
     try {
       // after the close: the write time Windows keeps for it from now on
       nodeStat = await pfs.lstat(probe, { bigint: true });
+      const again = await pfs.open(probe, 'r');
+      try {
+        reopened = await again.stat({ bigint: true });
+      } finally {
+        await again.close().catch(() => {});
+      }
     } catch (err) {
       await pfs.unlink(probe).catch(() => {});
-      return { available: false, reason: `the converter cannot read files in ${dir} (${err?.code || 'error'})` };
+      return failed(`the converter cannot read files in ${dir}`, err);
     }
+    const sameStat = (a, b) => Boolean(a) && a.dev === b.dev && a.ino === b.ino && a.size === b.size;
     let verdict;
     try {
-      const id = await call('fs.identity', { path: probe });
+      const id = await callRetryingBusy('fs.identity', { path: probe });
       if (FAT_FAMILY.test(String(id.fsName || ''))) {
         verdict = { available: false, fsName: id.fsName, reason: `the drive is formatted ${id.fsName}, which does not keep a file's identity; replacing originals needs NTFS, ReFS or a network share` };
       } else if (nodeStat.ino === 0n || String(id.ino) === '0') {
         verdict = { available: false, fsName: id.fsName, reason: 'the drive does not report file identities' };
-      } else if (id.reparse || !sameHelperIdentity(id, nodeStat) || String(id.size) !== String(nodeStat.size)) {
+      } else if (id.reparse || !sameHelperIdentity(id, nodeStat) || String(id.size) !== String(nodeStat.size)
+          || !sameStat(handleStat, nodeStat) || !sameStat(reopened, nodeStat)) {
         verdict = { available: false, fsName: id.fsName, reason: 'Windows and the converter report different file identities on this drive' };
-      } else if (String(id.mtimeNs) !== String(nodeStat.mtimeNs)) {
+      } else if (String(id.mtimeNs) !== String(nodeStat.mtimeNs) || reopened.mtimeNs !== nodeStat.mtimeNs) {
         // the quick checks (identityOnly) compare this time
         verdict = { available: false, fsName: id.fsName, reason: 'Windows and the converter report different modification times on this drive' };
       } else {
         verdict = { available: true, fsName: id.fsName || null };
       }
     } catch (err) {
-      verdict = { available: false, reason: `the file identity check failed (${err?.code || 'error'})` };
+      verdict = failed('the file identity check failed', err);
     }
     // the probe goes the way an owned file does (which tests that call too)
     let removed = false;
     if (verdict.available) {
       try {
-        await call('fs.guardedRemove', { path: probe, expected: {
+        await callRetryingBusy('fs.guardedRemove', { path: probe, expected: {
           dev: String(nodeStat.dev), ino: String(nodeStat.ino), size: String(nodeStat.size),
           sha256: crypto.createHash('sha256').update(content).digest('hex')
         } });
         removed = true;
       } catch (err) {
-        verdict = { available: false, fsName: verdict.fsName, reason: `a checked removal failed on this drive (${err?.code || 'error'})` };
+        verdict = failed('a checked removal failed on this drive', err, verdict.fsName);
       }
     }
     if (!removed) await pfs.unlink(probe).catch(() => {});
     return verdict;
   }
 
-  /** Resolves { available, reason?, fsName? } for originals in `dir`. */
+  /** Resolves { available, reason?, fsName?, transient? } for originals in `dir`. */
   async function checkVolume(dir) {
     if (!validPath(dir)) return { available: false, reason: 'not an absolute folder path' };
-    if (!helperUp()) return { available: false, reason: 'SentryHelper.exe is not running' };
+    if (!helperUp()) return { available: false, transient: true, reason: 'SentryHelper.exe is not running' };
     let stat;
     try {
       stat = await pfs.stat(dir, { bigint: true });
     } catch (err) {
-      return { available: false, reason: `the folder cannot be read (${err?.code || 'error'})` };
+      return failed('the folder cannot be read', err);
     }
     if (!stat.isDirectory()) return { available: false, reason: 'not a folder' };
     const key = String(stat.dev);
     const known = volumes.get(key);
     if (known) {
       const verdict = await known.promise;
-      if (verdict.available || now() - known.at < RECHECK_FAILED_MS) return verdict;
+      if (verdict.available || (!verdict.transient && now() - known.at < RECHECK_FAILED_MS)) return verdict;
     }
-    const entry = { at: now(), promise: probeVolume(dir).catch((err) => ({ available: false, reason: `the check failed (${err?.code || 'error'})` })) };
+    const entry = { at: now(), promise: probeVolume(dir).catch((err) => failed('the check failed', err)) };
     volumes.set(key, entry);
     if (volumes.size > 256) volumes.delete(volumes.keys().next().value);
-    return entry.promise;
+    const verdict = await entry.promise;
+    // only a verdict about the drive is kept
+    if (verdict.transient && volumes.get(key) === entry) volumes.delete(key);
+    return verdict;
   }
 
   // staging asks this before it touches an original (see prepareReplacement)

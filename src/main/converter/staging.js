@@ -29,6 +29,7 @@ const ERROR_MESSAGES = Object.freeze({
   DESTINATION_WRITE_FAILED: 'The destination could not be written safely.',
   ATOMIC_PROMOTION_UNSUPPORTED: 'This filesystem does not support safe atomic publication.',
   FILE_IN_USE: 'The file is open in another program. Nothing was changed; it is tried again later.',
+  REPLACEMENT_CHECK_FAILED: 'The drive could not be checked for safe replacement just now. Nothing was changed; it is tried again later.',
   DESTINATION_VALIDATION_FAILED: 'The destination did not pass read-back validation.',
   SOURCE_OUTSIDE_ROOT: 'The replacement source is outside the selected source root.',
   SOURCE_CHANGED: 'The original changed after input capture. Retain it and restart with a stable source.',
@@ -930,18 +931,40 @@ function createFileTransaction(options = {}) {
   // original changed.
   // An original open in another program (Windows: FILE_IN_USE, nothing
   // moved) is tried again a few times before the clip gives up, untouched.
-  async function promoteBackup(source, backup, expectedSource) {
+  // A cancel or stop ends the wait (the clip then fails as in use: nothing
+  // was moved).
+  async function promoteBackup(source, backup, expectedSource, signal) {
     for (let attempt = 0; ; attempt += 1) {
       try {
         return await promoteNoReplace(source, backup, 'REPLACEMENT_COLLISION', { expectedSource, removeSource: true });
       } catch (error) {
         if (error instanceof FileTransactionError && error.code === 'UNSAFE_OWNED_PATH') throw transactionError('SOURCE_CHANGED');
-        if (error?.code === 'FILE_IN_USE' && attempt < busyBackupDelays.length) {
-          await sleep(busyBackupDelays[attempt]);
-          continue;
+        if (error?.code === 'FILE_IN_USE' && attempt < busyBackupDelays.length && !signal?.aborted) {
+          if (await sleepUnlessAborted(busyBackupDelays[attempt], signal)) continue;
         }
         throw error;
       }
+    }
+  }
+
+  // Resolves true after the wait, false at once when the signal aborts.
+  async function sleepUnlessAborted(ms, signal) {
+    if (!signal) {
+      await sleep(ms);
+      return true;
+    }
+    if (signal.aborted) return false;
+    let onAbort;
+    try {
+      return await Promise.race([
+        Promise.resolve(sleep(ms)).then(() => !signal.aborted),
+        new Promise((resolve) => {
+          onAbort = () => resolve(false);
+          signal.addEventListener('abort', onAbort, { once: true });
+        })
+      ]);
+    } finally {
+      signal.removeEventListener('abort', onAbort);
     }
   }
 
@@ -1897,16 +1920,22 @@ function createFileTransaction(options = {}) {
     if (typeof check !== 'function') return { available: replacementAvailable };
     try {
       const result = await check(pathApi.dirname(validateAbsolutePath(source, pathApi)));
-      return result?.available === true ? { available: true } : { available: false, reason: String(result?.reason || 'unavailable') };
+      if (result?.available === true) return { available: true };
+      return { available: false, reason: String(result?.reason || 'unavailable'), ...(result?.transient === true ? { transient: true } : {}) };
     } catch (_error) {
-      return { available: false, reason: 'the check failed' };
+      return { available: false, transient: true, reason: 'the check failed' };
     }
   }
 
+  // A check that could not be made just now (the helper restarting, a lock)
+  // says nothing about the drive: such a clip fails as one to try again,
+  // not as a drive that cannot replace originals.
   async function assertReplacementVolume(source) {
     if (typeof options.renameExclusive?.replacementSupport !== 'function') return;
     const result = await checkReplacementVolume(source);
-    if (!result.available) throw Object.assign(transactionError('ATOMIC_PROMOTION_UNSUPPORTED'), { reason: result.reason });
+    if (result.available) return;
+    if (result.transient) throw Object.assign(transactionError('REPLACEMENT_CHECK_FAILED'), { reason: result.reason, retryable: true });
+    throw Object.assign(transactionError('ATOMIC_PROMOTION_UNSUPPORTED'), { reason: result.reason });
   }
 
   // Saving a clip is split in two: the copy of its verified conversion to the
@@ -2062,7 +2091,7 @@ function createFileTransaction(options = {}) {
       }
 
       const backupFacts = { provenMtimeNs: mtimeStamp(await lstatOrNull(source)) };
-      const backupPromotion = await promoteBackup(source, backup, expectedSource);
+      const backupPromotion = await promoteBackup(source, backup, expectedSource, operation.signal);
       ownedArtifacts.replacementBackup = await backupRecord(backup, prepared.backupNonce, backupPromotion, expectedSource,
         undefined, backupFacts);
       await persist(operation, transactionSnapshot({ phase: 'original-backed-up', ownedPaths, ownedArtifacts,
