@@ -286,7 +286,7 @@ sentry-fsops volinfo PATH                        one JSON line: fstype, local, c
   - Add an `argsFor` option. The default `(from, to) => [from, to]` keeps Linux identical.
   - Add `'ENOTSUP'` to the link fallback list (lines 127-137). On Linux, ENOTSUP equals EOPNOTSUPP, so nothing changes there.
   - Add a per-root capability gate from the self-test.
-- Reads need no native code. Open with `O_RDONLY|O_NOFOLLOW|0x20000000` (`O_NOFOLLOW_ANY`, macOS 11+) on the canonical path. `fdInside(fh, abs)` compares `fh.stat({bigint})` dev+ino with `lstat(abs)`, as on Windows; ino 0 means refuse. `studioApi.openConfined` (studioApi.js:47-56) uses `platform.openNoFollowFlags`.
+- Reads need no native code. Open with `O_RDONLY|O_NOFOLLOW_ANY` (`0x20000000`, macOS 11+) on the canonical path, never together with `O_NOFOLLOW`: open(2) refuses both at once with EINVAL (XNU `vn_open_auth`). `fdInside(fh, abs)` compares `fh.stat({bigint})` dev+ino with `lstat(abs)`, as on Windows; ino 0 means refuse. `studioApi.openConfined` (studioApi.js:47-56) uses `platform.openNoFollowFlags`.
 - The scanner skips `platform.isSkipDirName` names before descending (around 278 and 416). Root-only `.Trashes` or `.Spotlight-V100` would otherwise abort the scan with EACCES. `footage.js` already skips every dot-name (footage.js:37, 64).
 
 **SMB is the hard case.** Apple's smbfs has no `vnop_renamex`, so `RENAME_EXCL` returns ENOTSUP. Its `link()` always returns ENOTSUP. So no strict no-replace move exists on a Mac SMB share. There is an optional **"smb-server" mode**, which is near-atomic, not atomic:
