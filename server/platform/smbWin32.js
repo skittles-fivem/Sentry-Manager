@@ -22,8 +22,11 @@
 // Windows allows one account per server: connecting to a NAS as a second
 // user while a connection as another is open fails with error 1219. So
 // connections are shared (counted) per \\host\share and account, and a
-// second account on the same server is refused up front with the hint.
+// second account on the same server is refused up front with the hint. A
+// vehicle that joins a connection with a password it was not made with has
+// that password checked first (as the Linux client would refuse it).
 
+const crypto = require('crypto');
 const { checkId } = require('../mounter');
 const { winConnection, dialectAtLeast, minDialect, VERSIONS } = require('../mountSpec');
 const { explainSmbError, SMB_HINTS } = require('../share');
@@ -82,16 +85,32 @@ function securityProblem(smb, status, unc) {
  */
 function createWinMounter({ helper, log = console } = {}) {
   if (!helper || typeof helper.request !== 'function') throw new Error('The Windows mounter needs the helper.');
-  // vehicle id -> { key, conn } for every vehicle whose share was set up
+  // vehicle id -> { key, conn, counted } for every vehicle whose share was
+  // set up; `counted` while it holds its connection
   const byId = new Map();
-  // `${unc}|${account}` (lower case) -> { count, server, unc, account }
+  // `${unc}|${account}` (lower case) -> { server, unc, account, passwords, last }
+  // for every connection some vehicle holds. How many hold it is never kept
+  // as a separate number: it is counted from byId (holders()), so a failed
+  // reconnect by one vehicle cannot lose the others' share of it.
   const refs = new Map();
   // one queue per server: the one-account rule and the shared connections
   // are decided per server, and a NAS that does not answer must not hold up
   // another
   const queues = new Map();
+  // Which passwords a shared connection was proven to work with, as keyed
+  // hashes: the key lives only in this process's memory and nothing of it
+  // is logged, so they say nothing about the password outside it.
+  const fingerprintKey = crypto.randomBytes(32);
+  const fingerprint = (password) => crypto.createHmac('sha256', fingerprintKey).update(String(password ?? '')).digest('base64');
 
   const keyOf = (conn) => `${lower(conn.unc)}|${lower(conn.account)}`;
+
+  /** How many vehicles hold the connection `key`. */
+  function holders(key) {
+    let n = 0;
+    for (const held of byId.values()) if (held.counted && held.key === key) n++;
+    return n;
+  }
 
   function serial(server, fn) {
     const k = lower(server);
@@ -103,6 +122,8 @@ function createWinMounter({ helper, log = console } = {}) {
     return next;
   }
 
+  // (force: Windows closes files still open on it. Only used when no vehicle
+  // holds the connection any more, or Windows itself reports it gone.)
   async function disconnect(unc) {
     try {
       await helper.request('smb.disconnect', { unc, force: true }, { timeoutMs: STATUS_TIMEOUT_MS });
@@ -121,13 +142,20 @@ function createWinMounter({ helper, log = console } = {}) {
     const held = byId.get(id);
     if (!held || !held.counted) return;
     held.counted = false;
-    const ref = refs.get(held.key);
-    if (!ref) return;
-    ref.count--;
-    if (ref.count <= 0) {
-      refs.delete(held.key);
-      await disconnect(ref.unc);
-    }
+    if (holders(held.key) > 0) return;
+    refs.delete(held.key);
+    await disconnect(held.conn.unc);
+  }
+
+  /**
+   * After a failed attempt: a connection nobody holds is not kept (it may
+   * be half made, or weaker than asked for). One that other vehicles hold
+   * is left alone for them.
+   */
+  async function dropIfUnheld(key, unc) {
+    if (holders(key) > 0) return;
+    refs.delete(key);
+    await disconnect(unc);
   }
 
   function failure(err, password) {
@@ -150,36 +178,62 @@ function createWinMounter({ helper, log = console } = {}) {
     }
     const { smb } = conn;
     return serial(conn.server, async () => {
-      // a remount (the NAS dropped) or a changed share: let go of the old one first
+      // a remount (the NAS dropped) or a changed share: let go of the old one
+      // first (while other vehicles hold it, that only drops this one's share)
       const previous = byId.get(id);
       if (previous?.counted) await release(id);
       const key = keyOf(conn);
-      byId.set(id, { key, conn, counted: false });
+      const me = { key, conn, counted: false };
+      byId.set(id, me);
 
       for (const [k, ref] of refs) {
-        if (k !== key && lower(ref.server) === lower(conn.server) && lower(ref.account) !== lower(conn.account) && ref.count > 0) {
+        if (k !== key && lower(ref.server) === lower(conn.server) && lower(ref.account) !== lower(conn.account) && holders(k) > 0) {
           const err = Object.assign(new Error(`This PC is already connected to ${conn.server} as ${ref.account}; Windows allows one account per server.`), { code: 'ESESSION', winerr: 1219 });
           log.warn?.(`Connecting ${conn.unc} as ${conn.account}: ${err.message}`);
           return failure(err, smb.password);
         }
       }
 
-      const ref = refs.get(key);
+      const fp = fingerprint(smb.password);
+      const ref = holders(key) > 0 ? refs.get(key) : null;
       if (ref) {
-        // another vehicle already holds this connection: use it, if it is alive
-        let st = null;
+        // another vehicle already holds this connection: use it, if it is
+        // alive. A status call that fails says nothing either way (a slow
+        // WMI query), so the connection is left alone and this vehicle
+        // tries again later.
+        let st;
         try {
           st = await status(conn);
-        } catch {
-          st = null;
+        } catch (err) {
+          const res = failure(err, smb.password);
+          log.warn?.(`Checking ${conn.unc} failed: ${res.output}`);
+          return res;
         }
         if (st?.connected) {
+          ref.last = st;
           const problem = securityProblem(smb, st, conn.unc);
           if (problem) return { code: -1, ...problem };
-          ref.count++;
-          byId.get(id).counted = true;
+          if (!ref.passwords.has(fp)) {
+            // Linux shares an SMB session only when the password matches too,
+            // so a wrong password fails there: check this one as the account
+            // before counting it (smb.test logs on with it, apart from the
+            // shared connection)
+            try {
+              await helper.request('smb.test', {
+                unc: conn.unc, user: smb.username, ...(smb.domain ? { domain: smb.domain } : {}), password: smb.password, write: false
+              }, { timeoutMs: CONNECT_TIMEOUT_MS });
+            } catch (err) {
+              const res = failure(err, smb.password);
+              log.warn?.(`Connecting ${conn.unc} as ${conn.account} failed: ${res.output}`);
+              return res;
+            }
+            ref.passwords.add(fp);
+          }
+          me.counted = true;
           return { code: 0, output: '' };
         }
+        // Windows reports it gone (the NAS dropped it, for every vehicle on
+        // it): connect again below, and the others count on the new one
       }
 
       // a connection left over from before (an earlier run, a crash) may be
@@ -191,8 +245,7 @@ function createWinMounter({ helper, log = console } = {}) {
           unc: conn.unc, user: smb.username, ...(smb.domain ? { domain: smb.domain } : {}), password: smb.password
         }, { timeoutMs: CONNECT_TIMEOUT_MS });
       } catch (err) {
-        // (the old connection, if any, is gone now: forget its count)
-        if (ref) refs.delete(key);
+        if (holders(key) === 0) refs.delete(key);
         const res = failure(err, smb.password);
         log.warn?.(`Connecting ${conn.unc} as ${conn.account} failed: ${res.output}`);
         return res;
@@ -201,20 +254,23 @@ function createWinMounter({ helper, log = console } = {}) {
       try {
         st = await status(conn);
       } catch (err) {
-        if (!ref) await disconnect(conn.unc);
-        else refs.delete(key);
+        await dropIfUnheld(key, conn.unc);
         return failure(err, smb.password);
       }
       const problem = securityProblem(smb, st, conn.unc);
       if (problem) {
-        log.warn?.(`${conn.unc}: ${problem.output} Disconnected.`);
-        if (ref) refs.delete(key);
-        await disconnect(conn.unc);
+        log.warn?.(`${conn.unc}: ${problem.output}${holders(key) > 0 ? '' : ' Disconnected.'}`);
+        await dropIfUnheld(key, conn.unc);
         return { code: -1, ...problem };
       }
-      if (ref) ref.count++;
-      else refs.set(key, { count: 1, server: conn.server, unc: conn.unc, account: conn.account });
-      byId.get(id).counted = true;
+      const kept = holders(key) > 0 ? refs.get(key) : null;
+      if (kept) {
+        kept.last = st;
+        kept.passwords.add(fp);
+      } else {
+        refs.set(key, { server: conn.server, unc: conn.unc, account: conn.account, passwords: new Set([fp]), last: st });
+      }
+      me.counted = true;
       return { code: 0, output: '' };
     });
   }
@@ -263,12 +319,21 @@ function createWinMounter({ helper, log = console } = {}) {
     const r = String(root || '');
     for (const held of byId.values()) {
       if (!held.counted || lower(held.conn.root) !== lower(r)) continue;
+      const entry = { mountPoint: r, fsType: 'smb3', source: held.conn.source, options: '' };
+      const ref = refs.get(held.key);
+      let st;
       try {
-        const st = await status(held.conn);
-        return st?.connected ? { mountPoint: r, fsType: 'smb3', source: held.conn.source, options: '' } : null;
-      } catch {
-        return null;
+        st = await status(held.conn);
+      } catch (err) {
+        // a status call that fails (a slow WMI query) does not mean the share
+        // is gone: answer what was last known, so ShareManager does not
+        // reconnect a healthy share. A share that is really gone shows when
+        // it cannot be read, and ShareManager remounts it then.
+        log.debug?.(`Checking ${held.conn.unc}: ${err.message}`);
+        return ref?.last?.connected ? entry : null;
       }
+      if (ref) ref.last = st;
+      return st?.connected ? entry : null;
     }
     // an SMB vehicle's share counts only while this mounter holds it, so
     // ShareManager connects it (again) otherwise

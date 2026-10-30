@@ -13,7 +13,7 @@
 const fsp = require('fs/promises');
 const path = require('path');
 const { normalizeSmb } = require('./mountSpec');
-const { explainMountError, explainSmbError, checkWritable, writeHint } = require('./share');
+const { explainMountError, explainSmbError, checkWritable, writeHint, WRITE_STEPS } = require('./share');
 const { findClipRootAsync, CLIP_FOLDER } = require('./vehicles');
 const { shouldSkipDir } = require('./footage');
 const { tail } = require('./proc');
@@ -119,9 +119,26 @@ function createSmbTester({ mounter, vehicles, log = console, now = Date.now, pla
     log.info?.(`SMB test of ${smb.share} as ${smb.username || '(guest)'}: connected${clips !== null ? ', footage found' : ''}${writable ? '' : ', read-only'}`);
     return {
       ok: true, entries: entries.length, writable, ms: now() - started,
-      writeProblem: writable ? null : `Read-only for this account: writing a file failed (access denied). ${writeHint('write', 'win32')}`,
+      writeProblem: writable ? null : win32WriteProblem(res, smb),
       footage: clips
     };
+  }
+
+  /**
+   * The read-only message for a failed write in smb.test, worded as
+   * checkWritable words it on Docker. The helper names the step that failed
+   * (writeStep: write, sync, rename, utime, read or remove) and why
+   * (writeError, writeCode) when it reports them; without them it was the
+   * first write.
+   */
+  function win32WriteProblem(res, smb) {
+    const step = Object.hasOwn(WRITE_STEPS, res.writeStep) ? res.writeStep : 'write';
+    let why = String(res.writeError || res.writeCode || 'refused');
+    // (the helper's text, which must not carry the password on)
+    if (smb.password) why = why.split(String(smb.password)).join('***');
+    const denied = !res.writeCode || /^(EACCES|EPERM|EROFS)$/.test(res.writeCode);
+    const hint = denied || step !== 'write' ? writeHint(step, 'win32') : null;
+    return `Read-only for this account: ${WRITE_STEPS[step]} failed (${why}).${hint ? ` ${hint}` : ''}`;
   }
 
   /**

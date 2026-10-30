@@ -15,7 +15,7 @@ const os = require('os');
 const path = require('path');
 const { createWinMounter, securityProblem, scrub } = require('../server/platform/smbWin32');
 const { winConnection, dialectAtLeast, dialectParts } = require('../server/mountSpec');
-const { ShareManager, SMB_HINTS, explainSmbError, explainMountError } = require('../server/share');
+const { ShareManager, SMB_HINTS, explainSmbError, explainMountError, writeHint } = require('../server/share');
 const { createSmbTester } = require('../server/smbTest');
 const { VehicleManager, findClipRoot, findClipRootAsync } = require('../server/vehicles');
 const { shouldSkipDir } = require('../server/footage');
@@ -121,6 +121,110 @@ test('connections are shared per share and account: the last vehicle to let go d
   await m.forget('a');
   await m.forget('never');
   assert.throws(() => m.target('a'), /No share is known/);
+});
+
+test('a failed reconnect by one vehicle keeps the others\' share of the connection', async () => {
+  let nasUp = true;
+  const helper = fakeHelper({
+    'smb.connect': (a, d) => {
+      if (!nasUp) throw Object.assign(new Error('The network path was not found.'), { code: 'EHOSTUNREACH', winerr: 53 });
+      return d['smb.connect'](a);
+    }
+  });
+  const m = createWinMounter({ helper, log: captureLog() });
+  assert.equal((await m.mount('va', { ...SMB, share: '//nas/TeslaCam/a' })).code, 0);
+  assert.equal((await m.mount('vb', { ...SMB, share: '//nas/TeslaCam/b' })).code, 0);
+  // the NAS drops: A's remount fails while it is down, then works
+  nasUp = false;
+  helper.connected.clear();
+  assert.equal((await m.mount('va', { ...SMB, share: '//nas/TeslaCam/a' })).code, -1);
+  nasUp = true;
+  assert.equal((await m.mount('va', { ...SMB, share: '//nas/TeslaCam/a' })).code, 0);
+  assert.ok(await m.probe('\\\\nas\\TeslaCam\\b'), 'B is on the new connection');
+  // A lets go: B still holds it, so nothing is disconnected
+  const before = helper.calls.length;
+  await m.unmount('va');
+  assert.ok(!ops({ calls: helper.calls.slice(before) }).includes('smb.disconnect'));
+  assert.ok(await m.probe('\\\\nas\\TeslaCam\\b'));
+  await m.unmount('vb');
+  assert.equal(ops(helper).at(-1), 'smb.disconnect', 'the last one disconnects');
+  assert.equal(helper.connected.size, 0);
+
+  // the same with a reconnect that comes back weaker than A asks for
+  const h2 = fakeHelper();
+  const m2 = createWinMounter({ helper: h2, log: captureLog() });
+  await m2.mount('va', { ...SMB, share: '//nas/TeslaCam/a' });
+  await m2.mount('vb', { ...SMB, share: '//nas/TeslaCam/b', encrypt: false });
+  h2.connected.clear();
+  let weak = true;
+  const statusOf = (a) => (h2.connected.has(`\\\\${a.server}\\${a.share}`.toLowerCase()) ? (weak ? { ...GOOD, encrypted: false } : GOOD) : { connected: false });
+  h2.request = ((orig) => (op, args, opts) => (op === 'smb.status' ? (h2.calls.push({ op, args, opts }), Promise.resolve(statusOf(args))) : orig(op, args, opts)))(h2.request.bind(h2));
+  const r = await m2.mount('va', { ...SMB, share: '//nas/TeslaCam/a' });
+  assert.equal(r.hint, SMB_HINTS.encryption);
+  assert.ok(h2.connected.has('\\\\nas\\teslacam'), 'B (which does not need encryption) keeps the connection');
+  weak = false;
+  assert.equal((await m2.mount('va', { ...SMB, share: '//nas/TeslaCam/a' })).code, 0);
+  const n = h2.calls.length;
+  await m2.unmount('vb');
+  assert.ok(!ops({ calls: h2.calls.slice(n) }).includes('smb.disconnect'), 'A still holds it');
+  await m2.unmount('va');
+  assert.equal(h2.connected.size, 0);
+});
+
+test('a status call that fails is "unknown": the share is not reported gone and nothing is disconnected', async () => {
+  let failing = false;
+  const helper = fakeHelper({
+    'smb.status': (a, d) => {
+      if (failing) throw Object.assign(new Error('The helper did not answer in time.'), { code: 'ETIMEDOUT' });
+      return d['smb.status'](a);
+    }
+  });
+  const log = captureLog();
+  const m = createWinMounter({ helper, log });
+  assert.equal((await m.mount('va', { ...SMB, share: '//nas/TeslaCam/a' })).code, 0);
+  assert.equal((await m.mount('vb', { ...SMB, share: '//nas/TeslaCam/b' })).code, 0);
+  failing = true;
+  const n = helper.calls.length;
+  assert.equal((await m.probe('\\\\nas\\TeslaCam\\a')).fsType, 'smb3', 'last known: connected');
+  // even if ShareManager mounts again, the connection B uses is left alone
+  const r = await m.mount('va', { ...SMB, share: '//nas/TeslaCam/a' });
+  assert.equal(r.code, -1);
+  assert.equal(r.timedOut, true);
+  const later = ops({ calls: helper.calls.slice(n) });
+  assert.ok(!later.includes('smb.disconnect') && !later.includes('smb.connect'), later.join());
+  assert.ok(helper.connected.has('\\\\nas\\teslacam'));
+  failing = false;
+  assert.ok(await m.probe('\\\\nas\\TeslaCam\\b'));
+  assert.equal((await m.mount('va', { ...SMB, share: '//nas/TeslaCam/a' })).code, 0, 'joins again once Windows answers');
+  // a share never seen connected is not reported mounted on a failed check
+  const h2 = fakeHelper({ 'smb.status': () => { throw Object.assign(new Error('x'), { code: 'ETIMEDOUT' }); } });
+  const m2 = createWinMounter({ helper: h2, log: captureLog() });
+  assert.equal((await m2.mount('car', SMB)).code, -1);
+  assert.equal(await m2.probe('\\\\nas\\TeslaCam\\car'), null);
+});
+
+test('joining a shared connection with another password checks that password first', async () => {
+  const helper = fakeHelper({
+    'smb.test': (a) => {
+      if (a.password !== PASSWORD && a.password !== 'second-good-one') throw Object.assign(new Error('The user name or password is incorrect.'), { code: 'EAUTH', winerr: 1326 });
+      return { readable: true, writable: false, entries: [] };
+    }
+  });
+  const m = createWinMounter({ helper, log: captureLog() });
+  assert.equal((await m.mount('va', { ...SMB, share: '//nas/TeslaCam/a' })).code, 0);
+  assert.equal((await m.mount('vb', { ...SMB, share: '//nas/TeslaCam/b' })).code, 0);
+  assert.ok(!ops(helper).includes('smb.test'), 'the same password needs no check');
+  const wrong = await m.mount('vc', { ...SMB, share: '//nas/TeslaCam/c', password: 'WRONG' });
+  assert.equal(wrong.code, -1);
+  assert.match(wrong.hint, /user name or password/);
+  const testCall = helper.calls.find((c) => c.op === 'smb.test');
+  assert.equal(testCall.args.write, false);
+  assert.equal(await m.probe('\\\\nas\\TeslaCam\\c'), null);
+  assert.equal((await m.mount('vd', { ...SMB, share: '//nas/TeslaCam/d', password: 'second-good-one' })).code, 0);
+  const tests = ops(helper).filter((o) => o === 'smb.test').length;
+  assert.equal((await m.mount('ve', { ...SMB, share: '//nas/TeslaCam/e', password: 'second-good-one' })).code, 0);
+  assert.equal(ops(helper).filter((o) => o === 'smb.test').length, tests, 'a password proven once is remembered');
+  assert.equal(ops(helper).filter((o) => o === 'smb.connect').length, 1);
 });
 
 test('a second account on the same server is refused with the one-account hint (Windows error 1219)', async () => {
@@ -263,6 +367,91 @@ test('through the helper client: the password is only ever written to the helper
   }
 });
 
+// The same without the platform layer's client: a real child process that
+// speaks the helper's protocol (one JSON request per line on stdin, one
+// reply per line on stdout) and reports whether the password it was sent
+// is anywhere in its own command line or environment.
+test('a spawned helper gets the password on stdin only, never in its argv or environment', async () => {
+  const { spawn } = require('child_process');
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'smb-win-child-'));
+  const script = path.join(dir, 'fake-helper.js');
+  fs.writeFileSync(script, `'use strict';
+let buf = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (chunk) => {
+  buf += chunk;
+  let i;
+  while ((i = buf.indexOf('\\n')) >= 0) {
+    const req = JSON.parse(buf.slice(0, i));
+    buf = buf.slice(i + 1);
+    const pw = req.args && req.args.password;
+    let reply;
+    if (req.op === 'smb.connect') {
+      reply = { id: req.id, ok: false, code: 'EAUTH', winerr: 1326, message: 'logon failed with ' + pw,
+        seen: { got: Boolean(pw), argv: process.argv.join(' ').includes(pw), env: JSON.stringify(process.env).includes(pw) } };
+    } else if (req.op === 'smb.disconnect') {
+      reply = { id: req.id, ok: false, code: 'ENOENT', winerr: 2250, message: 'no connection' };
+    } else {
+      reply = { id: req.id, ok: true, result: {} };
+    }
+    process.stdout.write(JSON.stringify(reply) + '\\n');
+  }
+});
+`);
+  const spawns = [];
+  const child = spawn(process.execPath, [script], { stdio: ['pipe', 'pipe', 'inherit'], env: { ...process.env }, windowsHide: true });
+  spawns.push({ args: [process.execPath, script], env: { ...process.env } });
+  // a minimal client: what the platform layer's winHelper.js does
+  let next = 1;
+  const pending = new Map();
+  const replies = [];
+  let out = '';
+  child.stdout.setEncoding('utf8');
+  child.stdout.on('data', (chunk) => {
+    out += chunk;
+    let i;
+    while ((i = out.indexOf('\n')) >= 0) {
+      const reply = JSON.parse(out.slice(0, i));
+      out = out.slice(i + 1);
+      replies.push(reply);
+      const p = pending.get(reply.id);
+      pending.delete(reply.id);
+      if (reply.ok) p.resolve(reply.result);
+      else p.reject(Object.assign(new Error(reply.message), { code: reply.code, winerr: reply.winerr }));
+    }
+  });
+  const helper = {
+    request(op, args) {
+      const id = next++;
+      return new Promise((resolve, reject) => {
+        pending.set(id, { resolve, reject });
+        child.stdin.write(`${JSON.stringify({ id, op, args })}\n`);
+      });
+    }
+  };
+  try {
+    const log = captureLog();
+    const res = await createWinMounter({ helper, log }).mount('car', SMB);
+    assert.equal(res.code, -1);
+    const seen = replies.find((r) => r.seen).seen;
+    assert.deepEqual(seen, { got: true, argv: false, env: false }, 'sent over stdin, and nowhere else the child can see');
+    for (const s of spawns) {
+      assert.ok(!JSON.stringify(s.args).includes(PASSWORD), 'not in argv');
+      assert.ok(!JSON.stringify(s.env).includes(PASSWORD), 'not in the environment');
+    }
+    if (process.platform === 'linux') {
+      assert.ok(!fs.readFileSync(`/proc/${child.pid}/cmdline`, 'utf8').includes(PASSWORD));
+      assert.ok(!fs.readFileSync(`/proc/${child.pid}/environ`, 'utf8').includes(PASSWORD));
+    }
+    assert.match(res.output, /logon failed with \*\*\*/);
+    for (const text of [...log.lines, res.output, res.hint]) assert.ok(!String(text).includes(PASSWORD), `leaked: ${text}`);
+  } finally {
+    child.stdin.end();
+    await new Promise((resolve) => (child.exitCode !== null ? resolve() : child.once('exit', resolve)));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('ShareManager takes an injected probe instead of /proc/self/mountinfo, and the mounter\'s own hint', async () => {
   const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'smb-win-share-'));
   try {
@@ -354,6 +543,13 @@ test('connection test on Windows: smb.test as the typed account, same answer sha
   assert.equal(r2.footage, '.');
   assert.match(r2.writeProblem, /^Read-only for this account: writing a file failed/);
   assert.doesNotMatch(r2.writeProblem, /PUID/);
+  // a helper that names the step that failed: worded as on Docker
+  const named = createWinMounter({ helper: fakeHelper({ 'smb.test': () => ({ readable: true, writable: false, entries: ['RecentClips'], writeStep: 'rename', writeCode: 'EACCES', writeError: 'Access is denied.' }) }), log: captureLog() });
+  const r4 = await createSmbTester({ mounter: named, vehicles: { get: () => null }, log: captureLog(), platform: 'win32' }).test(SMB);
+  assert.equal(r4.writeProblem, `Read-only for this account: replacing a file by renaming another over it failed (Access is denied.). ${writeHint('rename', 'win32')}`);
+  const odd = createWinMounter({ helper: fakeHelper({ 'smb.test': () => ({ readable: true, writable: false, entries: [], writeStep: 'write', writeCode: 'ENOSPC', writeError: 'There is not enough space on the disk.' }) }), log: captureLog() });
+  const r5 = await createSmbTester({ mounter: odd, vehicles: { get: () => null }, log: captureLog(), platform: 'win32' }).test(SMB);
+  assert.equal(r5.writeProblem, 'Read-only for this account: writing a file failed (There is not enough space on the disk.).');
 
   // a port Windows cannot use: refused as a detail, nothing sent
   const h3 = fakeHelper();

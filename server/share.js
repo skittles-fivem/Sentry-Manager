@@ -456,4 +456,4 @@ class ShareManager extends EventEmitter {
   }
 }
 
-module.exports = { ShareManager, findMount, mountinfoProbe, explainMountError, explainSmbError, SMB_HINTS, withTimeout, checkWritable, writeHint };
+module.exports = { ShareManager, findMount, mountinfoProbe, explainMountError, explainSmbError, SMB_HINTS, withTimeout, checkWritable, writeHint, WRITE_STEPS };
