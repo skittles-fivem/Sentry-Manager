@@ -570,6 +570,8 @@ function build(spec) {
     proc: path.join(root, 'proc'),
     sys: path.join(root, 'sys'),
     dev: path.join(root, 'dev'),
+    fs,
+    join: path.join,
     update: (s) => write(s, { links: false }),
     file: (rel, text) => write({ [rel]: text }),
     remove: (rel) => fs.rmSync(path.join(root, rel), { recursive: true, force: true }),
@@ -657,6 +659,8 @@ function buildInMemory(spec) {
     proc: `${root}/proc`,
     sys: `${root}/sys`,
     dev: `${root}/dev`,
+    fs: tree,
+    join: posix.join,
     update: (s) => write(s, { links: false }),
     file: (rel, text) => write({ [rel]: text }),
     remove: (rel) => tree.rmSync(posix.join(root, rel)),
@@ -664,7 +668,20 @@ function buildInMemory(spec) {
   };
 }
 
+// Where a test's machine lives: in real folders on Linux, read by the Linux
+// monitor just as it reads /proc and /sys there; in memory on any other
+// system, where sysfs names cannot be folder names. SM_STATS_IN_MEMORY=1
+// takes the in-memory way on Linux too, to try what Windows runs.
+function inMemoryHere(platform = process.platform, env = process.env) {
+  return platform !== 'linux' || env.SM_STATS_IN_MEMORY === '1';
+}
+
+/** build() or buildInMemory(), whichever this system runs (inMemoryHere). */
+function buildHere(spec) {
+  return inMemoryHere() ? buildInMemory(spec) : build(spec);
+}
+
 module.exports = {
-  build, buildInMemory, intelArc, amd, nvidia, pi, bare, dualXeon, NVIDIA_LINES, DUALXEON_NVIDIA_LINES, PCI_IDS, INTEL_LOADS, DUALXEON_LOADS, RAPL_MAX,
+  build, buildInMemory, buildHere, inMemoryHere, intelArc, amd, nvidia, pi, bare, dualXeon, NVIDIA_LINES, DUALXEON_NVIDIA_LINES, PCI_IDS, INTEL_LOADS, DUALXEON_LOADS, RAPL_MAX,
   statLine, procStat, pciGpu, xeFdinfo, i915Fdinfo, amdFdinfo, netDev, diskLine, processFiles, platformHwmon, cpuinfoSockets, dualXeonSocket, MiB
 };

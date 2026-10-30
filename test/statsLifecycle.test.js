@@ -4,11 +4,12 @@
 // last request) or something needs it (a conversion, a job, a power meter).
 // Otherwise no timer and no child process is left behind.
 
-const { skipAll, linuxOnly } = require('./fixtures/platformSkip');
-
-// The Linux server monitor, on fake /proc and /sys trees; Windows has its own
-// (server/stats/platform/win32.js) and its own tests.
-const test = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
+// The engine runs here on fake machines (fixtures/stats/machines.js): the
+// Linux server monitor, told it is on Linux, reading their /proc and /sys
+// from real folders on Linux and from memory on Windows (whose folder names
+// cannot hold sysfs's ":"), so these tests run on every system. Windows's
+// own monitor (server/stats/platform/win32.js) has its own tests.
+const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const { createStats } = require('../server/stats');

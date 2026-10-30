@@ -8,15 +8,12 @@
 // count on, the links counted (no tunnel over a counted link), and the
 // network block of GET /api/stats with today, this week and this month.
 
-const { skipAll, linuxOnly } = require('./fixtures/platformSkip');
-
-// The math (deltas, wrap-around, averages, energy, alert rules) is the same
-// on every OS and runs everywhere. The tests that run the engine on a fake
-// machine (fake /proc and /sys trees from fixtures/stats/machines.js) are the
-// Linux server monitor; Windows has its own (server/stats/platform/win32.js)
-// and its own tests.
+// The engine runs here on fake machines (fixtures/stats/machines.js): the
+// Linux server monitor, told it is on Linux, reading their /proc and /sys
+// from real folders on Linux and from memory on Windows (whose folder names
+// cannot hold sysfs's ":"), so these tests run on every system. Windows's
+// own monitor (server/stats/platform/win32.js) has its own tests.
 const test = require('node:test');
-const onFakeTrees = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
@@ -324,7 +321,7 @@ test('an app restart counts on from the saved readings only for the same boot, n
 
 // ---- the engine and GET /api/stats
 
-onFakeTrees('GET /api/stats: the network block gains today, week and month; the rest is as it was', async () => {
+test('GET /api/stats: the network block gains today, week and month; the rest is as it was', async () => {
   const s = setup(M.intelArc);
   try {
     const first = (s.stats.sampleNow(), s.stats.snapshot().network);
@@ -374,7 +371,7 @@ const known = (offset = 0, boot = HERE.boot) => (phase) => ({
   'sys/class/net/eth0/ifindex': '17\n'
 });
 
-onFakeTrees('the engine saves the data used with the history; an app restart loses nothing', async () => {
+test('the engine saves the data used with the history; an app restart loses nothing', async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stats-data-'));
   const file = path.join(dataDir, 'stats-history.json');
   const clock = fakeClock();
@@ -428,7 +425,7 @@ onFakeTrees('the engine saves the data used with the history; an app restart los
   }
 });
 
-onFakeTrees('tick(): one reading a day with no page open, so each day holds its own bytes; no timer, no sampling', () => {
+test('tick(): one reading a day with no page open, so each day holds its own bytes; no timer, no sampling', () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stats-tick-'));
   const file = path.join(dataDir, 'stats-history.json');
   const clock = fakeClock(new Date(2026, 9, 19, 9).getTime()); // Monday 09:00
@@ -506,9 +503,9 @@ onFakeTrees('tick(): one reading a day with no page open, so each day holds its 
   }
 });
 
-onFakeTrees('the links counted: a VPN or tunnel only when no link that carries it is there', () => {
+test('the links counted: a VPN or tunnel only when no link that carries it is there', () => {
   const links = (spec, fn) => {
-    const m = M.build(spec);
+    const m = M.buildHere(spec);
     try {
       let t = 0;
       const n = new NetworkProvider({ procRoot: m.proc, sysRoot: m.sys, now: () => t });

@@ -67,7 +67,7 @@ class SensorsProvider {
         chip.disk = blockDevs.find((b) => b.dev && b.dev === dev)?.name || null;
       } else if (name === 'nvme') {
         chip.role = 'nvme';
-        const ctrl = dev ? path.basename(dev) : null;
+        const ctrl = dev ? path.posix.basename(dev) : null;
         chip.disk = (ctrl && blockDevs.map((b) => b.name).filter((n) => n.startsWith(`${ctrl}n`)).sort()[0]) || ctrl;
       }
       this.chips.push(chip);

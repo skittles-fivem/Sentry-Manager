@@ -44,8 +44,11 @@ function mountFor(mounts, p) {
 }
 
 class FilesystemsProvider {
-  constructor({ procRoot, sysRoot, appPid, readShares, fsp, now, log, fragmentSize = null, locate = null }) {
+  constructor({ procRoot, sysRoot, appPid, readShares, fsp, now, log, fragmentSize = null, locate = null, platform = process.platform }) {
     this.procRoot = procRoot;
+    // the shares' paths are the system's own: Windows paths for the Windows
+    // monitor, POSIX paths for the Linux one (on any system, in the tests)
+    this.pathApi = platform === 'win32' ? path.win32 : path.posix;
     // where a share lives without /proc (Windows): locate(path, network) ->
     // { fsType, source, disk, smbVersion, mounted } or null; see refreshList
     this.locate = typeof locate === 'function' ? locate : null;
@@ -69,7 +72,7 @@ class FilesystemsProvider {
     if (!majmin || majmin.startsWith('0:')) return null; // network and virtual filesystems
     const real = realPath(join(this.sysRoot, 'dev', 'block', majmin));
     if (!real) return null;
-    return exists(join(real, 'partition')) ? path.basename(path.dirname(real)) : path.basename(real);
+    return exists(join(real, 'partition')) ? path.posix.basename(path.posix.dirname(real)) : path.posix.basename(real);
   }
 
   refreshList(t) {
@@ -81,8 +84,8 @@ class FilesystemsProvider {
     }
     const next = new Map();
     for (const s of Array.isArray(list) ? list.slice(0, 32) : []) {
-      if (!s || typeof s.path !== 'string' || !path.isAbsolute(s.path)) continue;
-      const p = path.resolve(s.path);
+      if (!s || typeof s.path !== 'string' || !this.pathApi.isAbsolute(s.path)) continue;
+      const p = this.pathApi.resolve(s.path);
       const label = String(s.label || p).slice(0, 100);
       const state = this.shares.get(p) || {
         path: p, totalB: null, usedB: null, freeB: null, latencyMs: null, reachable: null, pendingSince: null, lastCheck: null,
@@ -207,7 +210,7 @@ class FilesystemsProvider {
     if (!data || typeof data !== 'object' || Array.isArray(data)) return;
     const t = this.now();
     for (const [p, at] of Object.entries(data).slice(0, 32)) {
-      if (!path.isAbsolute(p) || !Number.isFinite(at) || at <= 0 || at > t) continue;
+      if (!this.pathApi.isAbsolute(p) || !Number.isFinite(at) || at <= 0 || at > t) continue;
       this.answered.set(p, at);
       const s = this.shares.get(p);
       if (s && !(s.answeredAt >= at)) s.answeredAt = at;

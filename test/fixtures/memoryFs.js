@@ -89,15 +89,21 @@ function createMemoryFs() {
       const enc = typeof encoding === 'string' ? encoding : encoding?.encoding;
       return enc ? node.data.toString(enc) : Buffer.from(node.data);
     },
-    readdirSync(target) {
+    // names, or with { withFileTypes: true } entries that say what each one is
+    readdirSync(target, options) {
       const at = resolve(target);
       if (!at) throw fsError('ENOENT', 'scandir', target);
       if (nodes.get(at).type !== 'dir') throw fsError('ENOTDIR', 'scandir', target);
       const prefix = at === '/' ? '/' : `${at}/`;
-      return [...nodes.keys()]
+      const names = [...nodes.keys()]
         .filter((key) => key !== at && key.startsWith(prefix) && !key.slice(prefix.length).includes('/'))
         .map((key) => key.slice(prefix.length))
         .sort();
+      if (!options?.withFileTypes) return names;
+      return names.map((name) => {
+        const { type } = nodes.get(posix.join(at, name));
+        return { name, isDirectory: () => type === 'dir', isFile: () => type === 'file', isSymbolicLink: () => type === 'link' };
+      });
     },
     readlinkSync(target) {
       const at = resolve(target, false);
