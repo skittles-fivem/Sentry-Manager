@@ -9,7 +9,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const fsp = require('fs/promises');
-const os = require('os');
 const path = require('path');
 const { EventEmitter } = require('events');
 const { PassThrough } = require('stream');
@@ -18,6 +17,7 @@ const {
   parseMountLine, parseDarwinMount, findDarwinMount, parseStatshares, checkStatshares,
   explainMountErrorDarwin, CHECK, PROMPT_RE
 } = require('../server/platform/smbDarwin');
+const { realTmp } = require('./fixtures/tmp');
 
 const FIX = path.join(__dirname, 'fixtures', 'darwin');
 const fixture = (name) => fs.readFileSync(path.join(FIX, name), 'utf8');
@@ -122,11 +122,15 @@ function mountsOk(fr, mountOpts) {
 }
 
 async function setup(t, { root = 'foot age', ...opts } = {}) {
-  const base = await fsp.mkdtemp(path.join(os.tmpdir(), 'sm-smbdarwin-'));
+  // under the temp folder's real path: on Windows os.tmpdir() can be an 8.3
+  // short name (RUNNER~1), which the mounter's realpath expands
+  const base = await realTmp('sm-smbdarwin-');
   t.after(() => fsp.rm(base, { recursive: true, force: true }));
   const footageRoot = path.join(base, root);
   const runDir = path.join(base, 'run');
-  await fsp.mkdir(footageRoot, { recursive: true });
+  // Windows cannot hold a line break in a name. The mounter refuses such a
+  // root from its path alone, so there it is left uncreated
+  if (!(process.platform === 'win32' && /[\r\n]/.test(root))) await fsp.mkdir(footageRoot, { recursive: true });
   const fr = fakeRun(opts.run);
   const fsps = fakeSpawn(opts.script ? opts.script(fr) : mountsOk(fr, opts.mountOpts));
   const mounter = createDarwinMounter({
