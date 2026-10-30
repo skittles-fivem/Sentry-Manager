@@ -1,0 +1,148 @@
+using System;
+using System.Globalization;
+using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using SentrySix.Core;
+using SentrySix.Ui;
+
+namespace SentrySix.Shell
+{
+    /// <summary>
+    /// The parity test mode: --render &lt;interface&gt; &lt;page&gt; --width N --height N
+    /// --out file.png [--fixture file.json]. Builds the page from fixture data
+    /// (no network, no server), lays it out at that size, waits for it to settle,
+    /// renders it with RenderTargetBitmap and writes a PNG. Animations stand still.
+    /// &lt;page&gt; is "login", "login-setup", "shell" (the interface's first page) or
+    /// any route of the interface (its placeholder inside the shell).
+    /// </summary>
+    public static class RenderMode
+    {
+        /// <summary>The fixture used without --fixture: two vehicles, unread alerts, a running conversion.</summary>
+        public const string DefaultFixture = @"{
+  ""host"": ""192.168.1.20:9000"",
+  ""now"": ""2026-05-01T14:05:00"",
+  ""live"": true,
+  ""me"": { ""user"": null, ""needsSetup"": false, ""secure"": true, ""fingerprint"": ""3A:91:C4:0F:7E:22:B8:5D:19:E6:A0:4C:73:FD:28:91:BE:05:6A:D3:4F:C2:87:1B:90:E4:5A:3C:D8:66:0F:B2"", ""deployment"": ""docker"" },
+  ""settings"": { ""appearance"": { ""reduceEffects"": false, ""clock24"": false } },
+  ""vehicles"": { ""vehicles"": [
+    { ""id"": 1, ""name"": ""Model Y"", ""share"": { ""healthy"": true, ""writable"": true }, ""inventory"": { ""recordings"": 412 }, ""scanning"": false, ""binItems"": 3 },
+    { ""id"": 2, ""name"": ""Model 3"", ""share"": { ""healthy"": true, ""writable"": false }, ""inventory"": { ""recordings"": 87 }, ""scanning"": false, ""binItems"": 0 }
+  ] },
+  ""notifications"": { ""notifications"": [
+    { ""id"": 7, ""kind"": ""conversion"", ""level"": ""warning"", ""title"": ""2 clip(s) could not be converted"", ""message"": ""The originals were kept."", ""createdAt"": 1777644000000, ""updatedAt"": 1777644000000, ""resolvedAt"": null, ""readAt"": null },
+    { ""id"": 6, ""kind"": ""share"", ""level"": ""info"", ""title"": ""Share reconnected"", ""message"": """", ""createdAt"": 1777640000000, ""updatedAt"": 1777640000000, ""resolvedAt"": null, ""readAt"": 1777641000000 }
+  ] },
+  ""jobs"": { ""jobs"": [ { ""id"": 31, ""type"": ""conversion"", ""status"": ""running"" }, { ""id"": 30, ""type"": ""scan"", ""status"": ""done"" } ] },
+  ""prefs"": { }
+}";
+
+        public static int Run(string ifaceId, string page, int width, int height, string outFile, string fixtureFile)
+        {
+            try
+            {
+                JsonValue fx = JsonValue.Parse(fixtureFile != null ? File.ReadAllText(fixtureFile) : DefaultFixture);
+                IInterface look = Interfaces.Get(ifaceId);
+                if (look == null) throw new ArgumentException("No such interface: " + ifaceId + " (builtin, horizon, flux, aurora, daylight).");
+                MemoryPrefs prefs = new MemoryPrefs();
+                foreach (System.Collections.Generic.KeyValuePair<string, JsonValue> kv in fx["prefs"].Props) prefs.Set(kv.Key, kv.Value.Str);
+                // the same on every runner: Daylight's "auto" would follow this PC's Windows theme (Playwright's default is light)
+                if (prefs.Get("daylight:theme", null) == null) prefs.Set("daylight:theme", "light");
+                FrameworkElement content;
+                if (page == "login" || page == "login-setup")
+                {
+                    LoginModel lm = new LoginModel();
+                    JsonValue me = fx["me"];
+                    lm.NeedsSetup = page == "login-setup" || me["needsSetup"].Bool;
+                    lm.Fingerprint = me["fingerprint"].Str;
+                    lm.WindowsDeployment = me["deployment"].Str == "windows";
+                    lm.Insecure = fx["insecure"].Bool;
+                    lm.Host = fx["host"].Str ?? "localhost:9000";
+                    lm.Prefs = prefs;
+                    lm.Still = true;
+                    lm.Submit = (u, p, c) => System.Threading.Tasks.Task.FromResult(new LoginResult { Ok = false, Status = 401, Error = "Wrong user name or password." });
+                    content = look.Login(lm);
+                }
+                else
+                {
+                    ShellModel m = new ShellModel();
+                    m.Prefs = prefs;
+                    m.Still = true;
+                    m.Host = fx["host"].Str ?? "localhost:9000";
+                    DateTime now;
+                    if (fx["now"].Str != null && DateTime.TryParse(fx["now"].Str, CultureInfo.InvariantCulture, DateTimeStyles.None, out now)) m.Now = () => now;
+                    ShellData.Settings(fx["settings"], m);
+                    m.SetVehicles(ShellData.Vehicles(fx["vehicles"]));
+                    m.SetNotes(ShellData.Notes(fx["notifications"]));
+                    ShellData.Jobs(fx["jobs"], m);
+                    m.LiveKnown = fx.Has("live");
+                    m.Live = fx["live"].Bool;
+                    m.Deployment = fx["me"]["deployment"].Str ?? "docker";
+                    string route = page == "shell" ? look.Pages[0].Id : page;
+                    PageDef def = null;
+                    foreach (PageDef p in look.Pages) if (p.Id == route) def = p;
+                    if (def == null) throw new ArgumentException("No page " + route + " in " + ifaceId + ".");
+                    m.Route = route;
+                    PageContext ctx = new PageContext();
+                    ctx.Shell = m;
+                    ctx.Def = def;
+                    ctx.Fixture = fx;
+                    m.PageContent = look.Page(route, ctx);
+                    content = look.Shell(m);
+                }
+                Grid root = new Grid();
+                root.Resources.MergedDictionaries.Add(look.Theme());
+                root.Children.Add(content);
+                root.UseLayoutRounding = true;
+                TextOptions.SetTextFormattingMode(root, TextFormattingMode.Ideal);
+
+                // a window off screen gives the page a real tree (Loaded events, DPI) without showing it
+                Window w = new Window();
+                w.WindowStyle = WindowStyle.None;
+                w.ShowInTaskbar = false;
+                w.ShowActivated = false;
+                w.AllowsTransparency = false;
+                w.Left = -20000;
+                w.Top = -20000;
+                w.Width = width;
+                w.Height = height;
+                w.ResizeMode = ResizeMode.NoResize;
+                // the page on a canvas, so its size is the one asked for even where the
+                // screen is smaller than the window (Windows clamps a window to the screen)
+                Canvas stage = new Canvas();
+                stage.Children.Add(root);
+                w.Content = stage;
+                w.Show();
+                root.Width = width;
+                root.Height = height;
+                root.Measure(new Size(width, height));
+                root.Arrange(new Rect(0, 0, width, height));
+                // let Loaded, size callbacks and templates run, twice over
+                for (int i = 0; i < 3; i++)
+                {
+                    root.UpdateLayout();
+                    Dispatcher.CurrentDispatcher.Invoke(new Action(() => { }), DispatcherPriority.ApplicationIdle);
+                }
+                RenderTargetBitmap bmp = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+                bmp.Render(root);
+                PngBitmapEncoder png = new PngBitmapEncoder();
+                png.Frames.Add(BitmapFrame.Create(bmp));
+                string dir = Path.GetDirectoryName(Path.GetFullPath(outFile));
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                using (FileStream f = File.Create(outFile)) png.Save(f);
+                w.Close();
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                // a WinExe has no console: the reason goes beside the PNG too
+                Console.Error.WriteLine("render failed: " + ex);
+                try { File.WriteAllText(outFile + ".error.txt", ex.ToString()); } catch (Exception) { }
+                return 1;
+            }
+        }
+    }
+}

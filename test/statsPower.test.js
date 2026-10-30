@@ -5,15 +5,12 @@
 // conversion job (with where the job stood when measuring began), and the
 // benchmark's power meter.
 
-const { skipAll, linuxOnly } = require('./fixtures/platformSkip');
-
-// The math (deltas, wrap-around, averages, energy, alert rules) is the same
-// on every OS and runs everywhere. The tests that run the engine on a fake
-// machine (fake /proc and /sys trees from fixtures/stats/machines.js) are the
-// Linux server monitor; Windows has its own (server/stats/platform/win32.js)
-// and its own tests.
+// The engine runs here on fake machines (fixtures/stats/machines.js): the
+// Linux server monitor, told it is on Linux, reading their /proc and /sys
+// from real folders on Linux and from memory on Windows (whose folder names
+// cannot hold sysfs's ":"), so these tests run on every system. Windows's
+// own monitor (server/stats/platform/win32.js) has its own tests.
 const test = require('node:test');
-const onFakeTrees = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
@@ -276,7 +273,7 @@ test('energy per job: what the job converts while its energy is not counted move
   assert.deepEqual(again.summary(t).byJob.j.base, e.summary(t).byJob.j.base);
 });
 
-onFakeTrees('the engine: markJob counts a job\'s energy, keeps sampling and shows it on the snapshot', async () => {
+test('the engine: markJob counts a job\'s energy, keeps sampling and shows it on the snapshot', async () => {
   const s = setup(M.intelArc, { timers: heldTimers() });
   try {
     await s.run(2);
@@ -300,7 +297,7 @@ onFakeTrees('the engine: markJob counts a job\'s energy, keeps sampling and show
   }
 });
 
-onFakeTrees('the engine: a job\'s baseline comes from options.jobProgress and outlives a restart; the encoder block counts from it', async () => {
+test('the engine: a job\'s baseline comes from options.jobProgress and outlives a restart; the encoder block counts from it', async () => {
   const { encoderBlock, jobProgress } = require('../server/encoderStats');
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stats-base-'));
   const clock = fakeClock();
@@ -356,7 +353,7 @@ onFakeTrees('the engine: a job\'s baseline comes from options.jobProgress and ou
   }
 });
 
-onFakeTrees('no RAPL on an x86 machine: a hint after a few seconds, gone once the supervisor sends readings', async () => {
+test('no RAPL on an x86 machine: a hint after a few seconds, gone once the supervisor sends readings', async () => {
   const s = setup(M.amd, { appPid: 8, timers: heldTimers() });
   try {
     s.stats.touch();
@@ -386,7 +383,7 @@ onFakeTrees('no RAPL on an x86 machine: a hint after a few seconds, gone once th
   }
 });
 
-onFakeTrees('the engine: costs at the price of each moment, from options.priceAt', async () => {
+test('the engine: costs at the price of each moment, from options.priceAt', async () => {
   let price = 0.4;
   const s = setup(M.intelArc, { timers: heldTimers(), options: { priceAt: () => price } });
   try {

@@ -5,11 +5,12 @@
 // long-running nvidia-smi (only on NVIDIA machines, restarted with backoff,
 // killed on stop).
 
-const { skipAll, linuxOnly } = require('./fixtures/platformSkip');
-
-// The Linux server monitor, on fake /proc and /sys trees; Windows has its own
-// (server/stats/platform/win32.js) and its own tests.
-const test = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
+// The engine runs here on fake machines (fixtures/stats/machines.js): the
+// Linux server monitor, told it is on Linux, reading their /proc and /sys
+// from real folders on Linux and from memory on Windows (whose folder names
+// cannot hold sysfs's ":"), so these tests run on every system. Windows's
+// own monitor (server/stats/platform/win32.js) has its own tests.
+const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const { parseFdinfo, engineUse, parseNvidiaLine, lookupPciIds, currentClock, NvidiaSmi } = require('../server/stats/gpu');
@@ -93,7 +94,7 @@ test('right after a start, before the first conversion: the GPU is idle for us (
     assert.deepEqual([gpu.video, gpu.clients, gpu.busy], [0, 0, 37], 'video engine 0 %, no clients; busy from the driver');
     // the first conversion starts: unknown for its first sample, then measured
     s.m.update(M.amd(2));
-    fs.symlinkSync('/dev/dri/renderD128', `${s.m.proc}/400/fd/7`); // update() writes files only
+    s.m.fs.symlinkSync('/dev/dri/renderD128', s.m.join(s.m.proc, '400/fd/7')); // update() writes files only
     s.clock.advance(2000);
     s.stats.sampleNow();
     await s.stats.settle();

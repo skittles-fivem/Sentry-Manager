@@ -11,6 +11,9 @@ const os = require('os');
 const path = require('path');
 const { detectGpus } = require('../server/gpu');
 
+// These are the Linux (Docker) reports, so every host here says it is Linux:
+// on Windows the same function lists the helper's adapters (gpuWin32.test.js).
+
 function fakeHost({ wsl, vainfo, smi }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-gpu-'));
   fs.mkdirSync(path.join(dir, 'dri'));
@@ -19,7 +22,7 @@ function fakeHost({ wsl, vainfo, smi }) {
   if (wsl) fs.writeFileSync(path.join(dir, 'dxg'), '');
   const runImpl = async (cmd) => (cmd === 'vainfo' ? vainfo : smi);
   fs.writeFileSync(path.join(dir, 'version'), 'Linux version 6.8.0-45-generic (buildd@lcy02-amd64-075)\n');
-  return { dir, opts: { driDir: path.join(dir, 'dri'), sysDrm: path.join(dir, 'drm'), dxg: path.join(dir, 'dxg'), runImpl, procVersion: path.join(dir, 'version') } };
+  return { dir, opts: { driDir: path.join(dir, 'dri'), sysDrm: path.join(dir, 'drm'), dxg: path.join(dir, 'dxg'), runImpl, procVersion: path.join(dir, 'version'), platform: 'linux' } };
 }
 
 const SMI = { code: 0, stdout: 'NVIDIA GeForce RTX 4070 Ti, 617.42\n', stderr: '' };
@@ -94,7 +97,7 @@ test('Docker Desktop on a Mac: no GPU, and the reason is said plainly (Docker ca
   try {
     fs.writeFileSync(path.join(dir, 'version'), 'Linux version 6.10.14-linuxkit (root@buildkitsandbox) (gcc (Alpine 13.2.1_git20240309) 13.2.1) #1 SMP Fri Nov 29 17:22:03 UTC 2024\n');
     const none = { code: 1, stdout: '', stderr: '' };
-    const opts = { driDir: path.join(dir, 'no-dri'), sysDrm: path.join(dir, 'no-drm'), dxg: path.join(dir, 'no-dxg'), runImpl: async () => none, procVersion: path.join(dir, 'version') };
+    const opts = { driDir: path.join(dir, 'no-dri'), sysDrm: path.join(dir, 'no-drm'), dxg: path.join(dir, 'no-dxg'), runImpl: async () => none, procVersion: path.join(dir, 'version'), platform: 'linux' };
     const mac = await detectGpus({ ...opts, arch: 'arm64' });
     assert.deepEqual([mac.gpus.length, mac.nvidia.length], [0, 0]);
     assert.equal(mac.hints.length, 1);

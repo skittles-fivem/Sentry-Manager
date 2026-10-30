@@ -316,7 +316,7 @@ class GpuProvider {
       if (!dev || cards.some((c) => c.dev === dev)) continue;
       const uevent = parseUevent(readText(join(dir, 'device', 'uevent')));
       const link = readLink(join(dir, 'device', 'driver'));
-      const driver = (link && path.basename(link)) || uevent.DRIVER || null;
+      const driver = (link && path.posix.basename(link)) || uevent.DRIVER || null;
       if (driver === 'nvidia') continue; // reported by nvidia-smi
       // WSL's stand-in display device (faux_driver, d3d12): not a real GPU
       if (wsl && (driver === 'faux_driver' || /d3d12/i.test(driver || ''))) continue;
@@ -329,7 +329,7 @@ class GpuProvider {
       const vendor = kind !== 'other' ? kind : VENDORS[vendorId] || 'other';
       const chip = this.sensors.chipOf(dev);
       const c = {
-        id: card, dir, dev, pdev: path.basename(dev), driver, kind, vendor, node: render.r, chip,
+        id: card, dir, dev, pdev: path.posix.basename(dev), driver, kind, vendor, node: render.r, chip,
         name: this.nameOf({ dev, driver, kind, vendor, vendorId, deviceId, uevent }),
         runtime: join(dev, 'power', 'runtime_status'), fdinfoSeen: false, vramTotalB: null
       };

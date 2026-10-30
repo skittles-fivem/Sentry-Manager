@@ -25,7 +25,7 @@ test('replace in place: an original open in another program when first read is r
   const { createConverterRuntime } = require(path.join(REPO, 'src/main/converter/runtime'));
   const { createEncoderPlanner } = require(path.join(REPO, 'src/main/converter/encoderPlanner'));
   const { createTeslaH264Fixture } = require(path.join(REPO, 'test/fixtures/ffmpegFixtures'));
-  const root = fs.realpathSync(await fsp.mkdtemp(path.join(os.tmpdir(), 'win-replace-busy-')));
+  const root = fs.realpathSync.native(await fsp.mkdtemp(path.join(os.tmpdir(), 'win-replace-busy-')));
   try {
     const clips = path.join(root, 'footage', 'TeslaCam', 'RecentClips');
     await fsp.mkdir(clips, { recursive: true });

@@ -194,7 +194,8 @@ test('field by field, x509.js certificates match the openssl-made ones', { skip:
       assert.equal(ca.aki, ca.ski, side);
     }
     // the whole DER layout is the same; only signature lengths (ECDSA) and lengths around them vary
-    const shape = (f) => spawnSync('openssl', ['asn1parse', '-in', f], { encoding: 'utf8' }).stdout.split('\n')
+    // (openssl on Windows ends its lines with \r\n)
+    const shape = (f) => spawnSync('openssl', ['asn1parse', '-in', f], { encoding: 'utf8' }).stdout.split(/\r?\n/)
       .map((l) => l.replace(/^\s*\d+:/, '').replace(/(INTEGER|OCTET STRING|UTCTIME|BIT STRING|UTF8STRING).*/, '$1'))
       .filter((l) => !/^d=[01] /.test(l))
       .map((l) => (/^d=2 .*prim: INTEGER$/.test(l) ? 'serial' : l)); // random serials vary in length on both

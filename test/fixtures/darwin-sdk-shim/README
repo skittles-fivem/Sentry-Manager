@@ -1,6 +1,8 @@
 Just enough of the macOS SDK for test/darwinFsOps.test.js to syntax-check
 native/darwin/sentry-fsops.c on Linux (cc -fsyntax-only). The declarations
 and values are copied by hand from Apple's xnu headers (bsd/sys/stdio.h,
-bsd/sys/attr.h, bsd/sys/mount.h, bsd/sys/errno.h, unistd.h). This proves the
+bsd/sys/attr.h, bsd/sys/mount.h, bsd/sys/errno.h, fcntl.h, unistd.h). The
+system's own headers fill in the rest: glibc's on Linux, MinGW's on Windows,
+which lack AT_FDCWD and pathconf, so the shim gives those too. This proves the
 C is well formed against them, not that it builds or runs on a Mac: only a
 real macOS build does that.

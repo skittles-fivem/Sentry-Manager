@@ -23,7 +23,7 @@ const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 const codeError = (code) => Object.assign(new Error(code), { code });
 
 async function tmp() {
-  return fs.realpathSync(await fsp.mkdtemp(path.join(os.tmpdir(), 'win-owned-out-')));
+  return fs.realpathSync.native(await fsp.mkdtemp(path.join(os.tmpdir(), 'win-owned-out-')));
 }
 
 async function identity(file) {
@@ -105,7 +105,7 @@ test('the drive check compares what a file handle reports, not only the name', a
 });
 
 test('staging: a drive check that could not be made just now fails the clip as retryable, nothing written', async () => {
-  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'win-check-transient-')));
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'win-check-transient-')));
   try {
     const tempRoot = path.join(root, 'tmp', 'sentry-six-converter');
     const footage = path.join(root, 'footage');

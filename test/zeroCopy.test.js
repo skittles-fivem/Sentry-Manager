@@ -105,7 +105,8 @@ test('only 8-bit 4:2:0 sources with even dimensions may stay on the GPU', () => 
 
 // A converter job service over the real job store and planner, whose ffmpeg
 // is `spawnProcess` (a fake child, or a real node script).
-function createRig({ platform = 'linux', device, works, behave, video = TESLA, timeline = { frames: [] }, comparePicture, spawnProcess, clips = 1, concurrency = 1, zeroCopyState }) {
+// (encodeMs: how long an encode with these arguments takes; none by default)
+function createRig({ platform = 'linux', device, works, behave, encodeMs, video = TESLA, timeline = { frames: [] }, comparePicture, spawnProcess, clips = 1, concurrency = 1, zeroCopyState }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-zerocopy-'));
   const store = createJobStore({ rootDir: path.join(dir, 'jobs'), fs: fs.promises });
   const advertised = ['libx265', 'hevc_vaapi', 'hevc_qsv', 'hevc_amf', 'hevc_nvenc'];
@@ -134,10 +135,13 @@ function createRig({ platform = 'linux', device, works, behave, video = TESLA, t
     child.kill = (signal) => finish(null, signal || 'SIGTERM');
     spawned.push({ command, args });
     const code = behave ? behave(args) : 0;
-    setImmediate(() => {
+    const ms = encodeMs ? encodeMs(args) : 0;
+    const end = () => {
       if (code === 0) child.stdout.emit('data', 'fps=100\nprogress=end\n');
       finish(code);
-    });
+    };
+    if (ms > 0) setTimeout(end, ms);
+    else setImmediate(end);
     return child;
   };
   const record = (spawn) => (command, args, options) => {
@@ -411,6 +415,32 @@ test('one zero-copy picture check at a time per GPU and codec; the clips that fi
   } finally {
     await mismatch.close();
   }
+  // a clip encoded zero-copy that finishes only after the mismatch was found
+  // (a slower clip, or a slower system) is not checked again: zero-copy is
+  // off for that GPU, so it goes back to GPU decoding like the others
+  let zeroCopyEncodes = 0;
+  const late = createRig({
+    device: AMD_RENDER, works: vaapiWorks, clips: 3, concurrency: 3,
+    encodeMs: (args) => {
+      if (!args.includes('pipe:1') || !args.includes('-hwaccel_output_format')) return 0;
+      zeroCopyEncodes += 1;
+      return zeroCopyEncodes === 3 ? 300 : 0;
+    },
+    comparePicture: async () => {
+      // the verdict comes once all three are encoding zero-copy
+      while (zeroCopyEncodes < 3) await sleep(5);
+      return { ok: false, mean: 0.2, low: 0.1 };
+    }
+  });
+  try {
+    assert.equal((await late.run()).state, 'completed');
+    const tiers = late.encodes().map((entry) => late.tierOf(entry.args));
+    assert.equal(tiers.filter((tier) => tier === 'zero-copy').length, 3);
+    assert.equal(tiers.filter((tier) => tier === 'gpu').length, 3);
+    assert.equal(late.compared.length, 1, 'one check, however late a clip finishes');
+  } finally {
+    await late.close();
+  }
 });
 
 test('the zero-copy record is shared between services (job and benchmark levels): a GPU is checked once per process', async () => {
@@ -476,4 +506,44 @@ test('a Linux QSV zero-copy encode reports its lane\'s render node as its GPU (S
   } finally {
     await rig.close();
   }
+});
+
+test('a Windows QSV or AMF encode on a chosen adapter reports the GPU\'s id as its GPU (System page stats)', async () => {
+  // the arguments name only the adapter index; the Windows stats engine names
+  // the GPU by its id (pci:...), so that is what the live encode carries
+  const liveDevices = async (device, works) => {
+    let rig = null;
+    const seen = [];
+    const spawnProcess = (command, args) => {
+      const child = new EventEmitter();
+      child.stdout = new EventEmitter();
+      child.stderr = new EventEmitter();
+      child.pid = 4242;
+      let done = false;
+      const finish = (code, signal = null) => { if (!done) { done = true; setImmediate(() => child.emit('close', code, signal)); } };
+      child.kill = (signal) => finish(null, signal || 'SIGTERM');
+      setTimeout(() => {
+        if (args.includes('pipe:1')) seen.push(...rig.service.activeEncodes().map((entry) => [entry.device, entry.encoder]));
+        child.stdout.emit('data', 'fps=100\nprogress=end\n');
+        finish(0);
+      }, 30);
+      return child;
+    };
+    rig = createRig({ platform: 'win32', device, works, spawnProcess });
+    try {
+      assert.equal((await rig.run()).state, 'completed');
+      return { seen, encodes: rig.encodes(), tierOf: rig.tierOf };
+    } finally {
+      await rig.close();
+    }
+  };
+  for (const [device, encoder] of [[WIN_INTEL, 'hevc_qsv'], [WIN_AMD, 'hevc_amf']]) {
+    const { seen, encodes: [encode], tierOf } = await liveDevices(device, (name) => name === encoder || name.startsWith('lib'));
+    assert.equal(tierOf(encode.args), 'zero-copy');
+    assert.ok(encode.args.includes(`d3d11va=dx:${device.adapter}`));
+    assert.deepEqual(seen, [[device.id, encoder]]);
+  }
+  // a Windows GPU that cannot encode the codec: its clip runs on the CPU, which names no GPU
+  const cpu = await liveDevices(WIN_INTEL, (name) => name.startsWith('lib'));
+  assert.deepEqual(cpu.seen, [[null, 'libx265']]);
 });

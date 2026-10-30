@@ -12,12 +12,18 @@ const path = require('path');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
 const fake = require('./fixtures/fakeMacCommand');
+const { notOnWindows } = require('./fixtures/platformSkip');
 
 const REPO = path.join(__dirname, '..');
 const MACOS = path.join(REPO, 'macos');
 const LABEL = 'io.github.skittles-fivem.sentry-six-manager';
 const SCRIPTS = ['install.sh', 'update.sh', 'uninstall.sh', 'build.sh', 'sentry-six-manager'];
 const hasTar = spawnSync('tar', ['--version']).status === 0;
+// The macOS scripts are run by /bin/bash, with the macOS commands stood in
+// for by Node scripts that run by their path through #! (fakeMacCommand.js).
+// Windows has neither, and nothing of macOS's install to test; the checks
+// that only read the scripts run there too.
+const runsBash = notOnWindows('the macOS scripts run under /bin/bash, with #! Node stand-ins for the macOS commands');
 
 // a folder under the real temp folder (macOS's /var/folders is a symlink)
 const made = [];
@@ -125,7 +131,7 @@ const launchd = (sb) => JSON.parse(fs.readFileSync(path.join(sb.fake, 'launchd.j
 const mode = (p) => (fs.statSync(p).mode & 0o7777).toString(8).padStart(4, '0');
 const version = (sb) => JSON.parse(fs.readFileSync(path.join(sb.prog, 'app/BUILD_INFO.json'), 'utf8')).version;
 
-test('every script parses with bash', () => {
+test('every script parses with bash', { skip: runsBash }, () => {
   for (const f of SCRIPTS) {
     const r = spawnSync('/bin/bash', ['-n', path.join(MACOS, f)], { encoding: 'utf8' });
     assert.equal(r.status, 0, `${f}: ${r.stderr}`);
@@ -158,7 +164,7 @@ test('nothing in macos/ is for Intel Macs', () => {
   }
 });
 
-test('an Intel Mac is refused before anything is changed', { skip: !hasTar && 'needs tar' }, () => {
+test('an Intel Mac is refused before anything is changed', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   for (const arm of ['missing', '0']) {
     const sb = sandbox();
     const pkg = makePackage(sb);
@@ -171,7 +177,7 @@ test('an Intel Mac is refused before anything is changed', { skip: !hasTar && 'n
   }
 });
 
-test('an installer running under Rosetta is refused before anything is changed', { skip: !hasTar && 'needs tar' }, () => {
+test('an installer running under Rosetta is refused before anything is changed', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const r = install(sb, makePackage(sb), { FAKE_ROSETTA: '1' });
   assert.notEqual(r.status, 0);
@@ -181,14 +187,14 @@ test('an installer running under Rosetta is refused before anything is changed',
   assert.deepEqual(fs.readdirSync(sb.root), []);
 });
 
-test('an Intel Mac with an old macOS gets the Intel message', { skip: !hasTar && 'needs tar' }, () => {
+test('an Intel Mac with an old macOS gets the Intel message', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const r = install(sb, makePackage(sb), { FAKE_ARM64: 'missing', FAKE_MACOS: '12.7.6' });
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /Intel processor/);
 });
 
-test('macOS older than 13.5 is refused, 13.5 is not', { skip: !hasTar && 'needs tar' }, () => {
+test('macOS older than 13.5 is refused, 13.5 is not', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   for (const v of ['13.4.1', '13', '12.7.6', '10.15']) {
     const sb = sandbox();
     const r = install(sb, makePackage(sb), { FAKE_MACOS: v });
@@ -201,7 +207,7 @@ test('macOS older than 13.5 is refused, 13.5 is not', { skip: !hasTar && 'needs 
   assert.equal(r.status, 0, r.out);
 });
 
-test('it has to run as root', { skip: !hasTar && 'needs tar' }, () => {
+test('it has to run as root', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const r = install(sb, makePackage(sb), { FAKE_UID: '501' });
   assert.notEqual(r.status, 0);
@@ -209,7 +215,7 @@ test('it has to run as root', { skip: !hasTar && 'needs tar' }, () => {
   assert.deepEqual(fs.readdirSync(sb.root), []);
 });
 
-test('a hash mismatch stops before anything is unpacked or changed', { skip: !hasTar && 'needs tar' }, () => {
+test('a hash mismatch stops before anything is unpacked or changed', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const pkg = makePackage(sb);
   fs.writeFileSync(pkg.sums, `${'0'.repeat(64)}  ${pkg.tarName}\n`);
@@ -229,7 +235,7 @@ test('a hash mismatch stops before anything is unpacked or changed', { skip: !ha
   assert.deepEqual(fs.readdirSync(sb.root), []);
 });
 
-test('a package whose signature does not verify is refused', { skip: !hasTar && 'needs tar' }, () => {
+test('a package whose signature does not verify is refused', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const r = install(sb, makePackage(sb), { FAKE_CODESIGN_FAIL: 'sentry-fsops' });
   assert.notEqual(r.status, 0);
@@ -239,7 +245,7 @@ test('a package whose signature does not verify is refused', { skip: !hasTar && 
   assert.equal(indexOf(calls(sb), /^(dscl|launchctl) /), -1);
 });
 
-test('a first install: account, folders, settings, job, health, self-test, welcome', { skip: !hasTar && 'needs tar' }, () => {
+test('a first install: account, folders, settings, job, health, self-test, welcome', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const pkg = makePackage(sb);
   const r = install(sb, pkg, { FAKE_SETUP_CODE: 'ABCD-1234' });
@@ -309,7 +315,7 @@ test('a first install: account, folders, settings, job, health, self-test, welco
   assert.match(r.stdout, /Setup code: ABCD-1234\n/);
 });
 
-test('the welcome shows the port from manager.env and the certificate fingerprint', { skip: (!hasTar || spawnSync('openssl', ['version']).status !== 0) && 'needs tar and openssl' }, () => {
+test('the welcome shows the port from manager.env and the certificate fingerprint', { skip: runsBash || ((!hasTar || spawnSync('openssl', ['version']).status !== 0) && 'needs tar and openssl') }, () => {
   const sb = sandbox();
   fs.mkdirSync(path.join(sb.state, 'data/tls'), { recursive: true });
   fs.writeFileSync(path.join(sb.state, 'manager.env'), 'PORT=9443\n');
@@ -331,14 +337,14 @@ test('the welcome shows the port from manager.env and the certificate fingerprin
   assert.match(off.stdout, /or http:\/\/192\.168\.1\.20:9443\n/);
 });
 
-test('a failing self-test is reported, not fatal', { skip: !hasTar && 'needs tar' }, () => {
+test('a failing self-test is reported, not fatal', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const r = install(sb, makePackage(sb, { vt: 1 }));
   assert.equal(r.status, 0, r.out);
   assert.match(r.stdout, /VideoToolbox HEVC did not work for the service/);
 });
 
-test('the VideoToolbox answer comes from the running service when it gives one', { skip: !hasTar && 'needs tar' }, () => {
+test('the VideoToolbox answer comes from the running service when it gives one', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   for (const [answer, says] of [['failed', /VideoToolbox HEVC did not work for the service/], ['ok', /GPU: VideoToolbox HEVC works for the service\./]]) {
     const sb = sandbox();
     // the Terminal-side test would pass: only the service's answer counts
@@ -349,7 +355,7 @@ test('the VideoToolbox answer comes from the running service when it gives one',
   }
 });
 
-test('installing again keeps the account, the settings and the data, and keeps the old version', { skip: !hasTar && 'needs tar' }, () => {
+test('installing again keeps the account, the settings and the data, and keeps the old version', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   assert.equal(install(sb, makePackage(sb, { version: '1.0.0' })).status, 0);
   fs.writeFileSync(path.join(sb.state, 'manager.env'), 'PORT=9100\nUI_PASSWORD=secret\n');
@@ -375,7 +381,7 @@ test('installing again keeps the account, the settings and the data, and keeps t
   assert.match(r.stdout, /:9100\n/);
 });
 
-test('a recorded id is reused when the account is made again', { skip: !hasTar && 'needs tar' }, () => {
+test('a recorded id is reused when the account is made again', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   fs.mkdirSync(sb.state, { recursive: true });
   fs.writeFileSync(path.join(sb.state, '.uid'), '300\n');
@@ -394,7 +400,7 @@ test('a recorded id is reused when the account is made again', { skip: !hasTar &
   assert.equal(indexOf(calls(sb), /^chown -R /), indexOf(calls(sb), /^chown -R root:wheel /), 'no data handed over');
 });
 
-test('a recorded id someone else took: a free one, and the data handed to it', { skip: !hasTar && 'needs tar' }, () => {
+test('a recorded id someone else took: a free one, and the data handed to it', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   assert.equal(install(sb, makePackage(sb)).status, 0);
   const db = dscl(sb);
@@ -412,7 +418,7 @@ test('a recorded id someone else took: a free one, and the data handed to it', {
   assert.equal(fs.readFileSync(path.join(sb.state, '.uid'), 'utf8'), '203\n');
 });
 
-test('a new version that does not answer is rolled back', { skip: !hasTar && 'needs tar' }, () => {
+test('a new version that does not answer is rolled back', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   assert.equal(install(sb, makePackage(sb, { version: '1.0.0' })).status, 0);
   clearCalls(sb);
@@ -427,7 +433,7 @@ test('a new version that does not answer is rolled back', { skip: !hasTar && 'ne
   assert.equal(calls(sb).filter((x) => /^launchctl bootstrap /.test(line(x))).length, 2, 'the new one, then the old one again');
 });
 
-test('update.sh installs over a running version, and refuses when nothing is installed', { skip: !hasTar && 'needs tar' }, () => {
+test('update.sh installs over a running version, and refuses when nothing is installed', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const first = run(sb, path.join(MACOS, 'update.sh'), ['--from', makePackage(sb, { version: '1.0.0' }).tarball]);
   assert.notEqual(first.status, 0);
@@ -439,7 +445,7 @@ test('update.sh installs over a running version, and refuses when nothing is ins
   assert.equal(version(sb), '2.0.0');
 });
 
-test('without --from it takes the newest macos-v release from GitHub', { skip: !hasTar && 'needs tar' }, () => {
+test('without --from it takes the newest macos-v release from GitHub', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const pkg = makePackage(sb, { version: '3.0.0' });
   const base = 'https://github.com/skittles-fivem/Sentry-Manager/releases/download';
@@ -483,7 +489,7 @@ test('without --from it takes the newest macos-v release from GitHub', { skip: !
   assert.match(missing.stderr, /found no macOS release in skittles-fivem\/Sentry-Manager called macos-v9\.9\.9-ccccccc/);
 });
 
-test('a macOS release behind a full page of Windows releases is still found', { skip: !hasTar && 'needs tar' }, () => {
+test('a macOS release behind a full page of Windows releases is still found', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const pkg = makePackage(sb, { version: '3.0.0' });
   const base = 'https://github.com/skittles-fivem/Sentry-Manager/releases/download';
@@ -508,7 +514,7 @@ test('a macOS release behind a full page of Windows releases is still found', { 
   assert.equal(indexOf(calls(sb), /page=2/), -1);
 });
 
-test('a package with paths outside its folder is refused', { skip: !hasTar && 'needs tar' }, () => {
+test('a package with paths outside its folder is refused', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   const pkg = makePackage(sb);
   const evil = path.join(sb.base, 'evil');
@@ -523,7 +529,7 @@ test('a package with paths outside its folder is refused', { skip: !hasTar && 'n
   assert.equal(fs.existsSync(`${sb.prog}.new/escape`), false);
 });
 
-test('uninstall keeps settings, data and the account; --remove-data takes them too', { skip: !hasTar && 'needs tar' }, () => {
+test('uninstall keeps settings, data and the account; --remove-data takes them too', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   assert.equal(install(sb, makePackage(sb)).status, 0);
   fs.writeFileSync(path.join(sb.state, 'data/db.json'), '{}');
@@ -554,7 +560,7 @@ test('uninstall keeps settings, data and the account; --remove-data takes them t
   assert.equal(dscl(sb).Groups._sentrysix, undefined);
 });
 
-test('the CLI: status, stop, start, setup-code, allow-folder', { skip: !hasTar && 'needs tar' }, () => {
+test('the CLI: status, stop, start, setup-code, allow-folder', { skip: runsBash || (!hasTar && 'needs tar') }, () => {
   const sb = sandbox();
   assert.equal(install(sb, makePackage(sb, { version: '4.5.6' }), { FAKE_SETUP_CODE: 'WXYZ-9876' }).status, 0);
   const cli = path.join(sb.prog, 'bin/sentry-six-manager');

@@ -1,16 +1,33 @@
 #Requires -Version 5.1
 #Requires -RunAsAdministrator
 <#
-  Installs or upgrades Sentry Six Manager as a Windows service.
+  Installs or upgrades Sentry Six Manager.
 
   Run it from the unpacked release folder (Install.cmd does that for you):
-    node\node.exe  ffmpeg\ffmpeg.exe ffprobe.exe  bin\SentryService.exe SentryHelper.exe  app\...
+    node\node.exe  ffmpeg\ffmpeg.exe ffprobe.exe  bin\SentryService.exe SentryHelper.exe
+    app-ui\SentrySix.exe  app\...
 
   Program files go to %ProgramFiles%\SentrySixManager, everything the app keeps
   (accounts, settings, certificates, logs) to %ProgramData%\SentrySixManager.
   Running it again upgrades in place and keeps that data; manager.env is only
   ever created, never overwritten.
 
+  Two ways to run the server:
+    app mode (default)  the Sentry Six Manager app starts the server when it
+                        starts (at sign-in, in the tray) and stops it on Quit;
+                        it runs as the person who installed it
+    service mode        a Windows service (NT SERVICE\SentrySixManager): keeps
+                        converting after everyone signs out, starts with Windows;
+                        the app connects to it
+  Both get a Start menu entry and the app in the tray at every sign-in.
+  With neither switch an installed copy keeps its mode, and a first install
+  asks once (no answer, or no console to ask on: app mode).
+
+  -Service             service mode (switches an app-mode install over)
+  -NoService           app mode (switches a service install over: the service is removed)
+  -ForUser DOMAIN\me   app mode: the account the server runs as, given read and
+                       change rights on the data (Install.cmd passes whoever
+                       double-clicked it; default: the account running this)
   -Port 9443           port for the web UI, first install only (later: PORT in manager.env)
   -DefenderExclusion   tell Microsoft Defender not to scan the data folder (faster saves)
 #>
@@ -18,7 +35,10 @@
 param(
   [ValidateRange(1, 65535)]
   [int]$Port = 0,
-  [switch]$DefenderExclusion
+  [switch]$DefenderExclusion,
+  [switch]$Service,
+  [switch]$NoService,
+  [string]$ForUser
 )
 
 Set-StrictMode -Version Latest
@@ -28,6 +48,12 @@ $ServiceName = 'SentrySixManager'
 $ServiceAccount = 'NT SERVICE\SentrySixManager'
 $FirewallRuleName = 'SentrySixManager-WebUI'
 $DefaultPort = 9000
+# which mode is installed, and for whom (read by this script on the next run,
+# by update.ps1's run of it, and by uninstall.ps1)
+$ModeKey = 'HKLM:\SOFTWARE\SentrySixManager'
+$RunKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
+$RunValueName = 'SentrySixManager'
+$ShortcutName = 'Sentry Six Manager.lnk'
 
 function Say([string]$Text) { Write-Host $Text }
 function Warn([string]$Text) { Write-Host "Warning: $Text" -ForegroundColor Yellow }
@@ -181,6 +207,38 @@ function Is-AdminOwned([string]$Path) {
   return $false
 }
 
+# NT SERVICE\<name>'s SID, worked out as Windows does (SHA-1 of the upper-case
+# name): its permission entries can be removed even once the service is gone.
+function Get-ServiceSid([string]$Name) {
+  $sha = [System.Security.Cryptography.SHA1]::Create()
+  try { $h = $sha.ComputeHash([System.Text.Encoding]::Unicode.GetBytes($Name.ToUpperInvariant())) } finally { $sha.Dispose() }
+  $parts = for ($i = 0; $i -lt 20; $i += 4) { [BitConverter]::ToUInt32($h, $i) }
+  return 'S-1-5-80-' + ($parts -join '-')
+}
+
+function Get-RegValue([string]$Key, [string]$Name) {
+  if (-not (Test-Path -LiteralPath $Key)) { return $null }
+  $p = (Get-ItemProperty -LiteralPath $Key).PSObject.Properties[$Name]
+  if ($null -eq $p) { return $null }
+  return [string]$p.Value
+}
+
+# Programs running from the install folder: the app, and in app mode the
+# server it started (SentryService.exe, node, the helper, ffmpeg).
+function Get-OurProcesses([string]$Dir) {
+  return @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith("$Dir\", [System.StringComparison]::OrdinalIgnoreCase) })
+}
+
+# A person's account (local, domain or Microsoft Entra), not a group or a
+# built-in account: only such an account gets the data folder in app mode.
+function Is-PersonSid([string]$Sid) {
+  return ($Sid -match '^S-1-5-21-\d+-\d+-\d+-\d+$' -or $Sid -match '^S-1-12-1-\d+-\d+-\d+-\d+$')
+}
+
+function Sid-Name([string]$Sid) {
+  try { return (New-Object System.Security.Principal.SecurityIdentifier($Sid)).Translate([System.Security.Principal.NTAccount]).Value } catch { return $Sid }
+}
+
 # ---------------------------------------------------------------------------
 
 $programFiles = $env:ProgramFiles
@@ -206,6 +264,9 @@ $AppLogFile = Join-Path $DataDir 'logs\manager.log'
 $SetupCodeFile = Join-Path $DataDir 'setup-code.txt'
 $ServiceExe = Join-Path $InstallDir 'bin\SentryService.exe'
 $NodeExe = Join-Path $InstallDir 'node\node.exe'
+$AppExe = Join-Path $InstallDir 'app-ui\SentrySix.exe'
+$ServiceSid = Get-ServiceSid $ServiceName
+$ShortcutFile = Join-Path ([Environment]::GetFolderPath('CommonPrograms')) $ShortcutName
 
 $stoppedByUs = $false
 $finished = $false
@@ -222,7 +283,7 @@ try {
     Say 'Running from the installed folder: the program files stay as they are; service, permissions and firewall are set up again.'
   } else {
     Say 'Checking the release folder...'
-    $required = @('node\node.exe', 'ffmpeg\ffmpeg.exe', 'ffmpeg\ffprobe.exe', 'bin\SentryService.exe', 'bin\SentryHelper.exe', 'app\server\index.js', 'app\version.json')
+    $required = @('node\node.exe', 'ffmpeg\ffmpeg.exe', 'ffmpeg\ffprobe.exe', 'bin\SentryService.exe', 'bin\SentryHelper.exe', 'app-ui\SentrySix.exe', 'app\server\index.js', 'app\version.json')
     $missing = @($required | Where-Object { -not (Test-Path -LiteralPath (Join-Path $Source $_) -PathType Leaf) })
     if ($missing.Count -gt 0) {
       throw ("The release folder is incomplete; missing: " + ($missing -join ', ') + '. Unpack the whole zip again and run Install.cmd from it.')
@@ -235,9 +296,54 @@ try {
     }
   }
 
-  # --- 2. stop the running service (an upgrade keeps all data) ---
+  # --- 1b. which mode: service or app ---
+  if ($Service -and $NoService) { throw 'Choose -Service or -NoService, not both.' }
   $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
   $hadService = $null -ne $svc
+  $prevMode = Get-RegValue $ModeKey 'Mode'
+  $prevUserSid = Get-RegValue $ModeKey 'AppUserSid'
+  # (installs from before the two modes had the service and no record)
+  if ($null -eq $prevMode -and $hadService) { $prevMode = 'service' }
+  if ($Service) {
+    $Mode = 'service'
+  } elseif ($NoService) {
+    $Mode = 'app'
+  } elseif ($prevMode -eq 'service' -or $prevMode -eq 'app') {
+    $Mode = $prevMode
+    Say "Keeping the installed mode ($Mode mode)."
+  } else {
+    $answer = $null
+    try {
+      $answer = Read-Host 'Run in the background as a Windows service? It keeps converting after you sign out and starts with Windows. (y/N)'
+    } catch {
+      Say 'No console to ask on: installing without the service (pass -Service for it).'
+    }
+    if ("$answer".Trim() -match '^(?i:y|yes)$') { $Mode = 'service' } else { $Mode = 'app' }
+  }
+
+  $AppUserSid = $null
+  if ($Mode -eq 'app') {
+    if (-not [string]::IsNullOrEmpty($ForUser)) {
+      try {
+        $AppUserSid = (New-Object System.Security.Principal.NTAccount($ForUser)).Translate([System.Security.Principal.SecurityIdentifier]).Value
+      } catch {
+        throw "Windows does not know the account '$ForUser' (-ForUser). Nothing was changed."
+      }
+    } elseif ($prevMode -eq 'app' -and -not [string]::IsNullOrEmpty($prevUserSid)) {
+      # an upgrade (update.ps1, another administrator): the same person as before
+      $AppUserSid = $prevUserSid
+    } else {
+      $AppUserSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    }
+    if (-not (Is-PersonSid $AppUserSid)) {
+      throw "$(Sid-Name $AppUserSid) is not a person's account, so the server cannot run as it. Run the installer with -ForUser DOMAIN\name, or with -Service. Nothing was changed."
+    }
+    Say "Mode: app (the Sentry Six Manager app runs the server as $(Sid-Name $AppUserSid))."
+  } else {
+    Say 'Mode: Windows service (runs without anyone signed in).'
+  }
+
+  # --- 2. stop the running service and the app (an upgrade keeps all data) ---
   if ($null -ne $svc) {
     if ($svc.Status -ne [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
       Say 'Stopping the running service (it finishes the clip it is saving; up to 2 minutes)...'
@@ -250,8 +356,27 @@ try {
     } else {
       Say 'The service is installed and stopped; upgrading it.'
     }
+  } elseif ($prevMode -eq 'app') {
+    Say 'Installed without a service (app mode).'
   } else {
     Say 'No service yet: this is a first install.'
+  }
+
+  # the app, and in app mode the server it runs, hold files in the program
+  # folder and the port: they must close first. Quitting the app stops its
+  # server after the clip it is saving.
+  $running = @(Get-OurProcesses $InstallDir)
+  if ($running.Count -gt 0) {
+    Say "Sentry Six Manager is running ($((@($running | ForEach-Object { $_.Name } | Sort-Object -Unique)) -join ', ')). Quit it: right-click its tray icon > Quit (for every signed-in user). Waiting up to 2 minutes..."
+    $until = (Get-Date).AddSeconds(120)
+    while ($running.Count -gt 0 -and (Get-Date) -lt $until) {
+      Start-Sleep -Seconds 2
+      $running = @(Get-OurProcesses $InstallDir)
+    }
+    if ($running.Count -gt 0) {
+      throw "Programs from $InstallDir are still running ($((@($running | ForEach-Object { "$($_.Name) (pid $($_.ProcessId))" })) -join ', ')). Nothing was changed; quit Sentry Six Manager and run the installer again."
+    }
+    Say 'It has quit.'
   }
 
   # --- 3. program files: copy to a staging folder, then swap ---
@@ -268,7 +393,7 @@ try {
     $null = New-Item -ItemType Directory -Path $Staging -Force
     # only the release's own folders and scripts: if the zip was unpacked
     # straight into Downloads, nothing else from there is copied
-    foreach ($dir in @('node', 'ffmpeg', 'bin', 'app')) {
+    foreach ($dir in @('node', 'ffmpeg', 'bin', 'app-ui', 'app')) {
       $robo = @((Join-Path $Source $dir), (Join-Path $Staging $dir), '/MIR', '/XJ', '/R:2', '/W:2', '/NP', '/NFL', '/NDL', '/NJH', '/NJS')
       & robocopy.exe @robo | Out-Host
       # robocopy: 0-7 is success (files copied, extra files removed, ...), 8+ is failure
@@ -354,7 +479,9 @@ try {
     Run-Native 'icacls.exe' @($p, '/reset', '/C', '/L', '/Q') "Resetting permissions on $p"
     if (Is-ReparsePoint $p) { throw "$p is a junction or link, not a plain file or folder. Remove it and run the installer again." }
   }
-  if ($dataPreExisted -and -not $hadService) {
+  # (and when an app-mode install becomes a service: what the person's
+  # account wrote is theirs, and an owner could grant itself access again)
+  if ($dataPreExisted -and (($null -eq $prevMode -and -not $hadService) -or ($prevMode -eq 'app' -and $Mode -eq 'service'))) {
     foreach ($p in @($DataDir, (Join-Path $DataRoot 'run'))) {
       if (-not (Test-Path -LiteralPath $p -PathType Container)) { continue }
       $link = Find-ReparsePoint $p
@@ -461,52 +588,100 @@ $portLine
     $probeHost = $listenHost
   }
 
-  # --- 5. the service ---
-  # binPath must reach the service manager in quotes (the path has a space).
-  # Windows PowerShell 5.1 does not escape embedded quotes for native tools,
-  # hence the \" ; the registry is checked afterwards either way.
-  $binPathArg = '\"' + $ServiceExe + '\"'
-  $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
-  if ($null -eq $svc) {
-    Say "Creating the service $ServiceName (runs as $ServiceAccount: no password, not an administrator)..."
-    Run-Native 'sc.exe' @('create', $ServiceName, 'binPath=', $binPathArg, 'obj=', $ServiceAccount, 'start=', 'delayed-auto', 'depend=', 'Tcpip/LanmanWorkstation', 'DisplayName=', 'Sentry Six Manager') 'Creating the service'
+  # --- 5. the service (service mode), or none (app mode) ---
+  if ($Mode -eq 'service') {
+    # binPath must reach the service manager in quotes (the path has a space).
+    # Windows PowerShell 5.1 does not escape embedded quotes for native tools,
+    # hence the \" ; the registry is checked afterwards either way.
+    $binPathArg = '\"' + $ServiceExe + '\"'
+    $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    if ($null -eq $svc) {
+      Say "Creating the service $ServiceName (runs as ${ServiceAccount}: no password, not an administrator)..."
+      Run-Native 'sc.exe' @('create', $ServiceName, 'binPath=', $binPathArg, 'obj=', $ServiceAccount, 'start=', 'delayed-auto', 'depend=', 'Tcpip/LanmanWorkstation', 'DisplayName=', 'Sentry Six Manager') 'Creating the service'
+    } else {
+      Say "Updating the service $ServiceName..."
+      Run-Native 'sc.exe' @('config', $ServiceName, 'binPath=', $binPathArg, 'obj=', $ServiceAccount, 'start=', 'delayed-auto', 'depend=', 'Tcpip/LanmanWorkstation', 'DisplayName=', 'Sentry Six Manager') 'Updating the service'
+    }
+    $regKey = "HKLM:\SYSTEM\CurrentControlSet\Services\$ServiceName"
+    $wantImage = '"' + $ServiceExe + '"'
+    $haveImage = (Get-ItemProperty -LiteralPath $regKey -Name 'ImagePath').ImagePath
+    if ($haveImage -ne $wantImage) {
+      # an unquoted path with spaces is a known privilege-escalation hole
+      Say 'Fixing the quoting of the service path.'
+      Set-ItemProperty -LiteralPath $regKey -Name 'ImagePath' -Value $wantImage
+    }
+    # the virtual account is the service's own SID; make sure it has one
+    Run-Native 'sc.exe' @('sidtype', $ServiceName, 'unrestricted') 'Setting the service SID type'
+    Say 'Setting the service to restart 5 seconds after a failure...'
+    Run-Native 'sc.exe' @('failure', $ServiceName, 'reset=', '60', 'actions=', 'restart/5000') 'Setting the failure actions'
+    # also when it stops with an error code (the service gives up after 5 crashes in 60 s, exit code 2)
+    Run-Native 'sc.exe' @('failureflag', $ServiceName, '1') 'Setting the failure actions for error exits'
+    Run-Native 'sc.exe' @('description', $ServiceName, "Sentry Six Manager web app ($scheme`://localhost:$listenPort). Data and settings: $DataRoot") 'Setting the description'
   } else {
-    Say "Updating the service $ServiceName..."
-    Run-Native 'sc.exe' @('config', $ServiceName, 'binPath=', $binPathArg, 'obj=', $ServiceAccount, 'start=', 'delayed-auto', 'depend=', 'Tcpip/LanmanWorkstation', 'DisplayName=', 'Sentry Six Manager') 'Updating the service'
+    # app mode: the app runs the server; a service from before is removed
+    # (step 2 stopped it). The data stays as it is.
+    $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    if ($null -ne $svc) {
+      Say "Removing the service $ServiceName (the app runs the server from now on)..."
+      & sc.exe delete $ServiceName | Out-Host
+      # 1072: already marked for deletion (Services window open); it goes once that closes
+      if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 1072) { throw "Removing the service failed (sc.exe exit code $LASTEXITCODE)." }
+      for ($i = 0; $i -lt 10; $i++) {
+        if ($null -eq (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue)) { break }
+        Start-Sleep -Seconds 1
+      }
+      if ($null -ne (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue)) {
+        Warn 'Windows removes the service once the Services window (or Task Manager) is closed.'
+      }
+      $stoppedByUs = $false
+    }
   }
-  $regKey = "HKLM:\SYSTEM\CurrentControlSet\Services\$ServiceName"
-  $wantImage = '"' + $ServiceExe + '"'
-  $haveImage = (Get-ItemProperty -LiteralPath $regKey -Name 'ImagePath').ImagePath
-  if ($haveImage -ne $wantImage) {
-    # an unquoted path with spaces is a known privilege-escalation hole
-    Say 'Fixing the quoting of the service path.'
-    Set-ItemProperty -LiteralPath $regKey -Name 'ImagePath' -Value $wantImage
+  # the mode is recorded once it is in effect
+  if (-not (Test-Path -LiteralPath $ModeKey)) { $null = New-Item -Path $ModeKey -Force }
+  Set-ItemProperty -LiteralPath $ModeKey -Name 'Mode' -Value $Mode -Type String
+  if ($Mode -eq 'app') {
+    Set-ItemProperty -LiteralPath $ModeKey -Name 'AppUserSid' -Value $AppUserSid -Type String
+  } else {
+    Remove-ItemProperty -LiteralPath $ModeKey -Name 'AppUserSid' -ErrorAction SilentlyContinue
   }
-  # the virtual account is the service's own SID; make sure it has one
-  Run-Native 'sc.exe' @('sidtype', $ServiceName, 'unrestricted') 'Setting the service SID type'
-  Say 'Setting the service to restart 5 seconds after a failure...'
-  Run-Native 'sc.exe' @('failure', $ServiceName, 'reset=', '86400', 'actions=', 'restart/5000/restart/5000/restart/5000') 'Setting the failure actions'
-  Run-Native 'sc.exe' @('description', $ServiceName, "Sentry Six Manager web app ($scheme`://localhost:$listenPort). Data and settings: $DataRoot") 'Setting the description'
 
   # --- 6. permissions ---
   # Program files: everyone may read and run them (inherited from Program
   # Files, so only administrators can change them); the service the same.
-  Say 'Setting permissions on the program files (users and the service: read and run)...'
-  Run-Native 'icacls.exe' @($InstallDir, '/grant:r', '*S-1-5-32-545:(OI)(CI)RX', "$ServiceAccount`:(OI)(CI)RX", '/C', '/Q') 'Setting program file permissions'
+  # Entries for whichever account the other mode used are removed, by SID,
+  # so they go even when that service or account no longer exists.
+  $subs = @('data', 'run', 'footage')
+  $gone = @()
+  if ($Mode -eq 'app') { $gone += $ServiceSid }
+  if (-not [string]::IsNullOrEmpty($prevUserSid) -and $prevUserSid -ne $AppUserSid -and (Is-PersonSid $prevUserSid)) { $gone += $prevUserSid }
+  foreach ($sid in $gone) {
+    foreach ($p in @($InstallDir, $DataRoot) + @($subs | ForEach-Object { Join-Path $DataRoot $_ })) {
+      Run-Native 'icacls.exe' @($p, '/remove:g', "*$sid", '/C', '/Q') "Removing $(Sid-Name $sid) from $p"
+    }
+  }
+  if ($Mode -eq 'service') {
+    Say 'Setting permissions on the program files (users and the service: read and run)...'
+    Run-Native 'icacls.exe' @($InstallDir, '/grant:r', '*S-1-5-32-545:(OI)(CI)RX', "$ServiceAccount`:(OI)(CI)RX", '/C', '/Q') 'Setting program file permissions'
+  } else {
+    Say 'Setting permissions on the program files (users: read and run)...'
+    Run-Native 'icacls.exe' @($InstallDir, '/grant:r', '*S-1-5-32-545:(OI)(CI)RX', '/C', '/Q') 'Setting program file permissions'
+  }
 
   # Data: nothing inherited from ProgramData (where every user may create
-  # files); SYSTEM and Administrators full control; the service may change
-  # data, run and footage but only read the top folder, so it cannot rewrite
+  # files); SYSTEM and Administrators full control; the account the server
+  # runs as (the service, or in app mode the person's own) may change data,
+  # run and footage but only read the top folder, so it cannot rewrite
   # manager.env (as in Docker, where .env is outside the container); other
   # users get nothing (the account, keys and passwords live here). Step 4
   # already replaced the top folder's permissions and reset the ones below
-  # it, so only the service's entries are added here.
-  Say 'Setting permissions on the data folder (SYSTEM and Administrators: full; the service: modify; other users: none)...'
-  Run-Native 'icacls.exe' @($DataRoot, '/grant:r', '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F', "$ServiceAccount`:(OI)(CI)RX", '/C', '/Q') 'Setting data folder permissions'
+  # it, so only the server's entries are added here.
+  if ($Mode -eq 'service') { $runAs = $ServiceAccount; $runAsName = 'the service' } else { $runAs = "*$AppUserSid"; $runAsName = Sid-Name $AppUserSid }
+  Say "Setting permissions on the data folder (SYSTEM and Administrators: full; ${runAsName}: modify; other users: none)..."
+  Run-Native 'icacls.exe' @($DataRoot, '/grant:r', '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F', "$runAs`:(OI)(CI)RX", '/C', '/Q') 'Setting data folder permissions'
   Run-Native 'icacls.exe' @($DataRoot, '/inheritance:r', '/C', '/Q') 'Turning off inherited permissions on the data folder'
-  foreach ($sub in @('data', 'run', 'footage')) {
+  foreach ($sub in $subs) {
     $p = Join-Path $DataRoot $sub
-    Run-Native 'icacls.exe' @($p, '/grant:r', "$ServiceAccount`:(OI)(CI)M", '/C', '/Q') "Letting the service change $sub"
+    Run-Native 'icacls.exe' @($p, '/grant:r', "$runAs`:(OI)(CI)M", '/C', '/Q') "Letting $runAsName change $sub"
   }
 
   # --- 7. firewall ---
@@ -529,41 +704,66 @@ $portLine
     }
   }
 
-  # --- 9. start and wait until it answers ---
+  # --- 8b. Start menu and sign-in (both modes) ---
+  # The app for everyone: a Start menu entry, and in the tray at every
+  # sign-in (in app mode it starts the server; in service mode it connects).
+  Say "Adding Sentry Six Manager to the Start menu and starting it in the tray at sign-in..."
+  try {
+    $shell = New-Object -ComObject WScript.Shell
+    $lnk = $shell.CreateShortcut($ShortcutFile)
+    $lnk.TargetPath = $AppExe
+    $lnk.Arguments = ''
+    $lnk.WorkingDirectory = Split-Path $AppExe
+    $lnk.IconLocation = "$AppExe,0"
+    $lnk.Description = 'Sentry Six Manager'
+    $lnk.Save()
+    $null = [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell)
+  } catch {
+    Warn "Could not add the Start menu entry ($($_.Exception.Message)). The app is $AppExe."
+  }
+  if (-not (Test-Path -LiteralPath $RunKey)) { $null = New-Item -Path $RunKey -Force }
+  Set-ItemProperty -LiteralPath $RunKey -Name $RunValueName -Value ('"' + $AppExe + '" --tray') -Type String
+
+  # --- 9. start and wait until it answers (service mode; in app mode the app starts it) ---
+  $healthy = $false
   $logStart = Log-Length $LogFile
   $appLogStart = Log-Length $AppLogFile
-  Say 'Starting the service...'
-  try {
-    Start-Service -Name $ServiceName
-  } catch {
-    throw "The service did not start ($($_.Exception.Message)). See $LogFile and Event Viewer > Windows Logs > Application."
-  }
-  $stoppedByUs = $false
-
-  $healthUrl = "$scheme`://$probeHost`:$listenPort/healthz"
-  Say "Waiting for the web UI to answer on $healthUrl ..."
-  $deadline = (Get-Date).AddSeconds(180)
-  $healthy = $false
-  $probeBroken = $false
-  while ((Get-Date) -lt $deadline) {
+  if ($Mode -eq 'service') {
+    $logStart = Log-Length $LogFile
+    $appLogStart = Log-Length $AppLogFile
+    Say 'Starting the service...'
     try {
-      if (Test-Health $healthUrl) { $healthy = $true; break }
+      Start-Service -Name $ServiceName
     } catch {
-      # the probe itself could not be built; do not report the app as broken
-      $probeBroken = $true
-      Warn "Could not check the web UI from here ($($_.Exception.Message))."
-      break
+      throw "The service did not start ($($_.Exception.Message)). See $LogFile and Event Viewer > Windows Logs > Application."
     }
-    $state = (Get-Service -Name $ServiceName).Status
-    if ($state -eq [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
-      throw "The service stopped again right after starting. See $LogFile and Event Viewer > Windows Logs > Application."
+    $stoppedByUs = $false
+
+    $healthUrl = "$scheme`://$probeHost`:$listenPort/healthz"
+    Say "Waiting for the web UI to answer on $healthUrl ..."
+    $deadline = (Get-Date).AddSeconds(180)
+    $healthy = $false
+    $probeBroken = $false
+    while ((Get-Date) -lt $deadline) {
+      try {
+        if (Test-Health $healthUrl) { $healthy = $true; break }
+      } catch {
+        # the probe itself could not be built; do not report the app as broken
+        $probeBroken = $true
+        Warn "Could not check the web UI from here ($($_.Exception.Message))."
+        break
+      }
+      $state = (Get-Service -Name $ServiceName).Status
+      if ($state -eq [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
+        throw "The service stopped again right after starting. See $LogFile and Event Viewer > Windows Logs > Application."
+      }
+      Start-Sleep -Seconds 2
     }
-    Start-Sleep -Seconds 2
+    if (-not $healthy -and -not $probeBroken) {
+      throw "The service is running but the web UI did not answer within 3 minutes. See $LogFile."
+    }
+    if ($healthy) { Say 'The web UI is up.' }
   }
-  if (-not $healthy -and -not $probeBroken) {
-    throw "The service is running but the web UI did not answer within 3 minutes. See $LogFile."
-  }
-  if ($healthy) { Say 'The web UI is up.' }
 
   # --- 10. what the user needs: URL, setup code, fingerprint (the docker logs analogue) ---
   $codePattern = 'enter the setup code ([A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5})'
@@ -572,6 +772,7 @@ $portLine
   $fingerprint = $null
   # the lines are written while it starts; give them a moment to reach the file
   $readUntil = (Get-Date).AddSeconds(15)
+  if ($Mode -ne 'service') { $readUntil = Get-Date }
   do {
     $text = (Read-LogFrom $LogFile $logStart) + "`n" + (Read-LogFrom $AppLogFile $appLogStart)
     $code = Last-Match $text $codePattern
@@ -600,14 +801,22 @@ $portLine
   }
 
   Say ''
-  Say 'Sentry Six Manager is installed and running.'
-  Say 'Open it in a browser:'
+  if ($Mode -eq 'service') {
+    Say 'Sentry Six Manager is installed and running.'
+    Say 'Open the Sentry Six Manager app from the Start menu, or in a browser:'
+  } else {
+    Say 'Sentry Six Manager is installed.'
+    Say "Start the Sentry Six Manager app from the Start menu (signed in as $(Sid-Name $AppUserSid)): it starts the server"
+    Say 'and stays in the tray (it starts there at every sign-in). While it runs, browsers reach it at:'
+  }
   foreach ($u in $urls) { Say "  $u" }
   Say ''
   if ($null -ne $code -and $code.Length -gt 0) {
     Say "Setup code for the first account: $code"
   } elseif (Test-Path -LiteralPath $SetupCodeFile -PathType Leaf) {
     Say "The setup code for the first account is in $SetupCodeFile and $LogFile."
+  } elseif ($Mode -ne 'service') {
+    Say "If there is no account yet, the setup code for the first one is written to $SetupCodeFile when the server first starts."
   } else {
     Say 'An account already exists: sign in with it.'
   }
@@ -624,6 +833,14 @@ $portLine
     Warn 'TLS_MODE=off: plain HTTP. Only use this behind a reverse proxy that does HTTPS.'
   }
   Say ''
+  $self = Join-Path $InstallDir 'install.ps1'
+  if ($Mode -eq 'service') {
+    Say 'Mode: Windows service. It runs without anyone signed in and starts with Windows.'
+    Say "  To let the app run the server instead: the app's tray menu, or as administrator: powershell -ExecutionPolicy Bypass -File `"$self`" -NoService"
+  } else {
+    Say "Mode: app. The server runs while the app does (as $(Sid-Name $AppUserSid)) and stops when you quit it."
+    Say "  To run it as a Windows service instead: the app's tray menu, or as administrator: powershell -ExecutionPolicy Bypass -File `"$self`" -Service"
+  }
   Say "Settings: $EnvFile    Log: $LogFile"
   Say "Uninstall: $(Join-Path $InstallDir 'uninstall.ps1') (keeps your data unless -RemoveData)"
   $finished = $true

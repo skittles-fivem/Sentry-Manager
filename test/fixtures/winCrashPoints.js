@@ -7,6 +7,10 @@
 // NETMODE, CONCURRENCY) it starts a job in BASE and dies at POINT, exactly as
 // crashPoints.js does; crashAndRecover() then starts the converter again on
 // the same folders.
+//
+// On Windows crashPoints.js already runs on winOwnedFs over the real
+// SentryHelper.exe; here the stand-in takes the helper's place there too, so
+// both are proven on the same kill points.
 
 const fs = require('fs');
 const path = require('path');
@@ -16,6 +20,7 @@ const REPO = path.join(__dirname, '..', '..');
 const posix = require(path.join(REPO, 'server/posixOwnedFs'));
 const { createWinOwnedFs } = require(path.join(REPO, 'server/platform/winOwnedFs'));
 const { createLinuxFsHelper } = require('./winFsHelperFake');
+const ownedFsAdapter = require('./ownedFsAdapter');
 
 // crashPoints.js builds its adapter with createPosixOwnedFs({ noReplace }),
 // where noReplace.rename is the real no-replace move wrapped with the kill
@@ -26,10 +31,14 @@ posix.createPosixOwnedFs = (options = {}) => createWinOwnedFs({
     ...(options.noReplace?.available ? { rename: options.noReplace.rename } : {})
   })
 });
+// Windows: crashPoints.js makes winOwnedFs itself, with the kill point's hook
+// around the helper's moves; the stand-in replaces the real helper under it.
+ownedFsAdapter.makeWindowsHelper = () => createLinuxFsHelper();
 
 const points = require('./crashPoints');
 
 function crash(base, { point, concurrency = 1, mode = 'replace', networkMode = 'direct', timeout = 120_000 }) {
+  if (process.platform === 'win32') return points.crash(base, { point, concurrency, mode, networkMode, timeout, script: __filename });
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [__filename], {
       env: { ...process.env, BASE: base, POINT: point, CONCURRENCY: String(concurrency), MODE: mode, NETMODE: networkMode },

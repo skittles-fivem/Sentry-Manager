@@ -12,8 +12,8 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { writeNodeTool } = require('./fixtures/nodeTool');
-const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
+const { writeTool, toolSpawn } = require('./fixtures/processTree');
+const { ownedFsSkip, createOwnedFs } = require('./fixtures/ownedFsAdapter');
 const { spawn, spawnSync } = require('child_process');
 
 const REPO = path.join(__dirname, '..');
@@ -21,13 +21,14 @@ const { createConverterRuntime } = require(path.join(REPO, 'src/main/converter/r
 const { sanitizeSnapshot } = require(path.join(REPO, 'src/main/converter/ipc'));
 const { createJobStore } = require(path.join(REPO, 'src/main/converter/jobStore'));
 const { scanTeslaFootage } = require(path.join(REPO, 'src/main/converter/scanner'));
-const { createPosixOwnedFs } = require(path.join(REPO, 'server/posixOwnedFs'));
 const { RETRYABLE } = require(path.join(REPO, 'server/converterHost'));
 const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
 
 const HELPER = path.join(REPO, 'build', 'noreplace-rename');
 const encoders = spawnSync('ffmpeg', ['-hide_banner', '-encoders']).stdout?.toString() || '';
-const skip = linuxOnly(RENAME_HELPER) || needsTool(/\slibx265\s/.test(encoders) && fs.existsSync(HELPER), 'needs ffmpeg with libx265 and build/noreplace-rename');
+// (Linux: posixOwnedFs over build/noreplace-rename; Windows: winOwnedFs over
+// SentryHelper.exe)
+const skip = ownedFsSkip(/\slibx265\s/.test(encoders), 'needs ffmpeg with libx265 and build/noreplace-rename', 'needs ffmpeg with libx265 and SentryHelper.exe (set SENTRY_HELPER)');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // One original (Tesla-style H.264) and one converted clip (H.265, as the
@@ -59,14 +60,13 @@ async function openRuntime(base, { ffmpegPath = 'ffmpeg' } = {}) {
   pfs.open = async (p, ...rest) => { record.opened.push(String(p)); return fs.promises.open(p, ...rest); };
   const wrappedFs = Object.create(fs);
   Object.defineProperty(wrappedFs, 'promises', { value: pfs });
-  process.env.SENTRY_NOREPLACE_RENAME = HELPER;
-  const owned = createPosixOwnedFs();
+  const owned = createOwnedFs({}, { noReplaceHelper: HELPER });
   const runtime = await createConverterRuntime({
-    userDataPath: fs.realpathSync(path.join(base, 'data')),
-    tempPath: fs.realpathSync(path.join(base, 'temp')),
+    userDataPath: fs.realpathSync.native(path.join(base, 'data')),
+    tempPath: fs.realpathSync.native(path.join(base, 'temp')),
     ffmpegPath, ffprobePath: 'ffprobe', fs: wrappedFs, pathApi: path, platform: process.platform,
     spawn: (command, args, options) => {
-      const child = spawn(command, args, options);
+      const child = toolSpawn(spawn)(command, args, options);
       record.spawned.push({ command, args, pid: child.pid });
       return child;
     },
@@ -83,7 +83,7 @@ async function openRuntime(base, { ffmpegPath = 'ffmpeg' } = {}) {
 function makeBase() {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-skip-'));
   for (const dir of ['data', 'temp', 'footage/TeslaCam/RecentClips']) fs.mkdirSync(path.join(base, dir), { recursive: true });
-  return { base, root: fs.realpathSync(path.join(base, 'footage', 'TeslaCam')) };
+  return { base, root: fs.realpathSync.native(path.join(base, 'footage', 'TeslaCam')) };
 }
 
 function jobConfig(root, { outputMode = 'replace', concurrency = 1, destinationRoot = null } = {}) {
@@ -264,7 +264,7 @@ test('activeEncodes reports each running ffmpeg with its live numbers', { skip, 
   const clip = path.join(root, 'RecentClips', `${stamp(0)}-front.mp4`);
   fs.copyFileSync(original, clip);
   // An encode at the clip's own pace that reports often, so it can be watched.
-  const wrapper = writeNodeTool(base, 'ffmpeg', `if (joined.includes('pipe:1 -nostats -f mp4')) exec('ffmpeg', ['-re', '-stats_period', '0.2', ...args]);
+  const wrapper = writeTool(base, 'ffmpeg', `if (joined.includes('pipe:1 -nostats -f mp4')) exec('ffmpeg', ['-re', '-stats_period', '0.2', ...args]);
 else exec('ffmpeg', args);`);
   const env = await openRuntime(base, { ffmpegPath: wrapper });
   try {

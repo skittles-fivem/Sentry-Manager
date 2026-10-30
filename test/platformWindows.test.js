@@ -55,7 +55,9 @@ test('safePath: on Windows an open file is matched to its path by device and ino
       assert.equal(await guard.fdInside(fh.fd, clip), true, 'the same file');
       assert.equal(await guard.fdInside(fh, clip), true, 'a FileHandle works too');
       assert.equal(await guard.fdInside(fh.fd), false, 'no path given: unknown, so no');
-      // the path now names another file than the one that is open
+      // the path now names another file than the one that is open (the open
+      // one is moved aside first: Windows never replaces a file that is open)
+      await fsp.rename(clip, `${clip}.old`);
       await fsp.rename(path.join(root, 'car', 'b.mp4'), clip);
       assert.equal(await guard.fdInside(fh.fd, clip), false, 'a swapped file is caught');
     } finally {

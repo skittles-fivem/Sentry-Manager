@@ -263,7 +263,10 @@ function unavailableMounter(footageRoot) {
     mount: async () => ({ code: -1, output }),
     unmount: async () => ({ code: 0, output: '' }),
     forget: async () => {},
-    target: (id) => P.join(footageRoot, checkId(id))
+    target: (id) => P.join(footageRoot, checkId(id)),
+    // "Test connection" (smbTest.js asks the Windows mounter's test())
+    test: async () => { throw Object.assign(new Error(output), { code: 'ENOTSUP' }); },
+    isConnected: () => false
   };
 }
 

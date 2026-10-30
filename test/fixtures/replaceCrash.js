@@ -4,6 +4,10 @@
 // tests (test/converterRecovery.test.js). Run as a script, it starts a job and
 // kills its own process just before (KILL=before) or just after (KILL=after)
 // the converted file is moved onto the original's name.
+//
+// On Windows the converter uses winOwnedFs over the real SentryHelper.exe
+// (test/fixtures/ownedFsAdapter.js), and the kill leaves the mark that tells
+// the test it died there (test/fixtures/processTree.js).
 
 const fs = require('fs');
 const path = require('path');
@@ -13,6 +17,8 @@ const REPO = path.join(__dirname, '..', '..');
 const { createConverterRuntime } = require(path.join(REPO, 'src/main/converter/runtime'));
 const { createPosixOwnedFs } = require(path.join(REPO, 'server/posixOwnedFs'));
 const { RETRYABLE } = require(path.join(REPO, 'server/converterHost'));
+const { createOwnedFs } = require('./ownedFsAdapter');
+const { markKilled, toolSpawn } = require('./processTree');
 
 const HELPER = path.join(REPO, 'build', 'noreplace-rename');
 const CLIP = '2026-10-20_07-43-00-front.mp4';
@@ -32,8 +38,12 @@ async function makeBase(base) {
 // The runtime as server/converterHost.js composes it; onPromote / afterPromote
 // run around each no-replace move.
 async function open(base, { onPromote, afterPromote, ffprobePath = 'ffprobe', ffmpegPath = 'ffmpeg' } = {}) {
-  process.env.SENTRY_NOREPLACE_RENAME = HELPER;
-  const owned = createPosixOwnedFs();
+  let owned;
+  if (process.platform === 'win32') owned = createOwnedFs();
+  else {
+    process.env.SENTRY_NOREPLACE_RENAME = HELPER;
+    owned = createPosixOwnedFs();
+  }
   const renameExclusive = Object.assign((...args) => owned.renameExclusive(...args), owned.renameExclusive, {
     promote: async (request) => {
       await onPromote?.(request);
@@ -47,15 +57,16 @@ async function open(base, { onPromote, afterPromote, ffprobePath = 'ffprobe', ff
     checkPath: async (target) => fs.promises.access(target).then(() => true, () => false)
   };
   const runtime = await createConverterRuntime({
-    userDataPath: fs.realpathSync(path.join(base, 'data')),
-    tempPath: fs.realpathSync(path.join(base, 'temp')),
-    ffmpegPath, ffprobePath, spawn, fs, pathApi: path, platform: process.platform,
+    userDataPath: fs.realpathSync.native(path.join(base, 'data')),
+    tempPath: fs.realpathSync.native(path.join(base, 'temp')),
+    // (a fake ffmpeg written as a Node script runs on Windows too)
+    ffmpegPath, ffprobePath, spawn: toolSpawn(spawn), fs, pathApi: path, platform: process.platform,
     removeOwned: owned.removeOwned, renameExclusive, network, autoConvert: false, gpuDecode: false,
     privateTempIdentityCleanup: true,
     networkBackoff: { initialMs: 50, maximumMs: 200 }
   });
   const config = {
-    sourceRoot: fs.realpathSync(path.join(base, 'footage', 'TeslaCam')), destinationRoot: null,
+    sourceRoot: fs.realpathSync.native(path.join(base, 'footage', 'TeslaCam')), destinationRoot: null,
     codec: 'h265', profileId: 'custom', bitrateKbps: 250, networkMode: 'direct', outputMode: 'replace',
     includedGroups: ['RecentClips', 'SavedClips', 'SentryClips'], groupOrder: ['SavedClips', 'SentryClips', 'RecentClips'],
     replacementConfirmed: true, concurrency: 1, verifyMode: 'quick'
@@ -67,7 +78,11 @@ module.exports = { makeBase, open, CLIP, HELPER };
 
 if (require.main === module) {
   (async () => {
-    const die = (request) => { if (path.basename(request.to) === CLIP) process.kill(process.pid, 'SIGKILL'); };
+    const die = (request) => {
+      if (path.basename(request.to) !== CLIP) return;
+      markKilled(process.env.BASE);
+      process.kill(process.pid, 'SIGKILL');
+    };
     const env = await open(process.env.BASE, process.env.KILL === 'after' ? { afterPromote: die } : { onPromote: die });
     await env.runtime.start();
     await env.runtime.service.start(env.config);

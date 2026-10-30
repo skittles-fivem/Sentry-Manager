@@ -570,6 +570,8 @@ function build(spec) {
     proc: path.join(root, 'proc'),
     sys: path.join(root, 'sys'),
     dev: path.join(root, 'dev'),
+    fs,
+    join: path.join,
     update: (s) => write(s, { links: false }),
     file: (rel, text) => write({ [rel]: text }),
     remove: (rel) => fs.rmSync(path.join(root, rel), { recursive: true, force: true }),
@@ -585,7 +587,101 @@ function isLink(p) {
   }
 }
 
+// In-memory machines, for the tests that run the Linux monitor next to the
+// Windows or macOS one and so run on every system. A machine's sysfs names
+// hold a ":" (pci0000:00, intel-rapl:0), which no Windows folder may have,
+// so the tree lives in memory (test/fixtures/memoryFs.js) under a made-up
+// root like /sm-stats-memory-1. The Linux monitor reads /proc and /sys with
+// the fs module itself, so the few readers it calls are wrapped once here:
+// a path under a live in-memory root is answered from that tree, any other
+// path goes to the real file system as before. Windows's path.join gives
+// such a path as \sm-stats-memory-1\proc\stat, which reads the same.
+const memoryTrees = new Map(); // root -> memory fs
+let memoryCount = 0;
+
+function memoryTreeOf(p) {
+  if (!memoryTrees.size || (typeof p !== 'string' && !Buffer.isBuffer(p))) return null;
+  const posixPath = String(p).replace(/\\/g, '/');
+  for (const [root, tree] of memoryTrees) {
+    if (posixPath === root || posixPath.startsWith(`${root}/`)) return { tree, at: posixPath };
+  }
+  return null;
+}
+
+let wrapped = false;
+function wrapFsReaders() {
+  if (wrapped) return;
+  wrapped = true;
+  for (const name of ['readFileSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'accessSync']) {
+    const real = fs[name];
+    fs[name] = function memoryOrReal(p, ...rest) {
+      const hit = memoryTreeOf(p);
+      return hit ? hit.tree[name](hit.at, ...rest) : real.call(this, p, ...rest);
+    };
+    if (real.native) fs[name].native = real.native;
+  }
+  const realReadFile = fs.promises.readFile;
+  fs.promises.readFile = function memoryOrReal(p, ...rest) {
+    const hit = memoryTreeOf(p);
+    return hit ? hit.tree.promises.readFile(hit.at, ...rest) : realReadFile.call(this, p, ...rest);
+  };
+}
+
+/** build(), with the tree in memory: the same machine on every system. */
+function buildInMemory(spec) {
+  const { createMemoryFs } = require('../memoryFs');
+  wrapFsReaders();
+  const tree = createMemoryFs();
+  const root = `/sm-stats-memory-${memoryCount += 1}`;
+  const posix = path.posix;
+  const write = (s, { links = true } = {}) => {
+    for (const [rel, v] of Object.entries(s)) {
+      const p = posix.join(root, rel);
+      tree.mkdirSync(posix.dirname(p), { recursive: true });
+      if (v && typeof v === 'object' && 'link' in v) {
+        if (!links) continue;
+        try {
+          tree.symlinkSync(v.link, p);
+        } catch (err) {
+          if (err.code !== 'EEXIST') throw err;
+        }
+      } else if (v && typeof v === 'object' && v.dir) {
+        tree.mkdirSync(p, { recursive: true });
+      } else {
+        tree.writeFileSync(p, String(v));
+      }
+    }
+  };
+  write(spec);
+  memoryTrees.set(root, tree);
+  return {
+    root,
+    proc: `${root}/proc`,
+    sys: `${root}/sys`,
+    dev: `${root}/dev`,
+    fs: tree,
+    join: posix.join,
+    update: (s) => write(s, { links: false }),
+    file: (rel, text) => write({ [rel]: text }),
+    remove: (rel) => tree.rmSync(posix.join(root, rel)),
+    cleanup: () => memoryTrees.delete(root)
+  };
+}
+
+// Where a test's machine lives: in real folders on Linux, read by the Linux
+// monitor just as it reads /proc and /sys there; in memory on any other
+// system, where sysfs names cannot be folder names. SM_STATS_IN_MEMORY=1
+// takes the in-memory way on Linux too, to try what Windows runs.
+function inMemoryHere(platform = process.platform, env = process.env) {
+  return platform !== 'linux' || env.SM_STATS_IN_MEMORY === '1';
+}
+
+/** build() or buildInMemory(), whichever this system runs (inMemoryHere). */
+function buildHere(spec) {
+  return inMemoryHere() ? buildInMemory(spec) : build(spec);
+}
+
 module.exports = {
-  build, intelArc, amd, nvidia, pi, bare, dualXeon, NVIDIA_LINES, DUALXEON_NVIDIA_LINES, PCI_IDS, INTEL_LOADS, DUALXEON_LOADS, RAPL_MAX,
+  build, buildInMemory, buildHere, inMemoryHere, intelArc, amd, nvidia, pi, bare, dualXeon, NVIDIA_LINES, DUALXEON_NVIDIA_LINES, PCI_IDS, INTEL_LOADS, DUALXEON_LOADS, RAPL_MAX,
   statLine, procStat, pciGpu, xeFdinfo, i915Fdinfo, amdFdinfo, netDev, diskLine, processFiles, platformHwmon, cpuinfoSockets, dualXeonSocket, MiB
 };

@@ -13,7 +13,8 @@ const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
+const { needsTool } = require('./fixtures/platformSkip');
+const { ownedFsSkip, createOwnedFs } = require('./fixtures/ownedFsAdapter');
 const { spawn, spawnSync } = require('child_process');
 
 const REPO = path.join(__dirname, '..');
@@ -26,7 +27,6 @@ const { inspectAv1Telemetry } = require(path.join(REPO, 'src/main/converter/av1T
 const { outputTiming } = require(path.join(REPO, 'src/main/converter/converterAdapters'));
 const { verifyCandidate } = require(path.join(REPO, 'src/main/converter/verifier'));
 const { createConverterRuntime } = require(path.join(REPO, 'src/main/converter/runtime'));
-const { createPosixOwnedFs } = require(path.join(REPO, 'server/posixOwnedFs'));
 const { RETRYABLE } = require(path.join(REPO, 'server/converterHost'));
 const { createMidGopTeslaH264Fixture, runProcess } = require('./fixtures/ffmpegFixtures');
 const { createHarness, T400, CPU } = require('./fixtures/lanesHarness');
@@ -37,7 +37,9 @@ const HELPER = process.env.SENTRY_NOREPLACE_RENAME || path.join(REPO, 'build', '
 const encoders = spawnSync('ffmpeg', ['-hide_banner', '-encoders']).stdout?.toString() || '';
 const has = (name) => new RegExp(`\\s${name}\\s`).test(encoders);
 const needsFfmpeg = needsTool(has('libx264') && has('libx265'), 'needs ffmpeg with libx264 and libx265');
-const needsRuntime = needsFfmpeg || linuxOnly(RENAME_HELPER) || needsTool(fs.existsSync(HELPER), 'needs build/noreplace-rename');
+// (Linux: posixOwnedFs over build/noreplace-rename; Windows: winOwnedFs over
+// SentryHelper.exe)
+const needsRuntime = needsFfmpeg || ownedFsSkip(true, 'needs build/noreplace-rename', 'needs SentryHelper.exe (set SENTRY_HELPER)', { noReplaceHelper: HELPER });
 const needsAv1 = needsRuntime || needsTool(has('libsvtav1'), 'needs ffmpeg with libsvtav1');
 
 const telemetryFor = (frames, gapAt = null) => Array.from({ length: frames }, (_, n) => (n === gapAt ? null : Buffer.from([0x20, n & 0xff, n >> 8])));
@@ -281,11 +283,10 @@ test('the verifier refuses a lead-in clip whose frames do not keep their origina
 // The runtime as server/converterHost.js composes it, every spawn recorded.
 async function openRuntime(base, { gpuDecode = false } = {}) {
   const spawned = [];
-  process.env.SENTRY_NOREPLACE_RENAME = HELPER;
-  const owned = createPosixOwnedFs();
+  const owned = createOwnedFs({}, { noReplaceHelper: HELPER });
   const runtime = await createConverterRuntime({
-    userDataPath: fs.realpathSync(path.join(base, 'data')),
-    tempPath: fs.realpathSync(path.join(base, 'temp')),
+    userDataPath: fs.realpathSync.native(path.join(base, 'data')),
+    tempPath: fs.realpathSync.native(path.join(base, 'temp')),
     ffmpegPath: 'ffmpeg', ffprobePath: 'ffprobe', fs, pathApi: path, platform: process.platform,
     spawn: (command, args, options) => { spawned.push({ command, args }); return spawn(command, args, options); },
     removeOwned: owned.removeOwned, renameExclusive: owned.renameExclusive, autoConvert: false, gpuDecode,
@@ -301,7 +302,7 @@ async function openRuntime(base, { gpuDecode = false } = {}) {
 function makeBase() {
   const base = tmpDir('sm-leadin-e2e-');
   for (const dir of ['data', 'temp', 'footage/TeslaCam/RecentClips']) fs.mkdirSync(path.join(base, dir), { recursive: true });
-  return { base, root: fs.realpathSync(path.join(base, 'footage', 'TeslaCam')) };
+  return { base, root: fs.realpathSync.native(path.join(base, 'footage', 'TeslaCam')) };
 }
 
 async function runJob(runtime, root, codec, profile = { profileId: 'custom', bitrateKbps: 250 }) {
@@ -456,7 +457,7 @@ test('replace mode, AV1: a lead-in clip converts with every frame kept and its t
 // must convert with exactly the expected frames, each at its original time.
 const realClips = (process.env.LEADIN_CLIPS || '').split(/[,;]/).map((entry) => entry.trim()).filter(Boolean);
 test('real clips (opt-in): every frame kept at its original time, verified, replaced', {
-  skip: realClips.length === 0 ? 'set LEADIN_CLIPS to run' : (linuxOnly(RENAME_HELPER) || needsTool(fs.existsSync(HELPER), 'needs noreplace-rename')), timeout: 3_600_000
+  skip: realClips.length === 0 ? 'set LEADIN_CLIPS to run' : ownedFsSkip(true, 'needs noreplace-rename', 'needs SentryHelper.exe (set SENTRY_HELPER)', { noReplaceHelper: HELPER }), timeout: 3_600_000
 }, async (t) => {
   const codec = process.env.LEADIN_CODEC || 'h265';
   const { base, root } = makeBase();

@@ -16,6 +16,11 @@ const M = require('./fixtures/stats/machines');
 const W = require('./fixtures/stats/win32');
 const { setup, fakeClock, fakeSpawn, fakeFs } = require('./fixtures/stats/helpers');
 
+// The two tests that also run the Linux monitor keep its fake /proc and /sys
+// trees in memory (setup's memory option): their names hold a ":"
+// (pci0000:00, intel-rapl:0) that no Windows folder may have. So they run on
+// every system too, the Linux monitor injected as platform 'linux'.
+
 const MiB = 1048576;
 const APP_STARTED_MS = 3600 * 1000; // the app started an hour before the test clock
 
@@ -153,9 +158,9 @@ function keyTree(v, path = '') {
 
 test('Windows: the body has exactly the Linux body\'s keys', async () => {
   const w = winSetup();
-  const linuxArc = setup(M.intelArc, { pciIdsFiles: [] });
+  const linuxArc = setup(M.intelArc, { pciIdsFiles: [], memory: true, options: { platform: 'linux' } });
   const nvSpawn = fakeSpawn({ lines: M.NVIDIA_LINES });
-  const linuxNv = setup(M.nvidia, { appPid: 10, spawn: nvSpawn });
+  const linuxNv = setup(M.nvidia, { appPid: 10, spawn: nvSpawn, memory: true, options: { platform: 'linux' } });
   try {
     const win = await sampled(w, 1);
     const arc = await linuxArc.run(2);
@@ -459,7 +464,7 @@ test('Windows: helpers for names and ids', () => {
 });
 
 test('Linux is picked unless win32 is asked for', async () => {
-  const s = setup(M.amd, { options: { platform: 'linux' } });
+  const s = setup(M.amd, { memory: true, options: { platform: 'linux' } });
   try {
     const snap = await s.run(1);
     assert.equal(snap.cpu.model, 'AMD Ryzen 7 5800X');

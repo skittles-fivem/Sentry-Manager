@@ -5,15 +5,24 @@
 
   Out come dist\SentrySixManager-<version>-<shortsha>-win-x64.zip, its
   SHA256SUMS and release.json (what server/releaseUpdates.js reads). The zip's
-  root is the program folder as installed: node\ ffmpeg\ bin\ app\ plus the
-  install, uninstall and update scripts.
+  root is the program folder as installed: node\ ffmpeg\ bin\ app-ui\ app\
+  plus the install, uninstall and update scripts.
+
+    bin\      SentryService.exe, SentryHelper.exe (csc from .NET Framework)
+    app-ui\   SentrySix.exe, the native app, with the files it reads at run
+             time (Ui\<interface>\ themes and fonts, SentrySix.ico); built
+             with the .NET SDK from windows\app\SentrySix.csproj
+    app\      the server, as the Dockerfile copies it
 
   The only network use is the two pinned downloads in windows\versions.json,
   each checked against its SHA-256 before anything in it is used. The app
   files are the ones the Dockerfile copies into /app, read from the Dockerfile
   and .dockerignore themselves, so the two builds ship the same app.
 
-  Windows PowerShell 5.1 (inbox), no modules, no NuGet.
+  Windows PowerShell 5.1 (inbox), no modules. The native app needs the .NET
+  SDK (dotnet on PATH; GitHub's windows-latest has it) and the .NET Framework
+  4.8 targeting pack (likewise); without that pack the build fetches the
+  reference assemblies from NuGet.
 #>
 [CmdletBinding()]
 param(
@@ -227,6 +236,34 @@ function Build-Exe([string]$source, [string]$exe, [string[]]$refs) {
 Build-Exe 'helper\SentryHelper.cs' 'SentryHelper.exe' @('System.dll', 'System.Core.dll', 'System.Management.dll', 'System.Web.Extensions.dll')
 Build-Exe 'service\SentryService.cs' 'SentryService.exe' @('System.dll', 'System.Core.dll', 'System.ServiceProcess.dll')
 
+# ---- the native app (SentrySix.exe) ----------------------------------------------------
+#
+# A WPF app for .NET Framework 4.8 (inbox on Windows 10/11), so nothing extra
+# is installed with it; the .NET SDK only builds it. Its own build output
+# (obj, bin) stays in build\windows-app; the finished files go to app-ui\.
+
+$Dotnet = Get-Command dotnet -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $Dotnet) {
+  Fail ("the .NET SDK is not installed (no dotnet on PATH): SentrySix.exe is built with it. " +
+    "Install the .NET 8 SDK or newer from https://dotnet.microsoft.com/download and run build.ps1 again.")
+}
+$AppProject = Join-Path $PSScriptRoot 'app\SentrySix.csproj'
+if (-not (Test-Path -LiteralPath $AppProject)) { Fail "windows\app\SentrySix.csproj is missing" }
+$AppUi = Join-Path $Stage 'app-ui'
+$env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+$env:DOTNET_NOLOGO = '1'
+$env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
+Write-Host "Building SentrySix.exe with $($Dotnet.Source)"
+$eap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try {
+  & $Dotnet.Source build $AppProject -c Release -o $AppUi -nologo '-p:ContinuousIntegrationBuild=true' "-p:SourceRevisionId=$Sha" | Out-Host
+  $rc = $LASTEXITCODE
+} finally { $ErrorActionPreference = $eap }
+if ($rc -ne 0) { Fail "dotnet build could not build windows\app\SentrySix.csproj (exit code $rc)" }
+if (-not (Test-Path -LiteralPath (Join-Path $AppUi 'SentrySix.exe'))) { Fail "dotnet build made no SentrySix.exe in $AppUi" }
+Write-Host "App UI: $(@(Get-ChildItem -LiteralPath $AppUi -Recurse -File).Count) files in app-ui\"
+
 # ---- the app files: the Dockerfile's own list ------------------------------------
 #
 # The final stage's COPY lines after `WORKDIR /app` that copy from the build
@@ -380,9 +417,13 @@ Built $BuiltAt from $Repo at $Short.
 Install or upgrade
   Double-click Install.cmd and allow it to run as administrator. It installs to
   %ProgramFiles%\SentrySixManager, keeps settings and data in
-  %ProgramData%\SentrySixManager, starts the SentrySixManager service and
-  prints the address, the setup code and the certificate fingerprint.
-  Running it again upgrades in place and keeps your data.
+  %ProgramData%\SentrySixManager, adds Sentry Six Manager to the Start menu
+  (it also starts in the tray when you sign in) and prints the address, the
+  setup code and the certificate fingerprint. The first time it asks whether
+  to run the server as a Windows service (keeps converting after you sign
+  out, starts with Windows); otherwise the app runs it while it is open.
+  Running it again upgrades in place, keeps your data and the mode
+  (install.ps1 -Service or -NoService switches).
 
 Settings
   %ProgramData%\SentrySixManager\manager.env takes the same keys as the

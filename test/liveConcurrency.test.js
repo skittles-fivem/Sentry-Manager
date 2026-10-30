@@ -9,13 +9,16 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { writeNodeTool } = require('./fixtures/nodeTool');
-const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
+const { writeTool } = require('./fixtures/processTree');
+const { ownedFsSkip } = require('./fixtures/ownedFsAdapter');
 const { spawnSync } = require('child_process');
 const { open, HELPER } = require('./fixtures/replaceCrash');
 const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
 
-const skip = linuxOnly(RENAME_HELPER) || needsTool(spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER), 'needs ffmpeg and build/noreplace-rename');
+// (Linux: posixOwnedFs over build/noreplace-rename; Windows: winOwnedFs over
+// SentryHelper.exe)
+const skip = ownedFsSkip(spawnSync('ffmpeg', ['-version']).status === 0, 'needs ffmpeg and build/noreplace-rename', 'needs ffmpeg and SentryHelper.exe (set SENTRY_HELPER)',
+  { noReplaceHelper: HELPER });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ffmpeg that marks each encode while it runs (and takes a moment), so the
@@ -23,7 +26,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function trackingFfmpeg(base) {
   const running = path.join(base, 'running');
   fs.mkdirSync(running);
-  const script = writeNodeTool(base, 'ffmpeg-track.js', `if (joined.includes('-progress')) {
+  const script = writeTool(base, 'ffmpeg-track.js', `if (joined.includes('-progress')) {
   const mark = path.join(${JSON.stringify(running)}, String(process.pid));
   fs.writeFileSync(mark, '');
   setTimeout(() => run('ffmpeg', args, (status) => { fs.rmSync(mark, { force: true }); process.exit(status); }), 1500);
@@ -45,7 +48,7 @@ test('Parallel conversions changes mid-run: up now, down after the current clips
     const ff = trackingFfmpeg(base);
     env = await open(base, { ffmpegPath: ff.script });
     await env.runtime.start();
-    const id = await env.runtime.service.start({ ...env.config, outputMode: 'separate', destinationRoot: fs.realpathSync(path.join(base, 'out')), replacementConfirmed: false, concurrency: 1 });
+    const id = await env.runtime.service.start({ ...env.config, outputMode: 'separate', destinationRoot: fs.realpathSync.native(path.join(base, 'out')), replacementConfirmed: false, concurrency: 1 });
 
     let peak = 0;
     const watch = setInterval(() => { peak = Math.max(peak, ff.count()); }, 20);

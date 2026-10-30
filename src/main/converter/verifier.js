@@ -287,6 +287,33 @@ function decodedFrameCount(stdout) {
   return { frames };
 }
 
+// The null muxer reports harmless duplicate-DTS messages for Tesla VFR clips
+// (and for retimed frame_num-gap clips) even when decoding exits successfully.
+// FFmpeg's default log callback (av_log_default_callback, libavutil/log.c)
+// folds identical consecutive messages and prints exactly
+// "    Last message repeated N times" (four spaces, no component prefix, N of
+// 1 or more, always "times") before the next different message, or when
+// FFmpeg exits. That line is dropped only when the message it repeats was
+// itself tolerated; a repeat of anything else, one with no message before
+// it, or any other spelling stays and fails the decode like all other stderr.
+const TOLERATED_DECODE_STDERR = /^\[null[^\r\n]*\] Application provided invalid, non monotonically increasing dts to muxer in stream 0: \d+ >= \d+$/;
+const REPEATED_MESSAGE = /^ {4}Last message repeated [1-9]\d* times$/;
+
+function withoutToleratedStderr(stderr) {
+  const kept = [];
+  let previousTolerated = false;
+  for (const line of stderr.split(/\r\n|\n|\r/)) {
+    if (line.trim().length === 0) continue;
+    if (REPEATED_MESSAGE.test(line)) {
+      if (!previousTolerated) kept.push(line);
+      continue;
+    }
+    previousTolerated = TOLERATED_DECODE_STDERR.test(line);
+    if (!previousTolerated) kept.push(line);
+  }
+  return kept.join('\n');
+}
+
 async function runDecodeOnce(options, candidate, accel) {
   let result;
   try {
@@ -298,11 +325,9 @@ async function runDecodeOnce(options, candidate, accel) {
     return { error: { kind: 'runner-threw' } };
   }
   try {
-    // The null muxer reports harmless duplicate-PTS warnings for Tesla VFR
-    // clips even when decoding exits successfully. Keep strict handling for
-    // all other stderr, including real decoder errors.
-    const tolerated = /^\[null[^\r\n]*\] Application provided invalid, non monotonically increasing dts to muxer in stream 0: \d+ >= \d+\r?\n?/gm;
-    const normalized = result.status === 0 ? { ...result, stderr: result.stderr.replace(tolerated, '') } : result;
+    const normalized = result.status === 0 && typeof result.stderr === 'string'
+      ? { ...result, stderr: withoutToleratedStderr(result.stderr) }
+      : result;
     const error = processResultError(normalized, false);
     if (error) return { error };
     return decodedFrameCount(normalized.stdout);
@@ -1187,4 +1212,4 @@ async function verifyCandidate(options) {
   };
 }
 
-module.exports = { VERIFICATION_REASONS, sanitizeInspectorDiagnostics, verifyCandidate };
+module.exports = { VERIFICATION_REASONS, sanitizeInspectorDiagnostics, verifyCandidate, withoutToleratedStderr };

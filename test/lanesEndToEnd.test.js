@@ -16,7 +16,8 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
+const { ownedFsSkip, createOwnedFs } = require('./fixtures/ownedFsAdapter');
+const { toolSpawn } = require('./fixtures/processTree');
 const { spawn, spawnSync } = require('child_process');
 
 const ARC = Object.freeze({ id: 'pci:0000:03:00.0', kind: 'dri', vendor: 'intel', name: 'Intel Arc A380', node: '/dev/dri/renderD129', index: null, pci: '0000:03:00.0' });
@@ -24,7 +25,19 @@ const T400 = Object.freeze({ id: 'pci:0000:01:00.0', kind: 'nvidia', vendor: 'nv
 const CPU = Object.freeze({ id: 'cpu', kind: 'cpu', vendor: null, name: 'CPU (software encoder)', node: null, index: null, pci: null });
 
 const HELPER = path.join(__dirname, '..', 'build', 'noreplace-rename');
-const canConvert = spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER);
+const hasFfmpeg = spawnSync('ffmpeg', ['-version']).status === 0;
+// The runtime runs as on this system. Linux: the Arc is a QSV render node
+// (/dev/dri) and the arguments checked are Linux's. Windows: the Arc is the
+// Direct3D 11 adapter DXGI lists it as (the helper's gpu.list), the arguments
+// checked are Windows's, and the converter replaces files through winOwnedFs
+// and SentryHelper.exe. The T400 is nvidia-smi's GPU 0 on both.
+const WINDOWS = process.platform === 'win32';
+const WIN_ARC = Object.freeze({ id: ARC.id, kind: 'd3d11', vendor: 'intel', name: ARC.name, node: null, index: null, pci: ARC.pci, adapter: 1, luid: '0xd1b2' });
+// The Arc as gpuOf() and placeOf() name it, and as a live encode reports it
+// (the System page's GPU: its render node on Linux, its id on Windows).
+const ARC_GPU = WINDOWS ? 'adapter1' : ARC.node;
+const ARC_LIVE = WINDOWS ? ARC.id : ARC.node;
+const endToEndSkip = ownedFsSkip(hasFfmpeg, 'needs ffmpeg and build/noreplace-rename', 'needs ffmpeg and SentryHelper.exe (set SENTRY_HELPER)', { noReplaceHelper: HELPER });
 const CLIPS = 8;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -102,9 +115,14 @@ const isEncode = (args) => args.includes('pipe:1') && args.includes('-c:v');
 
 const flagValue = (args, flag) => (args.includes(flag) ? args[args.indexOf(flag) + 1] : null);
 
-// The GPU an encode's arguments put it on, as the Hardware panel names it.
+// The GPU an encode's arguments put it on, as the Hardware panel names it
+// (a Windows Intel GPU by its Direct3D 11 adapter: "adapter1").
 function gpuOf(args) {
   if (flagValue(args, '-gpu') !== null) return `nvidia${flagValue(args, '-gpu')}`;
+  if (WINDOWS) {
+    const adapter = /(?:child_device=|^d3d11va=[^:,]+:)(\d+)$/.exec(flagValue(args, '-init_hw_device') || '');
+    return adapter ? `adapter${adapter[1]}` : null;
+  }
   const qsv = /child_device=([^,]+)/.exec(flagValue(args, '-init_hw_device') || '');
   if (qsv) return qsv[1];
   // QSV zero-copy: the GPU opened as a VA-API device that QSV derives from
@@ -119,6 +137,7 @@ function placeOf(args) {
   if (gpu) return gpu;
   const decoder = flagValue(args, '-hwaccel_device');
   if (decoder === null) return null;
+  if (WINDOWS) return flagValue(args, '-hwaccel') === 'cuda' ? `nvidia${decoder}` : `adapter${decoder}`;
   return decoder.startsWith('/dev/') ? decoder : `nvidia${decoder}`;
 }
 
@@ -156,34 +175,33 @@ async function makeFootage(dir) {
     telemetryPattern: Array.from({ length: 12 }, (_, n) => Buffer.from([0x20, n]))
   });
   for (let i = 1; i < CLIPS; i += 1) fs.copyFileSync(first, path.join(recent, `2026-10-20_07-4${i}-00-front.mp4`));
-  return fs.realpathSync(path.join(dir, 'footage', 'TeslaCam'));
+  return fs.realpathSync.native(path.join(dir, 'footage', 'TeslaCam'));
 }
 
-test('two GPUs end to end: devices, a lane each, live lanes, a benchmark per GPU', { skip: linuxOnly(RENAME_HELPER) || needsTool(canConvert, 'needs ffmpeg and build/noreplace-rename'), timeout: 300_000 }, async () => {
+test('two GPUs end to end: devices, a lane each, live lanes, a benchmark per GPU', { skip: endToEndSkip, timeout: 300_000 }, async () => {
   const { createConverterRuntime } = require('../src/main/converter/runtime');
   const { createConverterBridge } = require('../server/converterBridge');
-  const { createPosixOwnedFs } = require('../server/posixOwnedFs');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-lanes-e2e2-'));
   const previousHelper = process.env.SENTRY_NOREPLACE_RENAME;
+  const arc = WINDOWS ? WIN_ARC : ARC;
   let runtime;
   let stream;
   try {
     const sourceRoot = await makeFootage(dir);
     for (const name of ['data', 'temp', 'out']) fs.mkdirSync(path.join(dir, name));
-    const destinationRoot = fs.realpathSync(path.join(dir, 'out'));
+    const destinationRoot = fs.realpathSync.native(path.join(dir, 'out'));
     const ffmpeg = fakeFfmpeg(dir);
-    process.env.SENTRY_NOREPLACE_RENAME = HELPER;
-    const owned = createPosixOwnedFs();
+    const owned = createOwnedFs({}, { noReplaceHelper: HELPER });
     runtime = await createConverterRuntime({
-      userDataPath: fs.realpathSync(path.join(dir, 'data')), tempPath: fs.realpathSync(path.join(dir, 'temp')),
-      ffmpegPath: ffmpeg.script, ffprobePath: 'ffprobe', spawn, fs, pathApi: path, platform: 'linux',
+      userDataPath: fs.realpathSync.native(path.join(dir, 'data')), tempPath: fs.realpathSync.native(path.join(dir, 'temp')),
+      ffmpegPath: ffmpeg.script, ffprobePath: 'ffprobe', spawn: toolSpawn(spawn), fs, pathApi: path, platform: WINDOWS ? 'win32' : 'linux',
       removeOwned: owned.removeOwned, renameExclusive: owned.renameExclusive, autoConvert: false,
-      factories: { createDeviceDiscovery: () => ({ list: async () => [ARC, T400, CPU] }) }
+      factories: { createDeviceDiscovery: () => ({ list: async () => [arc, T400, CPU] }) }
     });
     await runtime.start();
     const bridge = createConverterBridge({
       runtime,
-      resolvePath: async (p) => { try { return fs.realpathSync(p); } catch (_) { return null; } }
+      resolvePath: async (p) => { try { return fs.realpathSync.native(p); } catch (_) { return null; } }
     });
     stream = eventStream(bridge, 'browser-1');
 
@@ -191,13 +209,14 @@ test('two GPUs end to end: devices, a lane each, live lanes, a benchmark per GPU
     const listed = await bridge.invoke('devices', undefined, 'browser-1');
     assert.equal(listed.ok, true, JSON.stringify(listed));
     assert.deepEqual(listed.value.devices.map((d) => [d.id, d.kind, d.name, d.encoders]), [
-      [ARC.id, 'dri', ARC.name, { h265: 'hevc_qsv', av1: null }],
+      [ARC.id, arc.kind, ARC.name, { h265: 'hevc_qsv', av1: null }],
       [T400.id, 'nvidia', T400.name, { h265: 'hevc_nvenc', av1: null }],
       ['cpu', 'cpu', CPU.name, { h265: 'libx265', av1: 'libsvtav1' }]
     ]);
     assert.equal(listed.value.defaultDevice, T400.id, 'NVENC without a device is NVIDIA index 0');
     const probes = ffmpeg.calls().filter((args) => args.includes('testsrc2=duration=0.5:size=640x360:rate=8'));
-    assert.ok(probes.some((args) => args.includes(`qsv=qsvenc:hw_any,child_device=${ARC.node}`)), 'the Arc proved with its own node');
+    const arcProbe = WINDOWS ? `qsv=qsvenc:hw_any,child_device_type=d3d11va,child_device=${arc.adapter}` : `qsv=qsvenc:hw_any,child_device=${ARC.node}`;
+    assert.ok(probes.some((args) => args.includes(arcProbe)), 'the Arc proved with its own device');
     assert.ok(probes.some((args) => args.includes('hevc_nvenc') && args[args.indexOf('-gpu') + 1] === '0'), 'the T400 proved with its index');
 
     const config = (over = {}) => ({
@@ -230,20 +249,26 @@ test('two GPUs end to end: devices, a lane each, live lanes, a benchmark per GPU
     assert.equal(ffmpeg.encodes().length, 3, 'and no more');
     assert.deepEqual(perDevice(), { [ARC.id]: 2, [T400.id]: 1 });
     for (const live of runtime.activeEncodes()) {
-      if (live.deviceId === ARC.id) assert.deepEqual([live.encoder, live.hardware, live.device], ['hevc_qsv', true, ARC.node]);
+      if (live.deviceId === ARC.id) assert.deepEqual([live.encoder, live.hardware, live.device], ['hevc_qsv', true, ARC_LIVE]);
       else assert.deepEqual([live.encoder, live.hardware, live.device], ['hevc_nvenc', true, 'nvidia0']);
     }
     // the arguments ffmpeg got: each GPU's own device, decoded on the same GPU
     const held = ffmpeg.encodes();
-    const onArc = held.filter((args) => gpuOf(args) === ARC.node);
+    const onArc = held.filter((args) => gpuOf(args) === ARC_GPU);
     const onT400 = held.filter((args) => gpuOf(args) === 'nvidia0');
     assert.equal(onArc.length, 2);
     assert.equal(onT400.length, 1);
     for (const args of onArc) {
       // Tesla clips are 8-bit 4:2:0: QSV keeps the decoded frames on the Arc (zero-copy, windows.md section 8)
-      assert.deepEqual(args.slice(0, args.indexOf('-hwaccel') + 6), [...args.slice(0, args.indexOf('-init_hw_device')),
-        '-init_hw_device', `vaapi=va:${ARC.node}`, '-init_hw_device', 'qsv=qs@va', '-filter_hw_device', 'qs',
-        '-hwaccel', 'vaapi', '-hwaccel_device', 'va', '-hwaccel_output_format', 'vaapi']);
+      if (WINDOWS) {
+        assert.deepEqual(args.slice(0, args.indexOf('-extra_hw_frames') + 2), [...args.slice(0, args.indexOf('-init_hw_device')),
+          '-init_hw_device', `d3d11va=dx:${arc.adapter}`, '-init_hw_device', 'qsv=qs@dx', '-filter_hw_device', 'qs',
+          '-hwaccel', 'd3d11va', '-hwaccel_device', 'dx', '-hwaccel_output_format', 'd3d11', '-extra_hw_frames', '8']);
+      } else {
+        assert.deepEqual(args.slice(0, args.indexOf('-hwaccel') + 6), [...args.slice(0, args.indexOf('-init_hw_device')),
+          '-init_hw_device', `vaapi=va:${ARC.node}`, '-init_hw_device', 'qsv=qs@va', '-filter_hw_device', 'qs',
+          '-hwaccel', 'vaapi', '-hwaccel_device', 'va', '-hwaccel_output_format', 'vaapi']);
+      }
       assert.deepEqual(args.slice(args.indexOf('-vf'), args.indexOf('-c:v') + 2), ['-vf', 'hwmap=derive_device=qsv,format=qsv', '-c:v', 'hevc_qsv']);
       assert.equal(args.includes('-gpu'), false);
     }
@@ -264,13 +289,13 @@ test('two GPUs end to end: devices, a lane each, live lanes, a benchmark per GPU
 
     ffmpeg.release();
     assert.ok(await until(() => !perDevice()[ARC.id], 60_000), 'the Arc\'s clips finish');
-    assert.equal(ffmpeg.encodes().filter((args) => gpuOf(args) === ARC.node).length, 2, 'and its workers retire');
+    assert.equal(ffmpeg.encodes().filter((args) => gpuOf(args) === ARC_GPU).length, 2, 'and its workers retire');
     await within(runtime.service.whenIdle(jobId), 120_000);
     const done = await runtime.service.get(jobId);
     assert.equal(done.state, 'completed');
     assert.equal(done.items.filter((item) => item.kind === 'video' && item.resultCode === 'converted').length, CLIPS);
     const encodes = ffmpeg.encodes();
-    assert.equal(encodes.filter((args) => gpuOf(args) === ARC.node).length, 2, 'the Arc took no new clip after it was set to Off');
+    assert.equal(encodes.filter((args) => gpuOf(args) === ARC_GPU).length, 2, 'the Arc took no new clip after it was set to Off');
     assert.equal(encodes.filter((args) => gpuOf(args) === 'nvidia0').length, CLIPS - 2, 'the T400 converted the rest');
     assert.equal(done.items.filter((item) => item.encoder === 'hevc_qsv').length, 2, 'the Arc\'s two clips finished, not cancelled');
     assert.equal(done.items.filter((item) => item.encoder === 'hevc_nvenc').length, CLIPS - 2);
@@ -300,7 +325,7 @@ test('two GPUs end to end: devices, a lane each, live lanes, a benchmark per GPU
     const where = benchCalls.map((args) => placeOf(args));
     const firstT400 = where.indexOf('nvidia0');
     assert.ok(firstT400 > 0, where.join(' '));
-    assert.ok(where.slice(0, firstT400).every((gpu) => gpu === ARC.node), `the Arc first, on its own: ${where.join(' ')}`);
+    assert.ok(where.slice(0, firstT400).every((gpu) => gpu === ARC_GPU), `the Arc first, on its own: ${where.join(' ')}`);
     assert.ok(where.slice(firstT400).every((gpu) => gpu === 'nvidia0'), `then the T400, on its own: ${where.join(' ')}`);
     assert.deepEqual([...new Set(benchEncodes.map((args) => args[args.indexOf('-c:v') + 1]))], ['hevc_qsv', 'hevc_nvenc'],
       'AV1 was not benchmarked on the CPU instead');
@@ -312,6 +337,7 @@ test('two GPUs end to end: devices, a lane each, live lanes, a benchmark per GPU
     assert.ok(runs.every((step) => step.deviceTotal === 2 && [1, 2].includes(step.deviceIndex)));
     assert.deepEqual([...new Set(runs.map((step) => `${step.deviceIndex}:${step.device.id}:${step.device.name}`))],
       [`1:${ARC.id}:${ARC.name}`, `2:${T400.id}:${T400.name}`]);
+    if (WINDOWS) assert.ok(ffmpeg.calls().every((args) => !args.some((arg) => arg.includes('/dev/'))), 'nothing Linux-only in a Windows line');
   } finally {
     stream?.close();
     await runtime?.shutdown().catch(() => {});

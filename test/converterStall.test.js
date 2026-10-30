@@ -9,20 +9,20 @@ const assert = require('node:assert');
 const fs = require('fs');
 const { realTmpSync } = require('./fixtures/tmp');
 const path = require('path');
-const { writeNodeTool } = require('./fixtures/nodeTool');
-const { linuxOnly, needsTool, RENAME_HELPER } = require('./fixtures/platformSkip');
+const { writeTool, toolSpawn } = require('./fixtures/processTree');
+const { ownedFsSkip, createOwnedFs } = require('./fixtures/ownedFsAdapter');
 const { spawn, spawnSync } = require('child_process');
 
 const REPO = path.join(__dirname, '..');
 const { createConverterRuntime } = require(path.join(REPO, 'src/main/converter/runtime'));
 const { scanTeslaFootage } = require(path.join(REPO, 'src/main/converter/scanner'));
 const { createAutoConverter } = require(path.join(REPO, 'src/main/converter/autoConvert'));
-const { createPosixOwnedFs } = require(path.join(REPO, 'server/posixOwnedFs'));
 const { RETRYABLE } = require(path.join(REPO, 'server/converterHost'));
 
 const HELPER = path.join(REPO, 'build', 'noreplace-rename');
-const canConvert = spawnSync('ffmpeg', ['-version']).status === 0 && fs.existsSync(HELPER);
-const skip = linuxOnly(RENAME_HELPER) || needsTool(canConvert, 'needs ffmpeg and build/noreplace-rename');
+// (Linux: posixOwnedFs over build/noreplace-rename; Windows: winOwnedFs over
+// SentryHelper.exe)
+const skip = ownedFsSkip(spawnSync('ffmpeg', ['-version']).status === 0, 'needs ffmpeg and build/noreplace-rename', 'needs ffmpeg and SentryHelper.exe (set SENTRY_HELPER)');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let fixtures = null;
@@ -78,13 +78,12 @@ async function setup({ concurrency = 2, outputMode = 'replace', events = 2, ffmp
       }
     }
   };
-  process.env.SENTRY_NOREPLACE_RENAME = HELPER;
-  const owned = createPosixOwnedFs();
+  const owned = createOwnedFs({}, { noReplaceHelper: HELPER });
   for (const d of ['data', 'temp']) fs.mkdirSync(path.join(base, d));
   const runtime = await createConverterRuntime({
-    userDataPath: fs.realpathSync(path.join(base, 'data')),
-    tempPath: fs.realpathSync(path.join(base, 'temp')),
-    ffmpegPath, ffprobePath: 'ffprobe', spawn, fs: wrappedFs, pathApi: path, platform: process.platform,
+    userDataPath: fs.realpathSync.native(path.join(base, 'data')),
+    tempPath: fs.realpathSync.native(path.join(base, 'temp')),
+    ffmpegPath, ffprobePath: 'ffprobe', spawn: toolSpawn(spawn), fs: wrappedFs, pathApi: path, platform: process.platform,
     removeOwned: owned.removeOwned, network, autoConvert: false,
     // the same helper; a test can step in just before a clip replaces its original
     renameExclusive: Object.assign((...args) => owned.renameExclusive(...args), owned.renameExclusive, {
@@ -94,15 +93,15 @@ async function setup({ concurrency = 2, outputMode = 'replace', events = 2, ffmp
     networkBackoff: { initialMs: 50, maximumMs: 200 }
   });
   await runtime.start();
-  const sourceRoot = fs.realpathSync(root);
+  const sourceRoot = fs.realpathSync.native(root);
   const config = {
     sourceRoot,
-    destinationRoot: outputMode === 'replace' ? null : path.join(base, 'out'),
+    destinationRoot: outputMode === 'replace' ? null : path.join(fs.realpathSync.native(base), 'out'),
     codec: 'h265', profileId: 'custom', bitrateKbps: 250, networkMode: 'direct', outputMode,
     includedGroups: ['RecentClips', 'SavedClips', 'SentryClips'], groupOrder: ['SavedClips', 'SentryClips', 'RecentClips'],
     replacementConfirmed: outputMode === 'replace', concurrency, verifyMode: 'quick'
   };
-  return { base, runtime, hooks, config, sourceRoot, clips: clips.map((c) => fs.realpathSync(c)).sort() };
+  return { base, runtime, hooks, config, sourceRoot, clips: clips.map((c) => fs.realpathSync.native(c)).sort() };
 }
 
 // Resolves with the job once it ends on its own; fails the test if it does not.
@@ -235,7 +234,7 @@ test('a share that drops to its empty mount folder is waited for, not read as de
 test('a frozen encode is stopped and the job goes on', { skip, timeout: 120_000 }, async () => {
   // An ffmpeg that never reports progress for one clip, as with a hung GPU.
   const dir = realTmpSync('sm-stall-ff-');
-  const wrapper = writeNodeTool(dir, 'ffmpeg', `if (/-43-00-front.*pipe:1/s.test(joined)) setTimeout(() => {}, 600_000);
+  const wrapper = writeTool(dir, 'ffmpeg', `if (/-43-00-front.*pipe:1/s.test(joined)) setTimeout(() => {}, 600_000);
 else exec('ffmpeg', args);`);
   const env = await setup({ concurrency: 2, events: 2, ffmpegPath: wrapper, encodeStallMs: 2000 });
   try {

@@ -129,3 +129,73 @@ Please run your image test suite (water-tests) on 1f8e97c for the Docker side.
   the same on both. Pin the same 8.x version the Docker image installs where you
   can (`ffmpeg -version` in the image shows it).
 - Node 24.11.1: fine (Docker is node:24).
+
+## Windows CI after the repair loop (c7e79c3, run 41051932413)
+
+- **test: green on windows-latest.** 974 tests, 926 pass, 0 fail, 48 skipped.
+- **package: green.** (Jellyfin ffmpeg + node verified, both .cs compiled.)
+- **install-check: fails before running.** `windows/install.ps1:471` is a parse
+  error (`InvalidVariableReferenceWithDrive`): in
+  `"... (runs as $ServiceAccount: no password ...)"` PowerShell reads
+  `$ServiceAccount:` as a drive-qualified variable. Write `${ServiceAccount}:`.
+  I grepped install/uninstall/update/build.ps1 for the same pattern: that line
+  is the only one. Suggest a first step in install-check (and in tests) that
+  parses every .ps1 with
+  `[System.Management.Automation.Language.Parser]::ParseFile($f, [ref]$null, [ref]$errs)`
+  and fails on `$errs`, so the next one shows up at once.
+- Still yours: the 6 "TODO after platform integration" skips in
+  test/nodesCrossPlatform.test.js (the platform module is on wip now).
+
+## Native app (windows-native-ui.md): same-PC sign-in
+
+Read the plan. The service and server parts are mine (SentryService.cs,
+index.js), so I'll implement them once you write the contract in your doc:
+pipe name, the pipe's ACL (only the interactive user's SID, plus SYSTEM —
+note the service runs as NT SERVICE\SentrySixManager, which must create the
+pipe), token format and lifetime (single use, short, e.g. 60 s), the exchange
+endpoint (I'd suggest POST /api/auth/local on 127.0.0.1/::1 only, same
+X-Requested-With/Origin rules, giving a normal session cookie for the account
+the owner picks once in Settings), rate limits, and what the audit log says.
+Put "contract ready" in your doc and I'll build it with tests; until then I
+won't touch either side of it. Nothing else of yours needs anything from me.
+
+## `run` mode as the default (app mode) — checked
+
+SentryService.cs `run` already does what app mode needs: no admin-only calls
+(no ACLs, registry or event log; it only writes under `--data`); the same logs
+(`<data>\data\logs\service.log`, rotated, plus the app's own manager.log); the
+same helper (SENTRY_HELPER, keep-awake, SMB as the signed-in user); graceful
+stop on a `stop` line, on stdin closing, or Ctrl+C (a second Ctrl+C kills).
+One rule for the app: **keep a pipe open on its stdin for as long as it should
+run.** stdin at EOF from the start (NUL, a scheduled task, `start /b`) is read
+as "stop" and it exits at once. The app must also put it in its kill-on-close
+Job Object itself; `run` makes its own job for node, which nests fine on
+Windows 8+.
+
+## install-check after 8af6a0b (run 41065528939)
+
+Parse error gone; now `Creating the service failed (sc.exe exit code 1639)`.
+1639 is ERROR_INVALID_COMMAND_LINE: sc.exe rejected the argument list. Usual
+causes with `Run-Native 'sc.exe' @(...)`: PowerShell 5.1 re-quotes array
+arguments, so `binPath=` + a value with embedded quotes and spaces
+(`"C:\Program Files\...\SentryService.exe"`) arrives mangled; or a parameter
+sc.exe doesn't know (`DisplayName=` is valid, `depend=` too). Check what
+reaches sc.exe with the exact process command line; building the whole line as
+one string and starting it with `Start-Process -ArgumentList '<line>' -Wait
+-PassThru` (or `cmd /c`) avoids PowerShell's re-quoting.
+
+## Windows CI after the macOS merge (6e45d7a; run 41089010551 on 6d5207d)
+
+windows.yml's test job went from 0 to **29 failures, all in the macOS tests**
+(not mine; whoever owns the macOS work, please fix): converterHostPlatform (2),
+darwinFsSafety, darwinServerWiring (3), macosServerSmoke (3), platformDarwin,
+safeFsNoProc, sharesDarwin. They run on Windows and assume POSIX: e.g.
+expected `C:\Users\RUNNER~1\...` (8.3 short temp path) vs actual
+`C:\Users\runneradmin\...` — use fs.realpathSync.native(os.tmpdir()) for
+expected paths; `/Volumes/Café/...` expected but path.resolve on Windows gave
+`D:\Volumes\Café\...` — use path.posix for darwin paths; O_NOFOLLOW_ANY and
+symlink cases need a win32 skip with a reason (as the Linux-only ones do).
+The `app` job (native app) also failed on that run.
+Mine since then: fc60ed0 = hevc_nvenc peak-rate cap (measured, water run
+41089010627) + verifier tolerating "Last message repeated" only after a
+tolerated line.

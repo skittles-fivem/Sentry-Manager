@@ -255,6 +255,34 @@ test('picture check: real encodes pass even shifted by some frames; black, froze
   }
 });
 
+test('picture check: a decode that fails stops the others, and the answer waits for them to end (no file left open)', async () => {
+  for (const durationSeconds of [null, 30]) {
+    const running = new Set();
+    let ended = 0;
+    const decode = (file, { signal }) => new Promise((resolve, reject) => {
+      if (file === 'missing.mp4') { setImmediate(() => reject(Object.assign(new Error('gone'), { code: 'ENOENT' }))); return; }
+      running.add(file);
+      // a decoder that ends only when it is stopped, and then a moment later
+      signal.addEventListener('abort', () => setTimeout(() => {
+        running.delete(file);
+        ended += 1;
+        reject(Object.assign(new Error('decode failed'), { code: 'DECODE_FAILED' }));
+      }, 20), { once: true });
+    });
+    const r = await comparePictures({ source: 'src.mp4', candidate: 'missing.mp4', decode, durationSeconds });
+    assert.deepEqual([r.ok, r.reason, r.detail], [false, 'decode-failed', 'ENOENT'], 'the first failure is the one told');
+    assert.equal(running.size, 0, 'every other decode has ended');
+    assert.ok(ended >= 1);
+  }
+  // stopped from outside: the same
+  const stop = new AbortController();
+  const decode = (file, { signal }) => new Promise((resolve, reject) => {
+    signal.addEventListener('abort', () => reject(Object.assign(new Error('decode failed'), { code: 'DECODE_FAILED' })), { once: true });
+  });
+  setTimeout(() => stop.abort(), 10);
+  assert.equal((await comparePictures({ source: 'a.mp4', candidate: 'b.mp4', decode, signal: stop.signal })).reason, 'decode-failed');
+});
+
 test('picture check on a long clip: a few random stretches, chosen after the encode; a fake fails wherever they fall', { skip: needsTools, timeout: 300_000 }, async () => {
   const dir = await tmp();
   try {
