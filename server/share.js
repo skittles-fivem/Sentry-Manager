@@ -10,6 +10,12 @@
 // (platform/smbWin32.js): "mounted" then means "connected to \\host\share",
 // which the mounter's probe() reports instead of /proc/self/mountinfo, and
 // the footage is read straight from \\host\share\folder.
+//
+// On a Mac (platform/smbDarwin.js) this process mounts the share itself
+// with mount_smbfs at <footage root>/<id>; /sbin/mount says what is
+// mounted. A folder vehicle on an external drive (/Volumes/<drive>) counts
+// only while that drive is connected, so an ejected drive is never read
+// from the Mac's own disk in its place.
 
 const { EventEmitter } = require('events');
 const fsp = require('fs/promises');
@@ -21,6 +27,33 @@ const CHECK_INTERVAL_MS = 30 * 1000;
 const WRITE_CHECK_INTERVAL_MS = 10 * 60 * 1000;
 const FS_TIMEOUT_MS = 15 * 1000;
 const NETWORK_FS = new Set(['cifs', 'smb3', 'smbfs', 'nfs', 'nfs4', 'fuse.sshfs']);
+
+/**
+ * `platform` is a name ('linux', 'win32', 'darwin') or a platform object
+ * (server/platform). { name, impl }: impl is the darwin platform on a Mac
+ * (its rules and texts), else null, so Linux and Windows run as before.
+ */
+function platformOf(platform = process.platform) {
+  if (platform && typeof platform === 'object') return { name: platform.name, impl: platform.name === 'darwin' ? platform : null };
+  if (platform !== 'darwin') return { name: platform, impl: null };
+  const current = require('./platform');
+  return { name: 'darwin', impl: current.name === 'darwin' ? current : current.forPlatform('darwin') };
+}
+
+/** The drive a Mac path is on: /Volumes/<name>, or null for the Mac's own disk. */
+function darwinVolumeOf(p) {
+  const parts = path.posix.resolve(String(p)).normalize('NFC').split('/');
+  return parts[1] === 'Volumes' && parts[2] ? `/Volumes/${parts[2]}` : null;
+}
+
+// How a Mac words what share.js and smbTest.js say in Docker's words.
+const DARWIN_TEXT = {
+  notFound: 'mount_smbfs was not found on this Mac.',
+  timedOut: 'mount timed out (the NAS did not answer)',
+  noFolder: 'Plug in the drive or create this folder, or choose the folder that holds your footage in the vehicle\'s settings (or connect the vehicle to an SMB share).',
+  driveGone: (drive) => `The drive ${drive.slice('/Volumes/'.length)} is not connected.`,
+  driveHint: 'Plug the drive into this Mac. Until it is back nothing is read from or written to this folder.'
+};
 
 function withTimeout(promise, ms, what) {
   let timer;
@@ -199,15 +232,17 @@ async function checkWritable(root, { timeoutMs = FS_TIMEOUT_MS, platform = proce
 }
 
 function writeHint(step, platform = process.platform) {
-  if (step === 'write' && platform === 'win32') return WRITE_HINTS.writeWin32;
+  // (a Mac has no PUID/PGID either)
+  if (step === 'write' && (platform === 'win32' || platform === 'darwin')) return WRITE_HINTS.writeWin32;
   return WRITE_HINTS[step] || null;
 }
 
 class ShareManager extends EventEmitter {
   /**
    * probe(root) says what is mounted at root ({ fsType, source, ... } or
-   * null). Default: the mounter's own probe when it has one (Windows),
-   * else /proc/self/mountinfo (Linux, as always).
+   * null). Default: the mounter's own probe when it has one (Windows,
+   * macOS), else the platform's (macOS: /sbin/mount), else
+   * /proc/self/mountinfo (Linux, as always).
    */
   constructor({ config, log, mounter = null, mountinfoPath = '/proc/self/mountinfo', probe = null, id = 'default', platform = process.platform }) {
     super();
@@ -218,8 +253,13 @@ class ShareManager extends EventEmitter {
     this.log = log;
     this.mounter = mounter;
     this.mountinfoPath = mountinfoPath;
-    this.platform = platform;
-    this.probe = probe || (typeof mounter?.probe === 'function' ? (root, opts) => mounter.probe(root, opts) : mountinfoProbe(mountinfoPath));
+    const { name, impl } = platformOf(platform);
+    this.platform = name;
+    // the darwin platform (macOS rules and texts), else null
+    this.mac = impl;
+    this.probe = probe || (typeof mounter?.probe === 'function' ? (root, opts) => mounter.probe(root, opts)
+      : typeof impl?.probe === 'function' ? (root) => impl.probe(root) : mountinfoProbe(mountinfoPath));
+    this.mountWarnings = [];
     this.mode = this.smb.share ? 'smb' : 'local';
     if (this.mode === 'smb' && !mounter) throw new Error('An SMB vehicle needs a mounter.');
     this.mountedByUs = false;
@@ -266,7 +306,7 @@ class ShareManager extends EventEmitter {
     return this.queue(async () => {
       const mount = await this.currentMount();
       if (this.mode === 'smb') {
-        const isSmb = mount && /^(cifs|smb3)$/.test(mount.fsType);
+        const isSmb = mount && (this.mac ? this.mac.isSmbFsType(mount.fsType) : /^(cifs|smb3)$/.test(mount.fsType));
         if (!isSmb) {
           if (Date.now() >= this.nextMountAt) {
             const ok = await this.mount();
@@ -302,9 +342,9 @@ class ShareManager extends EventEmitter {
     });
   }
 
-  async currentMount() {
+  async currentMount(at = this.root) {
     try {
-      return (await this.probe(this.root, { mode: this.mode })) || null;
+      return (await this.probe(at, { mode: this.mode })) || null;
     } catch {
       return null;
     }
@@ -321,6 +361,8 @@ class ShareManager extends EventEmitter {
     }
     if (res.code === 0) {
       this.mountedByUs = true;
+      // (macOS: what the post-mount check noticed, such as no stable file ids)
+      this.mountWarnings = Array.isArray(res.warnings) ? res.warnings : [];
       this.backoffMs = CHECK_INTERVAL_MS;
       this.nextMountAt = 0;
       this.state.mountedAt = Date.now();
@@ -331,10 +373,11 @@ class ShareManager extends EventEmitter {
     }
     const output = String(res.output || '');
     const message = res.notFound
-      ? 'mount command not found (cifs-utils is missing from the image).'
-      : res.timedOut ? 'mount timed out (server not answering on port 445?)' : tail(output, 3) || `mount exited with ${res.code}`;
+      ? (this.mac ? DARWIN_TEXT.notFound : 'mount command not found (cifs-utils is missing from the image).')
+      : res.timedOut ? (this.mac ? DARWIN_TEXT.timedOut : 'mount timed out (server not answering on port 445?)') : tail(output, 3) || `mount exited with ${res.code}`;
     // (the Windows mounter has no mount.cifs output to read: it gives the hint itself)
-    this.fail(`Mount failed: ${message}`, res.hint !== undefined ? res.hint : explainMountError(output));
+    const hint = res.hint !== undefined ? res.hint : this.mac ? this.mac.smbText.explain(output, res.code) : explainMountError(output);
+    this.fail(`Mount failed: ${message}`, hint);
     this.nextMountAt = Date.now() + this.backoffMs;
     this.backoffMs = Math.min(this.backoffMs * 2, 10 * 60 * 1000);
     return false;
@@ -357,12 +400,24 @@ class ShareManager extends EventEmitter {
 
   async checkHealth({ forceWriteCheck = false } = {}) {
     const st = this.state;
-    const mount = await this.currentMount();
+    // macOS: a folder on an external drive is "mounted" while its drive is
+    const drive = this.mac && this.mode === 'local' ? darwinVolumeOf(this.root) : null;
+    const mount = await this.currentMount(drive || this.root);
     st.mounted = Boolean(mount);
     st.fsType = mount?.fsType || null;
     st.source = mount?.source || null;
     st.checkedAt = Date.now();
     st.warning = null;
+
+    if (drive && !mount) {
+      // an ejected drive can leave its folder behind on the Mac's own disk:
+      // never read or write there
+      st.readable = false;
+      st.writable = null;
+      this.fail(DARWIN_TEXT.driveGone(drive), DARWIN_TEXT.driveHint);
+      this.updateHealthy();
+      return;
+    }
 
     try {
       await withTimeout(fsp.readdir(this.root), FS_TIMEOUT_MS, 'Listing the share');
@@ -373,7 +428,8 @@ class ShareManager extends EventEmitter {
       if (this.mode === 'local' && err.code === 'ENOENT') {
         this.fail(`${this.root} does not exist.`, this.platform === 'win32'
           ? 'Create this folder, or choose the folder that holds your footage in the vehicle\'s settings (or connect the vehicle to an SMB share).'
-          : 'Mount your footage at this path (volumes: - /path/to/TeslaCam:/footage) or set SMB_SHARE.');
+          : this.mac ? DARWIN_TEXT.noFolder
+            : 'Mount your footage at this path (volumes: - /path/to/TeslaCam:/footage) or set SMB_SHARE.');
       } else if (this.mode === 'local' || st.mounted) {
         this.fail(`Cannot read ${this.root}: ${err.message}`, null);
       }
@@ -381,8 +437,9 @@ class ShareManager extends EventEmitter {
       return;
     }
 
-    // (Windows has no container disk to warn about: a folder is just a folder)
-    if (this.mode === 'local' && !st.mounted && this.platform !== 'win32') {
+    // (Windows and macOS have no container disk to warn about: a folder is
+    // just a folder, and a Mac's drives are checked above)
+    if (this.mode === 'local' && !st.mounted && this.platform !== 'win32' && !this.mac) {
       st.warning = `Nothing is mounted at ${this.root}, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for ${this.root}.`;
     }
     if (this.mode === 'smb' && !st.mounted) {
@@ -391,6 +448,7 @@ class ShareManager extends EventEmitter {
       this.updateHealthy();
       return;
     }
+    if (this.mac && this.mode === 'smb' && this.mountWarnings.length) st.warning = this.mountWarnings.join(' ');
 
     try {
       const space = await withTimeout(diskSpace(fsp, this.root), FS_TIMEOUT_MS, 'Reading free space');
@@ -456,4 +514,4 @@ class ShareManager extends EventEmitter {
   }
 }
 
-module.exports = { ShareManager, findMount, mountinfoProbe, explainMountError, explainSmbError, SMB_HINTS, withTimeout, checkWritable, writeHint, WRITE_STEPS };
+module.exports = { ShareManager, findMount, mountinfoProbe, explainMountError, explainSmbError, SMB_HINTS, withTimeout, checkWritable, writeHint, WRITE_STEPS, platformOf, darwinVolumeOf, DARWIN_TEXT };
