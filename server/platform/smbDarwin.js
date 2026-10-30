@@ -20,9 +20,15 @@
 // private nsmb.conf per mount. /etc/nsmb.conf is merged on top of it and can
 // weaken it, so every mount is checked afterwards and fails closed.
 //
-// Marked (verify on a Mac): nsmb.conf key names, smbutil statshares key
-// names, the exit codes of mount_smbfs and how script(1) treats a pipe or
-// socket on stdin. Everything here was written without a Mac to test on.
+// The nsmb.conf key names and values, $HOME/Library/Preferences/nsmb.conf,
+// the -s and soft options, the error texts and the sysexits codes were
+// checked against Apple's SMBClient source (preference.c, rcfile.c,
+// mount_smbfs.c).
+//
+// Marked (verify on a Mac): smbutil statshares key names, the password
+// prompt text, whether script(1) passes on the child's exit status and how
+// it treats a pipe or socket on stdin. Everything here was written without
+// a Mac to test on.
 
 const fsp = require('fs/promises');
 const os = require('os');
@@ -88,9 +94,9 @@ function smbUrl(smb) {
 }
 
 /**
- * nsmb.conf for one mount. No secret goes in it. Key names differ between
- * macOS versions (verify on a Mac); the check after mounting is what
- * actually enforces the result.
+ * nsmb.conf for one mount. No secret goes in it. Older macOS versions may
+ * not know every key; the check after mounting is what actually enforces
+ * the result.
  */
 function nsmbConf(smb) {
   const lines = [
@@ -99,7 +105,7 @@ function nsmbConf(smb) {
     'signing_required=yes',
     'signing_req_vers=4',
     'port445=no_netbios',
-    'minauth=ntlmv2' // no LM or NTLMv1 (key name: verify)
+    'minauth=ntlmv2' // no LM or NTLMv1
   ];
   if (smb.encrypt) lines.push('force_sess_encrypt=yes', 'force_share_encrypt=yes');
   return `${lines.join('\n')}\n`;
@@ -108,6 +114,11 @@ function nsmbConf(smb) {
 /** Everything one mount runs with, from validated settings. */
 function mountPlan(smbInput, { target, home }) {
   const smb = normalizeSmb(smbInput, smbInput);
+  // the password is typed into a terminal, whose line editing would act on
+  // control characters (^C, ^U, ^D, ^V, delete) instead of passing them on
+  if (/[\x00-\x08\x0a-\x1f\x7f]/.test(smb.password)) {
+    throw Object.assign(new Error('On macOS the SMB password may not contain control characters.'), { status: 400, code: 'INVALID_SMB' });
+  }
   checkMountPoint(target);
   const url = smbUrl(smb);
   return {
@@ -215,7 +226,7 @@ function isOurMount(entry, user) {
 /**
  * Map mount_smbfs errors to something a person can act on. Keys on the
  * message text; the exit codes are sysexits values and only a fallback
- * (which failure gives which code: verify on a Mac).
+ * (77 logon failure, 68 no host or share, 64 mount refused, 71 the rest).
  */
 function explainMountErrorDarwin(output, exitCode = null) {
   const s = String(output || '');
@@ -224,7 +235,6 @@ function explainMountErrorDarwin(output, exitCode = null) {
   if (s.includes(CHECK.dialect)) return 'The NAS offered an older SMB version than this vehicle allows. On the NAS set the minimum SMB version to SMB 3, or pick SMB 3.0 for this vehicle.';
   if (s.includes(CHECK.notEncrypted)) return 'The NAS did not encrypt the connection. On the NAS turn on SMB 3 encryption, or turn encryption off for this vehicle (it stays signed). Also check /etc/nsmb.conf on this Mac.';
   if (s.includes(CHECK.notSigned)) return 'The NAS did not sign the connection. On the NAS allow SMB signing, and check /etc/nsmb.conf on this Mac.';
-  if (s.includes(CHECK.notOurs) || s.includes(CHECK.noStats)) return 'The mount did not pass the safety check and was removed again. Check /etc/nsmb.conf on this Mac.';
   if (/Authentication error|authentication failed|Permission denied|logon failure/i.test(s)) return 'The NAS rejected the user name or password. Check them and the Domain field.';
   if (/could not find mount point/i.test(s)) return 'The mount point is missing or is not a plain folder.';
   if (/share connection failed|No such file or directory|share not found/i.test(s)) return 'The share was not found on the server. It must look like //server/share (optionally //server/share/folder).';
@@ -234,12 +244,16 @@ function explainMountErrorDarwin(output, exitCode = null) {
   if (/URL parsing failed/i.test(s)) return 'The share address could not be read. It must look like //server/share.';
   if (/File exists|Resource busy/i.test(s)) return 'Mount point is busy (something is already mounted there).';
   if (/Operation not permitted/i.test(s)) return 'macOS refused the mount: the mount point must be a folder the app\'s own user owns.';
-  if (/mount point/i.test(s)) return 'The mount point is missing or is not a plain folder.';
+  if (/mount point|can't mount on/i.test(s)) return 'The mount point is missing or is not a plain folder.';
+  // after mount_smbfs's own texts: if script(1) does not pass on its exit
+  // status, a failed mount reaches the checks and its real error is here
+  if (s.includes(CHECK.notOurs) || s.includes(CHECK.noStats)) return 'The mount did not pass the safety check and was removed again. Check /etc/nsmb.conf on this Mac.';
   // sysexits fallback (verify on a Mac)
   if (exitCode === 77) return 'The NAS rejected the user name or password. Check them and the Domain field.';
   if (exitCode === 68) return 'Could not reach the SMB server or the share. Check the address, the share name and the port.';
   if (exitCode === 64) return 'mount_smbfs refused the request (the mount point may be busy).';
-  if (exitCode === 71) return 'The mount point is missing or is not a plain folder.';
+  // EX_OSERR is also every status mount_smbfs has no mapping for
+  if (exitCode === 71) return 'mount_smbfs failed. The mount point may be missing or not a plain folder.';
   return null;
 }
 
@@ -381,6 +395,16 @@ function createDarwinMounter({
     checkMountPoint(dir);
     // validate before anything is created
     const plan0 = mountPlan(smbInput, { target: dir, home: path.join(stateDir(id), 'home') });
+    // a leftover from before a crash: mounts outlive the app on macOS.
+    // Removed before the folder is looked at, so a dead share is never
+    // stat'ed. One that stays would answer the checks after mounting in
+    // place of the new mount, so refuse then
+    if (await probe(dir, { fresh: true })) {
+      await forceUnmount(dir);
+      if (await probe(dir, { fresh: true })) {
+        return { code: 1, timedOut: false, notFound: false, output: `${dir}: Resource busy (a mount left from before could not be removed).` };
+      }
+    }
     await fs.mkdir(dir, { recursive: true, mode: 0o755 });
     // mount(2) follows symlinks: the mount point must be a plain directory
     // where we expect it (compared with the resolved footage root, since
@@ -388,8 +412,6 @@ function createDarwinMounter({
     const st = await fs.lstat(dir);
     if (!st.isDirectory() || (await fs.realpath(dir)) !== dir) throw bad(`${dir} is not a plain directory.`);
     if (uid !== null && st.uid !== uid) throw bad(`${dir} is not owned by the app's own user, so macOS will not mount there.`);
-    // a leftover from before a crash: mounts outlive the app on macOS
-    if (await probe(dir, { fresh: true })) await forceUnmount(dir);
     const home = await writeHome(id, plan0.nsmbConf);
     const plan = { ...plan0, env: { ...plan0.env, HOME: home } };
     cache = null;

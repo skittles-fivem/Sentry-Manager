@@ -158,6 +158,11 @@ test('mount plan: script(1) runs mount_smbfs by absolute path; nothing secret in
   assert.throws(() => mountPlan({ ...SMB, version: '2.1' }, { target: '/x/car', home: '/h' }), { code: 'INVALID_SMB' });
   assert.throws(() => mountPlan({ ...SMB, password: 'a\nb' }, { target: '/x/car', home: '/h' }), { code: 'INVALID_SMB' });
   assert.throws(() => mountPlan({ ...SMB, username: '' }, { target: '/x/car', home: '/h' }), { code: 'INVALID_SMB' });
+  // the terminal's line editing would act on these instead of passing them on
+  for (const c of ['\x03', '\x04', '\x15', '\x16', '\x17', '\x7f', '\x1b']) {
+    assert.throws(() => mountPlan({ ...SMB, password: `ab${c}cd` }, { target: '/x/car', home: '/h' }), { code: 'INVALID_SMB' }, JSON.stringify(c));
+  }
+  assert.equal(mountPlan({ ...SMB, password: 'a\tb ü' }, { target: '/x/car', home: '/h' }).smb.password, 'a\tb ü');
 });
 
 test('nsmb.conf: SMB 3 only, signing, NTLMv2; encryption only when the vehicle asks for it', () => {
@@ -337,6 +342,20 @@ test('mount: a leftover mount from before a crash is force-unmounted first', asy
   assert.ok(firstUmount < fr.calls.findIndex((c) => c[0] === '/usr/bin/smbutil'));
 });
 
+test('mount: a leftover mount that will not go away is refused, never checked in place of the new one', async (t) => {
+  const { fr, fsps, footageRoot, runDir } = await setup(t);
+  const dir = path.join(fs.realpathSync(footageRoot), 'car');
+  fs.mkdirSync(dir);
+  fr.addMount(dir);
+  // an umount that fails, as with a share that is still busy
+  const runCmd = async (cmd, args) => (cmd === '/sbin/umount' ? { code: 1, stdout: '', stderr: 'umount: busy' } : fr.runCmd(cmd, args));
+  const m = createDarwinMounter({ footageRoot, runDir, user: ME, spawn: fsps.spawn, runCmd });
+  const res = await m.mount('car', SMB);
+  assert.equal(res.code, 1);
+  assert.equal(fsps.calls.length, 0, 'mount_smbfs never ran');
+  assert.match(explainMountErrorDarwin(res.output, res.code), /busy/);
+});
+
 test('mount fails closed: every check after mounting unmounts with -f and says why', async (t) => {
   const cases = [
     { what: 'no noexec', mountOpts: ['nodev, nosuid, nobrowse'], reason: CHECK.notOurs },
@@ -489,6 +508,9 @@ test('error texts: keyed on mount_smbfs messages first, sysexits only as a fallb
     ['mount_smbfs: mount error: /x/car: Operation not permitted', 64, /folder the app's own user owns/],
     ['mount_smbfs: URL parsing failed, please correct the URL and try again: Invalid argument', 64, /could not be read/],
     ['mount_smbfs: could not find mount point /x/car: No such file or directory', 71, /mount point/],
+    ["mount_smbfs: can't mount on /x/car: Not a directory", 71, /mount point/],
+    // script(1) exited 0 although mount_smbfs failed: its own text wins over the check
+    [`mount_smbfs: server rejected the connection: Authentication error\n${CHECK.notOurs}`, 1, /rejected the user name or password/],
     ['', 77, /user name or password/],
     ['', 68, /Could not reach/],
     ['', 71, /mount point/],
