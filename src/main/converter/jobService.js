@@ -105,9 +105,27 @@ function renderDevice(args) {
     if (args[index] === '-init_hw_device') {
       const child = /(?:^|,)child_device=(\/dev\/[^,]+)/.exec(value);
       if (child) return child[1];
+      // QSV zero-copy on Linux opens the GPU as a named VA-API device
+      // ("vaapi=va:/dev/dri/renderD129") and derives QSV from it
+      const vaapi = /^vaapi=[^:,]+:(\/dev\/[^,]+)$/.exec(value);
+      if (vaapi) return vaapi[1];
     }
   }
   return null;
+}
+
+// What the process has learned about zero-copy per GPU and codec. The
+// runtime makes one and hands it to every converter service it builds (the
+// job service and each benchmark level), so a GPU's first zero-copy clip is
+// picture-checked once per process, and three failures turn zero-copy off
+// for every service, not just the one that saw them.
+//   failures: zero-copy failures per tier key (GPU decoding then worked)
+//   off:      tier keys whose zero-copy is turned off
+//   checked:  tier keys whose first zero-copy clip matched the original
+//   checking: tier keys being checked now, to the promise of the verdict
+//             ('match', 'mismatch' or 'undecided')
+function createZeroCopyState() {
+  return { failures: new Map(), off: new Set(), checked: new Set(), checking: new Map() };
 }
 
 // Only read-only waits may be detached on abort. Their late results are observed,
@@ -322,19 +340,19 @@ function createConverterJobService(deps) {
   // only after it failed this many times where GPU decoding then worked: one
   // odd clip does not cost every later clip the faster path.
   const ZERO_COPY_FAILURE_LIMIT = 3;
-  const zeroCopyFailures = new Map();
+  const zeroCopyRecord = deps.zeroCopyState || createZeroCopyState();
   // The first zero-copy encode on each GPU and codec (VA-API, QSV and AMF)
   // has its pictures checked against the original's, as a node's are: a
   // driver that hands the encoder the wrong surfaces still makes a file that
-  // verifies. Once one matched, the others are trusted. NVENC's zero-copy is
-  // proven and not checked.
-  const zeroCopyChecked = new Set();
+  // verifies. Once one matched, the others are trusted. Only one clip per
+  // GPU and codec is checked at a time; the others wait for its verdict.
+  // NVENC's zero-copy is proven and not checked.
   const pictureCheckedZeroCopy = (encoder) => typeof deps.comparePicture === 'function'
     && /_(vaapi|qsv|amf)$/.test(encoder?.codec || '');
   function noteZeroCopyFailure(key) {
-    const failures = (zeroCopyFailures.get(key) || 0) + 1;
-    zeroCopyFailures.set(key, failures);
-    if (failures >= ZERO_COPY_FAILURE_LIMIT) encodeDecodeBroken.add(key);
+    const failures = (zeroCopyRecord.failures.get(key) || 0) + 1;
+    zeroCopyRecord.failures.set(key, failures);
+    if (failures >= ZERO_COPY_FAILURE_LIMIT) zeroCopyRecord.off.add(key);
   }
   // Encode decode tiers, fastest first: GPU frames kept on the GPU (zero-copy),
   // then GPU decode, then (implicitly, after the list) CPU decode. A clip
@@ -349,7 +367,7 @@ function createConverterJobService(deps) {
     return [
       ...(zeroCopy && fits ? [{ key: `${decodeKey(encoder)}:zero-copy`, args: accelArgs(encoder, { zeroCopy: true }) }] : []),
       { key: `${decodeKey(encoder)}:gpu`, args: accelArgs(encoder) }
-    ].filter((tier) => tier.args && !encodeDecodeBroken.has(tier.key));
+    ].filter((tier) => tier.args && !encodeDecodeBroken.has(tier.key) && !zeroCopyRecord.off.has(tier.key));
   }
   const pathApi = deps.pathApi || require('path');
   const clock = deps.clock || { now: Date.now, sleep: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)) };
@@ -1990,28 +2008,52 @@ function createConverterJobService(deps) {
       // always worked), and zero-copy is not used on that GPU and codec
       // again. A check that could not decode counts as one zero-copy failure.
       const zeroCopyKey = usedTier?.key?.endsWith(':zero-copy') ? usedTier.key : null;
-      if (zeroCopyKey && !zeroCopyChecked.has(zeroCopyKey) && pictureCheckedZeroCopy(selected)) {
-        const same = await deps.comparePicture({ source: staged.source, candidate: adopted.path, signal, durationSeconds: inspected.durationSeconds })
-          .catch(() => ({ ok: false, reason: 'compare-failed' }));
-        timing.mark('picture');
-        if (signal.aborted || runtime.stopRequested || runtime.cancelRequested) throw serviceError('CANCELLED');
-        if (same?.ok) {
-          zeroCopyChecked.add(zeroCopyKey);
-        } else {
-          const undecided = same?.reason === 'decode-failed' || same?.reason === 'compare-failed';
-          console.warn(`[CONVERTER] The zero-copy encode (${selected.codec}) does not show the original's pictures; encoding it again with GPU decoding${undecided ? '' : ', and no more zero-copy on this GPU'}:`,
-            item.relativePath, JSON.stringify(same || {}).slice(0, 200));
-          const cleanup = await cleanupOwnership(runtime, item.id, adopted);
-          if (cleanup.cleaned === false) {
-            setOwnership(runtime, item.id, composeOwnership(ownershipFor(runtime, item.id), adopted));
-            throw Object.assign(new Error('cleanup pending'), { code: 'OWNED_CLEANUP_FAILED' });
-          }
-          if (undecided) noteZeroCopyFailure(zeroCopyKey);
-          else encodeDecodeBroken.add(zeroCopyKey);
-          encodeTiers = encodeTiers.filter((tier) => tier.key !== zeroCopyKey);
-          decodeTierRetry = true;
+      let zeroCopyDiscard = false;
+      while (zeroCopyKey && !zeroCopyRecord.checked.has(zeroCopyKey) && pictureCheckedZeroCopy(selected)) {
+        // Another clip on this GPU and codec is being checked: its verdict
+        // decides this one too. A mismatch throws this clip away as well; an
+        // undecided check leaves this clip to be checked itself.
+        const pending = zeroCopyRecord.checking.get(zeroCopyKey);
+        if (pending) {
+          if (await abortableRead(() => pending, signal) === 'mismatch') { zeroCopyDiscard = true; break; }
           continue;
         }
+        let settle = () => {};
+        zeroCopyRecord.checking.set(zeroCopyKey, new Promise((resolve) => { settle = resolve; }));
+        let verdict = 'undecided';
+        let same = null;
+        try {
+          same = await deps.comparePicture({ source: staged.source, candidate: adopted.path, signal, durationSeconds: inspected.durationSeconds })
+            .catch(() => ({ ok: false, reason: 'compare-failed' }));
+          if (same?.ok) {
+            verdict = 'match';
+            zeroCopyRecord.checked.add(zeroCopyKey);
+          } else if (same?.reason !== 'decode-failed' && same?.reason !== 'compare-failed') {
+            verdict = 'mismatch';
+          }
+        } finally {
+          zeroCopyRecord.checking.delete(zeroCopyKey);
+          settle(verdict);
+        }
+        timing.mark('picture');
+        if (signal.aborted || runtime.stopRequested || runtime.cancelRequested) throw serviceError('CANCELLED');
+        if (verdict === 'match') break;
+        console.warn(`[CONVERTER] The zero-copy encode (${selected.codec}) does not show the original's pictures; encoding it again with GPU decoding${verdict === 'undecided' ? '' : ', and no more zero-copy on this GPU'}:`,
+          item.relativePath, JSON.stringify(same || {}).slice(0, 200));
+        if (verdict === 'undecided') noteZeroCopyFailure(zeroCopyKey);
+        else zeroCopyRecord.off.add(zeroCopyKey);
+        zeroCopyDiscard = true;
+        break;
+      }
+      if (zeroCopyDiscard) {
+        const cleanup = await cleanupOwnership(runtime, item.id, adopted);
+        if (cleanup.cleaned === false) {
+          setOwnership(runtime, item.id, composeOwnership(ownershipFor(runtime, item.id), adopted));
+          throw Object.assign(new Error('cleanup pending'), { code: 'OWNED_CLEANUP_FAILED' });
+        }
+        encodeTiers = encodeTiers.filter((tier) => tier.key !== zeroCopyKey);
+        decodeTierRetry = true;
+        continue;
       }
       // Encoded on another server (Nodes): its pictures must match the
       // original's before anything else is checked or saved. One that does
@@ -3813,5 +3855,6 @@ function createConverterJobService(deps) {
 module.exports = {
   ConverterJobServiceError,
   createConverterJobService,
+  createZeroCopyState,
   publicSnapshot
 };

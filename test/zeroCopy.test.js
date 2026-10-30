@@ -21,7 +21,7 @@ const path = require('path');
 const childProcess = require('child_process');
 const { EventEmitter } = require('events');
 const { createJobStore } = require('../src/main/converter/jobStore');
-const { createConverterJobService } = require('../src/main/converter/jobService');
+const { createConverterJobService, createZeroCopyState } = require('../src/main/converter/jobService');
 const { createEncoderPlanner, buildEncodeArgs, decodeAccelArgs, zeroCopySource } = require('../src/main/converter/encoderPlanner');
 const { fakeProbe, sleep, ARC, CPU } = require('./fixtures/lanesHarness');
 
@@ -105,7 +105,7 @@ test('only 8-bit 4:2:0 sources with even dimensions may stay on the GPU', () => 
 
 // A converter job service over the real job store and planner, whose ffmpeg
 // is `spawnProcess` (a fake child, or a real node script).
-function createRig({ platform = 'linux', device, works, behave, video = TESLA, timeline = { frames: [] }, comparePicture, spawnProcess, clips = 1 }) {
+function createRig({ platform = 'linux', device, works, behave, video = TESLA, timeline = { frames: [] }, comparePicture, spawnProcess, clips = 1, concurrency = 1, zeroCopyState }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-zerocopy-'));
   const store = createJobStore({ rootDir: path.join(dir, 'jobs'), fs: fs.promises });
   const advertised = ['libx265', 'hevc_vaapi', 'hevc_qsv', 'hevc_amf', 'hevc_nvenc'];
@@ -182,13 +182,14 @@ function createRig({ platform = 'linux', device, works, behave, video = TESLA, t
     resolveDevice: async (id) => [device, CPU].find((entry) => entry.id === id) || null,
     defaultDevice: async () => null,
     encodeStallMs: 60_000,
+    ...(zeroCopyState ? { zeroCopyState } : {}),
     ...(comparePicture ? { comparePicture: async (request) => { compared.push(request); return comparePicture(request); } } : {})
   });
   const config = () => ({
     sourceRoot: path.join(dir, 'footage'), destinationRoot: path.join(dir, 'out'),
     codec: 'h265', profileId: 'custom', bitrateKbps: 250, networkMode: 'direct', outputMode: 'separate',
     includedGroups: ['RecentClips', 'SavedClips', 'SentryClips'], groupOrder: ['SavedClips', 'SentryClips', 'RecentClips'],
-    replacementConfirmed: false, concurrency: 1, verifyMode: 'quick', lanes: [{ device: device.id, concurrency: 1 }]
+    replacementConfirmed: false, concurrency: 1, verifyMode: 'quick', lanes: [{ device: device.id, concurrency }]
   });
   async function run() {
     const id = await service.start(config());
@@ -378,5 +379,101 @@ test('with a real (fake) ffmpeg process: zero-copy fails, then GPU decoding, the
     assert.deepEqual(await runWith('hevc_vaapi'), ['zero-copy:hevc_vaapi', 'gpu:hevc_vaapi', 'cpu:hevc_vaapi', 'cpu:libx265']);
   } finally {
     fs.rmSync(scripts, { recursive: true, force: true });
+  }
+});
+
+test('one zero-copy picture check at a time per GPU and codec; the clips that finish meanwhile wait for its verdict', async () => {
+  // three workers finish their first clips together: one check, not three
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const rig = createRig({
+    device: AMD_RENDER, works: vaapiWorks, clips: 3, concurrency: 3,
+    comparePicture: async () => { setTimeout(release, 100); await gate; return { ok: true }; }
+  });
+  try {
+    assert.equal((await rig.run()).state, 'completed');
+    assert.deepEqual(rig.encodes().map((entry) => rig.tierOf(entry.args)), ['zero-copy', 'zero-copy', 'zero-copy']);
+    assert.equal(rig.compared.length, 1);
+  } finally {
+    await rig.close();
+  }
+  // a mismatch found while the others waited sends every one of them back to GPU decoding
+  const mismatch = createRig({
+    device: AMD_RENDER, works: vaapiWorks, clips: 3, concurrency: 3,
+    comparePicture: async () => { await sleep(100); return { ok: false, mean: 0.2, low: 0.1 }; }
+  });
+  try {
+    assert.equal((await mismatch.run()).state, 'completed');
+    const tiers = mismatch.encodes().map((entry) => mismatch.tierOf(entry.args));
+    assert.equal(tiers.filter((tier) => tier === 'zero-copy').length, 3);
+    assert.equal(tiers.filter((tier) => tier === 'gpu').length, 3);
+    assert.equal(mismatch.compared.length, 1);
+  } finally {
+    await mismatch.close();
+  }
+});
+
+test('the zero-copy record is shared between services (job and benchmark levels): a GPU is checked once per process', async () => {
+  const zeroCopyState = createZeroCopyState();
+  const first = createRig({ device: AMD_RENDER, works: vaapiWorks, zeroCopyState, comparePicture: async () => ({ ok: true }) });
+  try {
+    assert.equal((await first.run()).state, 'completed');
+    assert.equal(first.compared.length, 1);
+  } finally {
+    await first.close();
+  }
+  const second = createRig({ device: AMD_RENDER, works: vaapiWorks, zeroCopyState, comparePicture: async () => ({ ok: true }) });
+  try {
+    assert.equal((await second.run()).state, 'completed');
+    assert.equal(second.tierOf(second.encodes()[0].args), 'zero-copy');
+    assert.equal(second.compared.length, 0);
+  } finally {
+    await second.close();
+  }
+  // three failures in one service turn zero-copy off in the next as well
+  const failing = createZeroCopyState();
+  const behave = (args) => (args.includes('-hwaccel_output_format') ? 1 : 0);
+  const broke = createRig({ device: AMD_RENDER, works: vaapiWorks, clips: 3, behave, zeroCopyState: failing });
+  try {
+    assert.equal((await broke.run()).state, 'completed');
+  } finally {
+    await broke.close();
+  }
+  const after = createRig({ device: AMD_RENDER, works: vaapiWorks, behave, zeroCopyState: failing });
+  try {
+    assert.equal((await after.run()).state, 'completed');
+    assert.deepEqual(after.encodes().map((entry) => after.tierOf(entry.args)), ['gpu']);
+  } finally {
+    await after.close();
+  }
+});
+
+test('a Linux QSV zero-copy encode reports its lane\'s render node as its GPU (System page stats)', async () => {
+  let rig = null;
+  const seen = [];
+  const spawnProcess = (command, args) => {
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.pid = 4242;
+    let done = false;
+    const finish = (code, signal = null) => { if (!done) { done = true; setImmediate(() => child.emit('close', code, signal)); } };
+    child.kill = (signal) => finish(null, signal || 'SIGTERM');
+    setTimeout(() => {
+      if (args.includes('pipe:1')) seen.push(...rig.service.activeEncodes().map((entry) => entry.device));
+      child.stdout.emit('data', 'fps=100\nprogress=end\n');
+      finish(0);
+    }, 30);
+    return child;
+  };
+  rig = createRig({ device: ARC, works: (encoder) => encoder === 'hevc_qsv' || encoder.startsWith('lib'), spawnProcess });
+  try {
+    assert.equal((await rig.run()).state, 'completed');
+    const [encode] = rig.encodes();
+    assert.equal(rig.tierOf(encode.args), 'zero-copy');
+    assert.ok(encode.args.includes('vaapi=va:/dev/dri/renderD129'));
+    assert.deepEqual(seen, ['/dev/dri/renderD129']);
+  } finally {
+    await rig.close();
   }
 });

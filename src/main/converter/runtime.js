@@ -22,7 +22,7 @@ const {
   chooseStagingMode,
   createFileTransaction
 } = require('./staging');
-const { createConverterJobService } = require('./jobService');
+const { createConverterJobService, createZeroCopyState } = require('./jobService');
 const { createConvertedIndex } = require('./convertedIndex');
 const { readMp4VideoCodec } = require('./mp4Header');
 const { fragmentSize } = require('./fsSpace');
@@ -755,6 +755,10 @@ async function createConverterRuntime(options = {}) {
     // The pictures of a node's encode, and of the first zero-copy encode on
     // each GPU and codec, are checked against the original's.
     comparePicture,
+    // What this process learned about zero-copy per GPU and codec (picture
+    // checked, failures, turned off), shared by the job service and every
+    // benchmark level so a GPU's first zero-copy clip is checked only once.
+    zeroCopyState: createZeroCopyState(),
     ...(typeof options.remoteNodes?.trusted === 'function' ? { nodeTrusted: options.remoteNodes.trusted } : {}),
     ...(typeof options.remoteNodes?.setSlots === 'function' ? { setNodeSlots: (id, slots) => options.remoteNodes.setSlots(id, slots) } : {}),
     // The device a job without lanes encodes on: its workers and that
