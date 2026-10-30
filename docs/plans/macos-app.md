@@ -1,5 +1,7 @@
 # Native Mac app: contract
 
+> **Paused.** Status, what is left and how to pick it up: `docs/plans/macos-handoff.md`.
+
 The owner wants a real Mac app for Sentry Six Manager, not a web page in a window. The native server build is already wired (commit f45795b, `docs/plans/macos.md`). This contract adds the app on top of it: a SwiftUI/AppKit window and a menu-bar item that talk to that same server, the "engine", over its HTTPS JSON API.
 
 The app is 1:1 with the web: the built-in interface **and** the four interface packs that ship with it (Horizon, Flux, Aurora, Daylight), all five from the first release. It shows whichever one is chosen in Settings › Interface (section 5). It follows the same plan as the native Windows app (`docs/plans/windows-native-ui.md`): one data layer, one skin per interface, the same same-computer sign-in endpoint (2.6), the same event streams, and the same side-by-side proof (`tools/parity/`, 11.4).
