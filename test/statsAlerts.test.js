@@ -6,9 +6,13 @@
 
 const { skipAll, linuxOnly } = require('./fixtures/platformSkip');
 
-// The Linux server monitor, on fake /proc and /sys trees; Windows has its own
-// (server/stats/platform/win32.js) and its own tests.
-const test = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
+// The math (deltas, wrap-around, averages, energy, alert rules) is the same
+// on every OS and runs everywhere. The tests that run the engine on a fake
+// machine (fake /proc and /sys trees from fixtures/stats/machines.js) are the
+// Linux server monitor; Windows has its own (server/stats/platform/win32.js)
+// and its own tests.
+const test = require('node:test');
+const onFakeTrees = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
 const assert = require('node:assert/strict');
 const { Alerts } = require('../server/stats/alerts');
 const M = require('./fixtures/stats/machines');
@@ -84,7 +88,7 @@ test('a disk or share that goes away takes its alert with it; a failing handler 
   assert.deepEqual(cleared, ['disk-temp:sda']);
 });
 
-test('a hot NVMe on a real sample stream: raised after 30 s, once, with the server told', async () => {
+onFakeTrees('a hot NVMe on a real sample stream: raised after 30 s, once, with the server told', async () => {
   const raised = [];
   const s = setup(M.intelArc, { options: { onAlert: (x) => raised.push(x) } });
   try {
@@ -100,7 +104,7 @@ test('a hot NVMe on a real sample stream: raised after 30 s, once, with the serv
   }
 });
 
-test('a NAS that hangs: slow after 2 s, unreachable after 15 s, one check at a time, never blocking', async () => {
+onFakeTrees('a NAS that hangs: slow after 2 s, unreachable after 15 s, one check at a time, never blocking', async () => {
   const raised = [];
   const cleared = [];
   const s0 = setup(M.amd, { appPid: 8 });
@@ -145,7 +149,7 @@ test('a NAS that hangs: slow after 2 s, unreachable after 15 s, one check at a t
   }
 });
 
-test('a share that answers again clears its alerts after 30 s', async () => {
+onFakeTrees('a share that answers again clears its alerts after 30 s', async () => {
   const s0 = setup(M.amd, { appPid: 8 });
   const clock = s0.clock;
   s0.done();
@@ -171,7 +175,7 @@ test('a share that answers again clears its alerts after 30 s', async () => {
   }
 });
 
-test('low memory on a real sample stream (NVIDIA machine: 3.75 % available)', async () => {
+onFakeTrees('low memory on a real sample stream (NVIDIA machine: 3.75 % available)', async () => {
   const s = setup(M.nvidia, { appPid: 10 });
   try {
     await s.run(16);

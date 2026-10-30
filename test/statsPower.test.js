@@ -7,9 +7,13 @@
 
 const { skipAll, linuxOnly } = require('./fixtures/platformSkip');
 
-// The Linux server monitor, on fake /proc and /sys trees; Windows has its own
-// (server/stats/platform/win32.js) and its own tests.
-const test = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
+// The math (deltas, wrap-around, averages, energy, alert rules) is the same
+// on every OS and runs everywhere. The tests that run the engine on a fake
+// machine (fake /proc and /sys trees from fixtures/stats/machines.js) are the
+// Linux server monitor; Windows has its own (server/stats/platform/win32.js)
+// and its own tests.
+const test = require('node:test');
+const onFakeTrees = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
@@ -272,7 +276,7 @@ test('energy per job: what the job converts while its energy is not counted move
   assert.deepEqual(again.summary(t).byJob.j.base, e.summary(t).byJob.j.base);
 });
 
-test('the engine: markJob counts a job\'s energy, keeps sampling and shows it on the snapshot', async () => {
+onFakeTrees('the engine: markJob counts a job\'s energy, keeps sampling and shows it on the snapshot', async () => {
   const s = setup(M.intelArc, { timers: heldTimers() });
   try {
     await s.run(2);
@@ -296,7 +300,7 @@ test('the engine: markJob counts a job\'s energy, keeps sampling and shows it on
   }
 });
 
-test('the engine: a job\'s baseline comes from options.jobProgress and outlives a restart; the encoder block counts from it', async () => {
+onFakeTrees('the engine: a job\'s baseline comes from options.jobProgress and outlives a restart; the encoder block counts from it', async () => {
   const { encoderBlock, jobProgress } = require('../server/encoderStats');
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stats-base-'));
   const clock = fakeClock();
@@ -352,7 +356,7 @@ test('the engine: a job\'s baseline comes from options.jobProgress and outlives 
   }
 });
 
-test('no RAPL on an x86 machine: a hint after a few seconds, gone once the supervisor sends readings', async () => {
+onFakeTrees('no RAPL on an x86 machine: a hint after a few seconds, gone once the supervisor sends readings', async () => {
   const s = setup(M.amd, { appPid: 8, timers: heldTimers() });
   try {
     s.stats.touch();
@@ -382,7 +386,7 @@ test('no RAPL on an x86 machine: a hint after a few seconds, gone once the super
   }
 });
 
-test('the engine: costs at the price of each moment, from options.priceAt', async () => {
+onFakeTrees('the engine: costs at the price of each moment, from options.priceAt', async () => {
   let price = 0.4;
   const s = setup(M.intelArc, { timers: heldTimers(), options: { priceAt: () => price } });
   try {

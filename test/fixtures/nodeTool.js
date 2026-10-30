@@ -15,6 +15,9 @@
 // Every tool starts with a small prelude:
 //   args            its arguments, as the code under test passed them
 //   joined          args.join(' '), what sh's "$*" was
+//   parent          the pid that started this tool, read once as sh's $PPID
+//                   is (process.ppid is re-read on every access, so once the
+//                   parent dies it names whoever adopted the tool instead)
 //   exec(cmd, argv) run cmd in this script's place, as sh's exec did: same
 //                   stdin/stdout/stderr, a signal sent here is passed on, and
 //                   it ends the way cmd ended (same exit code, same signal)
@@ -33,6 +36,7 @@ const os = require('os');
 const { spawn } = require('child_process');
 const args = process.argv.slice(2);
 const joined = args.join(' ');
+const parent = process.ppid;
 const PASSED_ON = process.platform === 'win32' ? ['SIGINT'] : ['SIGTERM', 'SIGINT', 'SIGHUP'];
 function exec(command, argv) {
   const child = spawn(command, argv, { stdio: 'inherit' });

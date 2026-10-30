@@ -14,7 +14,7 @@ const http2 = require('http2');
 const net = require('net');
 const os = require('os');
 const path = require('path');
-const { linuxOnly, notOnWindows, needsTool } = require('./fixtures/platformSkip');
+const { linuxOnly, notOnWindows, needsTool, tlsUsesOpenssl } = require('./fixtures/platformSkip');
 const { writeNodeTool } = require('./fixtures/nodeTool');
 const { dirLink } = require('./fixtures/dirLink');
 const { spawn, spawnSync } = require('child_process');
@@ -30,6 +30,8 @@ const SERVER = path.join(REPO, 'server', 'index.js');
 const HELPER = path.join(__dirname, '..', 'build', 'noreplace-rename');
 const hasOpenssl = spawnSync('openssl', ['version']).status === 0;
 const needsOpenssl = needsTool(hasOpenssl, 'needs openssl');
+// the server's own certificates: openssl on Linux, made in Node on Windows
+const needsTlsTool = tlsUsesOpenssl() ? needsOpenssl : false;
 const tmp = (p = 'sm-sec-') => fsp.mkdtemp(path.join(os.tmpdir(), p));
 const quiet = { info() {}, warn() {}, error() {} };
 
@@ -96,7 +98,7 @@ async function startServer(dir, env) {
   return { port, child, stop, output: () => output };
 }
 
-test('HTTPS, the setup code, cookies and password confirmation', { skip: needsOpenssl, timeout: 120000 }, async () => {
+test('HTTPS, the setup code, cookies and password confirmation', { skip: needsTlsTool, timeout: 120000 }, async () => {
   const dir = await tmp();
   await fsp.mkdir(path.join(dir, 'footage/TeslaCam/RecentClips'), { recursive: true });
   let s = await startServer(dir, {});

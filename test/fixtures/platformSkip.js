@@ -29,6 +29,16 @@ function notOnWindows(reason, platform = process.platform) {
   return platform === 'win32' ? `not on Windows: ${reason}` : false;
 }
 
+/**
+ * Whether the server's certificates come from the openssl command here. On
+ * Linux server/tls.js runs it; on Windows they are made in Node
+ * (server/x509.js), so HTTPS and pairing tests there need no openssl. Only a
+ * test that runs openssl itself (openssl verify) needs it on every OS.
+ */
+function tlsUsesOpenssl(platform = process.platform) {
+  return platform !== 'win32';
+}
+
 // With REQUIRE_TOOLS=1 (CI, where ffmpeg and the rest are installed on
 // purpose) a missing tool is a failure, not a quiet skip: one failing test per
 // missing tool and file, named after it, while the tests that need it still
@@ -66,4 +76,4 @@ function skipAll(reason) {
   return Object.assign(skipped, nodeTest, { test: skipped });
 }
 
-module.exports = { linuxOnly, notOnWindows, needsTool, requireTools, skipAll, RENAME_HELPER };
+module.exports = { linuxOnly, notOnWindows, needsTool, requireTools, skipAll, tlsUsesOpenssl, RENAME_HELPER };

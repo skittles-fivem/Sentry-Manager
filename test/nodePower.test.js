@@ -12,7 +12,7 @@ const fsp = require('fs/promises');
 const http2 = require('http2');
 const os = require('os');
 const path = require('path');
-const { needsTool } = require('./fixtures/platformSkip');
+const { needsTool, tlsUsesOpenssl } = require('./fixtures/platformSkip');
 const { spawnSync } = require('child_process');
 const { TlsManager } = require('../server/tls');
 const { createNodeWorker } = require('../server/nodeWorker');
@@ -23,8 +23,9 @@ const { cpuUnavailable } = require('../server/stats/power');
 const { isWsl } = require('../server/stats/host');
 const { createTeslaH264Fixture } = require('./fixtures/ffmpegFixtures');
 
-const hasTools = spawnSync('openssl', ['version']).status === 0 && spawnSync('ffmpeg', ['-version']).status === 0;
-const needsTools = needsTool(hasTools, 'needs openssl and ffmpeg');
+// openssl makes the certificates on Linux; on Windows they are made in Node
+const hasTools = (!tlsUsesOpenssl() || spawnSync('openssl', ['version']).status === 0) && spawnSync('ffmpeg', ['-version']).status === 0;
+const needsTools = needsTool(hasTools, tlsUsesOpenssl() ? 'needs openssl and ffmpeg' : 'needs ffmpeg');
 const quiet = { info() {}, warn() {}, error() {} };
 const memDb = () => {
   const m = new Map();

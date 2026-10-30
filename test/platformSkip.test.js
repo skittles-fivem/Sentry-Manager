@@ -13,7 +13,7 @@ const fsp = require('fs/promises');
 const os = require('os');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
-const { linuxOnly, notOnWindows, needsTool, requireTools, skipAll } = require('./fixtures/platformSkip');
+const { linuxOnly, notOnWindows, needsTool, requireTools, skipAll, tlsUsesOpenssl } = require('./fixtures/platformSkip');
 const { writeNodeTool } = require('./fixtures/nodeTool');
 const { dirLink } = require('./fixtures/dirLink');
 
@@ -88,6 +88,11 @@ test.test('through .test', async () => { throw new Error('ran'); });
   assert.doesNotMatch(out.output, /not ok/);
 });
 
+test('the server\'s certificates need openssl on Linux only (Windows makes them in Node)', () => {
+  assert.equal(tlsUsesOpenssl('linux'), true);
+  assert.equal(tlsUsesOpenssl('win32'), false);
+});
+
 test('a fake tool cannot be written on Windows, and says why', () => {
   assert.throws(() => writeNodeTool(os.tmpdir(), 'ffmpeg', '', { platform: 'win32' }), /cannot be spawned by path on Windows/);
 });
@@ -152,6 +157,27 @@ test('run reports the status as sh\'s $? reads it, and until waits for its condi
     const started = Date.now();
     assert.equal((await done).out, 'released');
     assert.ok(Date.now() - started >= 250, 'it waited for the file');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('parent is the pid that started the tool, kept after that process is gone (as sh\'s $PPID)', { skip: scriptTools, timeout: 60_000 }, async () => {
+  const dir = tmp();
+  try {
+    const out = path.join(dir, 'out.json');
+    // waits until it has been re-parented, then says what it saw
+    const started = path.join(dir, 'started');
+    const tool = writeNodeTool(dir, 'orphan', `fs.writeFileSync(${JSON.stringify(started)}, ''); until(() => process.ppid !== parent, () => fs.writeFileSync(${JSON.stringify(out)}, JSON.stringify({ parent, now: process.ppid })), 20);`);
+    // a middle process starts the tool, waits until it is running (so it has
+    // read its parent), then exits, leaving it orphaned
+    const middle = spawnSync(process.execPath, ['-e', `const fs = require('fs'); const c = require('child_process').spawn(${JSON.stringify(tool)}, [], { detached: true, stdio: 'ignore' }); c.unref(); const t = setInterval(() => { if (fs.existsSync(${JSON.stringify(started)})) { clearInterval(t); process.stdout.write(String(process.pid)); } }, 10);`], { encoding: 'utf8', timeout: 20_000 });
+    assert.equal(middle.status, 0, middle.stderr);
+    const end = Date.now() + 20_000;
+    while (!fs.existsSync(out) && Date.now() < end) await new Promise((r) => setTimeout(r, 20));
+    const seen = JSON.parse(fs.readFileSync(out, 'utf8'));
+    assert.equal(seen.parent, Number(middle.stdout), 'parent still names the process that started it');
+    assert.notEqual(seen.now, seen.parent, 'process.ppid alone would name whoever adopted it');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

@@ -8,9 +8,13 @@
 
 const { skipAll, linuxOnly } = require('./fixtures/platformSkip');
 
-// The Linux server monitor, on fake /proc and /sys trees; Windows has its own
-// (server/stats/platform/win32.js) and its own tests.
-const test = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
+// The tests that run the engine on a fake machine (fake /proc and /sys trees
+// from fixtures/stats/machines.js) are the Linux server monitor; Windows has
+// its own (server/stats/platform/win32.js) and its own tests. The rest (the
+// math and the drawing of the tiles) is the same on every OS and runs
+// everywhere.
+const test = require('node:test');
+const onFakeTrees = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
@@ -70,7 +74,7 @@ function pciHwmon(bdf, id, files) {
   return out;
 }
 
-test('dual Xeon: use, temperature and package power per socket; the CPU totals stay the whole server', async () => {
+onFakeTrees('dual Xeon: use, temperature and package power per socket; the CPU totals stay the whole server', async () => {
   const spawn = fakeSpawn({ lines: M.DUALXEON_NVIDIA_LINES });
   const s = setup(M.dualXeon, { spawn });
   try {
@@ -105,7 +109,7 @@ test('dual Xeon: use, temperature and package power per socket; the CPU totals s
   }
 });
 
-test('dual Xeon before its second sample: the sockets are known, their numbers not yet', async () => {
+onFakeTrees('dual Xeon before its second sample: the sockets are known, their numbers not yet', async () => {
   const s = setup(M.dualXeon);
   try {
     assert.deepEqual([s.stats.snapshot().cpu.sockets, s.stats.snapshot().cpu.perSocket], [1, null], 'nothing sampled: one socket, no list');
@@ -120,7 +124,7 @@ test('dual Xeon before its second sample: the sockets are known, their numbers n
   }
 });
 
-test('coretemp chips go by the package they name, not by their hwmon number', async () => {
+onFakeTrees('coretemp chips go by the package they name, not by their hwmon number', async () => {
   const machine = (phase) => ({
     ...without(M.dualXeon(phase), /coretemp\.[01]|sys\/class\/hwmon\/hwmon[12]$/),
     // package 1 registered first and hotter; a core above its package is not the package
@@ -137,7 +141,7 @@ test('coretemp chips go by the package they name, not by their hwmon number', as
   }
 });
 
-test('two dies per socket (Xeon 9200): coretemp numbers its chips by die, so no socket is given another one\'s temperature', async () => {
+onFakeTrees('two dies per socket (Xeon 9200): coretemp numbers its chips by die, so no socket is given another one\'s temperature', async () => {
   const chip = (n, hwmon, milli) => M.platformHwmon(`coretemp.${n}`, hwmon, { name: 'coretemp\n', temp1_input: `${milli}\n`, temp1_label: `Package id ${n}\n` });
   const machine = (phase) => ({
     ...without(M.dualXeon(phase), /coretemp\.[01]|sys\/class\/hwmon\/hwmon[12]$/),
@@ -158,7 +162,7 @@ test('two dies per socket (Xeon 9200): coretemp numbers its chips by die, so no 
   }
 });
 
-test('dual EPYC: a k10temp chip per socket in device order, RAPL per package from the supervisor', async () => {
+onFakeTrees('dual EPYC: a k10temp chip per socket in device order, RAPL per package from the supervisor', async () => {
   const machine = (phase) => ({
     ...without(M.dualXeon(phase), /coretemp\.[01]|sys\/class\/hwmon\/hwmon[12]$|powercap/),
     'proc/cpuinfo': M.cpuinfoSockets({ sockets: 2, coreIds: Array.from({ length: 16 }, (_, i) => i), model: 'AMD EPYC 7302 16-Core Processor', vendor: 'AuthenticAMD' }),
@@ -186,7 +190,7 @@ test('dual EPYC: a k10temp chip per socket in device order, RAPL per package fro
   }
 });
 
-test('per-socket fields that cannot be told are null: k10temp chips that do not match the sockets, no RAPL', async () => {
+onFakeTrees('per-socket fields that cannot be told are null: k10temp chips that do not match the sockets, no RAPL', async () => {
   const machine = (phase) => ({
     ...without(M.dualXeon(phase), /coretemp\.[01]|sys\/class\/hwmon\/hwmon[12]$|powercap/),
     // one chip for two sockets: whose is it?
@@ -203,7 +207,7 @@ test('per-socket fields that cannot be told are null: k10temp chips that do not 
   }
 });
 
-test('one socket: the body is the one it was (sockets 1, no per-socket list, the same CPU fields)', async () => {
+onFakeTrees('one socket: the body is the one it was (sockets 1, no per-socket list, the same CPU fields)', async () => {
   const machines = [
     ['intelArc', M.intelArc, {}, { tempC: 58, usage: 39.3, cores: 6, threads: 12 }],
     ['amd', M.amd, { appPid: 8 }, { tempC: 65.3, usage: 25, cores: 8, threads: 16 }],
@@ -231,7 +235,7 @@ test('one socket: the body is the one it was (sockets 1, no per-socket list, the
   }
 });
 
-test('a virtual machine with several virtual sockets counts as one', async () => {
+onFakeTrees('a virtual machine with several virtual sockets counts as one', async () => {
   const vm = (phase) => {
     const spec = M.dualXeon(phase);
     spec['proc/cpuinfo'] = spec['proc/cpuinfo'].replace(/flags\t\t: fpu vme de pse/g, 'flags\t\t: fpu vme de pse hypervisor');
@@ -250,7 +254,7 @@ test('a virtual machine with several virtual sockets counts as one', async () =>
   }
 });
 
-test('cpuinfo: sockets from the physical ids; boards without them have one', () => {
+onFakeTrees('cpuinfo: sockets from the physical ids; boards without them have one', () => {
   const two = parseCpuinfo(M.cpuinfoSockets({ sockets: 2, coreIds: [0, 1, 4, 5], model: 'Intel(R) Xeon(R) Silver 4110 CPU @ 2.10GHz', vendor: 'GenuineIntel' }));
   assert.equal(two.sockets, 2);
   assert.equal(two.cores, 8);

@@ -6,9 +6,13 @@
 
 const { skipAll, linuxOnly } = require('./fixtures/platformSkip');
 
-// The Linux server monitor, on fake /proc and /sys trees; Windows has its own
-// (server/stats/platform/win32.js) and its own tests.
-const test = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
+// The math (deltas, wrap-around, averages, energy, alert rules) is the same
+// on every OS and runs everywhere. The tests that run the engine on a fake
+// machine (fake /proc and /sys trees from fixtures/stats/machines.js) are the
+// Linux server monitor; Windows has its own (server/stats/platform/win32.js)
+// and its own tests.
+const test = require('node:test');
+const onFakeTrees = skipAll(linuxOnly('fake /proc and /sys trees for the Linux server monitor'));
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
@@ -104,7 +108,7 @@ test('CSV: an ISO time column, the series in order, empty cells for no data', ()
   assert.equal(day.length, 3);
 });
 
-test('the engine saves history and energy to stats-history.json and reads them back after a restart', async () => {
+onFakeTrees('the engine saves history and energy to stats-history.json and reads them back after a restart', async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stats-data-'));
   const clock = fakeClock();
   const file = path.join(dataDir, 'stats-history.json');
@@ -151,7 +155,7 @@ test('the engine saves history and energy to stats-history.json and reads them b
   }
 });
 
-test('while sampling, the file is written every 5 minutes', async () => {
+onFakeTrees('while sampling, the file is written every 5 minutes', async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stats-data-'));
   const s = setup(M.amd, { appPid: 8, dataDir, timers: heldTimers() });
   try {
@@ -165,7 +169,7 @@ test('while sampling, the file is written every 5 minutes', async () => {
   }
 });
 
-test('a damaged, foreign or oversized history file is set aside quietly; a missing data folder is created', async () => {
+onFakeTrees('a damaged, foreign or oversized history file is set aside quietly; a missing data folder is created', async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-stats-data-'));
   const file = path.join(dataDir, 'stats-history.json');
   const warnings = [];

@@ -10,8 +10,12 @@ const { linuxOnly, needsTool, skipAll, RENAME_HELPER } = require('./fixtures/pla
 const { spawn, spawnSync, execFileSync } = require('child_process');
 const { createPosixOwnedFs, createNoReplaceRename } = require('../server/posixOwnedFs');
 
-// renameat2 and the POSIX owned-files adapter; Windows has its own adapter
-const test = skipAll(linuxOnly(RENAME_HELPER));
+// renameat2 and the POSIX owned-files adapter; Windows has its own adapter.
+// The platform is checked before any tool, so off Linux nothing is built and
+// REQUIRE_TOOLS=1 does not turn a missing C compiler into a failure there.
+const notHere = linuxOnly(RENAME_HELPER);
+const test = skipAll(notHere);
+const needs = (available, reason) => notHere || needsTool(available, reason);
 
 const REPO = path.join(__dirname, '..');
 const HELPER_SRC = path.join(__dirname, '..', 'native', 'noreplace-rename.c');
@@ -19,6 +23,7 @@ const HELPER = path.join(__dirname, '..', 'build', 'noreplace-rename');
 const hasFfmpeg = spawnSync('ffmpeg', ['-version']).status === 0;
 
 function buildHelper() {
+  if (notHere) return false;
   if (fs.existsSync(HELPER)) return true;
   fs.mkdirSync(path.dirname(HELPER), { recursive: true });
   return spawnSync('cc', ['-O2', '-o', HELPER, HELPER_SRC]).status === 0;
@@ -37,7 +42,7 @@ async function identity(file) {
 
 const adapters = () => createPosixOwnedFs({ helperPath: HELPER });
 
-test('remove deletes only the exact recorded file', { skip: needsTool(helperBuilt, 'no C compiler') }, async () => {
+test('remove deletes only the exact recorded file', { skip: needs(helperBuilt, 'no C compiler') }, async () => {
   const dir = await tmp();
   try {
     const { removeOwned } = adapters();
@@ -63,7 +68,7 @@ test('remove deletes only the exact recorded file', { skip: needsTool(helperBuil
   }
 });
 
-test('remove refuses symlinks and honours the guard', { skip: needsTool(helperBuilt, 'no C compiler') }, async () => {
+test('remove refuses symlinks and honours the guard', { skip: needs(helperBuilt, 'no C compiler') }, async () => {
   const dir = await tmp();
   try {
     const { removeOwned } = adapters();
@@ -94,7 +99,7 @@ test('remove refuses symlinks and honours the guard', { skip: needsTool(helperBu
   }
 });
 
-test('promote never replaces and only moves the verified source', { skip: needsTool(helperBuilt, 'no C compiler') }, async () => {
+test('promote never replaces and only moves the verified source', { skip: needs(helperBuilt, 'no C compiler') }, async () => {
   const dir = await tmp();
   try {
     const { renameExclusive } = adapters();
@@ -126,7 +131,7 @@ test('promote never replaces and only moves the verified source', { skip: needsT
   }
 });
 
-test('identity-only checks: device, inode, size and the recorded modification time, no read; without the time the full check', { skip: needsTool(helperBuilt, 'no C compiler') }, async () => {
+test('identity-only checks: device, inode, size and the recorded modification time, no read; without the time the full check', { skip: needs(helperBuilt, 'no C compiler') }, async () => {
   const dir = await tmp();
   try {
     const { removeOwned, renameExclusive } = adapters();
@@ -186,7 +191,7 @@ test('without the helper, promotion falls back to link + unlink', async () => {
   }
 });
 
-test('the real converter replaces originals in place with telemetry intact', { skip: needsTool(hasFfmpeg, 'ffmpeg missing') || needsTool(helperBuilt, 'no C compiler'), timeout: 600000 }, async () => {
+test('the real converter replaces originals in place with telemetry intact', { skip: needs(hasFfmpeg, 'ffmpeg missing') || needs(helperBuilt, 'no C compiler'), timeout: 600000 }, async () => {
   const { createConverterRuntime } = require(path.join(REPO, 'src/main/converter/runtime'));
   const { createEncoderPlanner } = require(path.join(REPO, 'src/main/converter/encoderPlanner'));
   const { createTeslaH264Fixture } = require(path.join(REPO, 'test/fixtures/ffmpegFixtures'));
@@ -248,7 +253,7 @@ test('the real converter replaces originals in place with telemetry intact', { s
   }
 });
 
-test('a file written to while the adapter hashes it is a mismatch, even if the bytes it read were right', { skip: needsTool(helperBuilt, 'no C compiler') }, async () => {
+test('a file written to while the adapter hashes it is a mismatch, even if the bytes it read were right', { skip: needs(helperBuilt, 'no C compiler') }, async () => {
   const dir = await tmp();
   const originalOpen = fsp.open;
   try {

@@ -217,12 +217,15 @@ async function open(base, { point = null, concurrency = 1, mode = 'replace', net
   if (hooks.ffmpeg || hooks.ffprobeKill || hooks.hold) process.on('SIGUSR2', die);
   // an encode (it reports on -progress) or the verification's probe signals
   // the converter (its parent) to die there, and fails itself
-  const signalParent = (match) => `if (joined.includes(${JSON.stringify(match)})) { process.kill(process.ppid, 'SIGUSR2'); process.exit(1); }`;
+  const signalParent = (match) => `if (joined.includes(${JSON.stringify(match)})) { process.kill(parent, 'SIGUSR2'); process.exit(1); }`;
   // an encode waits until the test writes BASE/release, and gives up when the
-  // converter (its parent) is gone; anything else runs at once
+  // converter (its parent) is gone; anything else runs at once. Gone means it
+  // was re-parented or the pid it started under no longer answers, the way
+  // sh's kill -0 $PPID saw it (the pid is the one read at start, not now).
   const holdUntilReleased = `until(() => {
   if (!joined.includes('-progress') || fs.existsSync(${JSON.stringify(path.join(base, 'release'))})) return true;
-  try { process.kill(process.ppid, 0); } catch (_) { process.exit(1); }
+  if (process.ppid !== parent) process.exit(1);
+  try { process.kill(parent, 0); } catch (_) { process.exit(1); }
   return false;
 }, () => exec('ffmpeg', args));`;
   const ffmpegPath = hooks.ffmpeg
