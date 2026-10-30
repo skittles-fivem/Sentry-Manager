@@ -30,7 +30,7 @@ const PROGRAM_ROOT = '/Library/SentrySixManager';
 const CAFFEINATE = '/usr/bin/caffeinate';
 const SYSCTL = '/usr/sbin/sysctl';
 const MOUNT = '/sbin/mount';
-// O_NOFOLLOW_ANY (macOS 11+): no symlink anywhere in the path
+// O_NOFOLLOW_ANY (macOS 11+): no symlink anywhere in the path (sys/fcntl.h)
 const O_NOFOLLOW_ANY = 0x20000000;
 const EX_CONFIG = 78;
 const RESPAWN_MS = 5000;
@@ -237,12 +237,15 @@ function createDarwinPlatform({
       data, appDir, run,
       // the state root holds manager.env (the passwords) beside data/ and run/
       STATE_ROOT,
+      // the Mac app in the user's login: that user's own state folder (its manager.env)
+      env.SERVICE_MODE === 'agent' && data ? P.dirname(data) : null,
       appDir ? P.dirname(appDir) : null,
       '/System', '/Library', '/private', '/usr', '/bin', '/sbin', '/dev', '/cores', '/opt', '/Users'
     ].filter(Boolean),
     /** The system's own folders no folder vehicle may overlap (DATA and RUN_DIR come from protectedDirs). */
     systemDirs: () => ['/System', '/private', '/usr', '/bin', '/sbin', '/dev', '/cores', '/opt', '/Applications',
-      PROGRAM_ROOT, P.join(STATE_ROOT, 'manager.env')],
+      PROGRAM_ROOT, P.join(STATE_ROOT, 'manager.env'),
+      ...(env.SERVICE_MODE === 'agent' && env.DATA_PATH ? [P.join(P.dirname(P.resolve(env.DATA_PATH)), 'manager.env')] : [])],
     samePath,
     isInside,
     validName,
@@ -274,7 +277,10 @@ function createDarwinPlatform({
       ...(opts.runCmd ? { runCmd: opts.runCmd } : {})
     }),
     // darwin only
-    openNoFollowFlags: fsSync.constants.O_RDONLY | fsSync.constants.O_NOFOLLOW | O_NOFOLLOW_ANY,
+    // O_NOFOLLOW_ANY alone: it refuses a symlink anywhere, the last name
+    // too (ELOOP), and open(2) answers EINVAL when O_NOFOLLOW is set with it
+    // (XNU vn_open_auth)
+    openNoFollowFlags: fsSync.constants.O_RDONLY | O_NOFOLLOW_ANY,
     fdInside,
     fsOps,
     volumeInfo,

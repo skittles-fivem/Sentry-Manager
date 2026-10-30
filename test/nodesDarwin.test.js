@@ -119,7 +119,7 @@ const encodeOn = (w, device, source, target, rate) => new Promise((resolve) => {
 test('a Mac worker\'s /info is a Linux worker\'s plus optional fields, and this main reads its VideoToolbox device', { skip: !hasOpenssl && 'openssl missing', timeout: 60_000 }, async () => {
   const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'sm-nodes-mac-'));
   const lines = [];
-  const linux = await pairedWorker(dir, { runtime: () => macRuntime(), spawn: recordingFfmpeg([]) }, 'work-linux');
+  const linux = await pairedWorker(dir, { platform: 'linux', runtime: () => macRuntime(), spawn: recordingFfmpeg([]) }, 'work-linux');
   const mac = await pairedWorker(dir, { platform: 'darwin', arch: 'arm64', runtime: () => macRuntime(), spawn: recordingFfmpeg(lines) }, 'work-mac');
   try {
     const a = (await nodeInfo(linux.port, linux.node.token)).json;

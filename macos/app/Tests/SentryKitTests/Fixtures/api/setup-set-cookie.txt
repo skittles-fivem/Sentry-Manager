@@ -1,0 +1,1 @@
+__Host-sm_session=TOKEN; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000; Secure

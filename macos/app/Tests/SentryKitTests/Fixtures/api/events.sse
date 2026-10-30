@@ -1,0 +1,9 @@
+event: hello
+data: {}
+
+event: changed
+data: {"topics":["vehicles","notifications","inventory"]}
+
+event: changed
+data: {"topics":["inventory","jobs","bin"]}
+

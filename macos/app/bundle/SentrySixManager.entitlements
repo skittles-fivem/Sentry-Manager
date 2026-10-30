@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The app (and its launcher): hardened runtime with no exceptions. No App
+  Sandbox: the app runs the administrator step, launchctl and reads
+  /Library/Application Support, none of which a sandboxed app may do
+  (docs/plans/macos-app.md 10.2). Apple events are not needed: do shell
+  script runs in osascript, which sends none to other apps.
+-->
+<plist version="1.0">
+<dict>
+</dict>
+</plist>

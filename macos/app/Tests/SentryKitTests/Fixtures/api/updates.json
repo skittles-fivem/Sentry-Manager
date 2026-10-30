@@ -1,0 +1,14 @@
+{
+  "enabled": false,
+  "image": null,
+  "tag": null,
+  "current": {
+    "sha": null,
+    "builtAt": null
+  },
+  "latest": null,
+  "checkedAt": null,
+  "error": null,
+  "updateAvailable": false,
+  "critical": null
+}

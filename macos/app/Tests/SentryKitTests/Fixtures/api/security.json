@@ -1,0 +1,46 @@
+{
+  "https": true,
+  "tlsMode": "auto",
+  "trustProxy": false,
+  "tls": {
+    "mode": "local-ca",
+    "ca": {
+      "fingerprint": "82:97:BC:86:00:C2:CB:4D:BA:91:E6:57:DD:6A:E3:69:E7:BF:82:1E:76:F0:43:A0:2E:F9:0E:47:D4:95:83:B1",
+      "validFrom": "Oct 30 17:41:23 2026 GMT",
+      "validTo": "Oct 27 17:41:23 2036 GMT",
+      "expiresAt": 2108742083000,
+      "subject": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 053e9d48",
+      "issuer": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 053e9d48",
+      "names": []
+    },
+    "certificate": {
+      "fingerprint": "1F:F8:8D:0A:2B:8C:E7:00:07:86:4F:BD:DD:27:67:43:D6:7B:B6:C0:DB:FF:4E:9B:2F:4D:53:DD:F5:76:68:67",
+      "validFrom": "Oct 30 17:41:23 2026 GMT",
+      "validTo": "Feb  1 17:41:23 2029 GMT",
+      "expiresAt": 1864662083000,
+      "subject": "O=Sentry Six Manager\nCN=localhost",
+      "issuer": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 053e9d48",
+      "names": [
+        "localhost",
+        "127.0.0.1",
+        "0:0:0:0:0:0:0:1"
+      ]
+    },
+    "hostnames": [
+      "localhost",
+      "127.0.0.1",
+      "::1"
+    ],
+    "editable": [],
+    "fromEnv": [],
+    "containerHostname": "vm"
+  },
+  "supervised": false,
+  "runningAsRoot": true,
+  "currentHost": "127.0.0.1:9000",
+  "confirmed": true,
+  "account": "_sentrysix",
+  "elevated": false,
+  "fullDiskAccess": null,
+  "runMode": "daemon"
+}

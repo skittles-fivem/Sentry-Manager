@@ -1,0 +1,51 @@
+{
+  "total": 1,
+  "offset": 0,
+  "limit": 500,
+  "scannedAt": 1793382084383,
+  "scanning": false,
+  "error": null,
+  "dates": [
+    "2025-06-03",
+    "2025-06-02",
+    "2025-06-01"
+  ],
+  "recordings": [
+    {
+      "id": "da3fd57c1788cc47",
+      "key": "session:TeslaCam/RecentClips:2025-06-01_08-00-00",
+      "vehicleId": "model-y",
+      "type": "RecentClips",
+      "category": "Recent",
+      "folder": "TeslaCam/RecentClips",
+      "eventId": null,
+      "startKey": "2025-06-01_08-00-00",
+      "start": "2025-06-01 08:00:00",
+      "end": "2025-06-01 08:01:00",
+      "eventAt": null,
+      "day": "2025-06-01",
+      "fileCount": 12,
+      "clipCount": 12,
+      "minutes": 2,
+      "bytes": 1729304,
+      "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+      ],
+      "thumbRel": null,
+      "frontRel": "TeslaCam/RecentClips/2025-06-01_08-00-00-front.mp4",
+      "protected": false,
+      "mtimeMs": 1793382083644.1587,
+      "encoded": {
+        "clips": 12,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+      }
+    }
+  ]
+}

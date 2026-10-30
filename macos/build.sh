@@ -4,6 +4,10 @@
 #
 #   bash macos/build.sh [--out DIR] [--work DIR] [--sha SHA] [--branch NAME]
 #                       [--repo owner/name] [--built-at ISO-TIME]
+#                       [--channel macos|macos-app]
+#
+# --channel macos-app is the engine inside the Mac app (macos/app/scripts/
+# build-app.sh): the same files, its BUILD_INFO.json says so.
 #
 # Out come dist/SentrySixManager-<version>-<shortsha>-macos-arm64.tar.gz, its
 # SHA256SUMS and release.json (what server/releaseUpdates.js reads). The
@@ -28,6 +32,7 @@ SHA=""
 BRANCH=""
 REPO=""
 BUILT_AT=""
+CHANNEL=macos
 
 fail() { echo "build.sh: $*" >&2; exit 1; }
 
@@ -39,10 +44,12 @@ while [ $# -gt 0 ]; do
     --branch) BRANCH=$2; shift 2 ;;
     --repo) REPO=$2; shift 2 ;;
     --built-at) BUILT_AT=$2; shift 2 ;;
+    --channel) CHANNEL=$2; shift 2 ;;
     *) fail "unknown option $1" ;;
   esac
 done
 
+case "$CHANNEL" in macos|macos-app) ;; *) fail "--channel is macos or macos-app" ;; esac
 [ "$(uname -s)" = Darwin ] || fail "build on a Mac: the package is checked by running what it holds"
 [ "$(sysctl -n hw.optional.arm64 2>/dev/null || true)" = 1 ] || fail "build on an Apple Silicon Mac (Intel Macs are not supported)"
 for t in plutil shasum curl tar clang lipo codesign; do
@@ -164,7 +171,7 @@ codesign --force --sign - "$STAGE/bin/sentry-fsops"
 
 mkdir -p "$STAGE/app"
 "$NODE" "$HERE/appFiles.js" copy "$ROOT" "$STAGE/app"
-"$NODE" "$HERE/buildInfo.js" "$ROOT" "$STAGE/app" "$OUT" "$SHA" "$BRANCH" "$BUILT_AT" "$REPO"
+"$NODE" "$HERE/buildInfo.js" "$ROOT" "$STAGE/app" "$OUT" "$SHA" "$BRANCH" "$BUILT_AT" "$REPO" "$CHANNEL"
 VERSION=$("$NODE" -p "require('$STAGE/app/BUILD_INFO.json').version")
 
 # ---- scripts, plist and readme ---------------------------------------------

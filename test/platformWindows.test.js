@@ -151,7 +151,7 @@ test('studioApi: Windows hides the bin and work files whatever their case, and r
   const w = winLike();
   assert.equal(hiddenPath('C:\\cam\\.SENTRY-RECYCLE-BIN\\x', w), true);
   assert.equal(hiddenPath('C:\\cam\\clip.mp4.BINNED', w), true);
-  if (platform.name !== 'win32') assert.equal(hiddenPath('/cam/.SENTRY-RECYCLE-BIN/x'), false, 'Linux: case matters, as before');
+  assert.equal(hiddenPath('/cam/.SENTRY-RECYCLE-BIN/x', platform.forPlatform('linux')), false, 'Linux: case matters, as before');
   const dir = await tmp();
   try {
     await fsp.writeFile(path.join(dir, 'a.mp4'), 'clip');

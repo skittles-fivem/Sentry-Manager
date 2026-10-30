@@ -17,6 +17,36 @@ const x509 = require('../server/x509');
 const { TlsManager, localTlsSource } = require('../server/tls');
 
 const hasOpenssl = spawnSync('openssl', ['version']).status === 0;
+
+// What Docker makes comes from OpenSSL. A Mac's own openssl (/usr/bin) is
+// LibreSSL, whose req -x509 adds the -addext extensions after those of the
+// system openssl.cnf instead of in their place: its CA carries
+// basicConstraints twice, which Node (OpenSSL 3) reads as no CA at all. That
+// is not Docker's CA, so on a Mac Homebrew's OpenSSL stands in for Docker's
+// when it is installed. (The app itself never runs openssl on a Mac.)
+const DOCKER_OPENSSL_CANDIDATES = ['openssl', '/opt/homebrew/opt/openssl@3/bin/openssl'];
+function findDockerOpenssl(candidates = DOCKER_OPENSSL_CANDIDATES) {
+  for (const bin of candidates) {
+    const res = spawnSync(bin, ['version'], { encoding: 'utf8' });
+    // Docker's is OpenSSL 3; a Mac's PATH may hold LibreSSL or an OpenSSL 1.1
+    if (res.status === 0 && /^OpenSSL [3-9]\./.test(res.stdout)) return bin;
+  }
+  return null;
+}
+const dockerOpenssl = findDockerOpenssl();
+const needsDockerOpenssl = dockerOpenssl ? false : 'needs OpenSSL 3, the openssl Docker has (a Mac\'s own is LibreSSL)';
+
+/** Run fn with Docker's kind of openssl first on PATH (tls.js runs openssl from PATH). */
+async function withDockerOpenssl(fn) {
+  if (dockerOpenssl === 'openssl') return fn();
+  const saved = process.env.PATH;
+  process.env.PATH = `${path.dirname(dockerOpenssl)}${path.delimiter}${saved}`;
+  try {
+    return await fn();
+  } finally {
+    process.env.PATH = saved;
+  }
+}
 const tmp = () => fsp.mkdtemp(path.join(os.tmpdir(), 'sm-x509-'));
 const quiet = { info() {}, warn() {}, error() {} };
 const NAMES = ['192.168.1.50', 'nas.local', 'my.example.org'];
@@ -169,7 +199,7 @@ test('openssl accepts what x509.js makes', { skip: !hasOpenssl, timeout: 60000 }
   }
 });
 
-test('field by field, x509.js certificates match the openssl-made ones', { skip: !hasOpenssl, timeout: 60000 }, async () => {
+test('field by field, x509.js certificates match the openssl-made ones', { skip: needsDockerOpenssl, timeout: 60000 }, () => withDockerOpenssl(async () => {
   const dir = await tmp();
   try {
     await new TlsManager({ dir: path.join(dir, 'docker'), log: quiet, hostnames: NAMES, platform: 'linux' }).ensure();
@@ -204,7 +234,7 @@ test('field by field, x509.js certificates match the openssl-made ones', { skip:
   } finally {
     await fsp.rm(dir, { recursive: true, force: true });
   }
-});
+}));
 
 test('the x509.js CA cannot vouch for names outside its constraints', { skip: !hasOpenssl, timeout: 60000 }, async () => {
   const dir = await tmp();
@@ -347,7 +377,7 @@ test('a server certificate close to expiry is renewed on load and swapped in wit
   }
 });
 
-test('Docker and Windows renew each other\'s certificates', { skip: !hasOpenssl, timeout: 60000 }, async () => {
+test('Docker and Windows renew each other\'s certificates', { skip: needsDockerOpenssl, timeout: 60000 }, () => withDockerOpenssl(async () => {
   const dir = await tmp();
   try {
     const tdir = path.join(dir, 'tls');
@@ -369,6 +399,28 @@ test('Docker and Windows renew each other\'s certificates', { skip: !hasOpenssl,
     assert.equal(docker2.status().ca.fingerprint, win2.status().ca.fingerprint);
     res = verify(path.join(tdir2, 'ca.crt'), path.join(tdir2, 'server.crt'));
     assert.equal(res.status, 0, res.stdout + res.stderr);
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
+}));
+
+test('a LibreSSL or OpenSSL 1.1 openssl never stands in for Docker\'s', { skip: process.platform === 'win32' && 'shell scripts as commands', timeout: 60000 }, async () => {
+  const dir = await tmp();
+  try {
+    const fake = async (name, version) => {
+      const file = path.join(dir, name);
+      await fsp.writeFile(file, `#!/bin/sh\necho '${version}'\n`, { mode: 0o755 });
+      return file;
+    };
+    const libre = await fake('libressl', 'LibreSSL 3.3.6');
+    // what Homebrew puts first on a GitHub Mac runner's PATH
+    const old = await fake('openssl11', 'OpenSSL 1.1.1w  11 Sep 2023');
+    const real = await fake('openssl3', 'OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)');
+    assert.equal(findDockerOpenssl([libre]), null);
+    assert.equal(findDockerOpenssl([old]), null);
+    assert.equal(findDockerOpenssl([old, real]), real);
+    assert.equal(findDockerOpenssl([libre, path.join(dir, 'missing'), real]), real);
+    assert.equal(findDockerOpenssl([path.join(dir, 'missing')]), null);
   } finally {
     await fsp.rm(dir, { recursive: true, force: true });
   }

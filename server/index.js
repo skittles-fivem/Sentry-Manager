@@ -82,6 +82,7 @@ const { createNodeBenchmark } = require('./nodeBenchmark');
 const { run } = require('./proc');
 const { Telemetry } = require('./telemetry');
 const { createSpeedIndex } = require('./speedIndex');
+const { createPublicInfo } = require('./platform/darwinPublicInfo');
 
 // macOS: every root as the disk spells it (/tmp, /var and /etc are links
 // into /private there); the paths as given everywhere else
@@ -245,7 +246,7 @@ async function main() {
   fs.mkdirSync(DATA, { recursive: true });
   const buildInfo = readBuildInfo();
   const db = new ManagerDB(path.join(DATA, 'manager.db'));
-  const auth = new Auth({ db, log: logger.scope('auth'), isSecure, setupFile: path.join(DATA, 'setup-code.txt') });
+  const auth = new Auth({ db, log: logger.scope('auth'), isSecure, setupFile: path.join(DATA, 'setup-code.txt'), channel: buildInfo.channel || null });
   auth.bootstrap();
   const jobs = new Jobs({ db });
   // a scan or a move to the Recycle Bin that a restart stopped: interrupted
@@ -514,6 +515,9 @@ async function main() {
       dir: path.join(DATA, 'tls'), log: logger.scope('tls'), hostnames: parseHostnames(process.env.TLS_HOSTNAMES || ''),
       certFile: process.env.TLS_CERT_FILE || null, keyFile: process.env.TLS_KEY_FILE || null
     }));
+  // macOS app: engine.json, the public file it finds and pins this server by
+  // (only with PUBLIC_INFO_PATH; nothing elsewhere)
+  const publicInfo = createPublicInfo({ platformName: platform.name, port: PORT, buildInfo, tlsSource, log: logger.scope('tls') });
 
   // Nodes > Benchmark: sample clips lent to a node, timed from here
   const nodeBench = createNodeBenchmark({
@@ -745,6 +749,7 @@ async function main() {
     const list = parseHostnames(Array.isArray(body?.hostnames) ? body.hostnames.join(',') : String(body?.hostnames || ''));
     const out = await tlsSource.setHostnames(list);
     if (httpsServer) httpsServer.setSecureContext({ key: out.key, cert: out.cert });
+    publicInfo.write({ cert: out.cert });
     audit.info(`HTTPS certificate names set to [${list.join(', ')}]${out.caReplaced ? ' (new certificate authority)' : ''}: ${by(req, user)}`);
     return { ok: true, caReplaced: Boolean(out.caReplaced), tls: tlsSource.status() };
   });
@@ -1585,7 +1590,10 @@ async function main() {
   if (!tlsSource) {
     const server = http.createServer(handler);
     servers.push(server);
-    server.listen(PORT, HOST, () => log.warn(`Sentry Six Manager on http://${HOST}:${PORT} WITHOUT HTTPS (TLS_MODE=off): only use this behind a reverse proxy that does HTTPS.`));
+    server.listen(PORT, HOST, () => {
+      log.warn(`Sentry Six Manager on http://${HOST}:${PORT} WITHOUT HTTPS (TLS_MODE=off): only use this behind a reverse proxy that does HTTPS.`);
+      publicInfo.write();
+    });
   } else {
     const material = await tlsSource.load();
     // HTTP/2: the Viewer plays six cameras at once next to live updates and
@@ -1649,7 +1657,11 @@ async function main() {
     // more open connections than a household's devices ever need are refused
     front.maxConnections = 1024;
     servers.push(front, httpsServer, redirect);
-    front.listen(PORT, HOST, () => log.info(`Sentry Six Manager on https://${HOST}:${PORT} (${buildInfo.sha ? buildInfo.sha.slice(0, 7) : 'dev'})`));
+    front.listen(PORT, HOST, () => {
+      log.info(`Sentry Six Manager on https://${HOST}:${PORT} (${buildInfo.sha ? buildInfo.sha.slice(0, 7) : 'dev'})`);
+      // (macOS app: once it listens, so the app finds a server that answers)
+      publicInfo.write({ cert: material.cert });
+    });
   }
   vehicles.startAll();
   // macOS: a drive plugged in or ejected re-checks the folder vehicles on
@@ -1774,6 +1786,7 @@ async function main() {
       try {
         const m = await tlsSource.load();
         httpsServer?.setSecureContext({ key: m.key, cert: m.cert });
+        publicInfo.write({ cert: m.cert });
       } catch (err) {
         log.warn(`HTTPS certificate check failed: ${err.message}`);
       }
@@ -1797,6 +1810,7 @@ async function main() {
     await awake.want('node', false);
     winHelper?.close();
     db.close();
+    publicInfo.remove();
     log.info('Stopped cleanly');
     process.exit(0);
   };
@@ -1820,7 +1834,10 @@ async function main() {
       if (m?.type === 'rapl-reading') return stats.setRapl(m);
       if (m?.type === 'supervisor-log') return logger.write(m.level === 'warn' || m.level === 'error' ? m.level : 'info', 'supervisor', String(m.message || '').slice(0, 4000), { echo: false });
       if (m?.type !== 'tls-updated' || !tlsSource || !httpsServer) return;
-      tlsSource.load().then((x) => httpsServer.setSecureContext({ key: x.key, cert: x.cert }), (err) => log.warn(`Reloading the certificate failed: ${err.message}`));
+      tlsSource.load().then((x) => {
+        httpsServer.setSecureContext({ key: x.key, cert: x.cert });
+        publicInfo.write({ cert: x.cert });
+      }, (err) => log.warn(`Reloading the certificate failed: ${err.message}`));
     });
   }
 }

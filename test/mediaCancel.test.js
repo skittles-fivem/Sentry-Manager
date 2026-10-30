@@ -9,12 +9,14 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const fsp = require('fs/promises');
 const http2 = require('http2');
-const os = require('os');
 const path = require('path');
 const { sendMedia } = require('../server/studioApi');
+const { realTmpSync } = require('./fixtures/tmp');
 
 test('a video request cancelled before or while it is answered closes its file', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-media-cancel-'));
+  // (the real path: a Mac's temp folder is reached through the /var link,
+  // which the no-link open refuses, as it should)
+  const dir = realTmpSync('sm-media-cancel-');
   const file = path.join(dir, 'clip.mp4');
   fs.writeFileSync(file, Buffer.alloc(3 * 1024 * 1024, 7));
 

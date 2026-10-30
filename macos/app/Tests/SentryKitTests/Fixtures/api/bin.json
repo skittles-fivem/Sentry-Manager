@@ -1,0 +1,26 @@
+{
+  "items": [
+    {
+      "id": "mvv9e0v7-95ef2a7e",
+      "vehicleId": "model-y",
+      "label": "Saved 2025-06-03 09:59:00",
+      "category": "Saved",
+      "startAt": "2025-06-03 09:59:00",
+      "bytes": 423319,
+      "files": [
+        {
+          "rel": "TeslaCam/SavedClips/2025-06-03_10-00-00/2025-06-03_09-59-00-front.mp4",
+          "binRel": ".sentry-recycle-bin/mvv9e0v7-95ef2a7e/TeslaCam/SavedClips/2025-06-03_10-00-00/2025-06-03_09-59-00-front.mp4.binned",
+          "size": 423218
+        },
+        {
+          "rel": "TeslaCam/SavedClips/2025-06-03_10-00-00/event.json",
+          "binRel": ".sentry-recycle-bin/mvv9e0v7-95ef2a7e/TeslaCam/SavedClips/2025-06-03_10-00-00/event.json.binned",
+          "size": 101
+        }
+      ],
+      "trashedAt": 1793382084835,
+      "reason": "manual"
+    }
+  ]
+}

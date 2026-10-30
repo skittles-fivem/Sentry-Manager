@@ -5,6 +5,7 @@
 // 2 and 3).
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 // the service account install.sh creates (launchd runs node as it)
@@ -75,9 +76,30 @@ function fullDiskAccess({ openSync = fs.openSync, closeSync = fs.closeSync, file
   return true;
 }
 
-/** /api/security and /api/system on a Mac: the account, never an administrator, and Full Disk Access. */
-function darwinAccount(options = {}) {
-  return { account: SERVICE_ACCOUNT, elevated: false, fullDiskAccess: fullDiskAccess(options) };
+/**
+ * How it runs: 'agent' when the Mac app's launcher started it in the user's
+ * login (SERVICE_MODE=agent), else 'daemon' (the service, as launchd's job).
+ */
+function runMode(env = process.env) {
+  return env.SERVICE_MODE === 'agent' ? 'agent' : 'daemon';
 }
 
-module.exports = { canonicalRoot, emptyDir, fullDiskAccess, darwinAccount, SERVICE_ACCOUNT, TCC_DB };
+/**
+ * /api/security and /api/system on a Mac: the account, never an
+ * administrator, Full Disk Access and how it runs. In the user's login the
+ * account is that user's short name.
+ */
+function darwinAccount({ env = process.env, userInfo = os.userInfo, ...options } = {}) {
+  const mode = runMode(env);
+  let account = SERVICE_ACCOUNT;
+  if (mode === 'agent') {
+    try {
+      account = String(userInfo().username || '') || SERVICE_ACCOUNT;
+    } catch {
+      account = SERVICE_ACCOUNT;
+    }
+  }
+  return { account, elevated: false, fullDiskAccess: fullDiskAccess(options), runMode: mode };
+}
+
+module.exports = { canonicalRoot, emptyDir, fullDiskAccess, darwinAccount, runMode, SERVICE_ACCOUNT, TCC_DB };

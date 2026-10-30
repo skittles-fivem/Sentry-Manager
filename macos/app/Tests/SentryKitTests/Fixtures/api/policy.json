@@ -1,0 +1,20 @@
+{
+  "policy": {
+    "enabled": false,
+    "runAt": "03:30",
+    "keepDays": {
+      "Recent": null,
+      "Sentry": null,
+      "Saved": null,
+      "Other": null
+    },
+    "lastRunAt": null,
+    "lastResult": null
+  },
+  "preview": {
+    "recordings": 0,
+    "bytes": 0,
+    "byCategory": {},
+    "ids": []
+  }
+}

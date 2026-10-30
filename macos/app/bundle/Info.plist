@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The app's Info.plist. scripts/build-app.sh fills in the two versions
+  (@VERSION@, @BUILD@) from BUILD_INFO.json. Apple Silicon only, macOS 14 or
+  later (docs/plans/macos-app.md 1 and 10.1).
+-->
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>io.github.skittles-fivem.sentry-six-manager</string>
+	<key>CFBundleName</key>
+	<string>Sentry Six Manager</string>
+	<key>CFBundleDisplayName</key>
+	<string>Sentry Six Manager</string>
+	<key>CFBundleExecutable</key>
+	<string>Sentry Six Manager</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleShortVersionString</key>
+	<string>@VERSION@</string>
+	<key>CFBundleVersion</key>
+	<string>@BUILD@</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSArchitecturePriority</key>
+	<array>
+		<string>arm64</string>
+	</array>
+	<key>LSRequiresNativeExecution</key>
+	<true/>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.video</string>
+	<!-- a Dock icon only while a window is open: set at run time (section 4) -->
+	<key>LSUIElement</key>
+	<false/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Sentry Six Manager contributors</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Sentry Six Manager connects to your NAS and to other Sentry Six Manager servers on your network.</string>
+</dict>
+</plist>

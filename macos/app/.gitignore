@@ -1,0 +1,5 @@
+/.build/
+/.swiftpm/
+/dist/
+# written by scripts/build-app.sh
+/Sources/SentrySixManager/Platform/EngineManifest.generated.swift

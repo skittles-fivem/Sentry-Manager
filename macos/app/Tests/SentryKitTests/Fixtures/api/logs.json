@@ -1,0 +1,52 @@
+{
+  "lines": [
+    {
+      "at": 1793382084381,
+      "level": "warn",
+      "scope": "converter",
+      "message": "Replacing originals is unavailable for /Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam: the drive could not be checked"
+    },
+    {
+      "at": 1793382084371,
+      "level": "warn",
+      "scope": "converter",
+      "message": "Replacing originals is unavailable for /Users/Shared/SentrySixFixture/cars/Model Y: the drive could not be checked"
+    },
+    {
+      "at": 1793382084341,
+      "level": "warn",
+      "scope": "audit",
+      "message": "Password confirmation failed: admin from 127.0.0.1"
+    },
+    {
+      "at": 1793382084217,
+      "level": "warn",
+      "scope": "audit",
+      "message": "Sign-in failed for \"admin\" from 127.0.0.1"
+    },
+    {
+      "at": 1793382084094,
+      "level": "warn",
+      "scope": "audit",
+      "message": "Account setup with a wrong setup code from 127.0.0.1"
+    },
+    {
+      "at": 1793382084017,
+      "level": "warn",
+      "scope": "gpu",
+      "message": "VideoToolbox check: ENOENT: no such file or directory, open '/Users/Shared/SentrySixFixture/run/videotoolbox'"
+    },
+    {
+      "at": 1793382083988,
+      "level": "warn",
+      "scope": "tls",
+      "message": "Created a new HTTPS certificate authority. Install /Users/Shared/SentrySixFixture/data/tls/ca.crt on your devices (Settings > Security) to trust the page."
+    },
+    {
+      "at": 1793382083939,
+      "level": "warn",
+      "scope": "auth",
+      "message": "No account yet. To create it, open the web UI and enter the setup code ABCDE-FGHIJ-KLMNO"
+    }
+  ]
+}

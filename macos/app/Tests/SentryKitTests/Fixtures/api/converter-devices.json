@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "value": {
+    "devices": [
+      {
+        "id": "cpu",
+        "kind": "cpu",
+        "vendor": null,
+        "name": "CPU (software encoder)",
+        "node": null,
+        "index": null,
+        "pci": null,
+        "encoders": null
+      }
+    ],
+    "defaultDevice": null,
+    "defaultDevices": null
+  }
+}

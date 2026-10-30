@@ -16,6 +16,7 @@ const os = require('os');
 const path = require('path');
 const { forPlatform } = require('../server/platform');
 const { createRealGuard } = require('../server/safePath');
+const { createSafeFs } = require('../server/safeFs');
 const { hiddenPath, openConfined, readDir } = require('../server/studioApi');
 const { createDarwinOwnedFs, selfTestDrive, SMB_REPLACE, SMB_PUBLISH, NET_REPLACE } = require('../server/platform/darwinOwnedFs');
 const { scanTeslaFootage, resolveContainedPath } = require('../src/main/converter/scanner');
@@ -39,10 +40,15 @@ test('safePath on darwin: deny checks fold case, allow checks never do', async (
     const macGuard = createRealGuard(() => [dir], { deny, platform: mac() });
     const linuxGuard = createRealGuard(() => [dir], { deny, platform: linux() });
     assert.equal(await macGuard.resolve(path.join(dir, 'data', 'manager.db')), null, 'darwin: refused whatever its case');
-    assert.equal(await linuxGuard.resolve(path.join(dir, 'data', 'manager.db')), path.join(dir, 'data', 'manager.db'), 'linux: byte compare, as before');
-    // a root spelled in another case allows nothing on darwin (allow never folds)
+    // a disk that ignores case (a Mac's, usually) answers realpath("Data")
+    // with "data": then the Linux rules refuse it too, the disk folded it
+    const diskFolds = (await fsp.realpath(path.join(dir, 'Data')).catch(() => null)) === path.join(dir, 'data');
+    assert.equal(await linuxGuard.resolve(path.join(dir, 'data', 'manager.db')), diskFolds ? null : path.join(dir, 'data', 'manager.db'), 'linux: byte compare, as before');
+    // allow never folds: a root spelled in another case allows nothing, unless
+    // the disk itself folds case, where realpath gives the folder's own name
+    // and that root is the same folder
     const upper = createRealGuard(() => [path.join(dir, 'Footage')], { platform: mac() });
-    assert.equal(await upper.resolve(path.join(dir, 'footage', 'a.mp4')), null);
+    assert.equal(await upper.resolve(path.join(dir, 'footage', 'a.mp4')), diskFolds ? path.join(dir, 'footage', 'a.mp4') : null);
   } finally {
     await fsp.rm(dir, { recursive: true, force: true });
   }
@@ -69,8 +75,31 @@ test('safePath on darwin: an open file is matched to its path by device and inod
   }
 });
 
+// What a Mac's open(2) does with O_NOFOLLOW_ANY (XNU, vn_open_auth and
+// namei): EINVAL when O_NOFOLLOW is set too, else ELOOP at the first
+// symlink anywhere in the path, the last name included. Linux ignores the
+// unknown bit, so the darwin branches only meet those answers when they
+// are stood in for, as here.
+function macOpenRules() {
+  const realOpen = fsp.open;
+  fsp.open = async (p, flags, ...rest) => {
+    if (typeof flags === 'number' && (flags & O_NOFOLLOW_ANY)) {
+      const fail = (code, errno, what) => { throw Object.assign(new Error(`${code}: ${what}, open '${p}'`), { code, errno, syscall: 'open', path: p }); };
+      if (flags & fs.constants.O_NOFOLLOW) fail('EINVAL', -22, 'invalid argument');
+      let cur = path.parse(p).root;
+      for (const part of path.relative(cur, p).split(path.sep).filter(Boolean)) {
+        cur = path.join(cur, part);
+        if ((await fsp.lstat(cur).catch(() => null))?.isSymbolicLink()) fail('ELOOP', -40, 'too many symbolic links encountered');
+      }
+    }
+    return realOpen(p, flags, ...rest);
+  };
+  return () => { fsp.open = realOpen; };
+}
+
 test('studioApi on darwin: opened with the platform flags (O_NOFOLLOW_ANY), bin hidden whatever its case', async () => {
   const dir = await tmp();
+  const restoreMac = macOpenRules();
   const realOpen = fsp.open;
   const seen = [];
   fsp.open = (p, flags, ...rest) => { seen.push(flags); return realOpen(p, flags, ...rest); };
@@ -83,12 +112,14 @@ test('studioApi on darwin: opened with the platform flags (O_NOFOLLOW_ANY), bin 
     await opened.fh.close();
     assert.equal(seen.at(-1), m.openNoFollowFlags);
     assert.ok(seen.at(-1) & O_NOFOLLOW_ANY);
+    assert.equal(seen.at(-1) & fs.constants.O_NOFOLLOW, 0, 'never with O_NOFOLLOW: a Mac answers EINVAL to both');
     assert.equal(await openConfined(path.join(dir, 'link.mp4'), async () => true, m), null, 'a final symlink is refused');
     const linuxOpened = await openConfined(path.join(dir, 'a.mp4'), async () => true, linux());
     await linuxOpened.fh.close();
     assert.equal(seen.at(-1), fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW, 'linux: the flags as before');
   } finally {
     fsp.open = realOpen;
+    restoreMac();
     await fsp.rm(dir, { recursive: true, force: true });
   }
   assert.equal(hiddenPath('/v/cam/.SENTRY-RECYCLE-BIN/x', mac()), true);
@@ -102,6 +133,38 @@ test('studioApi on darwin: opened with the platform flags (O_NOFOLLOW_ANY), bin 
     assert.deepEqual((await readDir(dir2, linux())).map((e) => e.name).sort(), ['Temp-H265-a.mp4', 'a.mp4']);
   } finally {
     await fsp.rm(dir2, { recursive: true, force: true });
+  }
+});
+
+test('darwin safeFs and studioApi open as a Mac allows: never O_NOFOLLOW with O_NOFOLLOW_ANY', async () => {
+  const dir = await tmp();
+  const restore = macOpenRules();
+  try {
+    const root = path.join(dir, 'share');
+    await fsp.mkdir(path.join(root, 'TeslaCam', 'RecentClips'), { recursive: true });
+    await fsp.writeFile(path.join(root, 'TeslaCam', 'RecentClips', 'a.mp4'), 'clip');
+    const m = mac();
+    const sfs = createSafeFs({ platform: m, haveProc: false });
+    const fh = await sfs.openDirInside(root, path.join(root, 'TeslaCam'));
+    await fh.close();
+    await sfs.mkdirpInside(root, path.join(root, '.bin', 'x'));
+    await sfs.renameInside(root, path.join(root, 'TeslaCam', 'RecentClips', 'a.mp4'), path.join(root, '.bin', 'x', 'a.mp4'));
+    assert.ok(fs.existsSync(path.join(root, '.bin', 'x', 'a.mp4')));
+    const opened = await openConfined(path.join(root, '.bin', 'x', 'a.mp4'), async () => true, m);
+    assert.ok(opened, 'a clip opens');
+    await opened.fh.close();
+    // through a linked folder: refused, by the open itself
+    await fsp.symlink(path.join(root, '.bin'), path.join(root, 'via'));
+    assert.equal(await openConfined(path.join(root, 'via', 'x', 'a.mp4'), async () => true, m), null);
+    await assert.rejects(sfs.openDirInside(root, path.join(root, 'via', 'x')), { code: 'ELINKESCAPE' });
+    await fsp.unlink(path.join(root, 'via'));
+    await sfs.unlinkInside(root, path.join(root, '.bin', 'x', 'a.mp4'));
+    await sfs.rmdirInside(root, path.join(root, '.bin', 'x'));
+    await sfs.rmrfInside(root, path.join(root, '.bin'));
+    assert.equal(fs.existsSync(path.join(root, '.bin')), false);
+  } finally {
+    restore();
+    await fsp.rm(dir, { recursive: true, force: true });
   }
 });
 

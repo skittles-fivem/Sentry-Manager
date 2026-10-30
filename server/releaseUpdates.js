@@ -41,6 +41,9 @@ const VERSION_RE = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,39}$/;
 const HOW = 'To update, run update.ps1 in the Sentry Six Manager install folder (as administrator), or download the new release zip and run Install.cmd from it. Settings, footage and the Recycle Bin stay as they are.';
 
 const HOW_MACOS = 'To update, run sudo sentry-six-manager update in Terminal. Settings, footage and the Recycle Bin stay as they are.';
+// the Mac app (channel "macos-app"): the same macos-v* releases, which also carry its .dmg
+const HOW_MACOS_APP = 'To update, download the new Sentry Six Manager from the release page, drag it to Applications and open it.';
+const DMG_RE = /^SentrySixManager-[A-Za-z0-9._+-]+-macos-arm64(?:-unsigned)?\.dmg$/;
 const MACOS_TAG = 'macos-v';
 // releases come newest first, 100 to a page; Windows publishes its own in
 // between, so a few pages are read before saying there is no macOS one
@@ -49,7 +52,8 @@ const MACOS_PAGES = 5;
 // what each release channel reads and how its install is updated
 const CHANNELS = Object.freeze({
   windows: Object.freeze({ how: HOW, list: false }),
-  macos: Object.freeze({ how: HOW_MACOS, list: true })
+  macos: Object.freeze({ how: HOW_MACOS, list: true }),
+  'macos-app': Object.freeze({ how: HOW_MACOS_APP, list: true, dmg: true })
 });
 
 /** 'release' for the Windows and macOS builds (GitHub Releases), else 'image' (the registry). */
@@ -290,6 +294,8 @@ class ReleaseUpdates {
     const a = await this.request(first.href, ASSET_HOSTS, 'application/octet-stream');
     if (a.status !== 200) throw new Error(`GitHub answered ${a.status} for release.json`);
     const info = parseReleaseJson(a.text);
+    // (the Mac app: where its new .dmg is; other channels have no such key)
+    const extra = this.channel.dmg ? { downloadUrl: dmgUrl(rel, owner, name) } : {};
     // the same shape as imageUpdates' latest, so the page and the bar read it as is
     return {
       digest: null,
@@ -298,9 +304,28 @@ class ReleaseUpdates {
       version: info.version,
       release: typeof rel.tag_name === 'string' && VERSION_RE.test(rel.tag_name) ? rel.tag_name : null,
       criticalLevel: info.criticalLevel,
-      critical: info.critical
+      critical: info.critical,
+      ...extra
     };
   }
 }
 
-module.exports = { ReleaseUpdates, chooseUpdates, parseRepo, parseReleaseJson, HOW, HOW_MACOS };
+/**
+ * The release's .dmg download, only as this repository's own github.com
+ * link; null when it has none (an older release, a refused link).
+ */
+function dmgUrl(rel, owner, name) {
+  const prefix = `/${owner}/${name}/releases/download/`.toLowerCase();
+  // the signed one first, the unsigned one otherwise
+  const dmgs = (Array.isArray(rel.assets) ? rel.assets : [])
+    .filter((a) => a && typeof a.name === 'string' && DMG_RE.test(a.name) && typeof a.browser_download_url === 'string')
+    .sort((x, y) => Number(x.name.endsWith('-unsigned.dmg')) - Number(y.name.endsWith('-unsigned.dmg')));
+  for (const a of dmgs) {
+    let u;
+    try { u = new URL(a.browser_download_url); } catch { continue; }
+    if (u.protocol === 'https:' && u.hostname === 'github.com' && !u.username && !u.password && u.pathname.toLowerCase().startsWith(prefix)) return u.href;
+  }
+  return null;
+}
+
+module.exports = { ReleaseUpdates, chooseUpdates, parseRepo, parseReleaseJson, dmgUrl, HOW, HOW_MACOS, HOW_MACOS_APP };

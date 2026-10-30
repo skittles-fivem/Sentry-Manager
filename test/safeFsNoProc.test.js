@@ -15,6 +15,7 @@ const { forPlatform } = require('../server/platform');
 const { createSafeFs } = require('../server/safeFs');
 const { RecycleBin } = require('../server/recycleBin');
 const { ManagerDB } = require('../server/db');
+const { linuxOnly } = require('./fixtures/platformSkip');
 
 const tmp = async () => fsp.mkdtemp(path.join(fs.realpathSync(os.tmpdir()), 'sm-noproc-'));
 const quiet = { info() {}, warn() {}, error() {} };
@@ -36,9 +37,11 @@ async function layout() {
   return { dir, root, outside };
 }
 
-for (const [label, make] of [['linux, haveProc:false', () => createSafeFs({ platform: linux(), haveProc: false })],
-  ['darwin', () => createSafeFs({ platform: mac(), haveProc: false })]]) {
-  test(`safeFs ${label}: rmrfInside really deletes, at depth 0 and deeper`, async () => {
+// The Linux rules without /proc still read /proc/self/fd for the folder
+// walk (openDirInside, rmrfInside): a Linux code path, so Linux only.
+for (const [label, make, skip] of [['linux, haveProc:false', () => createSafeFs({ platform: linux(), haveProc: false }), linuxOnly('the Linux rules walk folders through /proc/self/fd')],
+  ['darwin', () => createSafeFs({ platform: mac(), haveProc: false }), false]]) {
+  test(`safeFs ${label}: rmrfInside really deletes, at depth 0 and deeper`, { skip }, async () => {
     const { dir, root } = await layout();
     try {
       const sfs = make();
@@ -60,7 +63,7 @@ for (const [label, make] of [['linux, haveProc:false', () => createSafeFs({ plat
     }
   });
 
-  test(`safeFs ${label}: openDirInside opens the folder itself, at depth 0 and deeper, and creates on request`, async () => {
+  test(`safeFs ${label}: openDirInside opens the folder itself, at depth 0 and deeper, and creates on request`, { skip }, async () => {
     const { dir, root } = await layout();
     try {
       const sfs = make();
@@ -83,7 +86,7 @@ for (const [label, make] of [['linux, haveProc:false', () => createSafeFs({ plat
     }
   });
 
-  test(`safeFs ${label}: a symlink in the share is never followed`, async () => {
+  test(`safeFs ${label}: a symlink in the share is never followed`, { skip }, async () => {
     const { dir, root, outside } = await layout();
     try {
       const sfs = make();
@@ -108,7 +111,7 @@ for (const [label, make] of [['linux, haveProc:false', () => createSafeFs({ plat
     }
   });
 
-  test(`safeFs ${label}: rename, mkdir -p, unlink and rmdir act`, async () => {
+  test(`safeFs ${label}: rename, mkdir -p, unlink and rmdir act`, { skip }, async () => {
     const { dir, root } = await layout();
     try {
       const sfs = make();

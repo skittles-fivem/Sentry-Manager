@@ -26,4 +26,24 @@ function realTmpSync(prefix = 'sm-') {
   return fs.mkdtempSync(path.join(realTmpRoot(), prefix));
 }
 
-module.exports = { realTmp, realTmpSync, realTmpRoot };
+// A Mac's temp folder is under /private (/private/var/folders/...), and the
+// macOS rules refuse footage there: /private is a system folder, denied
+// whole (docs/plans/macos.md, section 2). A test whose server or CLI takes
+// footage from the temp folder makes it in /Users/Shared there instead, a
+// footage root on a Mac. Elsewhere it is realTmp, exactly.
+const MAC_FOOTAGE_HOME = '/Users/Shared';
+
+function footageTmpRoot(platform = process.platform) {
+  return platform === 'darwin' ? MAC_FOOTAGE_HOME : realTmpRoot();
+}
+
+/** A new folder that may hold footage on this system (see above). */
+function footageTmp(prefix = 'sm-') {
+  return fsp.mkdtemp(path.join(footageTmpRoot(), prefix));
+}
+
+function footageTmpSync(prefix = 'sm-') {
+  return fs.mkdtempSync(path.join(footageTmpRoot(), prefix));
+}
+
+module.exports = { realTmp, realTmpSync, realTmpRoot, footageTmp, footageTmpSync, footageTmpRoot };

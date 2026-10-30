@@ -1,0 +1,8 @@
+{
+  "status": 200,
+  "body": {
+    "ok": false,
+    "stage": "details",
+    "error": "The SMB share must look like //192.168.1.50/TeslaCam (optionally //server/share/folder)."
+  }
+}

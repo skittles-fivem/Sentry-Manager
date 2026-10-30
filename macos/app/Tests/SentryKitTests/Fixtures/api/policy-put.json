@@ -1,0 +1,32 @@
+{
+  "policy": {
+    "enabled": false,
+    "runAt": "03:30",
+    "keepDays": {
+      "Recent": 30,
+      "Sentry": 60,
+      "Saved": null,
+      "Other": null
+    },
+    "lastRunAt": null,
+    "lastResult": null
+  },
+  "preview": {
+    "recordings": 2,
+    "bytes": 2164321,
+    "byCategory": {
+      "Sentry": {
+        "recordings": 1,
+        "bytes": 435017
+      },
+      "Recent": {
+        "recordings": 1,
+        "bytes": 1729304
+      }
+    },
+    "ids": [
+      "b5515799cbe2ba94",
+      "da3fd57c1788cc47"
+    ]
+  }
+}

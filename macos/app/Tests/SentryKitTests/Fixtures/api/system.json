@@ -1,0 +1,72 @@
+{
+  "version": {},
+  "deployment": "macos",
+  "converter": {
+    "ready": true,
+    "capabilities": {
+      "separatePublication": "native-atomic",
+      "ownershipCleanup": "atomic-expected-ownership",
+      "replacement": "available",
+      "privateTempCleanup": "identity",
+      "splitSave": true,
+      "destinationContainment": "pathname-revalidated-non-atomic"
+    }
+  },
+  "nativeHelper": true,
+  "gpu": {
+    "gpus": [
+      {
+        "node": "VideoToolbox",
+        "vendor": "apple",
+        "vendorName": "Apple",
+        "name": "Apple M2 Pro GPU",
+        "cores": 19,
+        "driver": "VideoToolbox",
+        "passedThrough": true,
+        "encodes": {
+          "h264": false,
+          "hevc": false,
+          "av1": false
+        },
+        "lowPowerOnly": false
+      }
+    ],
+    "nvidia": [],
+    "hints": [
+      "This Mac's hardware HEVC encoder could not be reached, so conversions use the CPU encoder.",
+      "AV1 uses the CPU on a Mac: there is no AV1 hardware encoder."
+    ]
+  },
+  "replacementRoots": [
+    {
+      "root": "/Users/Shared/SentrySixFixture/cars/Model Y",
+      "available": false,
+      "reason": "the drive could not be checked"
+    },
+    {
+      "root": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam",
+      "available": false,
+      "reason": "the drive could not be checked"
+    }
+  ],
+  "dataFree": 27705933824,
+  "timezone": "UTC",
+  "security": {
+    "https": true,
+    "tlsMode": "auto",
+    "supervised": false,
+    "runningAsRoot": true,
+    "uid": 0,
+    "account": "_sentrysix",
+    "elevated": false,
+    "fullDiskAccess": null,
+    "runMode": "daemon"
+  },
+  "smbVersions": {
+    "3": "SMB 3.0 or newer (best the server offers)",
+    "3.1.1": "SMB 3.1.1 (recommended)",
+    "3.02": "SMB 3.02",
+    "3.0": "SMB 3.0"
+  },
+  "smbDefaultVersion": "3.1.1"
+}

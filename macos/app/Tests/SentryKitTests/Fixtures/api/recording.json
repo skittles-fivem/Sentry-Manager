@@ -1,0 +1,113 @@
+{
+  "id": "da3fd57c1788cc47",
+  "key": "session:TeslaCam/RecentClips:2025-06-01_08-00-00",
+  "vehicleId": "model-y",
+  "type": "RecentClips",
+  "category": "Recent",
+  "folder": "TeslaCam/RecentClips",
+  "eventId": null,
+  "startKey": "2025-06-01_08-00-00",
+  "start": "2025-06-01 08:00:00",
+  "end": "2025-06-01 08:01:00",
+  "eventAt": null,
+  "day": "2025-06-01",
+  "fileCount": 12,
+  "clipCount": 12,
+  "minutes": 2,
+  "bytes": 1729304,
+  "cameras": [
+    "back",
+    "front",
+    "left_pillar",
+    "left_repeater",
+    "right_pillar",
+    "right_repeater"
+  ],
+  "thumbRel": null,
+  "frontRel": "TeslaCam/RecentClips/2025-06-01_08-00-00-front.mp4",
+  "protected": false,
+  "mtimeMs": 1793382083644.1587,
+  "encoded": {
+    "clips": 12,
+    "encoded": 0,
+    "unknown": 0,
+    "codecs": []
+  },
+  "root": "/Users/Shared/SentrySixFixture/cars/Model Y",
+  "folderPath": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/RecentClips",
+  "files": [
+    {
+      "rel": "TeslaCam/RecentClips/2025-06-01_08-00-00-back.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/RecentClips/2025-06-01_08-00-00-back.mp4",
+      "size": 427126,
+      "codec": "h264"
+    },
+    {
+      "rel": "TeslaCam/RecentClips/2025-06-01_08-00-00-front.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/RecentClips/2025-06-01_08-00-00-front.mp4",
+      "size": 422580,
+      "codec": "h264"
+    },
+    {
+      "rel": "TeslaCam/RecentClips/2025-06-01_08-00-00-left_pillar.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/RecentClips/2025-06-01_08-00-00-left_pillar.mp4",
+      "size": 4096,
+      "codec": null
+    },
+    {
+      "rel": "TeslaCam/RecentClips/2025-06-01_08-00-00-left_repeater.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/RecentClips/2025-06-01_08-00-00-left_repeater.mp4",
+      "size": 4096,
+      "codec": null
+    },
+    {
+      "rel": "TeslaCam/RecentClips/2025-06-01_08-00-00-right_pillar.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/RecentClips/2025-06-01_08-00-00-right_pillar.mp4",
+      "size": 4096,
+      "codec": null
+    },
+    {
+      "rel": "TeslaCam/RecentClips/2025-06-01_08-00-00-right_repeater.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/RecentClips/2025-06-01_08-00-00-right_repeater.mp4",
+      "size": 4096,
+      "codec": null
+    },
+    {
+      "rel": "TeslaCam/RecentClips/2025-06-01_08-01-00-back.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/RecentClips/2025-06-01_08-01-00-back.mp4",
+      "size": 424250,
+      "codec": "h264"
+    },
+    {
+      "rel": "TeslaCam/RecentClips/2025-06-01_08-01-00-front.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/RecentClips/2025-06-01_08-01-00-front.mp4",
+      "size": 422580,
+      "codec": "h264"
+    },
+    {
+      "rel": "TeslaCam/RecentClips/2025-06-01_08-01-00-left_pillar.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/RecentClips/2025-06-01_08-01-00-left_pillar.mp4",
+      "size": 4096,
+      "codec": null
+    },
+    {
+      "rel": "TeslaCam/RecentClips/2025-06-01_08-01-00-left_repeater.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/RecentClips/2025-06-01_08-01-00-left_repeater.mp4",
+      "size": 4096,
+      "codec": null
+    },
+    {
+      "rel": "TeslaCam/RecentClips/2025-06-01_08-01-00-right_pillar.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/RecentClips/2025-06-01_08-01-00-right_pillar.mp4",
+      "size": 4096,
+      "codec": null
+    },
+    {
+      "rel": "TeslaCam/RecentClips/2025-06-01_08-01-00-right_repeater.mp4",
+      "path": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam/RecentClips/2025-06-01_08-01-00-right_repeater.mp4",
+      "size": 4096,
+      "codec": null
+    }
+  ],
+  "event": null
+}

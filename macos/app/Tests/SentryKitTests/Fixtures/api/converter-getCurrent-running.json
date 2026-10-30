@@ -1,0 +1,61 @@
+{
+  "ok": true,
+  "value": {
+    "schemaVersion": 1,
+    "id": "4e4624f2-d8e5-4042-b18c-98ef7dc441d0",
+    "state": "discovering",
+    "revision": 0,
+    "config": {
+      "sourceRoot": "/Users/Shared/SentrySixFixture/cars/Model Y/TeslaCam",
+      "destinationRoot": "/Users/Shared/SentrySixFixture/data/converted",
+      "codec": "h265",
+      "profileId": "balanced",
+      "networkMode": "direct",
+      "outputMode": "separate",
+      "replacementConfirmed": false,
+      "includedGroups": [
+        "RecentClips",
+        "SavedClips",
+        "SentryClips"
+      ],
+      "groupOrder": [
+        "SavedClips",
+        "SentryClips",
+        "RecentClips"
+      ],
+      "verifyMode": "quick"
+    },
+    "counters": {
+      "files": 0,
+      "sourceVideoBytes": 0,
+      "outputVideoBytes": 0,
+      "savedBytes": 0,
+      "copiedAssetBytes": 0,
+      "groups": {
+        "RecentClips": {
+          "files": 0,
+          "sourceBytes": 0,
+          "outputBytes": 0,
+          "savedBytes": 0
+        },
+        "SavedClips": {
+          "files": 0,
+          "sourceBytes": 0,
+          "outputBytes": 0,
+          "savedBytes": 0
+        },
+        "SentryClips": {
+          "files": 0,
+          "sourceBytes": 0,
+          "outputBytes": 0,
+          "savedBytes": 0
+        }
+      }
+    },
+    "summary": null,
+    "discoveryComplete": false,
+    "createdAt": 1793382086781,
+    "updatedAt": 1793382086781,
+    "items": []
+  }
+}

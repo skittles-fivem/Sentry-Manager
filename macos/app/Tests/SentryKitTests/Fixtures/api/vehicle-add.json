@@ -1,0 +1,53 @@
+{
+  "id": "model-y",
+  "name": "Model Y",
+  "timezone": "America/Chicago",
+  "source": {
+    "type": "path",
+    "path": "/Users/Shared/SentrySixFixture/cars/Model Y"
+  },
+  "root": "/Users/Shared/SentrySixFixture/cars/Model Y",
+  "studioRoot": "/Users/Shared/SentrySixFixture/cars/Model Y",
+  "share": {
+    "mode": "local",
+    "share": null,
+    "path": "/Users/Shared/SentrySixFixture/cars/Model Y",
+    "healthy": false,
+    "mounted": false,
+    "fsType": null,
+    "source": null,
+    "readable": false,
+    "writable": null,
+    "renameOverwrite": null,
+    "totalBytes": null,
+    "freeBytes": null,
+    "lastError": null,
+    "hint": null,
+    "warning": null,
+    "checkedAt": null,
+    "writeCheckedAt": null,
+    "mountedAt": null,
+    "network": false
+  },
+  "security": null,
+  "inventory": null,
+  "scanning": false,
+  "binBytes": 0,
+  "binItems": 0,
+  "policy": {
+    "enabled": false,
+    "runAt": "03:30",
+    "keepDays": {
+      "Recent": null,
+      "Sentry": null,
+      "Saved": null,
+      "Other": null
+    },
+    "lastRunAt": null,
+    "lastResult": null
+  },
+  "saved": {
+    "bytes": 0,
+    "clips": 0
+  }
+}

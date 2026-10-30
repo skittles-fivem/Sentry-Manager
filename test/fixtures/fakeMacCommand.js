@@ -102,10 +102,17 @@ const commands = {
 
   mount() {},
 
-  // numeric and symbolic modes are real; ACL changes (+a) are only logged
+  // numeric and symbolic modes are real; ACL changes (+a, -a, -N) are only logged
   chmod(args) {
-    if (args.some((a) => a === '+a' || a.startsWith('+a'))) return;
+    if (args.some((a) => a === '+a' || a.startsWith('+a') || a === '-a' || a === '-N')) return;
     process.exit(real('chmod', args));
+  },
+
+  // ditto <from> <to>: copies a folder's contents, keeping modes
+  ditto(args) {
+    const [from, to] = args.filter((a) => !a.startsWith('-'));
+    fs.mkdirSync(to, { recursive: true });
+    fs.cpSync(from, to, { recursive: true, preserveTimestamps: true, verbatimSymlinks: true });
   },
 
   codesign(args) {

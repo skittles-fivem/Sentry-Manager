@@ -1,0 +1,7 @@
+{
+  "comment": "The Swift toolchain macos.yml's sentrykit-linux job builds SentryKit with, checked against this SHA-256 before it is unpacked.",
+  "version": "6.3",
+  "url": "https://download.swift.org/swift-6.3-release/ubuntu2404/swift-6.3-RELEASE/swift-6.3-RELEASE-ubuntu24.04.tar.gz",
+  "sha256": "85ba7dd16960b60ae2a6b81731bae236fb7ce5339a076428fc984d960668fdbd",
+  "bytes": 1069493573
+}
