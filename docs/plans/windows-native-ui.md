@@ -179,7 +179,19 @@ is done when every item is ticked in both. Run on the owner's PC runner.
     writes Core.Tests/Fixtures/expected-bin.json; Core.Tests BinTests
     checks the C#). Render list: bin, -empty, -long, -error (desktop and
     phone; tools/parity/binVariants.js on both sides). Redrawn on "bin".
-  - Notifications ("Alerts"): not started
+  - Notifications ("Alerts"): native (`Ui/Builtin/NotificationsPage.cs`;
+    its request, words and Dismiss in `Core/Notifications.cs`);
+    type-checked with mcs, not yet built or rendered on Windows. The page
+    (no pills; "No notifications." or the list: the level's dot, the bold
+    title, the message, "when · resolved when", Dismiss on the open ones,
+    resolved ones at opacity .6) and Dismiss (POST, errors ignored, the
+    shell's open notifications and badge read again, the redraw) are
+    compared with web/app.js's own pages.notifications on 9 pages and 5
+    clicks (test/windowsNativeNotifications.test.js writes
+    Core.Tests/Fixtures/expected-notifications.json; Core.Tests
+    NotificationsTests checks the C#). Render list: notifications, -empty,
+    -error (desktop and phone; tools/parity/notificationsVariants.js on
+    both sides). Redrawn on "notifications".
   - Encoding per vehicle ("Per car", #/encoder/vehicles): not started
   - Settings: not started
 - Phases 2-7 (Viewer, Encoder, Horizon, Flux, Aurora, Daylight): not started.
@@ -216,6 +228,9 @@ Recycle Bin: the same holds for the item id in /api/bin/<id>/restore and
 /delete. The web adds the items' sizes with JavaScript's +, so a size sent
 as a string would be glued on as text; the C# adds numbers (the server
 sends numbers).
+Notifications: an empty message leaves the web's `<span></span><br>`,
+drawn natively as an empty first line; whether a browser gives that line
+its height is to be checked in the parity pictures.
 
 ## Costs the owner should know
 

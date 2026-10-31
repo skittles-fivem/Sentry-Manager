@@ -503,3 +503,34 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   empty answer, is now `bin-empty`); bin-error is now captured on the web
   too. Injected into `Shell/RenderFixture.json` with the fixture's own
   `vehicle` and `now`; the rest of the file is unchanged.
+
+### Phase 1: Notifications (2026-10-31)
+
+- `Core/Notifications.cs`: `Load` (GET /api/notifications, all of them),
+  `View` (NotesView: per item the dot as the web picks it: resolved none,
+  critical bad, info ok, anything else warn; esc(title), message || '',
+  "when(createdAt)[ · resolved when(resolvedAt)]"; a missing or null list
+  throws as notifications.length does), `Outline()`, `DismissPath` (the id
+  as the web writes it, not encoded) and `Dismiss` (POST …/dismiss {},
+  errors ignored, then `NotesUi.ReloadNotes`, then the redraw; when the
+  reload throws there is no redraw, as the web's).
+- `ShellModel.ReloadNotes` (new, set by the app controller to its
+  LoadNotes; never throws): the web's `await loadNotes()` after Dismiss, so
+  the red badge follows at once.
+- `test/windowsNativeNotifications.test.js` runs the web's own
+  pages.notifications and its Dismiss handler on 9 pages and 5 clicks and
+  writes `Core.Tests/Fixtures/expected-notifications.json`; it also checks
+  every wording constant. `Core.Tests/NotificationsTests.cs` compares the
+  C#. Under mono with a stub runner the three NotificationsTests pass; not
+  run under dotnet yet.
+- `Ui/Builtin/NotificationsPage.cs` (registered in BuiltinInterface: its
+  browser card is gone). `.alert-item span` (text-2 13px) outranks
+  `.muted.small`, so the times are drawn in text-2 13px as the browser
+  does, not muted 12.5px.
+- `tools/parity/notificationsVariants.js` (required by capture.js's
+  `VARIANTS`): notifications (with the open list for the badge);
+  `notifications-empty` is the fixture server's own answer (capture.js's
+  old `notifications` page, which was that empty answer);
+  notifications-error is captured on both sides. Injected into
+  `Shell/RenderFixture.json` with the fixture's own `now`; the rest of the
+  file is unchanged.

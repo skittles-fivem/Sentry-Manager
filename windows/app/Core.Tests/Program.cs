@@ -33,6 +33,7 @@ namespace SentrySix.Core.Tests
             PoliciesTests.Register(Test);
             JobsTests.Register(Test);
             BinTests.Register(Test);
+            NotificationsTests.Register(Test);
             ServerTests.Register(Test);
             int failed = 0, passed = 0;
             var sw = Stopwatch.StartNew();

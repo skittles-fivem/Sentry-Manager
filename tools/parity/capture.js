@@ -41,6 +41,7 @@ const { spawn, spawnSync } = require('child_process');
 const { nodesVariants } = require('./nodesVariants');
 const { jobsVariants, JOBS_VARIANTS } = require('./jobsVariants');
 const { binVariants, BIN_VARIANTS } = require('./binVariants');
+const { notificationsVariants, NOTIFICATIONS_VARIANTS } = require('./notificationsVariants');
 const REPO = path.join(__dirname, '..', '..');
 const SERVER = path.join(REPO, 'server', 'index.js');
 const USER = 'admin';
@@ -91,7 +92,10 @@ const PAGES = {
   bin: { signedIn: true, path: '/#/bin', only: 'builtin', variant: true },
   'bin-long': { signedIn: true, path: '/#/bin', only: 'builtin', variant: true },
   'bin-error': { signedIn: true, path: '/#/bin', only: 'builtin', variant: true },
-  notifications: { signedIn: true, path: '/#/notifications', only: 'builtin' },
+  // (notifications-empty is the fixture server's own answer; the others are notificationsVariants.js)
+  'notifications-empty': { signedIn: true, path: '/#/notifications', only: 'builtin' },
+  notifications: { signedIn: true, path: '/#/notifications', only: 'builtin', variant: true },
+  'notifications-error': { signedIn: true, path: '/#/notifications', only: 'builtin', variant: true },
   settings: { signedIn: true, path: '/#/settings', only: 'builtin' },
   'settings-vehicle': { signedIn: true, path: (v) => `/#/settings/vehicle/${encodeURIComponent(v)}`, only: 'builtin' },
   'settings-vehicle-new': { signedIn: true, path: '/#/settings/vehicle-new', only: 'builtin' },
@@ -189,7 +193,13 @@ const VARIANTS = {
   // (bin-empty: the fixture server's own answer; named here so the native render list finds the page)
   'bin-empty': { route: 'bin' },
   ...Object.fromEntries(BIN_VARIANTS.map((k) => [k, (api, vehicle) => binVariants(vehicle, Date.now())[k]])),
-  'bin-error': { route: 'bin', api: { 'GET /api/bin?vehicle={vehicle}': { $error: 'The Recycle Bin could not be read.', $status: 500 } } }
+  'bin-error': { route: 'bin', api: { 'GET /api/bin?vehicle={vehicle}': { $error: 'The Recycle Bin could not be read.', $status: 500 } } },
+  // the Notifications page: two open (critical, warning), one resolved, a long one; the list not
+  // readable (the whole page is the message)
+  // (notifications-empty: the fixture server's own answer; named here so the native render list finds the page)
+  'notifications-empty': { route: 'notifications' },
+  ...Object.fromEntries(NOTIFICATIONS_VARIANTS.map((k) => [k, () => notificationsVariants(Date.now())[k]])),
+  'notifications-error': { route: 'notifications', api: { 'GET /api/notifications': { $error: 'The notifications could not be read.', $status: 500 } } }
 };
 /** The Policies page with every part shown (the web asks /api/vehicles/<id>/policy, the id not encoded). */
 function policiesVariant(vehicle, now) {

@@ -1,0 +1,623 @@
+{
+ "about": "Written by test/windowsNativeNotifications.test.js from web/app.js pages.notifications and its Dismiss button; checked by windows/app/Core.Tests (NotificationsTests.cs, SentrySix.Core.Notifications).",
+ "now": 1793459402000,
+ "pages": [
+  {
+   "name": "notifications",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": "n1",
+       "level": "critical",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793452202000,
+       "resolvedAt": null
+      },
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "resolvedAt": null
+      },
+      {
+       "id": "n3",
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793171402000,
+       "resolvedAt": 1793175002000
+      },
+      {
+       "id": "n4",
+       "level": "warning",
+       "title": "A notification with a title that is far too long to fit on one line of the list at all",
+       "message": "A message that goes on and on: A message that goes on and on: A message that goes on and on: A message that goes on and on: A message that goes on and on: A message that goes on and on: A message that goes on and on: A message that goes on and on:",
+       "createdAt": 1792019402000,
+       "resolvedAt": null
+      }
+     ]
+    }
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/notifications"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Notifications]",
+    "[card]",
+    "[ul]",
+    "[li]",
+    "[dot bad]",
+    "[b]",
+    "The share is not reachable",
+    "Model 3: //nas/teslacam could not be mounted (permission denied).",
+    "[muted small]",
+    "10/31/2026, 1:10:02 PM",
+    "[btn sm]",
+    "Dismiss",
+    "[li]",
+    "[dot warn]",
+    "[b]",
+    "Disk almost full",
+    "The archive has 4.1 GiB left.",
+    "[muted small]",
+    "10/30/2026, 9:10:02 AM",
+    "[btn sm]",
+    "Dismiss",
+    "[li resolved]",
+    "[dot]",
+    "[b]",
+    "Update installed",
+    "Sentry Six Manager is up to date.",
+    "[muted small]",
+    "10/28/2026, 7:10:02 AM · resolved 10/28/2026, 8:10:02 AM",
+    "[li]",
+    "[dot warn]",
+    "[b]",
+    "A notification with a title that is far too long to fit on one line of the list at all",
+    "A message that goes on and on: A message that goes on and on: A message that goes on and on: A message that goes on and on: A message that goes on and on: A message that goes on and on: A message that goes on and on: A message that goes on and on:",
+    "[muted small]",
+    "10/14/2026, 11:10:02 PM",
+    "[btn sm]",
+    "Dismiss"
+   ]
+  },
+  {
+   "name": "notifications-24h",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": "n1",
+       "level": "critical",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793452202000,
+       "resolvedAt": null
+      },
+      {
+       "id": "n3",
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793171402000,
+       "resolvedAt": 1793175002000
+      }
+     ]
+    }
+   },
+   "h24": true,
+   "asked": [
+    "GET /api/notifications"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Notifications]",
+    "[card]",
+    "[ul]",
+    "[li]",
+    "[dot bad]",
+    "[b]",
+    "The share is not reachable",
+    "Model 3: //nas/teslacam could not be mounted (permission denied).",
+    "[muted small]",
+    "10/31/2026, 13:10:02",
+    "[btn sm]",
+    "Dismiss",
+    "[li resolved]",
+    "[dot]",
+    "[b]",
+    "Update installed",
+    "Sentry Six Manager is up to date.",
+    "[muted small]",
+    "10/28/2026, 07:10:02 · resolved 10/28/2026, 08:10:02"
+   ]
+  },
+  {
+   "name": "notifications-resolved",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": "n3",
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793171402000,
+       "resolvedAt": 1793175002000
+      },
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "resolvedAt": 1793459402000
+      }
+     ]
+    }
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/notifications"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Notifications]",
+    "[card]",
+    "[ul]",
+    "[li resolved]",
+    "[dot]",
+    "[b]",
+    "Update installed",
+    "Sentry Six Manager is up to date.",
+    "[muted small]",
+    "10/28/2026, 7:10:02 AM · resolved 10/28/2026, 8:10:02 AM",
+    "[li resolved]",
+    "[dot]",
+    "[b]",
+    "Disk almost full",
+    "The archive has 4.1 GiB left.",
+    "[muted small]",
+    "10/30/2026, 9:10:02 AM · resolved 10/31/2026, 3:10:02 PM"
+   ]
+  },
+  {
+   "name": "notifications-empty",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": []
+    }
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/notifications"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Notifications]",
+    "[card]",
+    "[p]",
+    "No notifications."
+   ]
+  },
+  {
+   "name": "notifications-odd",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": 7,
+       "level": "debug",
+       "title": null,
+       "message": "",
+       "createdAt": 0
+      },
+      {
+       "level": "info",
+       "title": "A <b>tag</b> & \"quotes\"",
+       "message": null,
+       "createdAt": 1793459402000,
+       "resolvedAt": 0
+      },
+      {
+       "id": "r",
+       "level": "critical",
+       "title": 42,
+       "createdAt": 1793455802000,
+       "resolvedAt": 1793459402000
+      }
+     ]
+    }
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/notifications"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Notifications]",
+    "[card]",
+    "[ul]",
+    "[li]",
+    "[dot warn]",
+    "[b]",
+    "[muted small]",
+    "—",
+    "[btn sm]",
+    "Dismiss",
+    "[li]",
+    "[dot ok]",
+    "[b]",
+    "A <b>tag</b> & \"quotes\"",
+    "[muted small]",
+    "10/31/2026, 3:10:02 PM",
+    "[btn sm]",
+    "Dismiss",
+    "[li resolved]",
+    "[dot]",
+    "[b]",
+    "42",
+    "[muted small]",
+    "10/31/2026, 2:10:02 PM · resolved 10/31/2026, 3:10:02 PM"
+   ]
+  },
+  {
+   "name": "notifications-object",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": {}
+    }
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/notifications"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Notifications]",
+    "[card]",
+    "[p]",
+    "No notifications."
+   ]
+  },
+  {
+   "name": "notifications-missing",
+   "answers": {
+    "GET /api/notifications": {}
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/notifications"
+   ],
+   "error": "Cannot read properties of undefined (reading 'length')",
+   "outline": []
+  },
+  {
+   "name": "notifications-null",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": null
+    }
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/notifications"
+   ],
+   "error": "Cannot read properties of null (reading 'length')",
+   "outline": []
+  },
+  {
+   "name": "notifications-error",
+   "answers": {
+    "GET /api/notifications": {
+     "$error": "The notifications could not be read."
+    }
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/notifications"
+   ],
+   "error": "The notifications could not be read.",
+   "outline": []
+  }
+ ],
+ "actions": [
+  {
+   "name": "dismiss",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": "n1",
+       "level": "critical",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793452202000,
+       "resolvedAt": null
+      },
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "resolvedAt": null
+      },
+      {
+       "id": "n3",
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793171402000,
+       "resolvedAt": 1793175002000
+      },
+      {
+       "id": 7,
+       "level": "debug",
+       "title": null,
+       "message": "",
+       "createdAt": 0
+      }
+     ]
+    },
+    "GET /api/notifications?open=1": {
+     "notifications": [
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "resolvedAt": null
+      }
+     ]
+    }
+   },
+   "index": 0,
+   "asked": [
+    "GET /api/notifications",
+    "POST /api/notifications/n1/dismiss {}",
+    "GET /api/notifications?open=1"
+   ],
+   "failed": false,
+   "renders": 1
+  },
+  {
+   "name": "dismiss-second",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": "n1",
+       "level": "critical",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793452202000,
+       "resolvedAt": null
+      },
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "resolvedAt": null
+      },
+      {
+       "id": "n3",
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793171402000,
+       "resolvedAt": 1793175002000
+      },
+      {
+       "id": 7,
+       "level": "debug",
+       "title": null,
+       "message": "",
+       "createdAt": 0
+      }
+     ]
+    },
+    "GET /api/notifications?open=1": {
+     "notifications": [
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "resolvedAt": null
+      }
+     ]
+    }
+   },
+   "index": 1,
+   "asked": [
+    "GET /api/notifications",
+    "POST /api/notifications/n2/dismiss {}",
+    "GET /api/notifications?open=1"
+   ],
+   "failed": false,
+   "renders": 1
+  },
+  {
+   "name": "dismiss-numeric-id",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": "n1",
+       "level": "critical",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793452202000,
+       "resolvedAt": null
+      },
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "resolvedAt": null
+      },
+      {
+       "id": "n3",
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793171402000,
+       "resolvedAt": 1793175002000
+      },
+      {
+       "id": 7,
+       "level": "debug",
+       "title": null,
+       "message": "",
+       "createdAt": 0
+      }
+     ]
+    },
+    "GET /api/notifications?open=1": {
+     "notifications": [
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "resolvedAt": null
+      }
+     ]
+    }
+   },
+   "index": 2,
+   "asked": [
+    "GET /api/notifications",
+    "POST /api/notifications/7/dismiss {}",
+    "GET /api/notifications?open=1"
+   ],
+   "failed": false,
+   "renders": 1
+  },
+  {
+   "name": "dismiss-failed",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": "n1",
+       "level": "critical",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793452202000,
+       "resolvedAt": null
+      },
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "resolvedAt": null
+      },
+      {
+       "id": "n3",
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793171402000,
+       "resolvedAt": 1793175002000
+      },
+      {
+       "id": 7,
+       "level": "debug",
+       "title": null,
+       "message": "",
+       "createdAt": 0
+      }
+     ]
+    },
+    "GET /api/notifications?open=1": {
+     "notifications": [
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "resolvedAt": null
+      }
+     ]
+    },
+    "POST /api/notifications/n1/dismiss": {
+     "$error": "Not found."
+    }
+   },
+   "index": 0,
+   "asked": [
+    "GET /api/notifications",
+    "POST /api/notifications/n1/dismiss {}",
+    "GET /api/notifications?open=1"
+   ],
+   "failed": false,
+   "renders": 1
+  },
+  {
+   "name": "dismiss-reload-fails",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": "n1",
+       "level": "critical",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793452202000,
+       "resolvedAt": null
+      },
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "resolvedAt": null
+      },
+      {
+       "id": "n3",
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793171402000,
+       "resolvedAt": 1793175002000
+      },
+      {
+       "id": 7,
+       "level": "debug",
+       "title": null,
+       "message": "",
+       "createdAt": 0
+      }
+     ]
+    }
+   },
+   "index": 0,
+   "asked": [
+    "GET /api/notifications",
+    "POST /api/notifications/n1/dismiss {}",
+    "GET /api/notifications?open=1"
+   ],
+   "failed": true,
+   "renders": 0
+  }
+ ]
+}

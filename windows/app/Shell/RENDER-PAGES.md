@@ -141,6 +141,13 @@ taken; Empty Recycle Bin in the head), bin-long (a long label), bin-empty
 button; a variant with only its route) and bin-error (the list not
 readable: the whole page is the message). Times are from the fixture's
 `now`.
+The Notifications page's states (tools/parity/notificationsVariants.js, in
+capture.js's `VARIANTS`): notifications (a critical and a warning open, an
+info resolved at opacity .6 without Dismiss, a long title and message; the
+red badge is the three open ones), notifications-empty (the fixture
+server's own answer: "No notifications."; a variant with only its route)
+and notifications-error (the list not readable: the whole page is the
+message). Times are from the fixture's `now`.
 
 - builtin overview
 - builtin overview-off
@@ -177,6 +184,8 @@ readable: the whole page is the message). Times are from the fixture's
 - builtin bin-long
 - builtin bin-error
 - builtin notifications
+- builtin notifications-empty
+- builtin notifications-error
 - builtin settings
 - builtin settings-vehicle
 - builtin settings-vehicle-new

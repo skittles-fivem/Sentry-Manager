@@ -275,6 +275,7 @@ namespace SentrySix.Shell
             };
             model.SignOut = () => SignOut();
             model.ReloadVehicles = () => LoadVehicles();
+            model.ReloadNotes = () => LoadNotes();
             model.OpenInBrowser = r => OpenInBrowser(r);
             model.SetReduceEffects = v => { model.ReduceEffects = v; PutAppearance("reduceEffects", v); };
             model.SetClock24 = v => { model.Clock24 = v; PutAppearance("clock24", v); };

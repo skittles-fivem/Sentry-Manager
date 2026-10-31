@@ -262,6 +262,8 @@ namespace SentrySix.Ui
         public Action<string> Repin = delegate { };
         /// <summary>web/app.js loadVehicles(): GET /api/vehicles again (the pills' and the navigation's Recycle Bin counts); never throws.</summary>
         public Func<Task> ReloadVehicles = () => Task.FromResult(0);
+        /// <summary>web/app.js loadNotes(): GET /api/notifications?open=1 again (the navigation's red badge); never throws.</summary>
+        public Func<Task> ReloadNotes = () => Task.FromResult(0);
         /// <summary>web/app.js toast(message, bad).</summary>
         public Action<string, bool> Toast = delegate { };
         /// <summary>The in-window dialogs (confirm, prompt, password); null in a shell without them.</summary>
