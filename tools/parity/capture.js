@@ -40,6 +40,7 @@ const { spawn, spawnSync } = require('child_process');
 
 const { nodesVariants } = require('./nodesVariants');
 const { jobsVariants, JOBS_VARIANTS } = require('./jobsVariants');
+const { binVariants, BIN_VARIANTS } = require('./binVariants');
 const REPO = path.join(__dirname, '..', '..');
 const SERVER = path.join(REPO, 'server', 'index.js');
 const USER = 'admin';
@@ -85,7 +86,11 @@ const PAGES = {
   'jobs-running-only': { signedIn: true, path: '/#/jobs', only: 'builtin', variant: true },
   'jobs-long': { signedIn: true, path: '/#/jobs', only: 'builtin', variant: true },
   'jobs-error': { signedIn: true, path: '/#/jobs', only: 'builtin', variant: true },
-  bin: { signedIn: true, path: '/#/bin', only: 'builtin' },
+  // (bin-empty is the fixture server's own answer; the others are binVariants.js)
+  'bin-empty': { signedIn: true, path: '/#/bin', only: 'builtin' },
+  bin: { signedIn: true, path: '/#/bin', only: 'builtin', variant: true },
+  'bin-long': { signedIn: true, path: '/#/bin', only: 'builtin', variant: true },
+  'bin-error': { signedIn: true, path: '/#/bin', only: 'builtin', variant: true },
   notifications: { signedIn: true, path: '/#/notifications', only: 'builtin' },
   settings: { signedIn: true, path: '/#/settings', only: 'builtin' },
   'settings-vehicle': { signedIn: true, path: (v) => `/#/settings/vehicle/${encodeURIComponent(v)}`, only: 'builtin' },
@@ -180,6 +185,10 @@ const VARIANTS = {
   'jobs-empty': { route: 'jobs' },
   ...Object.fromEntries(JOBS_VARIANTS.map((k) => [k, (api, vehicle) => jobsVariants(vehicle, Date.now())[k]])),
   'jobs-error': { route: 'jobs', api: { 'GET /api/jobs?vehicle={vehicle}': { $error: 'The job list could not be read.', $status: 500 } } },
+  // the Recycle Bin: three items (yours, the policy's, one with a file left behind), a long label;
+  // (bin-empty: the fixture server's own answer; named here so the native render list finds the page)
+  'bin-empty': { route: 'bin' },
+  ...Object.fromEntries(BIN_VARIANTS.map((k) => [k, (api, vehicle) => binVariants(vehicle, Date.now())[k]])),
   'bin-error': { route: 'bin', api: { 'GET /api/bin?vehicle={vehicle}': { $error: 'The Recycle Bin could not be read.', $status: 500 } } }
 };
 /** The Policies page with every part shown (the web asks /api/vehicles/<id>/policy, the id not encoded). */

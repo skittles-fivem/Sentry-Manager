@@ -103,8 +103,7 @@ built-in 760 / 374 px; Horizon 1560, 1440, 1279, 1023, 400 px; Flux 860 and
 Each at both sizes, as above; pages not drawn here yet render their
 "Opens in your browser" card. The variants are in `Shell\RenderFixture.json`
 (`variants`, from capture.js's `VARIANTS`); capture.js takes the web side
-of each under the same name (bin-error exists natively only;
-the Overview's variants answer in the browser through Playwright routes).
+of each under the same name (the Overview's variants answer in the browser through Playwright routes).
 The Overview's numbers are test/fixtures/statsSample.json on both sides
 (`GET /api/stats` in the fixture), not the fixture machine's own.
 The Footage page's open variants (footage-open, footage-long: the first day
@@ -134,6 +133,14 @@ and details), jobs-empty (the fixture server's own answer: "No jobs yet.";
 a variant with only its route) and jobs-error (the list not readable: the
 whole page is the message). Times are from the fixture's `now`; the page
 sets the Jobs badge from its own list (1 in jobs, 2 in jobs-running-only).
+The Recycle Bin's states (tools/parity/binVariants.js, in capture.js's
+`VARIANTS`): bin (three items: one moved by you, one by the retention
+policy, one with a file whose restore was refused because the name is
+taken; Empty Recycle Bin in the head), bin-long (a long label), bin-empty
+(the fixture server's own answer: "The Recycle Bin is empty.", no Empty
+button; a variant with only its route) and bin-error (the list not
+readable: the whole page is the message). Times are from the fixture's
+`now`.
 
 - builtin overview
 - builtin overview-off
@@ -166,6 +173,8 @@ sets the Jobs badge from its own list (1 in jobs, 2 in jobs-running-only).
 - builtin jobs-long
 - builtin jobs-error
 - builtin bin
+- builtin bin-empty
+- builtin bin-long
 - builtin bin-error
 - builtin notifications
 - builtin settings

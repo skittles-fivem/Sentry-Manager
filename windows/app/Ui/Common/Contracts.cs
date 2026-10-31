@@ -260,6 +260,8 @@ namespace SentrySix.Ui
         public Action<bool> SetClock24 = delegate { };
         /// <summary>Trusts the certificate the server says it now uses (Api.Repin; Settings > Security).</summary>
         public Action<string> Repin = delegate { };
+        /// <summary>web/app.js loadVehicles(): GET /api/vehicles again (the pills' and the navigation's Recycle Bin counts); never throws.</summary>
+        public Func<Task> ReloadVehicles = () => Task.FromResult(0);
         /// <summary>web/app.js toast(message, bad).</summary>
         public Action<string, bool> Toast = delegate { };
         /// <summary>The in-window dialogs (confirm, prompt, password); null in a shell without them.</summary>

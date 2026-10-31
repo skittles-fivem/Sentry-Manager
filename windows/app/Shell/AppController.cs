@@ -274,6 +274,7 @@ namespace SentrySix.Shell
                 model.VehicleId = id;
             };
             model.SignOut = () => SignOut();
+            model.ReloadVehicles = () => LoadVehicles();
             model.OpenInBrowser = r => OpenInBrowser(r);
             model.SetReduceEffects = v => { model.ReduceEffects = v; PutAppearance("reduceEffects", v); };
             model.SetClock24 = v => { model.Clock24 = v; PutAppearance("clock24", v); };

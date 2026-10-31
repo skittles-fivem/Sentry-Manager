@@ -1,0 +1,4313 @@
+{
+ "about": "Written by test/windowsNativeBin.test.js from web/app.js pages.bin and its buttons; checked by windows/app/Core.Tests (BinTests.cs, SentrySix.Core.Bin).",
+ "now": 1793459402000,
+ "pages": [
+  {
+   "name": "bin",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/bin?vehicle=model-3"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Recycle Bin]",
+    "[btn danger]",
+    "Empty Recycle Bin",
+    "[pills]",
+    "[note green]",
+    "Nothing in the Recycle Bin is deleted automatically. Restore puts recordings back exactly where they were; only \"Delete forever\" and \"Empty Recycle Bin\" free the space.",
+    "[card]",
+    "[p muted]",
+    "3 items · 3.6 GiB",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Recording",
+    "[th]",
+    "Size",
+    "[th]",
+    "Moved",
+    "[th]",
+    "Why",
+    "[th]",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "SavedClips/2026-10-29_18-04-11",
+    "[muted small]",
+    "3 files",
+    "[td mono small]",
+    "412.1 MiB",
+    "[td small]",
+    "10/31/2026, 1:10:02 PM",
+    "[td small]",
+    "You",
+    "[td actions]",
+    "[btn sm]",
+    "Restore",
+    "[btn sm danger]",
+    "Delete forever",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "RecentClips/2026-10-20",
+    "[muted small]",
+    "48 files",
+    "[td mono small]",
+    "3.2 GiB",
+    "[td small]",
+    "10/30/2026, 9:10:02 AM",
+    "[td small]",
+    "Policy",
+    "[td actions]",
+    "[btn sm]",
+    "Restore",
+    "[btn sm danger]",
+    "Delete forever",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "SentryClips/2026-10-18_<night> & \"more\"",
+    "[muted small]",
+    "1 file · some files could not be restored (name taken)",
+    "[td mono small]",
+    "900 B",
+    "[td small]",
+    "10/28/2026, 7:10:02 AM",
+    "[td small]",
+    "You",
+    "[td actions]",
+    "[btn sm]",
+    "Restore",
+    "[btn sm danger]",
+    "Delete forever"
+   ]
+  },
+  {
+   "name": "bin-24h",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": true,
+   "asked": [
+    "GET /api/bin?vehicle=model-3"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Recycle Bin]",
+    "[btn danger]",
+    "Empty Recycle Bin",
+    "[pills]",
+    "[note green]",
+    "Nothing in the Recycle Bin is deleted automatically. Restore puts recordings back exactly where they were; only \"Delete forever\" and \"Empty Recycle Bin\" free the space.",
+    "[card]",
+    "[p muted]",
+    "3 items · 3.6 GiB",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Recording",
+    "[th]",
+    "Size",
+    "[th]",
+    "Moved",
+    "[th]",
+    "Why",
+    "[th]",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "SavedClips/2026-10-29_18-04-11",
+    "[muted small]",
+    "3 files",
+    "[td mono small]",
+    "412.1 MiB",
+    "[td small]",
+    "10/31/2026, 13:10:02",
+    "[td small]",
+    "You",
+    "[td actions]",
+    "[btn sm]",
+    "Restore",
+    "[btn sm danger]",
+    "Delete forever",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "RecentClips/2026-10-20",
+    "[muted small]",
+    "48 files",
+    "[td mono small]",
+    "3.2 GiB",
+    "[td small]",
+    "10/30/2026, 09:10:02",
+    "[td small]",
+    "Policy",
+    "[td actions]",
+    "[btn sm]",
+    "Restore",
+    "[btn sm danger]",
+    "Delete forever",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "SentryClips/2026-10-18_<night> & \"more\"",
+    "[muted small]",
+    "1 file · some files could not be restored (name taken)",
+    "[td mono small]",
+    "900 B",
+    "[td small]",
+    "10/28/2026, 07:10:02",
+    "[td small]",
+    "You",
+    "[td actions]",
+    "[btn sm]",
+    "Restore",
+    "[btn sm danger]",
+    "Delete forever"
+   ]
+  },
+  {
+   "name": "bin-one",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "only.mp4"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/bin?vehicle=model-3"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Recycle Bin]",
+    "[btn danger]",
+    "Empty Recycle Bin",
+    "[pills]",
+    "[note green]",
+    "Nothing in the Recycle Bin is deleted automatically. Restore puts recordings back exactly where they were; only \"Delete forever\" and \"Empty Recycle Bin\" free the space.",
+    "[card]",
+    "[p muted]",
+    "1 item · 412.1 MiB",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Recording",
+    "[th]",
+    "Size",
+    "[th]",
+    "Moved",
+    "[th]",
+    "Why",
+    "[th]",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "SavedClips/2026-10-29_18-04-11",
+    "[muted small]",
+    "1 file",
+    "[td mono small]",
+    "412.1 MiB",
+    "[td small]",
+    "10/31/2026, 1:10:02 PM",
+    "[td small]",
+    "You",
+    "[td actions]",
+    "[btn sm]",
+    "Restore",
+    "[btn sm danger]",
+    "Delete forever"
+   ]
+  },
+  {
+   "name": "bin-long",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b4",
+       "label": "SavedClips/2026-10-27_18-04-11/a-folder-name-that-is-far-too-long-to-fit-on-one-line-of-the-table",
+       "bytes": 5497558138880,
+       "files": [
+        {
+         "name": "x.mp4"
+        }
+       ],
+       "trashedAt": 1792019402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/bin?vehicle=model-3"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Recycle Bin]",
+    "[btn danger]",
+    "Empty Recycle Bin",
+    "[pills]",
+    "[note green]",
+    "Nothing in the Recycle Bin is deleted automatically. Restore puts recordings back exactly where they were; only \"Delete forever\" and \"Empty Recycle Bin\" free the space.",
+    "[card]",
+    "[p muted]",
+    "2 items · 5.0 TiB",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Recording",
+    "[th]",
+    "Size",
+    "[th]",
+    "Moved",
+    "[th]",
+    "Why",
+    "[th]",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "SavedClips/2026-10-27_18-04-11/a-folder-name-that-is-far-too-long-to-fit-on-one-line-of-the-table",
+    "[muted small]",
+    "1 file",
+    "[td mono small]",
+    "5.0 TiB",
+    "[td small]",
+    "10/14/2026, 11:10:02 PM",
+    "[td small]",
+    "Policy",
+    "[td actions]",
+    "[btn sm]",
+    "Restore",
+    "[btn sm danger]",
+    "Delete forever",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "SavedClips/2026-10-29_18-04-11",
+    "[muted small]",
+    "3 files",
+    "[td mono small]",
+    "412.1 MiB",
+    "[td small]",
+    "10/31/2026, 1:10:02 PM",
+    "[td small]",
+    "You",
+    "[td actions]",
+    "[btn sm]",
+    "Restore",
+    "[btn sm danger]",
+    "Delete forever"
+   ]
+  },
+  {
+   "name": "bin-empty",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": []
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/bin?vehicle=model-3"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Recycle Bin]",
+    "[pills]",
+    "[note green]",
+    "Nothing in the Recycle Bin is deleted automatically. Restore puts recordings back exactly where they were; only \"Delete forever\" and \"Empty Recycle Bin\" free the space.",
+    "[card]",
+    "[p]",
+    "The Recycle Bin is empty."
+   ]
+  },
+  {
+   "name": "bin-novehicle",
+   "answers": {
+    "GET /api/bin": {
+     "items": [
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      }
+     ]
+    }
+   },
+   "vehicle": null,
+   "h24": false,
+   "asked": [
+    "GET /api/bin"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Recycle Bin]",
+    "[btn danger]",
+    "Empty Recycle Bin",
+    "[pills]",
+    "[note green]",
+    "Nothing in the Recycle Bin is deleted automatically. Restore puts recordings back exactly where they were; only \"Delete forever\" and \"Empty Recycle Bin\" free the space.",
+    "[card]",
+    "[p muted]",
+    "1 item · 3.2 GiB",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Recording",
+    "[th]",
+    "Size",
+    "[th]",
+    "Moved",
+    "[th]",
+    "Why",
+    "[th]",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "RecentClips/2026-10-20",
+    "[muted small]",
+    "48 files",
+    "[td mono small]",
+    "3.2 GiB",
+    "[td small]",
+    "10/30/2026, 9:10:02 AM",
+    "[td small]",
+    "Policy",
+    "[td actions]",
+    "[btn sm]",
+    "Restore",
+    "[btn sm danger]",
+    "Delete forever"
+   ]
+  },
+  {
+   "name": "bin-encoded",
+   "answers": {
+    "GET /api/bin?vehicle=a%20b%26c": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "a b&c",
+    "name": "A <car>"
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/bin?vehicle=a%20b%26c"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Recycle Bin]",
+    "[btn danger]",
+    "Empty Recycle Bin",
+    "[pills]",
+    "[note green]",
+    "Nothing in the Recycle Bin is deleted automatically. Restore puts recordings back exactly where they were; only \"Delete forever\" and \"Empty Recycle Bin\" free the space.",
+    "[card]",
+    "[p muted]",
+    "1 item · 412.1 MiB",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Recording",
+    "[th]",
+    "Size",
+    "[th]",
+    "Moved",
+    "[th]",
+    "Why",
+    "[th]",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "SavedClips/2026-10-29_18-04-11",
+    "[muted small]",
+    "3 files",
+    "[td mono small]",
+    "412.1 MiB",
+    "[td small]",
+    "10/31/2026, 1:10:02 PM",
+    "[td small]",
+    "You",
+    "[td actions]",
+    "[btn sm]",
+    "Restore",
+    "[btn sm danger]",
+    "Delete forever"
+   ]
+  },
+  {
+   "name": "bin-odd",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": 7,
+       "label": null,
+       "bytes": null,
+       "files": [],
+       "trashedAt": 0
+      },
+      {
+       "id": "x",
+       "label": 42,
+       "files": [
+        {},
+        {
+         "conflict": 1
+        }
+       ],
+       "trashedAt": 1793459402000
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/bin?vehicle=model-3"
+   ],
+   "error": null,
+   "outline": [
+    "[head Your archive workspace | Recycle Bin]",
+    "[btn danger]",
+    "Empty Recycle Bin",
+    "[pills]",
+    "[note green]",
+    "Nothing in the Recycle Bin is deleted automatically. Restore puts recordings back exactly where they were; only \"Delete forever\" and \"Empty Recycle Bin\" free the space.",
+    "[card]",
+    "[p muted]",
+    "2 items · —",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Recording",
+    "[th]",
+    "Size",
+    "[th]",
+    "Moved",
+    "[th]",
+    "Why",
+    "[th]",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "[muted small]",
+    "0 files",
+    "[td mono small]",
+    "—",
+    "[td small]",
+    "—",
+    "[td small]",
+    "You",
+    "[td actions]",
+    "[btn sm]",
+    "Restore",
+    "[btn sm danger]",
+    "Delete forever",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "42",
+    "[muted small]",
+    "2 files · some files could not be restored (name taken)",
+    "[td mono small]",
+    "—",
+    "[td small]",
+    "10/31/2026, 3:10:02 PM",
+    "[td small]",
+    "You",
+    "[td actions]",
+    "[btn sm]",
+    "Restore",
+    "[btn sm danger]",
+    "Delete forever"
+   ]
+  },
+  {
+   "name": "bin-noitems",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {}
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/bin?vehicle=model-3"
+   ],
+   "error": "Cannot read properties of undefined (reading 'reduce')",
+   "outline": []
+  },
+  {
+   "name": "bin-error",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "$error": "The Recycle Bin could not be read."
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "asked": [
+    "GET /api/bin?vehicle=model-3"
+   ],
+   "error": "The Recycle Bin could not be read.",
+   "outline": []
+  }
+ ],
+ "actions": [
+  {
+   "name": "restore",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    },
+    "POST /api/bin/b1/restore": {
+     "restored": 3,
+     "conflicts": 0
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "click": [
+    "restore",
+    0
+   ],
+   "confirm": true,
+   "asked": [
+    "GET /api/bin?vehicle=model-3",
+    "POST /api/bin/b1/restore {}",
+    "GET /api/vehicles"
+   ],
+   "dialogs": [],
+   "toasts": [
+    {
+     "text": "Restored.",
+     "bad": false
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "restore-conflicts",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    },
+    "POST /api/bin/b%203%26x/restore": {
+     "restored": 2,
+     "conflicts": 1
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "click": [
+    "restore",
+    2
+   ],
+   "confirm": true,
+   "asked": [
+    "GET /api/bin?vehicle=model-3",
+    "POST /api/bin/b%203%26x/restore {}",
+    "GET /api/vehicles"
+   ],
+   "dialogs": [],
+   "toasts": [
+    {
+     "text": "Restored 2 file(s); 1 could not be (a file with that name exists).",
+     "bad": true
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "restore-odd",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    },
+    "POST /api/bin/b2/restore": {
+     "conflicts": 4
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "click": [
+    "restore",
+    1
+   ],
+   "confirm": true,
+   "asked": [
+    "GET /api/bin?vehicle=model-3",
+    "POST /api/bin/b2/restore {}",
+    "GET /api/vehicles"
+   ],
+   "dialogs": [],
+   "toasts": [
+    {
+     "text": "Restored undefined file(s); 4 could not be (a file with that name exists).",
+     "bad": true
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "restore-failed",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    },
+    "POST /api/bin/b1/restore": {
+     "$error": "The share is not mounted."
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "click": [
+    "restore",
+    0
+   ],
+   "confirm": true,
+   "asked": [
+    "GET /api/bin?vehicle=model-3",
+    "POST /api/bin/b1/restore {}",
+    "GET /api/vehicles"
+   ],
+   "dialogs": [],
+   "toasts": [
+    {
+     "text": "The share is not mounted.",
+     "bad": true
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "delete",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    },
+    "POST /api/bin/b%203%26x/delete": {
+     "ok": true
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "click": [
+    "delete",
+    2
+   ],
+   "confirm": true,
+   "asked": [
+    "GET /api/bin?vehicle=model-3",
+    "POST /api/bin/b%203%26x/delete {\"confirm\":true}",
+    "GET /api/vehicles"
+   ],
+   "dialogs": [
+    {
+     "title": "Delete forever?",
+     "body": [
+      "SentryClips/2026-10-18_<night> & \"more\"",
+      "(900 B) will be permanently deleted from the share. This cannot be undone."
+     ],
+     "ok": "Delete forever",
+     "danger": true
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Deleted.",
+     "bad": false
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "delete-cancelled",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "click": [
+    "delete",
+    0
+   ],
+   "confirm": false,
+   "asked": [
+    "GET /api/bin?vehicle=model-3"
+   ],
+   "dialogs": [
+    {
+     "title": "Delete forever?",
+     "body": [
+      "SavedClips/2026-10-29_18-04-11",
+      "(412.1 MiB) will be permanently deleted from the share. This cannot be undone."
+     ],
+     "ok": "Delete forever",
+     "danger": true
+    }
+   ],
+   "toasts": [],
+   "renders": 0
+  },
+  {
+   "name": "delete-failed",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    },
+    "POST /api/bin/b2/delete": {
+     "$error": "Not changed: the password was not confirmed."
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "click": [
+    "delete",
+    1
+   ],
+   "confirm": true,
+   "asked": [
+    "GET /api/bin?vehicle=model-3",
+    "POST /api/bin/b2/delete {\"confirm\":true}",
+    "GET /api/vehicles"
+   ],
+   "dialogs": [
+    {
+     "title": "Delete forever?",
+     "body": [
+      "RecentClips/2026-10-20",
+      "(3.2 GiB) will be permanently deleted from the share. This cannot be undone."
+     ],
+     "ok": "Delete forever",
+     "danger": true
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Not changed: the password was not confirmed.",
+     "bad": true
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "empty",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    },
+    "POST /api/bin/empty": {
+     "deleted": 3,
+     "bytes": 3865470566.4,
+     "failed": 0
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "click": [
+    "empty"
+   ],
+   "confirm": true,
+   "asked": [
+    "GET /api/bin?vehicle=model-3",
+    "POST /api/bin/empty {\"confirm\":true,\"vehicle\":\"model-3\"}",
+    "GET /api/vehicles"
+   ],
+   "dialogs": [
+    {
+     "title": "Empty the Recycle Bin?",
+     "body": [
+      "3 items (3.6 GiB) of Model 3 will be permanently deleted. This cannot be undone."
+     ],
+     "ok": "Empty Recycle Bin",
+     "danger": true
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Deleted 3 items (3.6 GiB).",
+     "bad": false
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "empty-one",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    },
+    "POST /api/bin/empty": {
+     "deleted": 1,
+     "bytes": 900,
+     "failed": 0
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "click": [
+    "empty"
+   ],
+   "confirm": true,
+   "asked": [
+    "GET /api/bin?vehicle=model-3",
+    "POST /api/bin/empty {\"confirm\":true,\"vehicle\":\"model-3\"}",
+    "GET /api/vehicles"
+   ],
+   "dialogs": [
+    {
+     "title": "Empty the Recycle Bin?",
+     "body": [
+      "3 items (3.6 GiB) of Model 3 will be permanently deleted. This cannot be undone."
+     ],
+     "ok": "Empty Recycle Bin",
+     "danger": true
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Deleted 1 item (900 B).",
+     "bad": false
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "empty-failed-some",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    },
+    "POST /api/bin/empty": {
+     "deleted": 2,
+     "bytes": 1024,
+     "failed": 1
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "click": [
+    "empty"
+   ],
+   "confirm": true,
+   "asked": [
+    "GET /api/bin?vehicle=model-3",
+    "POST /api/bin/empty {\"confirm\":true,\"vehicle\":\"model-3\"}",
+    "GET /api/vehicles"
+   ],
+   "dialogs": [
+    {
+     "title": "Empty the Recycle Bin?",
+     "body": [
+      "3 items (3.6 GiB) of Model 3 will be permanently deleted. This cannot be undone."
+     ],
+     "ok": "Empty Recycle Bin",
+     "danger": true
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Deleted 2 items (1.0 KiB).",
+     "bad": true
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "empty-odd",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    },
+    "POST /api/bin/empty": {}
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "click": [
+    "empty"
+   ],
+   "confirm": true,
+   "asked": [
+    "GET /api/bin?vehicle=model-3",
+    "POST /api/bin/empty {\"confirm\":true,\"vehicle\":\"model-3\"}",
+    "GET /api/vehicles"
+   ],
+   "dialogs": [
+    {
+     "title": "Empty the Recycle Bin?",
+     "body": [
+      "3 items (3.6 GiB) of Model 3 will be permanently deleted. This cannot be undone."
+     ],
+     "ok": "Empty Recycle Bin",
+     "danger": true
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Deleted 0 items (—).",
+     "bad": false
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "empty-cancelled",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "click": [
+    "empty"
+   ],
+   "confirm": false,
+   "asked": [
+    "GET /api/bin?vehicle=model-3"
+   ],
+   "dialogs": [
+    {
+     "title": "Empty the Recycle Bin?",
+     "body": [
+      "3 items (3.6 GiB) of Model 3 will be permanently deleted. This cannot be undone."
+     ],
+     "ok": "Empty Recycle Bin",
+     "danger": true
+    }
+   ],
+   "toasts": [],
+   "renders": 0
+  },
+  {
+   "name": "empty-error",
+   "answers": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "a-front.mp4"
+        },
+        {
+         "name": "a-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793452202000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      },
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    },
+    "POST /api/bin/empty": {
+     "$error": "The share is busy."
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "click": [
+    "empty"
+   ],
+   "confirm": true,
+   "asked": [
+    "GET /api/bin?vehicle=model-3",
+    "POST /api/bin/empty {\"confirm\":true,\"vehicle\":\"model-3\"}",
+    "GET /api/vehicles"
+   ],
+   "dialogs": [
+    {
+     "title": "Empty the Recycle Bin?",
+     "body": [
+      "3 items (3.6 GiB) of Model 3 will be permanently deleted. This cannot be undone."
+     ],
+     "ok": "Empty Recycle Bin",
+     "danger": true
+    }
+   ],
+   "toasts": [
+    {
+     "text": "The share is busy.",
+     "bad": true
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "empty-novehicle",
+   "answers": {
+    "GET /api/bin": {
+     "items": [
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "c0.mp4"
+        },
+        {
+         "name": "c1.mp4"
+        },
+        {
+         "name": "c2.mp4"
+        },
+        {
+         "name": "c3.mp4"
+        },
+        {
+         "name": "c4.mp4"
+        },
+        {
+         "name": "c5.mp4"
+        },
+        {
+         "name": "c6.mp4"
+        },
+        {
+         "name": "c7.mp4"
+        },
+        {
+         "name": "c8.mp4"
+        },
+        {
+         "name": "c9.mp4"
+        },
+        {
+         "name": "c10.mp4"
+        },
+        {
+         "name": "c11.mp4"
+        },
+        {
+         "name": "c12.mp4"
+        },
+        {
+         "name": "c13.mp4"
+        },
+        {
+         "name": "c14.mp4"
+        },
+        {
+         "name": "c15.mp4"
+        },
+        {
+         "name": "c16.mp4"
+        },
+        {
+         "name": "c17.mp4"
+        },
+        {
+         "name": "c18.mp4"
+        },
+        {
+         "name": "c19.mp4"
+        },
+        {
+         "name": "c20.mp4"
+        },
+        {
+         "name": "c21.mp4"
+        },
+        {
+         "name": "c22.mp4"
+        },
+        {
+         "name": "c23.mp4"
+        },
+        {
+         "name": "c24.mp4"
+        },
+        {
+         "name": "c25.mp4"
+        },
+        {
+         "name": "c26.mp4"
+        },
+        {
+         "name": "c27.mp4"
+        },
+        {
+         "name": "c28.mp4"
+        },
+        {
+         "name": "c29.mp4"
+        },
+        {
+         "name": "c30.mp4"
+        },
+        {
+         "name": "c31.mp4"
+        },
+        {
+         "name": "c32.mp4"
+        },
+        {
+         "name": "c33.mp4"
+        },
+        {
+         "name": "c34.mp4"
+        },
+        {
+         "name": "c35.mp4"
+        },
+        {
+         "name": "c36.mp4"
+        },
+        {
+         "name": "c37.mp4"
+        },
+        {
+         "name": "c38.mp4"
+        },
+        {
+         "name": "c39.mp4"
+        },
+        {
+         "name": "c40.mp4"
+        },
+        {
+         "name": "c41.mp4"
+        },
+        {
+         "name": "c42.mp4"
+        },
+        {
+         "name": "c43.mp4"
+        },
+        {
+         "name": "c44.mp4"
+        },
+        {
+         "name": "c45.mp4"
+        },
+        {
+         "name": "c46.mp4"
+        },
+        {
+         "name": "c47.mp4"
+        }
+       ],
+       "trashedAt": 1793351402000,
+       "reason": "policy"
+      }
+     ]
+    },
+    "POST /api/bin/empty": {
+     "deleted": 1,
+     "bytes": 1,
+     "failed": 0
+    }
+   },
+   "vehicle": null,
+   "click": [
+    "empty"
+   ],
+   "confirm": true,
+   "asked": [
+    "GET /api/bin",
+    "POST /api/bin/empty {\"confirm\":true,\"vehicle\":null}",
+    "GET /api/vehicles"
+   ],
+   "dialogs": [
+    {
+     "title": "Empty the Recycle Bin?",
+     "body": [
+      "1 item (3.2 GiB) of all vehicles will be permanently deleted. This cannot be undone."
+     ],
+     "ok": "Empty Recycle Bin",
+     "danger": true
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Deleted 1 item (1 B).",
+     "bad": false
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "empty-named",
+   "answers": {
+    "GET /api/bin?vehicle=a%20b%26c": {
+     "items": [
+      {
+       "id": "b 3&x",
+       "label": "SentryClips/2026-10-18_<night> & \"more\"",
+       "bytes": 900,
+       "files": [
+        {
+         "name": "one.mp4",
+         "conflict": true
+        }
+       ],
+       "trashedAt": 1793171402000,
+       "reason": "manual"
+      }
+     ]
+    },
+    "POST /api/bin/empty": {
+     "deleted": 1,
+     "bytes": 900,
+     "failed": 0
+    }
+   },
+   "vehicle": {
+    "id": "a b&c",
+    "name": "A <car> & co"
+   },
+   "click": [
+    "empty"
+   ],
+   "confirm": true,
+   "asked": [
+    "GET /api/bin?vehicle=a%20b%26c",
+    "POST /api/bin/empty {\"confirm\":true,\"vehicle\":\"a b&c\"}",
+    "GET /api/vehicles"
+   ],
+   "dialogs": [
+    {
+     "title": "Empty the Recycle Bin?",
+     "body": [
+      "1 item (900 B) of A <car> & co will be permanently deleted. This cannot be undone."
+     ],
+     "ok": "Empty Recycle Bin",
+     "danger": true
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Deleted 1 item (900 B).",
+     "bad": false
+    }
+   ],
+   "renders": 1
+  }
+ ]
+}

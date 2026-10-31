@@ -166,7 +166,19 @@ is done when every item is ticked in both. Run on the owner's PC runner.
     C#). Render list: jobs, -empty, -running-only, -long, -error (desktop
     and phone; tools/parity/jobsVariants.js on both sides). Redrawn on
     "jobs".
-  - Recycle Bin: not started
+  - Recycle Bin: native (`Ui/Builtin/BinPage.cs`; its request, words,
+    dialogs and toasts in `Core/Bin.cs`); type-checked with mcs, not yet
+    built or rendered on Windows. The page (Empty Recycle Bin in the head
+    while something is there, the green note, "N items · SIZE" over the
+    table: Recording with its file count and the "name taken" warning,
+    Size, Moved, Why (Policy / You), Restore and Delete forever; "The
+    Recycle Bin is empty."), and the three buttons (the requests, the
+    danger dialogs, the toasts, the vehicles read again, the redraw; the
+    password asked again by the Api) are compared with web/app.js's own
+    pages.bin on 10 pages and 15 clicks (test/windowsNativeBin.test.js
+    writes Core.Tests/Fixtures/expected-bin.json; Core.Tests BinTests
+    checks the C#). Render list: bin, -empty, -long, -error (desktop and
+    phone; tools/parity/binVariants.js on both sides). Redrawn on "bin".
   - Notifications ("Alerts"): not started
   - Encoding per vehicle ("Per car", #/encoder/vehicles): not started
   - Settings: not started
@@ -200,6 +212,10 @@ Jobs: the disabled Clear jobs button's tooltip is WPF's, not the
 browser's; the vehicle id in ?vehicle= is encoded with .NET's
 Uri.EscapeDataString, which also encodes ! ' ( ) * (encodeURIComponent
 leaves them), so an id with those characters would ask a different path.
+Recycle Bin: the same holds for the item id in /api/bin/<id>/restore and
+/delete. The web adds the items' sizes with JavaScript's +, so a size sent
+as a string would be glued on as text; the C# adds numbers (the server
+sends numbers).
 
 ## Costs the owner should know
 

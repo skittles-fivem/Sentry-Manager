@@ -43,7 +43,8 @@ namespace SentrySix.Ui.Builtin
             { "footage", c => new FootagePage(c) },
             { "nodes", c => new NodesPage(c) },
             { "policies", c => new PoliciesPage(c) },
-            { "jobs", c => new JobsPage(c) }
+            { "jobs", c => new JobsPage(c) },
+            { "bin", c => new BinPage(c) }
         };
 
         static BuiltinInterface()

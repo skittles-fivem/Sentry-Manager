@@ -467,3 +467,39 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   own answer (a `{ "route": "jobs" }` variant); jobs-error is now captured
   on the web too. Injected into `Shell/RenderFixture.json` with the
   fixture's own `vehicle` and `now`; the rest of the file is unchanged.
+
+### Phase 1: Recycle Bin (2026-10-31)
+
+- `Core/Bin.cs`: `Path`/`Load` (GET /api/bin, `?vehicle=<id>` encoded for
+  the vehicle shown, none without one), `View` (BinView: the rows with
+  label, "N files[ · some files could not be restored (name taken)]",
+  bytes(), when(trashedAt), Policy/You; the total added as the web's
+  reduce, "N items · SIZE"; a missing items or files list throws as the
+  web), `Outline()`, and the buttons: `Restore` (POST
+  /api/bin/<id>/restore {}, "Restored." or "Restored R file(s); C could not
+  be …", bad when conflicts > 0), `DeleteForever` ("Delete forever?" with
+  the bold label, POST …/delete {confirm: true}, "Deleted.") and `Empty`
+  ("Empty the Recycle Bin?" … of <vehicle | all vehicles>, POST
+  /api/bin/empty {confirm, vehicle}, "Deleted N items (SIZE).", bad when
+  failed > 0). Each ends with the vehicles read again and the redraw (also
+  after a failure); a cancelled dialog does neither. The password the
+  server asks for again (CONFIRM_PASSWORD) is the Api's own dialog.
+- `ShellModel.ReloadVehicles` (new, set by the app controller to its
+  LoadVehicles; never throws): the web's `loadVehicles().catch(() => {})`
+  after each button, so the pills and the navigation's Recycle Bin count
+  follow at once, not only on the event stream's "bin".
+- `test/windowsNativeBin.test.js` runs the web's own pages.bin and its
+  click handlers (a pretend DOM with the rows and their buttons) on 10
+  pages and 15 clicks and writes `Core.Tests/Fixtures/expected-bin.json`;
+  it also checks every wording constant and the column titles.
+  `Core.Tests/BinTests.cs` compares the C#. Under mono with a stub runner
+  the three BinTests pass; not run under dotnet yet.
+- `Ui/Builtin/BinPage.cs` (registered in BuiltinInterface: its browser card
+  is gone); the buttons are Table.Actions (right aligned; a wrapping row on
+  a phone).
+- `tools/parity/binVariants.js` (required by capture.js's `VARIANTS`): bin,
+  bin-long; `bin-empty` is the fixture server's own answer (a
+  `{ "route": "bin" }` variant; capture.js's old `bin` page, which was that
+  empty answer, is now `bin-empty`); bin-error is now captured on the web
+  too. Injected into `Shell/RenderFixture.json` with the fixture's own
+  `vehicle` and `now`; the rest of the file is unchanged.
