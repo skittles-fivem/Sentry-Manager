@@ -174,6 +174,8 @@ namespace SentrySix.Ui.Builtin
             root.SetResourceReference(TextElement.FontFamilyProperty, "font");
             root.SetResourceReference(TextElement.ForegroundProperty, "text");
             TextElement.SetFontSize(root, 14);
+            // body { font: 14px/1.5 }: every text's lines 1.5 times its size
+            CssText.SetLineFactor(root, 1.5);
 
             // .login: width min(400px, 100%); panel; 1px border; radius 22; padding 32
             StackPanel card = new StackPanel();
@@ -337,6 +339,8 @@ namespace SentrySix.Ui.Builtin
                 Root.SetResourceReference(TextElement.FontFamilyProperty, "font");
                 Root.SetResourceReference(TextElement.ForegroundProperty, "text");
                 TextElement.SetFontSize(Root, 14);
+                // body { font: 14px/1.5 }: every text's lines 1.5 times its size
+                CssText.SetLineFactor(Root, 1.5);
                 Root.UseLayoutRounding = true;
 
                 // .side-card

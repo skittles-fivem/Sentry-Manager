@@ -477,7 +477,9 @@ namespace SentrySix.Ui.Builtin
                     sub.Inlines.Add(new Run(host[i].Replace(' ', '\u00a0')));
                 }
                 // "Not updating right now" keeps its room while the numbers are fresh
-                Run stale = new Run((host.Count > 0 ? " · " : "") + "Not updating right now");
+                // span.nd-nb (nowrap) glued to the last part: " · Not updating right now" never
+                // breaks, nor before it, so the last part goes down with it (as the browser draws it)
+                Run stale = new Run(((host.Count > 0 ? " · " : "") + "Not updating right now").Replace(' ', '\u00a0'));
                 stale.SetResourceReference(TextElement.ForegroundProperty, "warn");
                 stale.FontWeight = FontWeights.SemiBold;
                 if (mem.Error == null) stale.Foreground = Brushes.Transparent;

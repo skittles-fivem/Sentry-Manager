@@ -514,6 +514,8 @@ namespace SentrySix.Ui.Builtin
             if (r.Expanded) body.Children.Add(FileList(vid, id));
             // inside a day: panel-2; selected: the accent border
             Border card = U.Box(body, "panel-2", r.Selected ? "accent-border" : "border", 1, new CornerRadius(16), Css.T(18, 18, 16, 18));
+            // (article.rec[data-id]: the parity renders scroll to it)
+            card.Uid = "rec-" + id;
 
             layouts.Add(m =>
             {

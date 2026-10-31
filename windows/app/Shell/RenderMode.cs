@@ -48,6 +48,36 @@ namespace SentrySix.Shell
   ""prefs"": { }
 }";
 
+        /// <summary>Scrolls the element with that Uid to the top of the scroller it is in (as far as the scroller goes).</summary>
+        static bool ScrollTo(DependencyObject root, string uid)
+        {
+            UIElement target = Find(root, uid);
+            if (target == null) return false;
+            for (DependencyObject d = VisualTreeHelper.GetParent(target); d != null; d = VisualTreeHelper.GetParent(d))
+            {
+                ScrollViewer sv = d as ScrollViewer;
+                UIElement content = sv != null ? sv.Content as UIElement : null;
+                if (content == null || sv.ScrollableHeight <= 0) continue;
+                double y = target.TranslatePoint(new Point(0, 0), content).Y;
+                sv.ScrollToVerticalOffset(Math.Max(0, Math.Min(y, sv.ScrollableHeight)));
+                return true;
+            }
+            return true;
+        }
+
+        static UIElement Find(DependencyObject d, string uid)
+        {
+            UIElement e = d as UIElement;
+            if (e != null && e.Uid == uid) return e;
+            int n = d is Visual || d is System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetChildrenCount(d) : 0;
+            for (int i = 0; i < n; i++)
+            {
+                UIElement found = Find(VisualTreeHelper.GetChild(d, i), uid);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
         public static int Run(string ifaceId, string page, int width, int height, string outFile, string fixtureFile)
         {
             try
@@ -74,8 +104,10 @@ namespace SentrySix.Shell
                 foreach (System.Collections.Generic.KeyValuePair<string, JsonValue> kv in vx.Props)
                 {
                     if (kv.Key == "prefs") foreach (System.Collections.Generic.KeyValuePair<string, JsonValue> pr in kv.Value.Props) fx = fx.With("prefs", fx["prefs"].With(pr.Key, pr.Value));
-                    else if (kv.Key != "route" && kv.Key != "sub" && kv.Key != "api" && kv.Key != "state") fx = fx.With(kv.Key, kv.Value);
+                    else if (kv.Key != "route" && kv.Key != "sub" && kv.Key != "api" && kv.Key != "state" && kv.Key != "scroll") fx = fx.With(kv.Key, kv.Value);
                 }
+                // a still picture: no overlay scroll bar (Playwright's captures have none)
+                Scroll.Still = true;
                 IInterface look = Interfaces.Get(ifaceId);
                 if (look == null) throw new ArgumentException("No such interface: " + ifaceId + " (builtin, horizon, flux, aurora, daylight).");
                 MemoryPrefs prefs = new MemoryPrefs();
@@ -179,6 +211,18 @@ namespace SentrySix.Shell
                 {
                     root.UpdateLayout();
                     Dispatcher.CurrentDispatcher.Invoke(new Action(() => { }), DispatcherPriority.ApplicationIdle);
+                }
+                // a variant's scroll: the element with that Uid at the top of its scroller, as
+                // capture.js scrolls the web page (scrollIntoView, block start) after its clicks
+                string scrollTo = vx["scroll"]["native"].Str;
+                if (!string.IsNullOrEmpty(scrollTo))
+                {
+                    if (!ScrollTo(root, scrollTo)) throw new InvalidOperationException("No element " + scrollTo + " to scroll to on " + page + ".");
+                    for (int i = 0; i < 2; i++)
+                    {
+                        root.UpdateLayout();
+                        Dispatcher.CurrentDispatcher.Invoke(new Action(() => { }), DispatcherPriority.ApplicationIdle);
+                    }
                 }
                 RenderTargetBitmap bmp = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
                 bmp.Render(root);

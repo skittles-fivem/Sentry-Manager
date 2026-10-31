@@ -230,10 +230,29 @@ is done when every item is ticked in both. Run on the owner's PC runner.
     web's). Picking an interface switches the app's shell (the web reloads
     the page); a new certificate (Save names, Allow other devices) is
     re-pinned and the page drawn again (the web reloads after 2.5 s).
+- Phase 1 parity polish (from the side-by-side report of run 41236083942,
+  shared code; type-checked with mcs, not yet built or rendered on
+  Windows): the page scroller's bar is a thin overlay (8 px, takes no room,
+  shown only while the page scrolls or the pointer is at the right edge,
+  then fades; none in the renders, as Playwright's captures have none);
+  the built-in interface's text has the web's line-height (body
+  14px/1.5: `CssText`, every `U.Text`, LineHeight = size x 1.5 with
+  BlockLineHeight, unless the text sets its own); tables size their
+  columns as Chrome's automatic table layout (`TableSizing`: min- and
+  max-content per column, colspan rows spread over their columns,
+  td.words / th keep whole words, other cells break anywhere); Nodes'
+  Vehicles first heading on its own line; Settings > Updates "(checked …)"
+  in the mono font with the version; the Overview's host line keeps
+  "version … · Not updating right now" together as the browser does (no
+  extra hidden line). Renders of a variant with `scroll` (footage-open,
+  footage-long) scroll the same element to the top as capture.js does on
+  the web after its clicks (the open recording's card).
 - Phases 2-7 (Viewer, Encoder, Horizon, Flux, Aurora, Daylight): not started.
   Their pages open in the browser.
 
-Known differences so far (for the parity checklist): an unreachable
+Known differences so far (for the parity checklist): WPF puts a line's baseline
+lower in a CSS-tall line than the browser does (in proportion to the
+font's ascent rather than half the leading above), about 1 px at 14 px; an unreachable
 server reads as the app's own "Can't reach Sentry Six Manager at …"
 message, not the web's "Reload the page" one; the dialog's backdrop is not
 blurred; links from native pages into the Viewer or Encoder open the

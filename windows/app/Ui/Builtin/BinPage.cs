@@ -133,7 +133,6 @@ namespace SentrySix.Ui.Builtin
         FrameworkElement BinTable(BinView v)
         {
             TableColumn rec = new TableColumn(Bin.Columns[0]);
-            rec.Width = new GridLength(1, GridUnitType.Star);
             TableColumn size = new TableColumn(Bin.Columns[1]);
             TableColumn moved = new TableColumn(Bin.Columns[2]);
             TableColumn why = new TableColumn(Bin.Columns[3]);

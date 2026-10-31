@@ -22,12 +22,16 @@ namespace SentrySix.Ui
         public TableColumn(string title)
         {
             Title = title ?? "";
-            Width = GridLength.Auto;
         }
 
         public string Title;
-        /// <summary>Auto (as wide as its widest cell) or a share of what is left (*), as the browser's auto table layout ends up.</summary>
-        public GridLength Width;
+        /// <summary>
+        /// td.words (overflow-wrap: break-word): the column is never narrower
+        /// than its longest word. Other cells are .table td's overflow-wrap:
+        /// anywhere, which lets the browser's table make a column as narrow as
+        /// one letter (nowrap parts, as chips and buttons, keep their width).
+        /// </summary>
+        public bool Words;
         /// <summary>.actions: right aligned, no wrap; on a phone a wrapping row of buttons 8 apart.</summary>
         public bool Actions;
         /// <summary>A cell that is not drawn on a phone when it is empty (Jobs: td.energy:empty).</summary>
@@ -39,7 +43,9 @@ namespace SentrySix.Ui
     /// the last, cells top aligned. At 760 px and below it is a list: no
     /// header, each row a block, each cell but the first with its column's
     /// name above it (app.js labelTableCells). A row may carry a full-width
-    /// part below it (a colspan row, as the Nodes page's details).
+    /// part below it (a colspan row, as the Nodes page's details). The
+    /// columns are as wide as the browser's automatic table layout makes
+    /// them (<see cref="TableSizing"/>).
     /// </summary>
     public sealed class Table
     {
@@ -152,9 +158,9 @@ namespace SentrySix.Ui
 
         void BuildGrid()
         {
-            Grid g = new Grid();
+            AutoGrid g = new AutoGrid();
             holders.Add(g);
-            foreach (TableColumn c in cols) g.ColumnDefinitions.Add(new ColumnDefinition { Width = c.Width });
+            foreach (TableColumn c in cols) g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0) });
             // the header
             int at = 0;
             if (ShowHead)
@@ -167,6 +173,8 @@ namespace SentrySix.Ui
                 {
                     TextBlock th = U.Text(cols[i].Title, k.HeadSize, k.HeadWeight, k.Head);
                     th.Margin = k.HeadPad;
+                    // (th: no overflow-wrap: anywhere, so its longest word counts)
+                    TableSizing.SetWords(th, true);
                     th.TextAlignment = TextAlignment.Left;
                     Grid.SetColumn(th, i);
                     g.Children.Add(th);
@@ -246,6 +254,7 @@ namespace SentrySix.Ui
             Border b = new Border();
             b.Padding = asList ? new Thickness(0, k.PhoneCellPad, 0, k.PhoneCellPad) : k.CellPad;
             b.VerticalAlignment = VerticalAlignment.Top;
+            if (c.Words) TableSizing.SetWords(b, true);
             if (content != null) Hold(b, content);
             return b;
         }

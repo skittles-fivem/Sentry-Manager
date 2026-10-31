@@ -330,8 +330,8 @@ namespace SentrySix.Ui.Builtin
             if (view.Vehicles.Count > 0)
             {
                 TableColumn name = new TableColumn(Settings.Columns[0]);
+                name.Words = true;
                 TableColumn footage = new TableColumn(Settings.Columns[1]);
-                footage.Width = new GridLength(1, GridUnitType.Star);
                 TableColumn status = new TableColumn(Settings.Columns[2]);
                 TableColumn acts = new TableColumn(Settings.Columns[3]);
                 acts.Actions = true;
@@ -563,7 +563,8 @@ namespace SentrySix.Ui.Builtin
             {
                 TextBlock newest = U.Text("", 13.5, FontWeights.Normal, "text");
                 Run main = new Run(u.NewestMono ? Format.Breakable(u.Newest) : u.Newest);
-                if (u.NewestMono) main.FontFamily = U.JetBrains;
+                // dd.mono: "(checked …)" in it is mono too
+                if (u.NewestMono) newest.FontFamily = U.JetBrains;
                 newest.Inlines.Add(main);
                 if (u.Checked != null)
                 {
@@ -671,9 +672,8 @@ namespace SentrySix.Ui.Builtin
             if (x.Rows.Count > 0)
             {
                 TableColumn pack = new TableColumn(Settings.UiColumns[0]);
-                pack.Width = new GridLength(1.4, GridUnitType.Star);
+                pack.Words = true;
                 TableColumn changes = new TableColumn(Settings.UiColumns[1]);
-                changes.Width = new GridLength(1, GridUnitType.Star);
                 TableColumn added = new TableColumn(Settings.UiColumns[2]);
                 TableColumn acts = new TableColumn(Settings.UiColumns[3]);
                 acts.Actions = true;

@@ -117,10 +117,8 @@ namespace SentrySix.Ui.Builtin
         static FrameworkElement Table(JobsView v)
         {
             TableColumn job = new TableColumn(Jobs.Columns[0]);
-            job.Width = new GridLength(1.3, GridUnitType.Star);
             TableColumn status = new TableColumn(Jobs.Columns[1]);
             TableColumn detail = new TableColumn(Jobs.Columns[2]);
-            detail.Width = new GridLength(1, GridUnitType.Star);
             TableColumn started = new TableColumn(Jobs.Columns[3]);
             TableColumn took = new TableColumn(Jobs.Columns[4]);
             Table t;

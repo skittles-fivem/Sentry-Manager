@@ -13966,6 +13966,10 @@
     "expanded": [
      "6e1a922385655c63"
     ]
+   },
+   "scroll": {
+    "web": ".rec[data-id=\"6e1a922385655c63\"]",
+    "native": "rec-6e1a922385655c63"
    }
   },
   "footage-empty": {
@@ -14036,6 +14040,10 @@
     "expanded": [
      "6e1a922385655c63"
     ]
+   },
+   "scroll": {
+    "web": ".rec[data-id=\"6e1a922385655c63\"]",
+    "native": "rec-6e1a922385655c63"
    },
    "api": {
     "GET /api/vehicles": {

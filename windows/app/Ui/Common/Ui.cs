@@ -21,9 +21,10 @@ namespace SentrySix.Ui
             return e;
         }
 
+        /// <summary>Wrapping text; its lines as tall as the interface's CSS line-height (<see cref="CssText"/>).</summary>
         public static TextBlock Text(string text, double size, FontWeight weight, string colorKey)
         {
-            TextBlock t = new TextBlock();
+            TextBlock t = new CssText();
             t.Text = text ?? "";
             t.FontSize = size;
             t.FontWeight = weight;

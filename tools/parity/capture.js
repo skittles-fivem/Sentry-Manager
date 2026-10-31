@@ -125,6 +125,17 @@ function footageOpen(api, vehicle) {
   return { vehicleId: vehicle, open: day ? [day] : [], expanded: recs.length ? [recs[0].id] : [] };
 }
 
+/**
+ * Where a picture of the open Footage page is scrolled to, on both sides: the
+ * open recording's card at the top (web: its article, native: the card's Uid
+ * "rec-<id>"), so the two pictures show the same part of the page whatever
+ * the clicks scrolled.
+ */
+function footageScroll(state) {
+  const rec = state.expanded[0];
+  return rec ? { web: `.rec[data-id="${String(rec).replace(/["\\]/g, '\\$&')}"]`, native: `rec-${rec}` } : undefined;
+}
+
 // The fixture's variants: the same pages in another state, by name (the
 // native render list's page names). route/sub pick the page; api answers go
 // over the recorded ones (a { "$error", "$status" } answer is a failure);
@@ -156,7 +167,7 @@ const VARIANTS = {
   // the Footage page: its first day open with the first recording's files (native: the page's
   // kept state; web: the clicks of PAGES), no footage, a scan running, a failed list, no vehicle,
   // more than one page of days, and long names
-  'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle) }),
+  'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },
   'footage-error': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { $error: 'The footage list could not be read.', $status: 500 } } },
@@ -172,6 +183,7 @@ const VARIANTS = {
     return {
       route: 'footage',
       state,
+      scroll: footageScroll(state),
       api: {
         'GET /api/vehicles': { vehicles: (api['GET /api/vehicles'].vehicles || []).map((v, i) => (i ? v : { ...v, name: 'Model 3 Long Range with a name far too long for one pill or one tile title' })) },
         [`GET ${recordingsPath(vehicle, day)}`]: { ...recs, recordings: recs.recordings.map((r, i) => (i ? r : { ...r, folder: `${r.folder}/${long}` })) },
@@ -581,6 +593,12 @@ async function shoot(browser, base, ui, pageName, size, file, vehicle, fixture) 
     for (const sel of spec.clicks || []) {
       await page.click(sel);
       await page.waitForTimeout(1200);
+    }
+    // a variant's own scroll (the native render scrolls to the same element; see footageScroll)
+    const scroll = fixture.variants?.[pageName]?.scroll;
+    if (scroll && scroll.web) {
+      await page.evaluate((sel) => { const el = document.querySelector(sel); if (el) el.scrollIntoView({ block: 'start', behavior: 'instant' }); }, scroll.web);
+      await page.waitForTimeout(300);
     }
     await page.screenshot({ path: file, animations: 'disabled', caret: 'hide' });
   } finally {

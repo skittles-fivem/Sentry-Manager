@@ -663,3 +663,28 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   proportion, Flex.Shrink, so the crumb wraps and the checks stack right),
   and on the phone Sign out sat next to the title instead of at the right
   (Flex wrapped lines now honour space-between).
+
+### Phase 1 parity polish (2026-10-31, after run 41236083942)
+
+- `Ui/Common/Scroll.cs`: the page bar is an 8 px overlay, hidden at rest
+  (shown on a scroll that is not a new page's layout, or the pointer at
+  the right 12 px; fades a second later); `Scroll.Still` (render mode)
+  keeps it hidden.
+- `Ui/Common/CssText.cs`: `U.Text` makes a `CssText`, whose lines are
+  FontSize x the inherited `CssText.LineFactor` (BlockLineHeight); the
+  built-in shell and sign-in set 1.5 (body 14px/1.5). A LineHeight set on
+  the text itself wins. The packs set nothing yet (font line spacing).
+- `Ui/Common/TableSizing.cs`: the table grid (`AutoGrid`) sizes its
+  columns on each measure as Chrome's auto table layout; `TableColumn.Width`
+  is gone, `TableColumn.Words` / `TableSizing.SetWords` mark td.words and
+  span.words (Nodes' node and main server columns and encoders, Settings'
+  vehicle and pack columns).
+- Nodes: Vehicles first's title and note are two grid rows; Settings >
+  Updates: the whole Newest value is mono when the web's dd is; Overview:
+  the stale note is non-breaking and glued to the last host part.
+- Render scroll: a fixture variant may carry `scroll: { web, native }`;
+  capture.js scrolls `web` (a selector) into view at the top after the
+  clicks, RenderMode scrolls the element whose Uid is `native` (Footage's
+  recording card is `rec-<id>`) to the top of its scroller. footage-open
+  and footage-long have it (RenderFixture.json updated in place).
+

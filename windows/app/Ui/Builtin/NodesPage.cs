@@ -212,10 +212,9 @@ namespace SentrySix.Ui.Builtin
             if (v.Nodes.Count > 0)
             {
                 TableColumn node = new TableColumn(Nodes.Columns[0]);
-                node.Width = new GridLength(1.3, GridUnitType.Star);
+                node.Words = true;
                 TableColumn status = new TableColumn(Nodes.Columns[1]);
                 TableColumn enc = new TableColumn(Nodes.Columns[2]);
-                enc.Width = new GridLength(1, GridUnitType.Star);
                 TableColumn clips = new TableColumn(Nodes.Columns[3]);
                 TableColumn acts = new TableColumn(Nodes.Columns[4]);
                 acts.Actions = true;
@@ -281,7 +280,9 @@ namespace SentrySix.Ui.Builtin
         static FrameworkElement EncodersCell(NodeRow n)
         {
             if (n.Devices.Count == 0) return Small(n.Encoders, "text");
+            // span.words: each device's name and encoders keep their words whole
             StackPanel s = new StackPanel();
+            TableSizing.SetWords(s, true);
             foreach (NodeDevice d in n.Devices)
             {
                 s.Children.Add(U.Text(d.Name, 12.5, FontWeights.Bold, "text"));
@@ -323,8 +324,10 @@ namespace SentrySix.Ui.Builtin
         FrameworkElement CarsBox(NodeRow n)
         {
             NodeCars c = n.Cars;
+            // display: grid; gap 8: the <b> and the span are rows of their own
             Flex col = Flex.Col(8);
-            col.Children.Add(BoldAndMuted(Nodes.CarsTitle, c.Note, 14));
+            col.Children.Add(U.Text(Nodes.CarsTitle, 14, FontWeights.Bold, "text"));
+            col.Children.Add(U.Text(c.Note ?? "", 12.5, FontWeights.Normal, "muted"));
             if (c.List.Count > 0)
             {
                 Flex list = Flex.Row(8);
@@ -429,7 +432,6 @@ namespace SentrySix.Ui.Builtin
                 TableColumn a = new TableColumn("");
                 TableColumn b = new TableColumn("");
                 TableColumn c = new TableColumn("");
-                c.Width = new GridLength(1, GridUnitType.Star);
                 Table t = new Table(Look.TableK(), a, b, c);
                 t.ShowHead = false;
                 foreach (NodeBenchRow r in x.Rows)
@@ -620,9 +622,8 @@ namespace SentrySix.Ui.Builtin
         FrameworkElement MainsTable(NodesView v)
         {
             TableColumn main = new TableColumn(Nodes.MainColumns[0]);
-            main.Width = new GridLength(1, GridUnitType.Star);
+            main.Words = true;
             TableColumn paired = new TableColumn(Nodes.MainColumns[1]);
-            paired.Width = new GridLength(1, GridUnitType.Star);
             TableColumn acts = new TableColumn(Nodes.MainColumns[2]);
             acts.Actions = true;
             Table t = new Table(Look.TableK(), main, paired, acts);

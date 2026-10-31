@@ -29,7 +29,9 @@ frame, so two runs give the same picture.
   `vehicles`, `notifications` and `jobs` come from the same `api` answers
   when the fixture does not give them separately.
   `variants` names other states of a page: `variants["footage-empty"]` =
-  `{ route, sub, api, prefs, state }` (its `api` answers over the others);
+  `{ route, sub, api, prefs, state, scroll }` (its `api` answers over the others;
+  `scroll.native`: the Uid of the element scrolled to the top of the page
+  before the picture, as capture.js scrolls `scroll.web` on the web);
   its name is the page name to render (`builtin footage-empty`).
   Without `--fixture`, `Shell\RenderFixture.json` beside the exe is used:
   the fixture server's own answers, written by
