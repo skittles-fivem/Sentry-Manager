@@ -253,7 +253,8 @@ namespace SentrySix.Core.Horizon
 
         public static string Stamp(double ms, bool h24)
         {
-            if (ms == 0) return Dash;
+            // (ts ? … : '—': 0 and NaN are falsy)
+            if (ms == 0 || double.IsNaN(ms)) return Dash;
             if (!Ok(ms)) return "Invalid Date";
             DateTime t = Local(ms);
             return MonShort[t.Month - 1] + " " + t.Day.ToString(Inv) + ", " + Clock(t, h24, false);
@@ -269,7 +270,8 @@ namespace SentrySix.Core.Horizon
 
         public static string StampFull(double ms, bool h24)
         {
-            if (ms == 0) return Dash;
+            // (ts ? … : '—': 0 and NaN are falsy)
+            if (ms == 0 || double.IsNaN(ms)) return Dash;
             if (!Ok(ms)) return "Invalid Date";
             DateTime t = Local(ms);
             return MonShort[t.Month - 1] + " " + t.Day.ToString(Inv) + ", " + t.Year.ToString(Inv) + ", " + Clock(t, h24, true);
