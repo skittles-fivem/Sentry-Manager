@@ -288,3 +288,9 @@ test('install-check still proves the zip the updater installs holds what the Set
   assert.match(job, /SHA256SUMS has no line for \$env:ZIP/);
   assert.match(job, /Get-FileHash -Algorithm SHA256 -LiteralPath \$there/);
 });
+
+test('no .iss line starts with # unless it is a preprocessor directive (ISPP reads every such line as one)', () => {
+  const bad = ISS.split('\n').map((l, i) => [i + 1, l])
+    .filter(([, l]) => /^\s*#/.test(l) && !/^\s*#(if|ifdef|ifndef|else|elif|endif|error|define|undef|include|emit|expr|sub|endsub|pragma|for)\b/.test(l));
+  assert.deepEqual(bad, [], 'a Pascal line like "#13#10 + ..." must not start a line');
+});

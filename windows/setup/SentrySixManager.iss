@@ -491,8 +491,8 @@ begin
   end;
   if not Ok or (ResultCode <> 0) then begin
     Log('uninstall.ps1 failed (exit code ' + IntToStr(ResultCode) + ')');
-    SuppressibleMsgBox('Sentry Six Manager could not be removed completely. It stays in Settings > Apps, so you can try again. The last lines it wrote:' +
-      #13#10#13#10 + TailText + #13#10 + 'All of it is in ' + OutputLog + '.', mbCriticalError, MB_OK, IDOK);
+    SuppressibleMsgBox('Sentry Six Manager could not be removed completely. It stays in Settings > Apps, so you can try again. The last lines it wrote:' + #13#10#13#10 +
+      TailText + #13#10 + 'All of it is in ' + OutputLog + '.', mbCriticalError, MB_OK, IDOK);
     Abort;
   end;
 end;
