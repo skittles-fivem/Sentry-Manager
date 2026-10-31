@@ -54,6 +54,180 @@ jobs:
             $f | Select-Object -First 12 | ForEach-Object { '  ' + $_.FullName.Substring($d.Length) + '  ' + [math]::Round($_.Length/1MB,1) + ' MB' }
           }
 
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # The CPU package watts as the Windows build reads them (Setup's
+      # "Measure CPU power"): PawnIO exactly as windows\versions.json pins it,
+      # installed only if this PC has no PawnIO yet (and then removed again
+      # at the end; a PawnIO that was here before is used and left alone),
+      # SentryPower.exe built with the two pinned modules, and the helper's
+      # perf.sample 'rapl' asked twice a second apart. Informational: the GPU
+      # job runs whatever this says.
+      - name: CPU power (PawnIO, perf.sample rapl)
+        continue-on-error: true
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $pins = Get-Content -Raw -LiteralPath windows\versions.json | ConvertFrom-Json
+          $work = Join-Path $env:RUNNER_TEMP 'cpupower'
+          if (Test-Path -LiteralPath $work) { Remove-Item -LiteralPath $work -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $work | Out-Null
+          function Get-Sha([string]$file) { (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLowerInvariant() }
+          function Get-Pinned([string]$name, [string]$file) {
+            $pin = $pins.$name
+            $want = ([string]$pin.sha256).ToLowerInvariant()
+            if ($want -notmatch '^[0-9a-f]{64}$' -or [string]$pin.url -notmatch '^https://') { throw "windows/versions.json: $name needs an https url and a SHA-256" }
+            Invoke-WebRequest -UseBasicParsing -Uri ([string]$pin.url) -OutFile $file
+            $got = Get-Sha $file
+            if ($got -ne $want) { throw "the $name download does not match its pinned SHA-256 (expected $want, got $got)" }
+            Write-Host "$name $($pin.version): $file (sha256 $got)"
+          }
+          $setup = Join-Path $work 'PawnIO_setup.exe'
+          Get-Pinned 'pawnio-setup' $setup
+          $zipFile = Join-Path $work 'modules.zip'
+          Get-Pinned 'pawnio-modules' $zipFile
+          $mods = $pins.'pawnio-modules'
+          $res = @()
+          $z = [IO.Compression.ZipFile]::OpenRead($zipFile)
+          try {
+            foreach ($p in $mods.files.PSObject.Properties) {
+              $entry = $z.GetEntry([string]$p.Value)
+              if (-not $entry) { throw "the modules zip has no $($p.Value)" }
+              $file = Join-Path $work $p.Name
+              [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $file, $true)
+              if ((Get-Sha $file) -ne ([string]$mods.fileSha256.($p.Name)).ToLowerInvariant()) { throw "$($p.Name) does not match its pinned SHA-256" }
+              $res += "/resource:$file,$($p.Name)"
+            }
+          } finally { $z.Dispose() }
+          $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          $powerExe = Join-Path $work 'SentryPower.exe'
+          & $csc /nologo /optimize+ /platform:x64 /target:exe /reference:System.dll /reference:System.Core.dll /reference:System.ServiceProcess.dll "/out:$powerExe" @res windows\power\SentryPower.cs
+          if ($LASTEXITCODE -ne 0) { throw 'csc could not compile SentryPower.cs' }
+          $helperExe = Join-Path $work 'SentryHelper.exe'
+          & $csc /nologo /optimize+ /platform:x64 /target:exe /reference:System.dll /reference:System.Core.dll /reference:System.Management.dll /reference:System.Web.Extensions.dll "/out:$helperExe" windows\helper\SentryHelper.cs
+          if ($LASTEXITCODE -ne 0) { throw 'csc could not compile SentryHelper.cs' }
+
+          $uninstKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO'
+          $driverKey = 'HKLM:\SYSTEM\CurrentControlSet\Services\PawnIO'
+          $hadPawn = (Test-Path -LiteralPath $uninstKey) -or (Test-Path -LiteralPath $driverKey)
+          $installedHere = $false
+          $hadService = $null -ne (Get-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue)
+          $madeService = $false
+          $record = Join-Path $env:RUNNER_TEMP 'pawnio-installed-by-water.txt'
+          $summary = @()
+          try {
+            if ($hadPawn) {
+              $v = ''
+              if (Test-Path -LiteralPath $uninstKey) { $v = [string](Get-ItemProperty -LiteralPath $uninstKey).DisplayVersion }
+              Write-Host "PawnIO $v was already installed on this PC: used, and left as it is."
+              $summary += "PawnIO $v was already installed: used and left installed."
+            } else {
+              $sig = Get-AuthenticodeSignature -LiteralPath $setup
+              if ($sig.Status -ne 'Valid' -or [string]$sig.SignerCertificate.Subject -notmatch '(^|, )CN=namazso(,|$)') { throw "PawnIO_setup.exe: signature $($sig.Status), signer $($sig.SignerCertificate.Subject)" }
+              Write-Host "PawnIO is not installed: installing the pinned $($pins.'pawnio-setup'.version) for this step (signed $($sig.SignerCertificate.Subject))"
+              $installedHere = $true
+              [IO.File]::WriteAllText($record, "PawnIO $($pins.'pawnio-setup'.version) installed by run $env:GITHUB_RUN_ID at $(Get-Date -Format o)`r`n")
+              $p = Start-Process -FilePath $setup -ArgumentList '-install', '-silent' -Wait -PassThru
+              Write-Host "PawnIO_setup.exe -install -silent: exit code $($p.ExitCode) (recorded in $record)"
+              if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { throw "PawnIO's installer failed (exit code $($p.ExitCode))" }
+              if ($p.ExitCode -eq 3010) { Write-Host '::warning::PawnIO asks for a restart; the driver may not load before it' }
+            }
+
+            Write-Host '== SentryPower.exe --once (two readings a second apart, straight from the driver)'
+            & $powerExe --once
+            Write-Host "exit code $LASTEXITCODE"
+
+            # the helper's perf.sample 'rapl' reads the CPU power service's pipe
+            if (-not $hadService) {
+              # (the arguments as written: Windows PowerShell would drop the quotes around the path)
+              $sc = Start-Process -FilePath 'sc.exe' -ArgumentList ('create SentrySixPower binPath= "\"' + $powerExe + '\"" obj= LocalSystem start= demand DisplayName= "Sentry Six Manager CPU power (water test)"') -Wait -PassThru -NoNewWindow
+              if ($sc.ExitCode -ne 0) { throw "sc.exe create failed ($($sc.ExitCode))" }
+              $madeService = $true
+              Start-Service -Name 'SentrySixPower'
+            } else {
+              Write-Host 'The SentrySixPower service was already installed: using it as it is.'
+            }
+            $ok = $false
+            for ($i = 0; $i -lt 20 -and -not $ok; $i++) {
+              Start-Sleep -Milliseconds 500
+              try {
+                $pipe = New-Object IO.Pipes.NamedPipeClientStream('.', 'SentrySixPower', [IO.Pipes.PipeDirection]::In)
+                $pipe.Connect(1000)
+                $line = (New-Object IO.StreamReader($pipe)).ReadLine()
+                $pipe.Dispose()
+                Write-Host "pipe: $line"
+                if ($line -match '"ok":true') { $ok = $true }
+                elseif ($line -notmatch '"reason":"starting"') { break }
+              } catch { Write-Host "pipe: $($_.Exception.Message)" }
+            }
+
+            $info = New-Object Diagnostics.ProcessStartInfo $helperExe
+            $info.UseShellExecute = $false
+            $info.RedirectStandardInput = $true
+            $info.RedirectStandardOutput = $true
+            $helper = [Diagnostics.Process]::Start($info)
+            try {
+              Write-Host "helper: $($helper.StandardOutput.ReadLine())"
+              $samples = @()
+              foreach ($id in 1, 2) {
+                if ($id -eq 2) { Start-Sleep -Seconds 1 }
+                $helper.StandardInput.Write('{"id":' + $id + ',"op":"perf.sample","args":{"sets":["rapl"]}}' + "`n")
+                $helper.StandardInput.Flush()
+                $answer = $helper.StandardOutput.ReadLine()
+                Write-Host "perf.sample rapl #${id}: $answer"
+                $samples += ($answer | ConvertFrom-Json)
+              }
+            } finally {
+              $helper.StandardInput.Close()
+              if (-not $helper.WaitForExit(5000)) { $helper.Kill() }
+            }
+            $a = $samples[0].result.sets.rapl
+            $b = $samples[1].result.sets.rapl
+            $watts = 0.0
+            $n = 0
+            foreach ($pkg in @($b.PSObject.Properties)) {
+              $was = $a.PSObject.Properties[$pkg.Name]
+              if ($null -eq $was) { continue }
+              $dE = [decimal]$pkg.Value.EnergyUj - [decimal]$was.Value.EnergyUj
+              $dT = [decimal]$pkg.Value.Time100ns - [decimal]$was.Value.Time100ns
+              if ($dT -le 0 -or $dE -lt 0) { continue }
+              $w = [double]($dE / $dT * 10)
+              Write-Host ("{0}: {1:N1} W ({2} uJ in {3:N3} s)" -f $pkg.Name, $w, $dE, ([double]$dT / 1e7))
+              $watts += $w
+              $n++
+            }
+            $cpuName = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name
+            if ($n -eq 0) { throw "perf.sample 'rapl' gave no CPU package energy (see above)" }
+            $line = "CPU package power ($cpuName): {0:N1} W, from perf.sample 'rapl' (PawnIO RAPL), $n package(s)" -f $watts
+            Write-Host "== $line"
+            $summary += $line
+          } finally {
+            if ($madeService) {
+              try { Stop-Service -Name 'SentrySixPower' -Force } catch { }
+              & sc.exe delete SentrySixPower | Out-Host
+            }
+            if ($installedHere) {
+              $loc = ''
+              if (Test-Path -LiteralPath $uninstKey) { $loc = [string](Get-ItemProperty -LiteralPath $uninstKey).InstallLocation }
+              $un = if ($loc) { Join-Path $loc 'uninstall.exe' } else { '' }
+              if ($un -and (Test-Path -LiteralPath $un)) {
+                $p = Start-Process -FilePath $un -ArgumentList '-uninstall', '-silent' -Wait -PassThru
+                Write-Host "PawnIO was installed by this step: removed again (uninstall.exe exit code $($p.ExitCode))"
+                $summary += "PawnIO was not installed before: installed for this step, then removed (exit code $($p.ExitCode))."
+              } else {
+                Write-Host "::warning::PawnIO was installed by this step but its uninstaller was not found ($loc); remove it in Settings > Apps"
+                $summary += 'PawnIO was installed by this step; its uninstaller was not found, so it is still installed.'
+              }
+              if ((Test-Path -LiteralPath $uninstKey) -or (Test-Path -LiteralPath $driverKey)) { Write-Host '::warning::PawnIO is still registered after its uninstall' }
+              Remove-Item -LiteralPath $record -Force -ErrorAction SilentlyContinue
+            }
+            if ($env:GITHUB_STEP_SUMMARY) { [IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, "### CPU power`n`n" + (($summary | ForEach-Object { "- $_" }) -join "`n") + "`n") }
+          }
+
   # The converter's decode tiers on this PC's real GPUs (docs/plans/windows.md,
   # section 8): tools/gpuTiers.js copies a minute of the owner's HW3 and HW4
   # clips (read only; three whole minutes of each) into the runner's temp folder and encodes them on every

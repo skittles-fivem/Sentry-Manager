@@ -86,9 +86,14 @@ namespace SentrySixManager.Power
             return family >= 0x17 && family <= 0x1A;
         }
 
+        /**
+         * Intel family 6 from Sandy Bridge on, and the families after it
+         * (Nova Lake 0x12, Diamond Rapids 0x13, ...), which keep the RAPL
+         * MSRs; family 15 (NetBurst) has none.
+         */
         public static bool IntelSupported(int family, int model)
         {
-            return family == 6 && model > 0 && Array.IndexOf(IntelBeforeRapl, model) < 0;
+            return (family == 6 && model > 0 && Array.IndexOf(IntelBeforeRapl, model) < 0) || family >= 0x12;
         }
 
         /** Joules per count of the package energy counter, from the power unit MSR. */
@@ -306,12 +311,58 @@ namespace SentrySixManager.Power
             return null;
         }
 
-        public uint Version()
+        /**
+         * The driver's version (IOCTL_PIO_VERSION), or false when the driver
+         * has no such call: it came with PawnIO 2.1.0, and 2.0.x (which
+         * FanControl and LibreHardwareMonitor install too) loads and runs the
+         * modules with the same two calls as later versions.
+         */
+        public bool TryVersion(out uint version)
         {
+            version = 0;
             var outBuf = new byte[4];
             int got;
-            if (!Native.DeviceIoControl(h, IoctlVersion, null, 0, outBuf, 4, out got, IntPtr.Zero) || got < 4) return 0;
-            return BitConverter.ToUInt32(outBuf, 0);
+            if (!Native.DeviceIoControl(h, IoctlVersion, null, 0, outBuf, 4, out got, IntPtr.Zero) || got < 4) return false;
+            version = BitConverter.ToUInt32(outBuf, 0);
+            return true;
+        }
+
+        /**
+         * Whether the driver will do. Null when it will, with the version to
+         * report in driverText; else why not. A driver that does not say its
+         * version is 2.0.x (registryVersion: Uninstall\PawnIO's
+         * DisplayVersion, when there is one); a module it cannot run is caught
+         * when it is loaded.
+         */
+        public static string Check(bool gotVersion, uint version, string registryVersion, out string driverText)
+        {
+            if (!gotVersion)
+            {
+                driverText = string.IsNullOrEmpty(registryVersion) ? "2.0" : registryVersion;
+                return null;
+            }
+            driverText = VersionText(version);
+            if (version < MinVersion) return "PawnIO " + driverText + " is older than 2.0.0; update it from https://pawnio.eu";
+            return null;
+        }
+
+        /** Uninstall\PawnIO's DisplayVersion, or null. */
+        public static string RegistryVersion()
+        {
+            try
+            {
+                using (RegistryKey baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
+                using (RegistryKey k = baseKey.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO"))
+                {
+                    if (k == null) return null;
+                    string v = k.GetValue("DisplayVersion") as string;
+                    if (v == null) return null;
+                    v = v.Trim();
+                    // a version number only: it goes into the pipe's JSON as is
+                    return Regex.IsMatch(v, @"^[0-9]{1,5}(\.[0-9]{1,5}){0,3}$") ? v : null;
+                }
+            }
+            catch (Exception) { return null; }
         }
 
         public static string VersionText(uint v)
@@ -410,9 +461,10 @@ namespace SentrySixManager.Power
             int err;
             dev = PawnIo.Open(out err);
             if (dev == null) { Fail("no-driver", "PawnIO is not installed or not loaded (error " + err + ")"); return false; }
-            uint v = dev.Version();
-            driver = PawnIo.VersionText(v);
-            if (v < PawnIo.MinVersion) { Fail("old-driver", "PawnIO " + driver + " is older than 2.0.0; update it from https://pawnio.eu"); return false; }
+            uint v;
+            bool gotVersion = dev.TryVersion(out v);
+            string tooOld = PawnIo.Check(gotVersion, v, gotVersion ? null : PawnIo.RegistryVersion(), out driver);
+            if (tooOld != null) { Fail("old-driver", tooOld); return false; }
             if (!dev.Load(blob)) { Fail("load-failed", "PawnIO did not load " + module + " (error " + Marshal.GetLastWin32Error() + ")"); return false; }
             vendor = cpu.Vendor;
             uint unitMsr = vendor == "amd" ? Rapl.AmdPowerUnit : Rapl.IntelPowerUnit;

@@ -724,6 +724,8 @@ $portLine
   # watts, as before (Energy Meter where Windows has it, else "n/a").
   if ($haveCpuPower) {
     try {
+      # (our record of installing PawnIO goes first if PawnIO is gone)
+      Clear-StalePawnMarker
       if ($WantCpuPower) {
         Say 'CPU power: setting up PawnIO and the CPU power service...'
         $pawn = Install-PawnIO $PawnSetupExe

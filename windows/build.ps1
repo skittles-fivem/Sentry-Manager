@@ -467,6 +467,14 @@ foreach ($s in 'install.ps1', 'uninstall.ps1', 'update.ps1', 'cpupower.ps1', 'In
   if (-not (Test-Path -LiteralPath $p)) { Fail "windows\$s is missing: it has to be written before a package can be built" }
   Copy-Item -LiteralPath $p -Destination (Join-Path $Stage $s)
 }
+# cpupower.ps1 checks the PawnIO installer against its pinned SHA-256 again
+# before it runs it: the hash goes into the packaged copy
+$pawnSha = ([string](Prop $pawnSetup 'sha256')).ToLowerInvariant()
+if ($pawnSha -notmatch '^[0-9a-f]{64}$') { Fail "versions.json: pawnio-setup has no SHA-256" }
+$cpuStage = Join-Path $Stage 'cpupower.ps1'
+$cpuText = [IO.File]::ReadAllText($cpuStage)
+if (-not $cpuText.Contains("'@PAWNIO_SETUP_SHA256@'")) { Fail "windows\cpupower.ps1 has no '@PAWNIO_SETUP_SHA256@' for the pinned hash" }
+Write-Text $cpuStage $cpuText.Replace("'@PAWNIO_SETUP_SHA256@'", "'$pawnSha'")
 
 $readme = @"
 Sentry Six Manager $Version for Windows (x64)

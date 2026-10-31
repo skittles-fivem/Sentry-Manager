@@ -80,6 +80,9 @@ test('SentryPower.cs: only ioctl_read_msr, only the four RAPL MSRs, a pipe that 
   assert.match(source, /IoctlExecuteFn = 0xA1B22104/);
   assert.match(source, /IoctlLoadBinary = 0xA1B22084/);
   assert.match(source, /MinVersion = 0x020000/);
+  // a failed version call is not old-driver (PawnIO 2.0.x has none)
+  assert.match(source, /bool gotVersion = dev\.TryVersion\(out v\);/);
+  assert.doesNotMatch(source, /if \(v < PawnIo\.MinVersion\)/);
 });
 
 test('SentryPower.cs compiles, and its maths match the Linux energy_uj figure', { skip: noRunner }, () => {
@@ -97,6 +100,14 @@ test('SentryPower.cs compiles, and its maths match the Linux energy_uj figure', 
   assert.equal(got.intelRaptor, 'True');
   assert.equal(got.intelNehalem, 'False');
   assert.equal(got.intelNetburst, 'False');
+  assert.equal(got.intelNovaLake, 'True', 'Intel family 0x12 keeps MSR 0x606/0x611');
+  assert.equal(got.intelDiamondRapids, 'True');
+  assert.equal(got.cpuIntel18, 'intel 18 1 IntelMSR.bin');
+  // PawnIO 2.0.x has no IOCTL_PIO_VERSION (it came with 2.1.0): not old-driver
+  assert.equal(got.check20, 'ok 2.0');
+  assert.equal(got.check20reg, 'ok 2.0.1', 'the registry DisplayVersion is reported');
+  assert.equal(got.check22, 'ok 2.2.0');
+  assert.equal(got.check19, 'old 1.9.0', 'a driver that says it is older than 2.0.0 is old-driver');
   assert.equal(got.cpu, 'amd 25 97 AMDFamily17.bin');
   assert.equal(got.cpuIntel, 'intel 6 151 IntelMSR.bin');
   assert.equal(got.cpuOld, 'none');

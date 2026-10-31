@@ -150,6 +150,11 @@ writes one JSON line and hangs up:
                                     cpu (not AMD 17h-1Ah / Intel Sandy Bridge+), load-failed, msr-failed
 ```
 
+`driver` is the version the driver reports (IOCTL_PIO_VERSION, from PawnIO 2.1.0).
+A 2.0.x driver has no such call and is used all the same (it loads and runs the
+modules with the same two calls); it reports `Uninstall\PawnIO`'s DisplayVersion,
+else `2.0`. Intel counts from Sandy Bridge (family 6) and every family from 0x12 on.
+
 The helper relays an `ok` answer as `{"package-0": {"EnergyUj": "n", "Time100ns": "n"}, …}`.
 Anything else becomes `{}`: no service, no driver, a VM, an unknown CPU.
 
