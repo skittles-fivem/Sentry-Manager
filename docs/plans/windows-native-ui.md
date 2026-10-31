@@ -268,8 +268,15 @@ is done when every item is ticked in both. Run on the owner's PC runner.
       typing and 11 clears (test/windowsNativeHorizonJobs.test.js,
       Core.Tests HorizonJobsTests). Render list: horizon jobs, -empty,
       -running-only, -long, -error.
-    - Dashboard, Footage, Nodes, Policies, Recycle Bin, Notifications,
-      Encoding per vehicle, Settings: in progress.
+    - Nodes: native (`Ui/Horizon/HzNodesPage.cs`, `HzKitNodes.cs`,
+      `Core/Horizon/HzNodes.cs`; `HzNodeLanes.cs` ports hz/nodelanes.js for
+      the Encoder). Compared with hz/nodes.js and nodelanes.js on 56
+      sessions, 105 steps (test/windowsNativeHorizonNodes.test.js, Core.Tests
+      HorizonNodesTests). Use N at once writes the pack's own
+      `horizon.enc.form`. Render list: horizon nodes-empty, nodes,
+      -running, -noworker, -closed.
+    - Dashboard, Footage, Policies, Recycle Bin, Notifications, Encoding per
+      vehicle, Settings: in progress.
     - Viewer (with the speed graph) and Encoder: after phases 2 and 3 land;
       the browser until then.
   - Phases 5-7 (Flux, Aurora, Daylight): not started; their pages open in
