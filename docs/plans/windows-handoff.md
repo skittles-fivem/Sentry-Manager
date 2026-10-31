@@ -725,3 +725,35 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   paths it picked), and later, with the Viewer page, the render tick's
   timing and memory against the plan's budget.
 
+### Phase 2: Viewer part 0, how the shell hosts it (2026-10-31)
+
+- `Core/ViewerHost.cs`: `FormQuery` (URLSearchParams: encode, parse with
+  the Encoding standard's UTF-8 decode), `StudioFrames` (web/app.js's
+  frames and pendingFrame: Url = studioUrl, Open = openStudio's pending
+  address, Show = showFrame with the 'pause' / 'shown' posts, HideAll =
+  render()'s hiding, Fit = fitFrames, Message = the listener),
+  `ViewerStart` (the shim's address reading and words), `ViewerStatus`,
+  `DayWish`, `ViewerAway`.
+- `Format.JsNum` now prints the shortest digits that read back (G15, G16,
+  then G17): .NET Framework's and Mono's "R" gave 17 digits where
+  JavaScript prints 16 (fitFrames' scale(0.9988888888888889)).
+- `Ui/Builtin/ViewerPage.cs`: the page is made per visit but the Viewer
+  (`StudioViewer`) lives in `ViewerSlot` (PageState["viewer"]); a page
+  closing pauses it only when it is still the page showing it (a visit of
+  #/viewer from #/viewer makes the new page first). `ViewerPage.Render`
+  answers at once so the Viewer is moved to the new page's frame before
+  the old page is closed. AppController.DropPage now disposes every
+  IDisposable in PageState (the Viewer's decoders) with the shell.
+- For the next parts: draw into `StudioViewer.Stage`, set
+  `StudioViewer.Player` once there are clips (Pause / Shown use it; call
+  `Played()` when playback starts, so it is paused again while away),
+  call `HideOverlay()` when the clips are shown and `Watch(...)` once the
+  library reads folders (the shim's status and Play day timers), use
+  `PickVehicle(id)` for the clip list's vehicle picker (two vehicles or
+  more: `ViewerStart.ShowPicker`) and `ShowInFolder()` for Studio's "Show
+  in folder". When the Viewer is complete set `ViewerPage.Complete`
+  (BuiltinInterface then lists it as native, Footage's links land in it).
+- Renders: viewer, viewer-day, viewer-recording, viewer-novehicle (their
+  `state` is the Viewer's address extra; RenderFixture.json updated in
+  place, capture.js has the same variants and waits 5 s for Studio).
+

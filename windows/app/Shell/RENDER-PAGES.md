@@ -176,6 +176,20 @@ answers: no Interface, Security or System card) and settings-error (GET
 /api/settings fails: the whole page is the message). At phone width the
 tab strip shows one section; on a desktop every card. The new vehicle's
 time zone is this PC's (Windows' zone as its IANA name), as the browser's.
+The Viewer (phase 2, in progress: only the render test mode draws it until
+all of it is native; its navigation still opens the browser): viewer (the
+selected vehicle's footage, Studio's address with its root), viewer-day
+(Footage > Play day on the first day: the native side has the Viewer's
+`state` `{ "date": … }`, the web clicks the first day's Play day),
+viewer-recording (Play recording on that day's first recording: `state`
+`{ "folder": <its folderPath> }`, the web opens the day and clicks it) and
+viewer-novehicle (no vehicles: "Add a vehicle in Settings to see its
+footage here."). The frame fills the page area edge to edge (the top bar
+hidden; under 1200 px the sidebar collapsed) and under 900 px is drawn at
+900 px and scaled down, as fitFrames. So far the native side draws the
+Viewer's empty screen with its words (the clip list, the cameras and the
+controls are the Viewer's next parts); capture.js waits 5 s after the
+clicks for Studio to load in its frame.
 
 - builtin overview
 - builtin overview-off
@@ -226,3 +240,7 @@ time zone is this PC's (Windows' zone as its IANA name), as the browser's.
 - builtin percar-edit
 - builtin percar-empty
 - builtin percar-error
+- builtin viewer
+- builtin viewer-day
+- builtin viewer-recording
+- builtin viewer-novehicle

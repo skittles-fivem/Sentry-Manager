@@ -84,11 +84,26 @@ namespace SentrySix.Core
             if (double.IsNegativeInfinity(x)) return "-Infinity";
             if (x == 0) return "0";
             if (x == Math.Floor(x) && Math.Abs(x) < 9e18) return ((long)x).ToString(Inv);
-            string r = x.ToString("R", Inv);
+            string r = Shortest(x);
             if (r.IndexOf('E') < 0) return r;
             decimal d;
             if (decimal.TryParse(r, NumberStyles.Float, Inv, out d)) return d.ToString(Inv);
             return r;
+        }
+
+        /// <summary>
+        /// The fewest digits that read back as the same number, as JavaScript
+        /// prints them (.NET Framework's "R" gives 17 digits where 16 do).
+        /// </summary>
+        static string Shortest(double x)
+        {
+            for (int digits = 15; digits < 17; digits++)
+            {
+                string g = x.ToString("G" + digits, Inv);
+                double back;
+                if (double.TryParse(g, NumberStyles.Float, Inv, out back) && back == x) return g;
+            }
+            return x.ToString("G17", Inv);
         }
 
         /// <summary>Number#toLocaleString() in en-US: grouped, at most 3 decimals, halves away from 0.</summary>

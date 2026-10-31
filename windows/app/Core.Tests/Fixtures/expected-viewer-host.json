@@ -1,0 +1,2992 @@
+{
+ "about": "Written by test/windowsNativeViewerHost.test.js from web/app.js (studioUrl, openStudio, showFrame, hideFrame, fitFrames, the message listener) and web/electronApiShim.js (the viewer part); checked by windows/app/Core.Tests (ViewerHostTests.cs, SentrySix.Core.StudioFrames / ViewerStart).",
+ "origin": "https://sentry.local:9000",
+ "frames": {
+  "viewer-first": {
+   "steps": [
+    {
+     "do": "vehicles",
+     "list": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "root": "/footage/model-3",
+       "studioRoot": "/footage/model-3/TeslaCam"
+      },
+      {
+       "id": "y",
+       "name": "Model Y",
+       "root": "/footage/y"
+      }
+     ],
+     "id": "model-3"
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    },
+    {
+     "do": "route",
+     "hash": "#/footage"
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    }
+   ],
+   "after": [
+    {
+     "frames": [],
+     "posts": [],
+     "hash": "#/overview",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "pause"
+      }
+     ],
+     "hash": "#/footage",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "shown"
+      }
+     ],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    }
+   ]
+  },
+  "play-day-then-recording": {
+   "steps": [
+    {
+     "do": "vehicles",
+     "list": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "root": "/footage/model-3",
+       "studioRoot": "/footage/model-3/TeslaCam"
+      },
+      {
+       "id": "y",
+       "name": "Model Y",
+       "root": "/footage/y"
+      }
+     ],
+     "id": "model-3"
+    },
+    {
+     "do": "route",
+     "hash": "#/footage"
+    },
+    {
+     "do": "open",
+     "kind": "viewer",
+     "extra": {
+      "date": "2026-10-30"
+     }
+    },
+    {
+     "do": "route",
+     "hash": "#/footage"
+    },
+    {
+     "do": "open",
+     "kind": "viewer",
+     "extra": {
+      "folder": "/footage/model-3/TeslaCam/SentryClips/2026-10-30_12-01-02"
+     }
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    },
+    {
+     "do": "open",
+     "kind": "viewer",
+     "extra": {
+      "folder": "/footage/model-3/TeslaCam/SentryClips/2026-10-30_12-01-02"
+     }
+    },
+    {
+     "do": "open",
+     "kind": "viewer",
+     "extra": {
+      "date": "2026-10-31"
+     }
+    }
+   ],
+   "after": [
+    {
+     "frames": [],
+     "posts": [],
+     "hash": "#/overview",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [],
+     "posts": [],
+     "hash": "#/footage",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3&date=2026-10-30",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3&date=2026-10-30",
+       "vehicle": "model-3",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "pause"
+      }
+     ],
+     "hash": "#/footage",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3&folder=%2Ffootage%2Fmodel-3%2FTeslaCam%2FSentryClips%2F2026-10-30_12-01-02",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3&folder=%2Ffootage%2Fmodel-3%2FTeslaCam%2FSentryClips%2F2026-10-30_12-01-02",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3&folder=%2Ffootage%2Fmodel-3%2FTeslaCam%2FSentryClips%2F2026-10-30_12-01-02",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3&date=2026-10-31",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    }
+   ]
+  },
+  "other-vehicle-starts-over": {
+   "steps": [
+    {
+     "do": "vehicles",
+     "list": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "root": "/footage/model-3",
+       "studioRoot": "/footage/model-3/TeslaCam"
+      },
+      {
+       "id": "y",
+       "name": "Model Y",
+       "root": "/footage/y"
+      }
+     ],
+     "id": "model-3"
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    },
+    {
+     "do": "route",
+     "hash": "#/footage"
+    },
+    {
+     "do": "pick",
+     "id": "y"
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    },
+    {
+     "do": "pick",
+     "id": "model-3"
+    },
+    {
+     "do": "route",
+     "hash": "#/overview"
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    }
+   ],
+   "after": [
+    {
+     "frames": [],
+     "posts": [],
+     "hash": "#/overview",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "pause"
+      }
+     ],
+     "hash": "#/footage",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/footage",
+     "vehicleId": "y",
+     "stored": "y",
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fy&vehicle=y",
+       "vehicle": "y",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "y",
+     "stored": "y",
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fy&vehicle=y",
+       "vehicle": "y",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": "model-3",
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fy&vehicle=y",
+       "vehicle": "y",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "pause"
+      }
+     ],
+     "hash": "#/overview",
+     "vehicleId": "model-3",
+     "stored": "model-3",
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": "model-3",
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    }
+   ]
+  },
+  "picker-message": {
+   "steps": [
+    {
+     "do": "vehicles",
+     "list": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "root": "/footage/model-3",
+       "studioRoot": "/footage/model-3/TeslaCam"
+      },
+      {
+       "id": "y",
+       "name": "Model Y",
+       "root": "/footage/y"
+      }
+     ],
+     "id": "model-3"
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    },
+    {
+     "do": "message",
+     "data": {
+      "source": "sentry-studio",
+      "type": "select-vehicle",
+      "id": "y"
+     }
+    },
+    {
+     "do": "message",
+     "data": {
+      "source": "sentry-studio",
+      "type": "select-vehicle",
+      "id": "nope"
+     }
+    },
+    {
+     "do": "message",
+     "data": {
+      "source": "sentry-studio",
+      "type": "select-vehicle",
+      "id": "model-3"
+     },
+     "origin": "https://evil.example"
+    },
+    {
+     "do": "message",
+     "data": {
+      "source": "other",
+      "type": "select-vehicle",
+      "id": "model-3"
+     }
+    },
+    {
+     "do": "message",
+     "data": {
+      "type": "select-vehicle",
+      "id": "model-3"
+     }
+    },
+    {
+     "do": "message",
+     "data": "select-vehicle"
+    },
+    {
+     "do": "message",
+     "data": {
+      "source": "sentry-studio",
+      "type": "select-vehicle",
+      "id": "model-3"
+     }
+    },
+    {
+     "do": "message",
+     "data": {
+      "source": "sentry-studio",
+      "type": "showInFolder",
+      "path": "/footage/model-3/TeslaCam/SentryClips/a/front.mp4"
+     }
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    }
+   ],
+   "after": [
+    {
+     "frames": [],
+     "posts": [],
+     "hash": "#/overview",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fy&vehicle=y",
+       "vehicle": "y",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "y",
+     "stored": "y",
+     "footage": {
+      "offset": 0,
+      "category": "events",
+      "selected": 0
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fy&vehicle=y",
+       "vehicle": "y",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "y",
+     "stored": "y",
+     "footage": {
+      "offset": 0,
+      "category": "events",
+      "selected": 0
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fy&vehicle=y",
+       "vehicle": "y",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "y",
+     "stored": "y",
+     "footage": {
+      "offset": 0,
+      "category": "events",
+      "selected": 0
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fy&vehicle=y",
+       "vehicle": "y",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "y",
+     "stored": "y",
+     "footage": {
+      "offset": 0,
+      "category": "events",
+      "selected": 0
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fy&vehicle=y",
+       "vehicle": "y",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "y",
+     "stored": "y",
+     "footage": {
+      "offset": 0,
+      "category": "events",
+      "selected": 0
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fy&vehicle=y",
+       "vehicle": "y",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "y",
+     "stored": "y",
+     "footage": {
+      "offset": 0,
+      "category": "events",
+      "selected": 0
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": "model-3",
+     "footage": {
+      "offset": 0,
+      "category": "events",
+      "selected": 0
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "pause"
+      }
+     ],
+     "hash": "#/footage",
+     "vehicleId": "model-3",
+     "stored": "model-3",
+     "footage": {
+      "offset": 0,
+      "category": "all",
+      "selected": 0
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "shown"
+      }
+     ],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": "model-3",
+     "footage": {
+      "offset": 0,
+      "category": "all",
+      "selected": 0
+     }
+    }
+   ]
+  },
+  "numeric-ids": {
+   "steps": [
+    {
+     "do": "vehicles",
+     "list": [
+      {
+       "id": 7,
+       "name": "Seven",
+       "root": "/footage/7"
+      },
+      {
+       "id": 8,
+       "name": "Eight",
+       "root": "/footage/8",
+       "studioRoot": ""
+      }
+     ],
+     "id": 7
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    },
+    {
+     "do": "message",
+     "data": {
+      "source": "sentry-studio",
+      "type": "select-vehicle",
+      "id": "8"
+     }
+    },
+    {
+     "do": "message",
+     "data": {
+      "source": "sentry-studio",
+      "type": "select-vehicle",
+      "id": 8
+     }
+    }
+   ],
+   "after": [
+    {
+     "frames": [],
+     "posts": [],
+     "hash": "#/overview",
+     "vehicleId": 7,
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2F7&vehicle=7",
+       "vehicle": "7",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": 7,
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2F7&vehicle=7",
+       "vehicle": "7",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": 7,
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2F8&vehicle=8",
+       "vehicle": "8",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": 8,
+     "stored": 8,
+     "footage": {
+      "offset": 0,
+      "category": "events",
+      "selected": 0
+     }
+    }
+   ]
+  },
+  "no-vehicles": {
+   "steps": [
+    {
+     "do": "vehicles",
+     "list": [],
+     "id": null
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    },
+    {
+     "do": "route",
+     "hash": "#/settings"
+    },
+    {
+     "do": "vehicles",
+     "list": [],
+     "id": "remembered"
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    },
+    {
+     "do": "vehicles",
+     "list": [
+      {
+       "id": "z",
+       "name": "Z"
+      }
+     ],
+     "id": "z"
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    }
+   ],
+   "after": [
+    {
+     "frames": [],
+     "posts": [],
+     "hash": "#/overview",
+     "vehicleId": null,
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer",
+       "vehicle": "",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": null,
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer",
+       "vehicle": "",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "pause"
+      }
+     ],
+     "hash": "#/settings",
+     "vehicleId": null,
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer",
+       "vehicle": "",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/settings",
+     "vehicleId": "remembered",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer",
+       "vehicle": "",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "shown"
+      }
+     ],
+     "hash": "#/viewer",
+     "vehicleId": "remembered",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer",
+       "vehicle": "",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "z",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=undefined&vehicle=z",
+       "vehicle": "z",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "z",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    }
+   ]
+  },
+  "odd-names": {
+   "steps": [
+    {
+     "do": "vehicles",
+     "list": [
+      {
+       "id": "a b&c",
+       "name": "A",
+       "root": "/footage/My Car (2)/Tesla+Cam",
+       "studioRoot": "/footage/Mÿ Car 🚗/x=y&z"
+      }
+     ],
+     "id": "a b&c"
+    },
+    {
+     "do": "open",
+     "kind": "viewer",
+     "extra": {
+      "folder": "/footage/100% ~fun's!*",
+      "date": "2026-01-02"
+     }
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    }
+   ],
+   "after": [
+    {
+     "frames": [],
+     "posts": [],
+     "hash": "#/overview",
+     "vehicleId": "a b&c",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2FM%C3%BF+Car+%F0%9F%9A%97%2Fx%3Dy%26z&vehicle=a+b%26c&folder=%2Ffootage%2F100%25+%7Efun%27s%21*&date=2026-01-02",
+       "vehicle": "a b&c",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "a b&c",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2FM%C3%BF+Car+%F0%9F%9A%97%2Fx%3Dy%26z&vehicle=a+b%26c&folder=%2Ffootage%2F100%25+%7Efun%27s%21*&date=2026-01-02",
+       "vehicle": "a b&c",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "a b&c",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    }
+   ]
+  },
+  "phone-fit": {
+   "steps": [
+    {
+     "do": "vehicles",
+     "list": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "root": "/footage/model-3",
+       "studioRoot": "/footage/model-3/TeslaCam"
+      },
+      {
+       "id": "y",
+       "name": "Model Y",
+       "root": "/footage/y"
+      }
+     ],
+     "id": "model-3"
+    },
+    {
+     "do": "size",
+     "width": 390,
+     "height": 778
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    },
+    {
+     "do": "size",
+     "width": 1000,
+     "height": 900
+    },
+    {
+     "do": "size",
+     "width": 899,
+     "height": 700
+    },
+    {
+     "do": "route",
+     "hash": "#/footage"
+    },
+    {
+     "do": "size",
+     "width": 600,
+     "height": 700
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    },
+    {
+     "do": "size",
+     "width": 0,
+     "height": 700
+    },
+    {
+     "do": "pick",
+     "id": "y"
+    },
+    {
+     "do": "size",
+     "width": 760,
+     "height": 834
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    }
+   ],
+   "after": [
+    {
+     "frames": [],
+     "posts": [],
+     "hash": "#/overview",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [],
+     "posts": [],
+     "hash": "#/overview",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "900px",
+        "height": "1795.3846153846152px",
+        "transform": "scale(0.43333333333333335)"
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "900px",
+        "height": "700.7786429365962px",
+        "transform": "scale(0.9988888888888889)"
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": true,
+       "style": {
+        "width": "900px",
+        "height": "700.7786429365962px",
+        "transform": "scale(0.9988888888888889)"
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "pause"
+      }
+     ],
+     "hash": "#/footage",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": true,
+       "style": {
+        "width": "900px",
+        "height": "700.7786429365962px",
+        "transform": "scale(0.9988888888888889)"
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/footage",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "900px",
+        "height": "1050px",
+        "transform": "scale(0.6666666666666666)"
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "shown"
+      }
+     ],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "y",
+     "stored": "y",
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "900px",
+        "height": "987.6315789473684px",
+        "transform": "scale(0.8444444444444444)"
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "y",
+     "stored": "y",
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fy&vehicle=y",
+       "vehicle": "y",
+       "hidden": false,
+       "style": {
+        "width": "900px",
+        "height": "987.6315789473684px",
+        "transform": "scale(0.8444444444444444)"
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "y",
+     "stored": "y",
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    }
+   ]
+  },
+  "encoder-tabs": {
+   "steps": [
+    {
+     "do": "vehicles",
+     "list": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "root": "/footage/model-3",
+       "studioRoot": "/footage/model-3/TeslaCam"
+      },
+      {
+       "id": "y",
+       "name": "Model Y",
+       "root": "/footage/y"
+      }
+     ],
+     "id": "model-3"
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    },
+    {
+     "do": "route",
+     "hash": "#/encoder"
+    },
+    {
+     "do": "route",
+     "hash": "#/encoder/vehicles"
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    },
+    {
+     "do": "open",
+     "kind": "encoder",
+     "extra": {
+      "source": "/footage/model-3/TeslaCam"
+     }
+    },
+    {
+     "do": "route",
+     "hash": "#/viewer"
+    }
+   ],
+   "after": [
+    {
+     "frames": [],
+     "posts": [],
+     "hash": "#/overview",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      },
+      {
+       "kind": "encoder",
+       "src": "/studio/encoder.html?embed=encoder&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "pause"
+      }
+     ],
+     "hash": "#/encoder",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      },
+      {
+       "kind": "encoder",
+       "src": "/studio/encoder.html?embed=encoder&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "encoder",
+       "type": "pause"
+      }
+     ],
+     "hash": "#/encoder/vehicles",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      },
+      {
+       "kind": "encoder",
+       "src": "/studio/encoder.html?embed=encoder&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "shown"
+      }
+     ],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      },
+      {
+       "kind": "encoder",
+       "src": "/studio/encoder.html?embed=encoder&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3&source=%2Ffootage%2Fmodel-3%2FTeslaCam",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "pause"
+      }
+     ],
+     "hash": "#/encoder",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    },
+    {
+     "frames": [
+      {
+       "kind": "viewer",
+       "src": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+       "vehicle": "model-3",
+       "hidden": false,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      },
+      {
+       "kind": "encoder",
+       "src": "/studio/encoder.html?embed=encoder&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3&source=%2Ffootage%2Fmodel-3%2FTeslaCam",
+       "vehicle": "model-3",
+       "hidden": true,
+       "style": {
+        "width": "",
+        "height": "",
+        "transform": ""
+       }
+      }
+     ],
+     "posts": [
+      {
+       "kind": "viewer",
+       "type": "shown"
+      },
+      {
+       "kind": "encoder",
+       "type": "pause"
+      }
+     ],
+     "hash": "#/viewer",
+     "vehicleId": "model-3",
+     "stored": null,
+     "footage": {
+      "offset": 3,
+      "category": "events",
+      "selected": 1
+     }
+    }
+   ]
+  }
+ },
+ "urls": [
+  {
+   "url": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3",
+   "embed": "viewer",
+   "startFolder": "/footage/model-3/TeslaCam",
+   "root": "/footage/model-3/TeslaCam",
+   "folder": null,
+   "vehicle": "model-3",
+   "date": null
+  },
+  {
+   "url": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3&vehicle=model-3&date=2026-10-30",
+   "embed": "viewer",
+   "startFolder": "/footage/model-3",
+   "root": "/footage/model-3",
+   "folder": null,
+   "vehicle": "model-3",
+   "date": "2026-10-30"
+  },
+  {
+   "url": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fm&vehicle=m&folder=%2Ffootage%2Fm%2FTeslaCam%2FSentryClips%2F2026-10-30_12-01-02",
+   "embed": "viewer",
+   "startFolder": "/footage/m/TeslaCam/SentryClips/2026-10-30_12-01-02",
+   "root": "/footage/m",
+   "folder": "/footage/m/TeslaCam/SentryClips/2026-10-30_12-01-02",
+   "vehicle": "m",
+   "date": null
+  },
+  {
+   "url": "/studio/index.html?embed=viewer&vehicle=remembered",
+   "embed": "viewer",
+   "startFolder": null,
+   "root": null,
+   "folder": null,
+   "vehicle": "remembered",
+   "date": null
+  },
+  {
+   "url": "/studio/index.html?embed=viewer",
+   "embed": "viewer",
+   "startFolder": null,
+   "root": null,
+   "folder": null,
+   "vehicle": null,
+   "date": null
+  },
+  {
+   "url": "/studio/index.html?root=&folder=&vehicle=",
+   "embed": "viewer",
+   "startFolder": null,
+   "root": "",
+   "folder": "",
+   "vehicle": "",
+   "date": null
+  },
+  {
+   "url": "/studio/index.html?embed=&root=%2Fa+b%2Bc&folder=",
+   "embed": "viewer",
+   "startFolder": "/a b+c",
+   "root": "/a b+c",
+   "folder": "",
+   "vehicle": null,
+   "date": null
+  },
+  {
+   "url": "/studio/encoder.html?embed=viewer&source=%2Ffootage",
+   "embed": "encoder",
+   "startFolder": null,
+   "root": null,
+   "folder": null,
+   "vehicle": null,
+   "date": null
+  },
+  {
+   "url": "/studio/index.html?embed=encoder&root=%2Fx",
+   "embed": "encoder",
+   "startFolder": "/x",
+   "root": "/x",
+   "folder": null,
+   "vehicle": null,
+   "date": null
+  },
+  {
+   "url": "/studio/index.html?root=%2Ffirst&root=%2Fsecond&date=2026-01-01&date=2026-01-02",
+   "embed": "viewer",
+   "startFolder": "/first",
+   "root": "/first",
+   "folder": null,
+   "vehicle": null,
+   "date": "2026-01-01"
+  },
+  {
+   "url": "/studio/index.html?root=%E2%82%AC%zz%2&vehicle=%F0%9F%9A%97&&=bare&flag",
+   "embed": "viewer",
+   "startFolder": "€%zz%2",
+   "root": "€%zz%2",
+   "folder": null,
+   "vehicle": "🚗",
+   "date": null
+  },
+  {
+   "url": "/studio/index.html?root=%2Fx#frag?root=no",
+   "embed": "viewer",
+   "startFolder": "/x",
+   "root": "/x",
+   "folder": null,
+   "vehicle": null,
+   "date": null
+  }
+ ],
+ "encode": [
+  {
+   "pairs": [
+    [
+     "embed",
+     "viewer"
+    ],
+    [
+     "root",
+     "/footage/model-3/TeslaCam"
+    ],
+    [
+     "vehicle",
+     "model-3"
+    ]
+   ],
+   "query": "embed=viewer&root=%2Ffootage%2Fmodel-3%2FTeslaCam&vehicle=model-3"
+  },
+  {
+   "pairs": [
+    [
+     "a b",
+     "c+d&e=f"
+    ],
+    [
+     "ü",
+     "€ 🚗"
+    ],
+    [
+     "x",
+     "~!'()*-._%#?/:;@$,[]{}|\\^`\"<>"
+    ]
+   ],
+   "query": "a+b=c%2Bd%26e%3Df&%C3%BC=%E2%82%AC+%F0%9F%9A%97&x=%7E%21%27%28%29*-._%25%23%3F%2F%3A%3B%40%24%2C%5B%5D%7B%7D%7C%5C%5E%60%22%3C%3E"
+  },
+  {
+   "pairs": [
+    [
+     "lone",
+     "a\ud800b"
+    ],
+    [
+     "tab",
+     "\t\n\r"
+    ],
+    [
+     "empty",
+     ""
+    ]
+   ],
+   "query": "lone=a%EF%BF%BDb&tab=%09%0A%0D&empty="
+  }
+ ],
+ "parse": [
+  {
+   "query": "a=1&b=2",
+   "pairs": [
+    [
+     "a",
+     "1"
+    ],
+    [
+     "b",
+     "2"
+    ]
+   ]
+  },
+  {
+   "query": "?a=1",
+   "pairs": [
+    [
+     "a",
+     "1"
+    ]
+   ]
+  },
+  {
+   "query": "a+b=c%20d",
+   "pairs": [
+    [
+     "a b",
+     "c d"
+    ]
+   ]
+  },
+  {
+   "query": "a=%zz%4",
+   "pairs": [
+    [
+     "a",
+     "%zz%4"
+    ]
+   ]
+  },
+  {
+   "query": "a=%E2%82",
+   "pairs": [
+    [
+     "a",
+     "�"
+    ]
+   ]
+  },
+  {
+   "query": "&&a&&",
+   "pairs": [
+    [
+     "a",
+     ""
+    ]
+   ]
+  },
+  {
+   "query": "=b",
+   "pairs": [
+    [
+     "",
+     "b"
+    ]
+   ]
+  },
+  {
+   "query": "a==b",
+   "pairs": [
+    [
+     "a",
+     "=b"
+    ]
+   ]
+  },
+  {
+   "query": "a=%2B%26%3D",
+   "pairs": [
+    [
+     "a",
+     "+&="
+    ]
+   ]
+  },
+  {
+   "query": "x=%C3%A9%c3%A9",
+   "pairs": [
+    [
+     "x",
+     "éé"
+    ]
+   ]
+  },
+  {
+   "query": "k=%F0%9F%9A%97%FF",
+   "pairs": [
+    [
+     "k",
+     "🚗�"
+    ]
+   ]
+  }
+ ],
+ "shim": {
+  "no-folder": {
+   "session": {
+    "url": "/studio/index.html?embed=viewer&vehicle=model-3",
+    "vehicles": [
+     {
+      "id": "model-3",
+      "name": "Model 3",
+      "root": "/footage/model-3"
+     }
+    ]
+   },
+   "log": [
+    {
+     "at": 1000,
+     "say": "Add a vehicle in Settings to see its footage here."
+    },
+    {
+     "at": 1000,
+     "embed": "viewer"
+    }
+   ]
+  },
+  "no-clips": {
+   "session": {
+    "url": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3&vehicle=model-3",
+    "vehicles": [
+     {
+      "id": "model-3",
+      "name": "Model 3",
+      "root": "/footage/model-3"
+     }
+    ],
+    "events": [
+     {
+      "at": 1100,
+      "read": "start",
+      "path": "/a"
+     },
+     {
+      "at": 1400,
+      "read": "end",
+      "path": "/a"
+     }
+    ]
+   },
+   "log": [
+    {
+     "at": 1000,
+     "say": "Opening Model 3's footage…"
+    },
+    {
+     "at": 1000,
+     "embed": "viewer"
+    },
+    {
+     "at": 3500,
+     "say": "No dashcam clips found in /footage/model-3. Footage appears here once the car has recorded some."
+    },
+    {
+     "at": 3500,
+     "button": "Try again",
+     "cls": "mini-btn sm-retry"
+    }
+   ]
+  },
+  "quiet-edge": {
+   "session": {
+    "url": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3&vehicle=model-3",
+    "vehicles": [
+     {
+      "id": "model-3",
+      "name": "Model 3",
+      "root": "/footage/model-3"
+     }
+    ],
+    "events": [
+     {
+      "at": 1100,
+      "read": "start",
+      "path": "/a"
+     },
+     {
+      "at": 1500,
+      "read": "end",
+      "path": "/a"
+     }
+    ]
+   },
+   "log": [
+    {
+     "at": 1000,
+     "say": "Opening Model 3's footage…"
+    },
+    {
+     "at": 1000,
+     "embed": "viewer"
+    },
+    {
+     "at": 3500,
+     "say": "No dashcam clips found in /footage/model-3. Footage appears here once the car has recorded some."
+    },
+    {
+     "at": 3500,
+     "button": "Try again",
+     "cls": "mini-btn sm-retry"
+    }
+   ]
+  },
+  "no-reads-yet": {
+   "session": {
+    "url": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3&vehicle=model-3",
+    "vehicles": [
+     {
+      "id": "model-3",
+      "name": "Model 3",
+      "root": "/footage/model-3"
+     }
+    ],
+    "until": 4000
+   },
+   "log": [
+    {
+     "at": 1000,
+     "say": "Opening Model 3's footage…"
+    },
+    {
+     "at": 1000,
+     "embed": "viewer"
+    }
+   ]
+  },
+  "read-error": {
+   "session": {
+    "url": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3&vehicle=model-3",
+    "vehicles": [
+     {
+      "id": "model-3",
+      "name": "Model 3",
+      "root": "/footage/model-3"
+     },
+     {
+      "id": "y",
+      "name": "Kim's Y",
+      "root": "/footage/y"
+     }
+    ],
+    "events": [
+     {
+      "at": 1100,
+      "read": "start",
+      "path": "/a"
+     },
+     {
+      "at": 1200,
+      "read": "start",
+      "path": "/b"
+     },
+     {
+      "at": 1500,
+      "read": "end",
+      "path": "/a",
+      "error": "EACCES: permission denied"
+     },
+     {
+      "at": 2600,
+      "read": "end",
+      "path": "/b"
+     }
+    ]
+   },
+   "log": [
+    {
+     "at": 1000,
+     "say": "Opening Model 3's footage…"
+    },
+    {
+     "at": 1000,
+     "picker": [
+      {
+       "value": "model-3",
+       "text": "Model 3",
+       "selected": true
+      },
+      {
+       "value": "y",
+       "text": "Kim's Y",
+       "selected": false
+      }
+     ],
+     "label": "Vehicle"
+    },
+    {
+     "at": 1000,
+     "embed": "viewer"
+    },
+    {
+     "at": 5000,
+     "say": "Can't open the footage: EACCES: permission denied"
+    },
+    {
+     "at": 5000,
+     "button": "Try again",
+     "cls": "mini-btn sm-retry"
+    }
+   ]
+  },
+  "clips-shown": {
+   "session": {
+    "url": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3&vehicle=model-3",
+    "vehicles": [
+     {
+      "id": "model-3",
+      "name": "Model 3",
+      "root": "/footage/model-3"
+     }
+    ],
+    "events": [
+     {
+      "at": 1100,
+      "read": "start",
+      "path": "/a"
+     },
+     {
+      "at": 1300,
+      "read": "end",
+      "path": "/a"
+     },
+     {
+      "at": 2000,
+      "overlayHidden": true
+     }
+    ]
+   },
+   "log": [
+    {
+     "at": 1000,
+     "say": "Opening Model 3's footage…"
+    },
+    {
+     "at": 1000,
+     "embed": "viewer"
+    }
+   ]
+  },
+  "never-quiet": {
+   "session": {
+    "url": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3&vehicle=model-3",
+    "vehicles": [
+     {
+      "id": "model-3",
+      "name": "Model 3",
+      "root": "/footage/model-3"
+     }
+    ],
+    "until": 182000,
+    "events": [
+     {
+      "at": 1100,
+      "read": "start",
+      "path": "/a"
+     }
+    ]
+   },
+   "log": [
+    {
+     "at": 1000,
+     "say": "Opening Model 3's footage…"
+    },
+    {
+     "at": 1000,
+     "embed": "viewer"
+    },
+    {
+     "at": 181000,
+     "say": "No dashcam clips found in /footage/model-3. Footage appears here once the car has recorded some."
+    },
+    {
+     "at": 181000,
+     "button": "Try again",
+     "cls": "mini-btn sm-retry"
+    }
+   ]
+  },
+  "play-day": {
+   "session": {
+    "url": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fy&vehicle=y&date=2026-10-30",
+    "vehicles": [
+     {
+      "id": "model-3",
+      "name": "Model 3",
+      "root": "/footage/model-3"
+     },
+     {
+      "id": "y",
+      "name": "Kim's Y",
+      "root": "/footage/y"
+     }
+    ],
+    "events": [
+     {
+      "at": 1500,
+      "days": [
+       "2026-10-31"
+      ],
+      "value": "2026-10-31"
+     },
+     {
+      "at": 2200,
+      "days": [
+       "2026-10-31",
+       "2026-10-30"
+      ],
+      "value": "2026-10-31"
+     },
+     {
+      "at": 2900,
+      "pick": "model-3"
+     }
+    ]
+   },
+   "log": [
+    {
+     "at": 1000,
+     "say": "Opening Kim's Y's footage…"
+    },
+    {
+     "at": 1000,
+     "picker": [
+      {
+       "value": "model-3",
+       "text": "Model 3",
+       "selected": false
+      },
+      {
+       "value": "y",
+       "text": "Kim's Y",
+       "selected": true
+      }
+     ],
+     "label": "Vehicle"
+    },
+    {
+     "at": 1000,
+     "embed": "viewer"
+    },
+    {
+     "at": 2200,
+     "dayPicked": "2026-10-30",
+     "event": "change"
+    },
+    {
+     "at": 2900,
+     "toShell": {
+      "source": "sentry-studio",
+      "type": "select-vehicle",
+      "id": "model-3"
+     },
+     "origin": "https://sentry.local:9000"
+    }
+   ]
+  },
+  "play-day-already": {
+   "session": {
+    "url": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fy&vehicle=y&date=2026-10-30",
+    "vehicles": [
+     {
+      "id": "model-3",
+      "name": "Model 3",
+      "root": "/footage/model-3"
+     },
+     {
+      "id": "y",
+      "name": "Kim's Y",
+      "root": "/footage/y"
+     }
+    ],
+    "events": [
+     {
+      "at": 1000,
+      "days": [
+       "2026-10-30"
+      ],
+      "value": "2026-10-30"
+     }
+    ]
+   },
+   "log": [
+    {
+     "at": 1000,
+     "say": "Opening Kim's Y's footage…"
+    },
+    {
+     "at": 1000,
+     "picker": [
+      {
+       "value": "model-3",
+       "text": "Model 3",
+       "selected": false
+      },
+      {
+       "value": "y",
+       "text": "Kim's Y",
+       "selected": true
+      }
+     ],
+     "label": "Vehicle"
+    },
+    {
+     "at": 1000,
+     "embed": "viewer"
+    }
+   ]
+  },
+  "play-day-gives-up": {
+   "session": {
+    "url": "/studio/index.html?embed=viewer&root=%2Fr&vehicle=gone&date=2026-10-30",
+    "vehicles": [
+     {
+      "id": "model-3",
+      "name": "Model 3",
+      "root": "/footage/model-3"
+     },
+     {
+      "id": "y",
+      "name": "Kim's Y",
+      "root": "/footage/y"
+     }
+    ],
+    "until": 182500,
+    "events": [
+     {
+      "at": 181500,
+      "days": [
+       "2026-10-30"
+      ],
+      "value": ""
+     }
+    ]
+   },
+   "log": [
+    {
+     "at": 1000,
+     "say": "Opening the footage…"
+    },
+    {
+     "at": 1000,
+     "picker": [
+      {
+       "value": "model-3",
+       "text": "Model 3",
+       "selected": false
+      },
+      {
+       "value": "y",
+       "text": "Kim's Y",
+       "selected": false
+      }
+     ],
+     "label": "Vehicle"
+    },
+    {
+     "at": 1000,
+     "embed": "viewer"
+    },
+    {
+     "at": 181000,
+     "say": "No dashcam clips found in /r. Footage appears here once the car has recorded some."
+    },
+    {
+     "at": 181000,
+     "button": "Try again",
+     "cls": "mini-btn sm-retry"
+    }
+   ]
+  },
+  "play-recording": {
+   "session": {
+    "url": "/studio/index.html?embed=viewer&root=%2Fr&vehicle=y&folder=%2Fr%2FTeslaCam%2FSentryClips%2Fev",
+    "vehicles": [
+     {
+      "id": "model-3",
+      "name": "Model 3",
+      "root": "/footage/model-3"
+     },
+     {
+      "id": "y",
+      "name": "Kim's Y",
+      "root": "/footage/y"
+     }
+    ],
+    "events": [
+     {
+      "at": 1100,
+      "read": "start",
+      "path": "/x"
+     },
+     {
+      "at": 1200,
+      "read": "end",
+      "path": "/x"
+     }
+    ]
+   },
+   "log": [
+    {
+     "at": 1000,
+     "say": "Opening Kim's Y's footage…"
+    },
+    {
+     "at": 1000,
+     "picker": [
+      {
+       "value": "model-3",
+       "text": "Model 3",
+       "selected": false
+      },
+      {
+       "value": "y",
+       "text": "Kim's Y",
+       "selected": true
+      }
+     ],
+     "label": "Vehicle"
+    },
+    {
+     "at": 1000,
+     "embed": "viewer"
+    },
+    {
+     "at": 3500,
+     "say": "No dashcam clips found in /r/TeslaCam/SentryClips/ev. Footage appears here once the car has recorded some."
+    },
+    {
+     "at": 3500,
+     "button": "Try again",
+     "cls": "mini-btn sm-retry"
+    }
+   ]
+  },
+  "pause-and-shown": {
+   "session": {
+    "url": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3&vehicle=model-3",
+    "vehicles": [
+     {
+      "id": "model-3",
+      "name": "Model 3",
+      "root": "/footage/model-3"
+     }
+    ],
+    "playing": true,
+    "until": 3000,
+    "events": [
+     {
+      "at": 1200,
+      "overlayHidden": true
+     },
+     {
+      "at": 1300,
+      "msg": "pause"
+     },
+     {
+      "at": 1400,
+      "play": true
+     },
+     {
+      "at": 1500,
+      "msg": "shown"
+     },
+     {
+      "at": 1600,
+      "play": true
+     },
+     {
+      "at": 1700,
+      "msg": "pause"
+     },
+     {
+      "at": 1800,
+      "btnDisabled": true,
+      "play": true
+     },
+     {
+      "at": 1900,
+      "btnDisabled": false,
+      "msg": "pause",
+      "source": "other"
+     },
+     {
+      "at": 2000,
+      "msg": "pause",
+      "origin": "https://evil.example"
+     },
+     {
+      "at": 2100,
+      "msg": "shown"
+     },
+     {
+      "at": 2200,
+      "msg": "pause"
+     }
+    ]
+   },
+   "log": [
+    {
+     "at": 1000,
+     "say": "Opening Model 3's footage…"
+    },
+    {
+     "at": 1000,
+     "embed": "viewer"
+    },
+    {
+     "at": 1300,
+     "click": "playBtn"
+    },
+    {
+     "at": 1400,
+     "click": "playBtn"
+    },
+    {
+     "at": 1700,
+     "click": "playBtn"
+    },
+    {
+     "at": 2200,
+     "click": "playBtn"
+    }
+   ]
+  },
+  "pause-not-playing": {
+   "session": {
+    "url": "/studio/index.html?embed=viewer&root=%2Ffootage%2Fmodel-3&vehicle=model-3",
+    "vehicles": [
+     {
+      "id": "model-3",
+      "name": "Model 3",
+      "root": "/footage/model-3"
+     }
+    ],
+    "playing": false,
+    "until": 1800,
+    "events": [
+     {
+      "at": 1200,
+      "overlayHidden": true
+     },
+     {
+      "at": 1300,
+      "msg": "pause"
+     },
+     {
+      "at": 1500,
+      "msg": "shown"
+     }
+    ]
+   },
+   "log": [
+    {
+     "at": 1000,
+     "say": "Opening Model 3's footage…"
+    },
+    {
+     "at": 1000,
+     "embed": "viewer"
+    }
+   ]
+  }
+ }
+}

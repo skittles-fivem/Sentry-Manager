@@ -345,7 +345,8 @@ namespace SentrySix.Ui.Builtin
             if (d.Chips.Count == 0) chips.Visibility = Visibility.Collapsed;
             info.VerticalAlignment = VerticalAlignment.Center;
 
-            Button play = Look.Btn("Play day", BtnKind.Solid, () => shell.Navigate("viewer"));
+            // openStudio('viewer', { date: day })
+            Button play = Look.Btn("Play day", BtnKind.Solid, () => ViewerSlot.Open(shell, new[] { new KeyValuePair<string, string>("date", day) }));
             play.Uid = "day-" + day + "-play";
             Button del = Look.Btn("Delete this day", BtnKind.Plain, () => Then(() => Footage.DeleteDays(api, vid, f, day, false, Confirm, Toast), false));
             del.Uid = "day-" + day + "-delete";
@@ -472,10 +473,12 @@ namespace SentrySix.Ui.Builtin
             Button play = Look.Btn("Play recording", BtnKind.Plain, () => Then(async () =>
             {
                 // the recording's folder (events open their own folder; drives the clip folder they are in)
-                try { await api.Get(Footage.DetailPath(vid, id), life.Token); }
+                JsonValue d;
+                try { d = await api.Get(Footage.DetailPath(vid, id), life.Token); }
                 catch (OperationCanceledException) { throw; }
                 catch (Exception ex) { Toast(ex.Message, true); return; }
-                shell.Navigate("viewer");
+                // openStudio('viewer', { folder: d.folderPath })
+                ViewerSlot.Open(shell, new[] { new KeyValuePair<string, string>("folder", StudioFrames.JsString(d.Has("folderPath") ? d["folderPath"] : null)) });
             }, false));
             play.Uid = "rec-" + id + "-play";
             Button files = Look.Btn(r.FilesLabel, BtnKind.Plain, () => Change(() => f.Expanded.Toggle(id)));

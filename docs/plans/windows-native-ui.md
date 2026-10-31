@@ -290,6 +290,33 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   frames each at the right times, on the CPU here; windows.yml's app job
   now fetches the pinned ffmpeg so the runner does the same, plus D3D11VA
   where it decodes with it).
+  Viewer part 0, how the shell hosts it (type-checked with mcs, not yet
+  built or rendered on Windows): `Core/ViewerHost.cs` is web/app.js's
+  studioUrl / openStudio / showFrame / hideFrame / fitFrames and its
+  message listener (`StudioFrames`: the pending address, a Viewer opened
+  for another vehicle or address starts over, 'pause' when another page is
+  shown and 'shown' when back, 900 px scaled down, 'showInFolder' and
+  'select-vehicle'), URLSearchParams (`FormQuery`) and the shim's viewer
+  part (`ViewerStart`: folder || root, vehicle, date; the empty screen's
+  words; `ViewerStatus`, `DayWish`, `ViewerAway`).
+  `Ui/Builtin/ViewerPage.cs`: `ViewerPage` per visit, `ViewerSlot` (the
+  shell's one Viewer in PageState["viewer"], kept and paused between
+  visits, disposed with the shell by AppController.DropPage),
+  `StudioFrameWrap` (.frame-wrap: edge to edge, 100vh, phone 100vh - 66,
+  scaled under 900 px) and `StudioViewer` (the Viewer for one address: so
+  far its empty screen with the shim's words; Pause / Shown / Played,
+  PickVehicle, ShowInFolder, Watch for the status and day timers, and
+  Stage / Player for the next parts). Footage's Play day and Play
+  recording call `ViewerSlot.Open` with { date } / { folder } as
+  openStudio does. `ViewerPage.Complete` is false until the whole Viewer
+  is drawn: until then its navigation still opens the browser and only
+  the render test mode draws it (render list: viewer, -day, -recording,
+  -novehicle, desktop and phone; capture.js clicks Play day / Play
+  recording on the web). test/windowsNativeViewerHost.test.js runs
+  web/app.js's own frame code and the whole shim (fake clock, pretend
+  page) on 9 shell sessions, 12 addresses, 14 URLSearchParams cases and 13
+  shim sessions and writes Core.Tests/Fixtures/expected-viewer-host.json;
+  Core.Tests ViewerHostTests replays them (3 tests, passing under mono).
 - Phases 3-7 (Encoder, Horizon, Flux, Aurora, Daylight): not started.
   Their pages open in the browser.
 
@@ -303,7 +330,9 @@ font's ascent rather than half the leading above), about 1 px at 14 px; an unrea
 server reads as the app's own "Can't reach Sentry Six Manager at …"
 message, not the web's "Reload the page" one; the dialog's backdrop is not
 blurred; links from native pages into the Viewer or Encoder open the
-browser without the web's preselected day or folder (phases 2 and 3);
+browser without the web's preselected day or folder (phases 2 and 3; the
+native Viewer already takes them, and Footage passes them, for when it
+replaces the browser);
 a recording's "Download" reads the whole file before saving it; the
 Overview's log lines cannot be highlighted (each has "Copy line" on its
 right-click menu instead), so a live update never waits for a highlight.

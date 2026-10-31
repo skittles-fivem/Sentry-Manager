@@ -87,7 +87,16 @@ namespace SentrySix.Shell
         /// </summary>
         void DropPage()
         {
-            if (model != null && model.PageContent != null) model.PageContent = null;
+            if (model == null) return;
+            if (model.PageContent != null) model.PageContent = null;
+            // what a page keeps between visits and has to let go of (the Viewer's decoders)
+            foreach (string key in new List<string>(model.PageState.Keys))
+            {
+                IDisposable d = model.PageState[key] as IDisposable;
+                if (d == null) continue;
+                model.PageState.Remove(key);
+                try { d.Dispose(); } catch (Exception) { }
+            }
         }
 
         async Task Begin()

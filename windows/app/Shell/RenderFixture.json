@@ -17116,6 +17116,26 @@
      "$status": 500
     }
    }
+  },
+  "viewer-day": {
+   "route": "viewer",
+   "state": {
+    "date": "2026-10-20"
+   }
+  },
+  "viewer-recording": {
+   "route": "viewer",
+   "state": {
+    "folder": "/srv/sentry-parity/footage/TeslaCam/RecentClips"
+   }
+  },
+  "viewer-novehicle": {
+   "route": "viewer",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": []
+    }
+   }
   }
  },
  "prefs": {}

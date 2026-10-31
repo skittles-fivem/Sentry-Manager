@@ -111,7 +111,14 @@ const PAGES = {
   percar: { signedIn: true, path: '/#/encoder/vehicles', only: 'builtin', variant: true },
   'percar-edit': { signedIn: true, path: (v) => `/#/encoder/vehicles?edit=${encodeURIComponent(v)}`, only: 'builtin', variant: true },
   'percar-empty': { signedIn: true, path: '/#/encoder/vehicles', only: 'builtin', variant: true },
-  'percar-error': { signedIn: true, path: '/#/encoder/vehicles', only: 'builtin', variant: true }
+  'percar-error': { signedIn: true, path: '/#/encoder/vehicles', only: 'builtin', variant: true },
+  // the Viewer (phase 2): the selected vehicle's footage; Footage > Play day on the first day;
+  // Play recording on its first recording (the web clicks them, the native side has the
+  // Viewer's address as its kept `state`); no vehicle
+  viewer: { signedIn: true, path: '/#/viewer', only: 'builtin', settle: 5000 },
+  'viewer-day': { signedIn: true, path: '/#/footage', only: 'builtin', variant: true, clicks: ['.day [data-play-day]'], settle: 5000 },
+  'viewer-recording': { signedIn: true, path: '/#/footage', only: 'builtin', variant: true, clicks: ['.day [data-toggle]', '.rec [data-play]'], settle: 5000 },
+  'viewer-novehicle': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 }
 };
 
 // the Footage page's first page of days, as it asks for it
@@ -123,6 +130,14 @@ function footageOpen(api, vehicle) {
   const day = days.length ? days[0].day : '';
   const recs = (api[`GET ${recordingsPath(vehicle, day)}`] || {}).recordings || [];
   return { vehicleId: vehicle, open: day ? [day] : [], expanded: recs.length ? [recs[0].id] : [] };
+}
+
+/** Footage > Play recording on the first day's first recording: the folder the Viewer opens (its detail's folderPath). */
+function viewerFolder(api, vehicle) {
+  const state = footageOpen(api, vehicle);
+  const rec = state.expanded[0];
+  const detail = rec ? api[`GET /api/vehicles/${encodeURIComponent(vehicle)}/recordings/${encodeURIComponent(rec)}`] : null;
+  return detail ? detail.folderPath : undefined;
 }
 
 /**
@@ -167,6 +182,9 @@ const VARIANTS = {
   // the Footage page: its first day open with the first recording's files (native: the page's
   // kept state; web: the clicks of PAGES), no footage, a scan running, a failed list, no vehicle,
   // more than one page of days, and long names
+  'viewer-day': (api, vehicle) => ({ route: 'viewer', state: { date: footageOpen(api, vehicle).open[0] } }),
+  'viewer-recording': (api, vehicle) => ({ route: 'viewer', state: { folder: viewerFolder(api, vehicle) } }),
+  'viewer-novehicle': { route: 'viewer', api: { 'GET /api/vehicles': { vehicles: [] } } },
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },
@@ -594,6 +612,8 @@ async function shoot(browser, base, ui, pageName, size, file, vehicle, fixture) 
       await page.click(sel);
       await page.waitForTimeout(1200);
     }
+    // (Studio's Viewer loads in its frame after the shell: time to read the folders)
+    if (spec.settle) await page.waitForTimeout(spec.settle);
     // a variant's own scroll (the native render scrolls to the same element; see footageScroll)
     const scroll = fixture.variants?.[pageName]?.scroll;
     if (scroll && scroll.web) {
