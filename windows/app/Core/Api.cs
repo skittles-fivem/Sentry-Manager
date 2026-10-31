@@ -18,7 +18,7 @@ namespace SentrySix.Core
     /// it (/api/auth/confirm) and repeats the request once. The server's own
     /// certificate is trusted once, when the person says so, and pinned.
     /// </summary>
-    public class Api : IDisposable
+    public class Api : IJsonApi, IDisposable
     {
         /// <summary>The header every state-changing request needs (server/index.js refuses one without it).</summary>
         public const string RequestedWithHeader = "X-Requested-With";
@@ -151,6 +151,14 @@ namespace SentrySix.Core
                 return ParseBody(await res.Content.ReadAsStringAsync().ConfigureAwait(false));
             }
         }
+
+        // (IJsonApi: the same calls, every argument given)
+        Task<JsonValue> IJsonApi.Get(string path, CancellationToken ct) { return Get(path, ct); }
+        Task<JsonValue> IJsonApi.Post(string path, JsonValue body, CancellationToken ct) { return Post(path, body, ct); }
+        Task<JsonValue> IJsonApi.Put(string path, JsonValue body, CancellationToken ct) { return Put(path, body, ct); }
+        Task<JsonValue> IJsonApi.Delete(string path, JsonValue body, CancellationToken ct) { return Delete(path, body, ct); }
+        Task<byte[]> IJsonApi.GetBytes(string path, CancellationToken ct) { return GetBytes(path, ct); }
+        Task<JsonValue> IJsonApi.PostBytes(string path, byte[] data, string contentType, IDictionary<string, string> headers, CancellationToken ct) { return PostBytes(path, data, contentType, headers, ct); }
 
         async Task<JsonValue> SendJson(HttpMethod method, string path, JsonValue body, CancellationToken ct)
         {
@@ -444,6 +452,22 @@ namespace SentrySix.Core
         {
             server.PinnedSha256 = null;
             if (store != null) store.Set(server.TrustKey, null);
+        }
+
+        /// <summary>
+        /// Trusts the server's new certificate, named by the server itself over
+        /// the connection already trusted: Settings > Security swaps the leaf
+        /// certificate ("Save names", "Allow other devices"), and its answer (or
+        /// GET /api/security right after) gives the new fingerprint
+        /// (tls.certificate.fingerprint). The web page reloads for this; here the
+        /// pin moves, so the next new connection is not CERT_CHANGED.
+        /// </summary>
+        public void Repin(string sha256Colons)
+        {
+            string sha = Certificates.NormalizeSha256(sha256Colons);
+            if (sha == null) return;
+            server.PinnedSha256 = sha;
+            if (store != null) store.Set(server.TrustKey, sha);
         }
 
         /// <summary>Drops this session's cookies (after signing out).</summary>

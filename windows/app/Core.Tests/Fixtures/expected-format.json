@@ -1,0 +1,1646 @@
+{
+ "about": "Written by test/windowsNativeParity.test.js from web/app.js; checked by windows/app/Core.Tests (SentrySix.Core.Format).",
+ "now": 1793459402000,
+ "timeZone": "UTC",
+ "cases": [
+  {
+   "fn": "bytes",
+   "args": [
+    null
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    0
+   ],
+   "out": "0 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1
+   ],
+   "out": "1 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    512
+   ],
+   "out": "512 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1023
+   ],
+   "out": "1023 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1024
+   ],
+   "out": "1.0 KiB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1536
+   ],
+   "out": "1.5 KiB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    10485760
+   ],
+   "out": "10.0 MiB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1048575
+   ],
+   "out": "1024.0 KiB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1610612736
+   ],
+   "out": "1.5 GiB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    19595788288
+   ],
+   "out": "18.3 GiB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    2748779069440
+   ],
+   "out": "2.5 TiB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    3377699720527872
+   ],
+   "out": "3.0 PiB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    8070450532247929000
+   ],
+   "out": "7168.0 PiB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    0.4
+   ],
+   "out": "0 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1023948.8
+   ],
+   "out": "1000.0 KiB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    "2048"
+   ],
+   "out": "2.0 KiB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    "abc"
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    true
+   ],
+   "out": "1 B"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    0,
+    "recording"
+   ],
+   "out": "0 recordings"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    1,
+    "recording"
+   ],
+   "out": "1 recording"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    2,
+    "recording"
+   ],
+   "out": "2 recordings"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    1204,
+    "recording"
+   ],
+   "out": "1,204 recordings"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    1234567,
+    "recording"
+   ],
+   "out": "1,234,567 recordings"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    12.5,
+    "recording"
+   ],
+   "out": "12.5 recordings"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    null,
+    "clip"
+   ],
+   "out": "0 clips"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1793459402000,
+    false
+   ],
+   "out": "10/31/2026, 3:10:02 PM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1793459402000,
+    true
+   ],
+   "out": "10/31/2026, 15:10:02"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1767312309000,
+    false
+   ],
+   "out": "1/2/2026, 12:05:09 AM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1767312309000,
+    true
+   ],
+   "out": "1/2/2026, 00:05:09"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1783166400000,
+    false
+   ],
+   "out": "7/4/2026, 12:00:00 PM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1783166400000,
+    true
+   ],
+   "out": "7/4/2026, 12:00:00"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1798761599000,
+    false
+   ],
+   "out": "12/31/2026, 11:59:59 PM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1798761599000,
+    true
+   ],
+   "out": "12/31/2026, 23:59:59"
+  },
+  {
+   "fn": "when",
+   "args": [
+    0,
+    false
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "when",
+   "args": [
+    0,
+    true
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "2026-10-29 15:10:02",
+    false
+   ],
+   "out": "2026-10-29 3:10:02 PM"
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "2026-10-29 15:10:02",
+    true
+   ],
+   "out": "2026-10-29 15:10:02"
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "2026-10-29 00:05",
+    false
+   ],
+   "out": "2026-10-29 12:05 AM"
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "2026-10-29 00:05",
+    true
+   ],
+   "out": "2026-10-29 00:05"
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "2026-10-29 12:00:00",
+    false
+   ],
+   "out": "2026-10-29 12:00:00 PM"
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "2026-10-29 12:00:00",
+    true
+   ],
+   "out": "2026-10-29 12:00:00"
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "9:07",
+    false
+   ],
+   "out": "9:07 AM"
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "9:07",
+    true
+   ],
+   "out": "9:07"
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "no time",
+    false
+   ],
+   "out": "no time"
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "no time",
+    true
+   ],
+   "out": "no time"
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "",
+    false
+   ],
+   "out": ""
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "",
+    true
+   ],
+   "out": ""
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "2026-10-29 7:03:04",
+    false
+   ],
+   "out": "2026-10-29 7:03:04 AM"
+  },
+  {
+   "fn": "clockText",
+   "args": [
+    "2026-10-29 7:03:04",
+    true
+   ],
+   "out": "2026-10-29 7:03:04"
+  },
+  {
+   "fn": "took",
+   "args": [
+    0
+   ],
+   "out": "0 s"
+  },
+  {
+   "fn": "took",
+   "args": [
+    499
+   ],
+   "out": "0 s"
+  },
+  {
+   "fn": "took",
+   "args": [
+    500
+   ],
+   "out": "1 s"
+  },
+  {
+   "fn": "took",
+   "args": [
+    42000
+   ],
+   "out": "42 s"
+  },
+  {
+   "fn": "took",
+   "args": [
+    59499
+   ],
+   "out": "59 s"
+  },
+  {
+   "fn": "took",
+   "args": [
+    59500
+   ],
+   "out": "1 m 0 s"
+  },
+  {
+   "fn": "took",
+   "args": [
+    725000
+   ],
+   "out": "12 m 5 s"
+  },
+  {
+   "fn": "took",
+   "args": [
+    3599000
+   ],
+   "out": "59 m 59 s"
+  },
+  {
+   "fn": "took",
+   "args": [
+    3600000
+   ],
+   "out": "1 h 0 m"
+  },
+  {
+   "fn": "took",
+   "args": [
+    28800000
+   ],
+   "out": "8 h 0 m"
+  },
+  {
+   "fn": "took",
+   "args": [
+    90061000
+   ],
+   "out": "25 h 1 m"
+  },
+  {
+   "fn": "took",
+   "args": [
+    -5000
+   ],
+   "out": "0 s"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    0
+   ],
+   "out": "never",
+   "now": 1793459402000
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459402000
+   ],
+   "out": "just now",
+   "now": 1793459402000
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459343000
+   ],
+   "out": "just now",
+   "now": 1793459402000
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459341000
+   ],
+   "out": "1 min ago",
+   "now": 1793459402000
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793454062000
+   ],
+   "out": "1 h ago",
+   "now": 1793459402000
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793455803000
+   ],
+   "out": "60 min ago",
+   "now": 1793459402000
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793455802000
+   ],
+   "out": "1 h ago",
+   "now": 1793459402000
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793439602000
+   ],
+   "out": "6 h ago",
+   "now": 1793459402000
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793373003000
+   ],
+   "out": "24 h ago",
+   "now": 1793459402000
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793373002000
+   ],
+   "out": "10/30/2026",
+   "now": 1793459402000
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1792509002000
+   ],
+   "out": "10/20/2026",
+   "now": 1793459402000
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    "low_space"
+   ],
+   "out": "Low space"
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    "share_offline"
+   ],
+   "out": "Share offline"
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    ""
+   ],
+   "out": ""
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    "a"
+   ],
+   "out": "A"
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    "_x"
+   ],
+   "out": " x"
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    "Already"
+   ],
+   "out": "Already"
+  },
+  {
+   "fn": "minutesText",
+   "args": [
+    0
+   ],
+   "out": "0 min"
+  },
+  {
+   "fn": "minutesText",
+   "args": [
+    1
+   ],
+   "out": "1 min"
+  },
+  {
+   "fn": "minutesText",
+   "args": [
+    42
+   ],
+   "out": "42 min"
+  },
+  {
+   "fn": "minutesText",
+   "args": [
+    59
+   ],
+   "out": "59 min"
+  },
+  {
+   "fn": "minutesText",
+   "args": [
+    60
+   ],
+   "out": "1 h 0 min"
+  },
+  {
+   "fn": "minutesText",
+   "args": [
+    65
+   ],
+   "out": "1 h 5 min"
+  },
+  {
+   "fn": "minutesText",
+   "args": [
+    125
+   ],
+   "out": "2 h 5 min"
+  },
+  {
+   "fn": "minutesText",
+   "args": [
+    600
+   ],
+   "out": "10 h 0 min"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2026-10-20"
+   ],
+   "out": "Tuesday, Oct 20, 2026"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2026-01-01"
+   ],
+   "out": "Thursday, Jan 1, 2026"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2024-02-29"
+   ],
+   "out": "Thursday, Feb 29, 2024"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2026-12-31"
+   ],
+   "out": "Thursday, Dec 31, 2026"
+  },
+  {
+   "fn": "clampPct",
+   "args": [
+    null
+   ],
+   "out": 0
+  },
+  {
+   "fn": "clampPct",
+   "args": [
+    -5
+   ],
+   "out": 0
+  },
+  {
+   "fn": "clampPct",
+   "args": [
+    0
+   ],
+   "out": 0
+  },
+  {
+   "fn": "clampPct",
+   "args": [
+    12.34
+   ],
+   "out": 12.3
+  },
+  {
+   "fn": "clampPct",
+   "args": [
+    12.35
+   ],
+   "out": 12.4
+  },
+  {
+   "fn": "clampPct",
+   "args": [
+    99.96
+   ],
+   "out": 100
+  },
+  {
+   "fn": "clampPct",
+   "args": [
+    100
+   ],
+   "out": 100
+  },
+  {
+   "fn": "clampPct",
+   "args": [
+    150
+   ],
+   "out": 100
+  },
+  {
+   "fn": "size",
+   "args": [
+    null
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "size",
+   "args": [
+    0
+   ],
+   "out": "0 B"
+  },
+  {
+   "fn": "size",
+   "args": [
+    1
+   ],
+   "out": "1 B"
+  },
+  {
+   "fn": "size",
+   "args": [
+    1023
+   ],
+   "out": "1023 B"
+  },
+  {
+   "fn": "size",
+   "args": [
+    1024
+   ],
+   "out": "1 KB"
+  },
+  {
+   "fn": "size",
+   "args": [
+    655360
+   ],
+   "out": "640 KB"
+  },
+  {
+   "fn": "size",
+   "args": [
+    19542101196.8
+   ],
+   "out": "18.2 GB"
+  },
+  {
+   "fn": "size",
+   "args": [
+    671088640
+   ],
+   "out": "640 MB"
+  },
+  {
+   "fn": "size",
+   "args": [
+    102348.8
+   ],
+   "out": "100 KB"
+  },
+  {
+   "fn": "size",
+   "args": [
+    102400
+   ],
+   "out": "100 KB"
+  },
+  {
+   "fn": "size",
+   "args": [
+    1374389534720
+   ],
+   "out": "1.3 TB"
+  },
+  {
+   "fn": "size",
+   "args": [
+    -2048
+   ],
+   "out": "-2 KB"
+  },
+  {
+   "fn": "sizeOf",
+   "args": [
+    120259084288,
+    511101108224,
+    " of "
+   ],
+   "out": "112 of 476 GB"
+  },
+  {
+   "fn": "sizeOf",
+   "args": [
+    1181116006.4,
+    6442450944,
+    " / "
+   ],
+   "out": "1.1 / 6 GB"
+  },
+  {
+   "fn": "sizeOf",
+   "args": [
+    6707020929433.6,
+    8796093022208,
+    " of "
+   ],
+   "out": "6.1 of 8 TB"
+  },
+  {
+   "fn": "sizeOf",
+   "args": [
+    0,
+    0,
+    " of "
+   ],
+   "out": "0 of 0 B"
+  },
+  {
+   "fn": "sizeOf",
+   "args": [
+    536870912,
+    2147483648,
+    " of "
+   ],
+   "out": "0.5 of 2 GB"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    null
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    0
+   ],
+   "out": "0 MB/s"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    1
+   ],
+   "out": "1 KB/s"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    500
+   ],
+   "out": "1 KB/s"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    12697.6
+   ],
+   "out": "12 KB/s"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    1048575
+   ],
+   "out": "1024 KB/s"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    1048576
+   ],
+   "out": "1 MB/s"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    117440512
+   ],
+   "out": "112 MB/s"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    1610612736
+   ],
+   "out": "1.5 GB/s"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    0
+   ],
+   "out": "0%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    37.4
+   ],
+   "out": "37%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    37.5
+   ],
+   "out": "38%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    99.5
+   ],
+   "out": "100%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    100
+   ],
+   "out": "100%"
+  },
+  {
+   "fn": "watts",
+   "args": [
+    0
+   ],
+   "out": "0 W"
+  },
+  {
+   "fn": "watts",
+   "args": [
+    0.05
+   ],
+   "out": "0.1 W"
+  },
+  {
+   "fn": "watts",
+   "args": [
+    1.25
+   ],
+   "out": "1.3 W"
+  },
+  {
+   "fn": "watts",
+   "args": [
+    9.94
+   ],
+   "out": "9.9 W"
+  },
+  {
+   "fn": "watts",
+   "args": [
+    9.96
+   ],
+   "out": "10 W"
+  },
+  {
+   "fn": "watts",
+   "args": [
+    10
+   ],
+   "out": "10 W"
+  },
+  {
+   "fn": "watts",
+   "args": [
+    65.4
+   ],
+   "out": "65 W"
+  },
+  {
+   "fn": "watts",
+   "args": [
+    412.5
+   ],
+   "out": "413 W"
+  },
+  {
+   "fn": "temp",
+   "args": [
+    0
+   ],
+   "out": "0 °C"
+  },
+  {
+   "fn": "temp",
+   "args": [
+    63.4
+   ],
+   "out": "63 °C"
+  },
+  {
+   "fn": "temp",
+   "args": [
+    71.5
+   ],
+   "out": "72 °C"
+  },
+  {
+   "fn": "temp",
+   "args": [
+    -2.5
+   ],
+   "out": "-2 °C"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    800
+   ],
+   "out": "800 MHz"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    999.6
+   ],
+   "out": "1000 MHz"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    1000
+   ],
+   "out": "1 GHz"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    3450
+   ],
+   "out": "3.45 GHz"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    4999.99
+   ],
+   "out": "5 GHz"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    2400.5
+   ],
+   "out": "2.4 GHz"
+  },
+  {
+   "fn": "energyText",
+   "args": [
+    0
+   ],
+   "out": "0.0 Wh"
+  },
+  {
+   "fn": "energyText",
+   "args": [
+    12.44
+   ],
+   "out": "12.4 Wh"
+  },
+  {
+   "fn": "energyText",
+   "args": [
+    12.45
+   ],
+   "out": "12.5 Wh"
+  },
+  {
+   "fn": "energyText",
+   "args": [
+    99.94
+   ],
+   "out": "99.9 Wh"
+  },
+  {
+   "fn": "energyText",
+   "args": [
+    99.96
+   ],
+   "out": "100 Wh"
+  },
+  {
+   "fn": "energyText",
+   "args": [
+    412.4
+   ],
+   "out": "412 Wh"
+  },
+  {
+   "fn": "energyText",
+   "args": [
+    999.4
+   ],
+   "out": "999 Wh"
+  },
+  {
+   "fn": "energyText",
+   "args": [
+    999.6
+   ],
+   "out": "1.0 kWh"
+  },
+  {
+   "fn": "energyText",
+   "args": [
+    5234
+   ],
+   "out": "5.2 kWh"
+  },
+  {
+   "fn": "energyText",
+   "args": [
+    99949
+   ],
+   "out": "99.9 kWh"
+  },
+  {
+   "fn": "energyText",
+   "args": [
+    99950
+   ],
+   "out": "100 kWh"
+  },
+  {
+   "fn": "energyText",
+   "args": [
+    123456
+   ],
+   "out": "123 kWh"
+  },
+  {
+   "fn": "inCurrency",
+   "args": [
+    "0.14",
+    "$"
+   ],
+   "out": "$0.14"
+  },
+  {
+   "fn": "inCurrency",
+   "args": [
+    "1.20",
+    "kr"
+   ],
+   "out": "1.20 kr"
+  },
+  {
+   "fn": "inCurrency",
+   "args": [
+    "3",
+    "€"
+   ],
+   "out": "€3"
+  },
+  {
+   "fn": "inCurrency",
+   "args": [
+    "3",
+    ""
+   ],
+   "out": "$3"
+  },
+  {
+   "fn": "inCurrency",
+   "args": [
+    "3",
+    "CHF"
+   ],
+   "out": "3 CHF"
+  },
+  {
+   "fn": "money",
+   "args": [
+    0.14,
+    "$"
+   ],
+   "out": "≈ $0.14"
+  },
+  {
+   "fn": "money",
+   "args": [
+    0.135,
+    "$"
+   ],
+   "out": "≈ $0.14"
+  },
+  {
+   "fn": "money",
+   "args": [
+    1.2,
+    "kr"
+   ],
+   "out": "≈ 1.20 kr"
+  },
+  {
+   "fn": "money",
+   "args": [
+    99.999,
+    "$"
+   ],
+   "out": "≈ $100.00"
+  },
+  {
+   "fn": "money",
+   "args": [
+    100,
+    "$"
+   ],
+   "out": "≈ $100"
+  },
+  {
+   "fn": "money",
+   "args": [
+    1204.4,
+    "€"
+   ],
+   "out": "≈ €1,204"
+  },
+  {
+   "fn": "money",
+   "args": [
+    12345.5,
+    "kr"
+   ],
+   "out": "≈ 12,346 kr"
+  },
+  {
+   "fn": "span",
+   "args": [
+    0
+   ],
+   "out": "0 s"
+  },
+  {
+   "fn": "span",
+   "args": [
+    0.4
+   ],
+   "out": "0 s"
+  },
+  {
+   "fn": "span",
+   "args": [
+    40
+   ],
+   "out": "40 s"
+  },
+  {
+   "fn": "span",
+   "args": [
+    59.6
+   ],
+   "out": "60 s"
+  },
+  {
+   "fn": "span",
+   "args": [
+    60
+   ],
+   "out": "1 m"
+  },
+  {
+   "fn": "span",
+   "args": [
+    750
+   ],
+   "out": "12 m"
+  },
+  {
+   "fn": "span",
+   "args": [
+    3600
+   ],
+   "out": "1 h 0 m"
+  },
+  {
+   "fn": "span",
+   "args": [
+    7500
+   ],
+   "out": "2 h 5 m"
+  },
+  {
+   "fn": "span",
+   "args": [
+    86400
+   ],
+   "out": "1 d 0 h"
+  },
+  {
+   "fn": "span",
+   "args": [
+    273600
+   ],
+   "out": "3 d 4 h"
+  },
+  {
+   "fn": "span",
+   "args": [
+    -3
+   ],
+   "out": "-1 d -1 h"
+  },
+  {
+   "fn": "answer",
+   "args": [
+    0
+   ],
+   "out": "under 1 ms"
+  },
+  {
+   "fn": "answer",
+   "args": [
+    0.5
+   ],
+   "out": "under 1 ms"
+  },
+  {
+   "fn": "answer",
+   "args": [
+    1
+   ],
+   "out": "1 ms"
+  },
+  {
+   "fn": "answer",
+   "args": [
+    42.4
+   ],
+   "out": "42 ms"
+  },
+  {
+   "fn": "answer",
+   "args": [
+    999.4
+   ],
+   "out": "999 ms"
+  },
+  {
+   "fn": "answer",
+   "args": [
+    999.6
+   ],
+   "out": "1000 ms"
+  },
+  {
+   "fn": "answer",
+   "args": [
+    1000
+   ],
+   "out": "1 s"
+  },
+  {
+   "fn": "answer",
+   "args": [
+    1500
+   ],
+   "out": "1.5 s"
+  },
+  {
+   "fn": "answer",
+   "args": [
+    1549
+   ],
+   "out": "1.5 s"
+  },
+  {
+   "fn": "answer",
+   "args": [
+    12000
+   ],
+   "out": "12 s"
+  },
+  {
+   "fn": "linkSpeed",
+   "args": [
+    null
+   ],
+   "out": ""
+  },
+  {
+   "fn": "linkSpeed",
+   "args": [
+    0
+   ],
+   "out": ""
+  },
+  {
+   "fn": "linkSpeed",
+   "args": [
+    -1
+   ],
+   "out": ""
+  },
+  {
+   "fn": "linkSpeed",
+   "args": [
+    100
+   ],
+   "out": "100 Mbit/s"
+  },
+  {
+   "fn": "linkSpeed",
+   "args": [
+    999.5
+   ],
+   "out": "1000 Mbit/s"
+  },
+  {
+   "fn": "linkSpeed",
+   "args": [
+    1000
+   ],
+   "out": "1 Gbit/s"
+  },
+  {
+   "fn": "linkSpeed",
+   "args": [
+    2500
+   ],
+   "out": "2.5 Gbit/s"
+  },
+  {
+   "fn": "linkSpeed",
+   "args": [
+    10000
+   ],
+   "out": "10 Gbit/s"
+  },
+  {
+   "fn": "linkSpeed",
+   "args": [
+    1049
+   ],
+   "out": "1 Gbit/s"
+  },
+  {
+   "fn": "cpuName",
+   "args": [
+    "Intel(R) Core(TM) i5-12500 CPU @ 3.00GHz"
+   ],
+   "out": "Intel Core i5-12500"
+  },
+  {
+   "fn": "cpuName",
+   "args": [
+    "AMD Ryzen 7 8700G w/ Radeon 780M Graphics"
+   ],
+   "out": "AMD Ryzen 7 8700G w/ Radeon 780M Graphics"
+  },
+  {
+   "fn": "cpuName",
+   "args": [
+    "AMD Ryzen 5 5600G with Radeon Graphics"
+   ],
+   "out": "AMD Ryzen 5 5600G"
+  },
+  {
+   "fn": "cpuName",
+   "args": [
+    "  ARM   Cortex-A76  "
+   ],
+   "out": "ARM Cortex-A76"
+  },
+  {
+   "fn": "cpuName",
+   "args": [
+    ""
+   ],
+   "out": ""
+  },
+  {
+   "fn": "cpuName",
+   "args": [
+    null
+   ],
+   "out": ""
+  },
+  {
+   "fn": "toldHow",
+   "args": [
+    {
+     "how": "Run docker compose pull"
+    }
+   ],
+   "out": "Run docker compose pull."
+  },
+  {
+   "fn": "toldHow",
+   "args": [
+    {
+     "how": "Restart it!"
+    }
+   ],
+   "out": "Restart it!"
+  },
+  {
+   "fn": "toldHow",
+   "args": [
+    {
+     "how": "   "
+    }
+   ],
+   "out": ""
+  },
+  {
+   "fn": "toldHow",
+   "args": [
+    {}
+   ],
+   "out": ""
+  },
+  {
+   "fn": "toldHow",
+   "args": [
+    null
+   ],
+   "out": ""
+  },
+  {
+   "fn": "printedIn",
+   "args": [
+    "windows"
+   ],
+   "out": "the install window or <code>%ProgramData%\\SentrySixManager\\data\\logs\\service.log</code>"
+  },
+  {
+   "fn": "printedIn",
+   "args": [
+    "macos"
+   ],
+   "out": "the installer's output in Terminal"
+  },
+  {
+   "fn": "printedIn",
+   "args": [
+    "docker"
+   ],
+   "out": "the container log (<code>docker logs sentry-six-manager</code>)"
+  },
+  {
+   "fn": "printedIn",
+   "args": [
+    "linux"
+   ],
+   "out": "the container log (<code>docker logs sentry-six-manager</code>)"
+  },
+  {
+   "fn": "macAccount",
+   "args": [
+    {
+     "runningAsRoot": true
+    }
+   ],
+   "out": "runs as root (fine for trying it out, not for the service)"
+  },
+  {
+   "fn": "macAccount",
+   "args": [
+    {
+     "account": "_sentry"
+    }
+   ],
+   "out": "runs as the macOS service account <code>_sentry</code>, not as root; it connects shares itself"
+  },
+  {
+   "fn": "macAccount",
+   "args": [
+    {}
+   ],
+   "out": "runs as the macOS service account <code>_sentrysix</code>, not as root; it connects shares itself"
+  },
+  {
+   "fn": "serviceAccount",
+   "args": [
+    {
+     "elevated": true
+    }
+   ],
+   "out": "runs as an administrator (fine for trying it out with SentryService.exe run, not for the service)"
+  },
+  {
+   "fn": "serviceAccount",
+   "args": [
+    {
+     "account": "NT SERVICE\\SentrySixManager"
+    }
+   ],
+   "out": "runs as NT SERVICE\\SentrySixManager, not an administrator"
+  },
+  {
+   "fn": "serviceAccount",
+   "args": [
+    {}
+   ],
+   "out": "runs as its own service account, not an administrator"
+  }
+ ]
+}
