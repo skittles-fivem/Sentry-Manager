@@ -309,3 +309,9 @@ test('Setup\'s "Measure CPU power" box: ticked by default, /CPUPOWER=0|1, passed
   assert.match(cpu, /\$code -ne 0 -and \$code -ne 3010/, '3010 (restart needed) is success');
   assert.match(cpu, /InstalledBySentry/);
 });
+
+test('no .iss line starts with # unless it is a preprocessor directive (ISPP reads every such line as one)', () => {
+  const bad = ISS.split('\n').map((l, i) => [i + 1, l])
+    .filter(([, l]) => /^\s*#/.test(l) && !/^\s*#(if|ifdef|ifndef|else|elif|endif|error|define|undef|include|emit|expr|sub|endsub|pragma|for)\b/.test(l));
+  assert.deepEqual(bad, [], 'a Pascal line like "#13#10 + ..." must not start a line');
+});

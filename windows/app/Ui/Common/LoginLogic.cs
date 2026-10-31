@@ -58,6 +58,8 @@ namespace SentrySix.Ui
         public static void Wire(LoginModel m, LoginTexts t, LoginControls c)
         {
             bool setup = m.NeedsSetup;
+            // (Windows, on the PC itself: no setup code; the form has no code field then)
+            bool needCode = setup && m.CodeRequired && c.Code != null;
             Action<string> label = c.SetLabel ?? (s => c.Submit.Content = s);
             label(setup ? t.SetupSubmit : t.Submit);
             DispatcherTimer lockTimer = null;
@@ -107,7 +109,7 @@ namespace SentrySix.Ui
                 {
                     if (pass.Length < 8 && t.Short != null) { c.Error.Text = t.Short; return; }
                     if (pass != confirm) { c.Error.Text = t.Mismatch; return; }
-                    if (code.Trim().Length == 0) { c.Error.Text = t.NoCode != null ? string.Format(t.NoCode, LogWhere(m)) : t.Empty; return; }
+                    if (needCode && code.Trim().Length == 0) { c.Error.Text = t.NoCode != null ? string.Format(t.NoCode, LogWhere(m)) : t.Empty; return; }
                 }
                 c.Submit.IsEnabled = false;
                 string before = c.Submit.Content as string;
@@ -115,7 +117,7 @@ namespace SentrySix.Ui
                 if (busy != null) label(busy);
                 if (c.Igniting != null) c.Igniting(true);
                 LoginResult r;
-                try { r = await m.Submit(user, pass, setup ? code : null); }
+                try { r = await m.Submit(user, pass, setup ? (needCode ? code : "") : null); }
                 catch (Exception ex) { r = new LoginResult { Ok = false, Status = 0, Error = ex.Message }; }
                 c.Submit.IsEnabled = true;
                 if (busy != null) label(setup ? t.SetupSubmit : t.Submit);

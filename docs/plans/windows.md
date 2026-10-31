@@ -304,3 +304,33 @@ into failures in CI.
   throttling or most temperatures.
 - Moving an existing Docker `/data` to Windows is not supported (paths differ); pair
   instead.
+- **Local only by default** (owner's request: "the only time we would open the ports
+  is for node pairing and usage"). Without `HOST` in `manager.env` the web UI listens
+  on 127.0.0.1 and ::1 only (`server/listenAddress.js`). Settings > Security > **Allow
+  other devices** switches it to every address (0.0.0.0 and ::) for phones, other PCs
+  and node pairing; it needs a signed-in account, is kept in the app's own settings
+  (`manager.db`, key `network`; `manager.env` is admin-only), and takes effect at once
+  (the listening sockets are swapped in-process; this PC's open connections carry
+  on, and turning it off closes the ones other devices still have open; if the old
+  sockets cannot be bound again the server exits so the service restarts it). A
+  single `HOST=::` stays dual-stack, as before; only the 0.0.0.0 + :: pair takes
+  IPv6 alone on `::`. Turned
+  on, the certificate also covers this PC's private addresses and `<name>.local`
+  (only names the local CA may vouch for, so no new CA). The Nodes page offers the
+  switch when pairing or node mode needs it. `HOST` in `manager.env`, when set,
+  decides instead and the switch is shown as set there. An install from before the
+  switch that already had an account keeps listening everywhere. The firewall rule
+  stays; nothing listens on the network until the switch is on.
+- **No setup code on this PC.** While no account exists, `POST /api/auth/setup` from
+  this PC (the socket's own address is loopback and the Host header names
+  localhost / 127.x / [::1], so a page that rebinds its DNS name cannot use it) needs no
+  code; any other address still does, and so does every request behind
+  `TRUST_PROXY`. `/api/auth/me` says `setupCodeRequired`; the first-start pages (web,
+  the four packs, the native app) leave the code field out when it is false. While
+  the server listens on this PC only, the code is neither logged nor written to
+  `setup-code.txt`, and `install.ps1` shows none (when the service log says it
+  listens on every address, the install window lists every address as before; behind
+  `TRUST_PROXY` it shows the code as before). A request from this PC that still needs the code then (a Host
+  name other than localhost) is told to open `https://localhost:PORT` instead.
+- **The native app** opens the pages it does not draw yet in the browser (their
+  navigation, and once per run when its window is shown): no placeholder pages.

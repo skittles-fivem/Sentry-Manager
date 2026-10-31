@@ -16,8 +16,9 @@ namespace SentrySix.Shell
     /// --out file.png [--fixture file.json]. Builds the page from fixture data
     /// (no network, no server), lays it out at that size, waits for it to settle,
     /// renders it with RenderTargetBitmap and writes a PNG. Animations stand still.
-    /// &lt;page&gt; is "login", "login-setup", "shell" (the interface's first page) or
-    /// any route of the interface (its placeholder inside the shell).
+    /// &lt;page&gt; is "login", "login-setup", "login-local" (the first start on the
+    /// Windows PC itself: no setup code), "shell" (the interface's first page) or
+    /// any route of the interface (its page inside the shell).
     /// </summary>
     public static class RenderMode
     {
@@ -52,11 +53,12 @@ namespace SentrySix.Shell
                 // the same on every runner: Daylight's "auto" would follow this PC's Windows theme (Playwright's default is light)
                 if (prefs.Get("daylight:theme", null) == null) prefs.Set("daylight:theme", "light");
                 FrameworkElement content;
-                if (page == "login" || page == "login-setup")
+                if (page == "login" || page == "login-setup" || page == "login-local")
                 {
                     LoginModel lm = new LoginModel();
                     JsonValue me = fx["me"];
-                    lm.NeedsSetup = page == "login-setup" || me["needsSetup"].Bool;
+                    lm.NeedsSetup = page != "login" || me["needsSetup"].Bool;
+                    lm.CodeRequired = page != "login-local" && !(me["setupCodeRequired"].Kind == JsonKind.Bool && !me["setupCodeRequired"].Bool);
                     lm.Fingerprint = me["fingerprint"].Str;
                     lm.WindowsDeployment = me["deployment"].Str == "windows";
                     lm.Insecure = fx["insecure"].Bool;

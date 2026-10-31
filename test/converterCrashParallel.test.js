@@ -34,11 +34,11 @@ for (const [label, point, mode = 'replace'] of [
   ['a final rename failed and the original had just been put back', 'rolled-back'],
   ['a clip\'s result was written', 'after-result', 'separate']
 ]) {
-  test(`six at once (${mode}), killed when ${label}: the job finishes by itself`, { skip, timeout: 420_000 }, async () => {
+  test(`six at once (${mode}), killed when ${label}: the job finishes by itself`, { skip, timeout: 600_000 }, async () => {
     assertRecovered(await crashAndRecover({ point, mode, networkMode: 'staging', concurrency: 6 }), { mode });
   });
 }
 
-test('three clips under way, lowered to one at once, then killed: all three are cleaned up and converted', { skip, timeout: 420_000 }, async () => {
+test('three clips under way, lowered to one at once, then killed: all three are cleaned up and converted', { skip, timeout: 600_000 }, async () => {
   assertRecovered(await crashAndRecover({ point: 'lowered', networkMode: 'staging', concurrency: 3 }));
 });

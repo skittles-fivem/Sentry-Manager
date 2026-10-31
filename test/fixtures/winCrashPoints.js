@@ -37,7 +37,7 @@ ownedFsAdapter.makeWindowsHelper = () => createLinuxFsHelper();
 
 const points = require('./crashPoints');
 
-function crash(base, { point, concurrency = 1, mode = 'replace', networkMode = 'direct', timeout = 120_000 }) {
+function crash(base, { point, concurrency = 1, mode = 'replace', networkMode = 'direct', timeout = 300_000 }) {
   if (process.platform === 'win32') return points.crash(base, { point, concurrency, mode, networkMode, timeout, script: __filename });
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [__filename], {
@@ -45,11 +45,16 @@ function crash(base, { point, concurrency = 1, mode = 'replace', networkMode = '
       detached: true, stdio: ['ignore', 'ignore', 'pipe']
     });
     let stderr = '';
+    // (as crashPoints.crash: assertRecovered fails when the kill point was not reached in time)
+    let timedOut = false;
     child.stderr.on('data', (chunk) => { stderr += chunk; });
-    const timer = setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch (_) { /* gone */ } }, timeout);
+    const timer = setTimeout(() => {
+      timedOut = true;
+      try { process.kill(-child.pid, 'SIGKILL'); } catch (_) { /* gone */ }
+    }, timeout);
     child.on('exit', (code, signal) => {
       clearTimeout(timer);
-      resolve({ code, signal, stderr });
+      resolve({ code, signal, stderr, timedOut, timeout });
     });
   });
 }

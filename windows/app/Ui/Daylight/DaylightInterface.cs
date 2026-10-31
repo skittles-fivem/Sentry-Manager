@@ -234,7 +234,7 @@ namespace SentrySix.Ui.Daylight
             h1.Margin = Css.T(26, 0, 8, 0);
             card.Children.Add(h1);
             string where = LoginLogic.LogWhere(m);
-            card.Children.Add(U.Text(m.NeedsSetup ? "This is the first start. Enter the setup code from " + where + ", then pick the user name and password that will protect your footage." : "Sign in to see your car’s footage.", 17, FontWeights.Normal, "muted"));
+            card.Children.Add(U.Text(m.NeedsSetup ? (m.CodeRequired ? "This is the first start. Enter the setup code from " + where + ", then pick the user name and password that will protect your footage." : "This is the first start. Pick the user name and password that will protect your footage.") : "Sign in to see your car’s footage.", 17, FontWeights.Normal, "muted"));
 
             InputLook k = InK();
             Func<string, Control, FrameworkElement, FrameworkElement> field = (label, input, extra) =>
@@ -252,13 +252,17 @@ namespace SentrySix.Ui.Daylight
             {
                 confirm = U.Input(k, true, null, null);
                 form.Children.Add(field("Type the password again", confirm, null));
-                InputLook km = InK();
-                km.Font = U.Consolas;
-                code = U.Input(km, false, "", "XXXXX-XXXXX-XXXXX");
-                TextBlock hint = U.Text("", 14, FontWeights.Normal, "muted");
-                hint.Inlines.Add(new Run(m.WindowsDeployment ? "It’s printed in the install window and in " : "It’s printed in the container log: "));
-                hint.Inlines.Add(Code(m.WindowsDeployment ? LoginLogic.ServiceLog : LoginLogic.DockerLogs));
-                form.Children.Add(field("Setup code", code, hint));
+                // (Windows, on the PC itself: the server needs no setup code, so none is asked for)
+                if (m.CodeRequired)
+                {
+                    InputLook km = InK();
+                    km.Font = U.Consolas;
+                    code = U.Input(km, false, "", "XXXXX-XXXXX-XXXXX");
+                    TextBlock hint = U.Text("", 14, FontWeights.Normal, "muted");
+                    hint.Inlines.Add(new Run(m.WindowsDeployment ? "It’s printed in the install window and in " : "It’s printed in the container log: "));
+                    hint.Inlines.Add(Code(m.WindowsDeployment ? LoginLogic.ServiceLog : LoginLogic.DockerLogs));
+                    form.Children.Add(field("Setup code", code, hint));
+                }
             }
             if (m.Insecure)
             {
@@ -710,7 +714,7 @@ namespace SentrySix.Ui.Daylight
             TextBlock h1 = U.Text(p.Title, 38, FontWeights.Bold, "text");
             s.Children.Add(h1);
             string desc;
-            TextBlock lede = U.Text(Desc.TryGetValue(p.Id, out desc) ? desc : U.PhaseLine(p), 18, FontWeights.Normal, "muted");
+            TextBlock lede = U.Text(Desc.TryGetValue(p.Id, out desc) ? desc : U.BrowserLine(p), 18, FontWeights.Normal, "muted");
             lede.Margin = new Thickness(0, 8, 0, 26);
             lede.MaxWidth = 62 * 9;
             lede.HorizontalAlignment = HorizontalAlignment.Left;
@@ -729,10 +733,10 @@ namespace SentrySix.Ui.Daylight
             art.Child = ai;
             art.Margin = new Thickness(0, 0, 0, 16);
             empty.Children.Add(art);
-            TextBlock h3 = U.Text("Coming in Phase " + p.Phase, 21, FontWeights.SemiBold, "text");
+            TextBlock h3 = U.Text(U.BrowserHeading, 21, FontWeights.SemiBold, "text");
             h3.HorizontalAlignment = HorizontalAlignment.Center;
             empty.Children.Add(h3);
-            TextBlock t = U.Text(U.PhaseLine(p) + " " + U.PhaseWhat(p.Phase) + " " + U.OpenInBrowserText, 17, FontWeights.Normal, "muted");
+            TextBlock t = U.Text(U.BrowserLine(p) + " " + U.OpenInBrowserText, 17, FontWeights.Normal, "muted");
             t.TextAlignment = TextAlignment.Center;
             t.MaxWidth = 46 * 9;
             t.Margin = new Thickness(0, 8, 0, 0);

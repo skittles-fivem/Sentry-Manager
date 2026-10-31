@@ -214,7 +214,7 @@ namespace SentrySix.Ui.Flux
             card.Children.Add(brand);
             card.Children.Add(U.Text(m.NeedsSetup ? "Create your account" : "Sign in", 20, U.W(650), "text"));
             string where = LoginLogic.LogWhere(m);
-            TextBlock lead = U.Text(m.NeedsSetup ? "First start. Enter the setup code from " + where + ", then choose the user name and password that protect this server." : "Use the account for this Sentry Six Manager.", 13, FontWeights.Normal, "muted");
+            TextBlock lead = U.Text(m.NeedsSetup ? (m.CodeRequired ? "First start. Enter the setup code from " + where + ", then choose the user name and password that protect this server." : "First start. Choose the user name and password that protect this server.") : "Use the account for this Sentry Six Manager.", 13, FontWeights.Normal, "muted");
             lead.Margin = Css.T(6, 0, 18, 0);
             card.Children.Add(lead);
 
@@ -233,13 +233,17 @@ namespace SentrySix.Ui.Flux
             {
                 confirm = U.Input(k, true, null, null);
                 form.Children.Add(field("Confirm password", confirm, null));
-                InputLook km = InK();
-                km.Font = U.Cascadia; km.FontSize = 12.5;
-                code = U.Input(km, false, "", "XXXXX-XXXXX-XXXXX");
-                TextBlock hint = U.Text("", 12.5, FontWeights.Normal, "faint");
-                hint.Inlines.Add(new Run(m.WindowsDeployment ? "Printed in the install window and in " : "Printed in the container log: "));
-                hint.Inlines.Add(Code(m.WindowsDeployment ? LoginLogic.ServiceLog : LoginLogic.DockerLogs));
-                form.Children.Add(field("Setup code", code, hint));
+                // (Windows, on the PC itself: the server needs no setup code, so none is asked for)
+                if (m.CodeRequired)
+                {
+                    InputLook km = InK();
+                    km.Font = U.Cascadia; km.FontSize = 12.5;
+                    code = U.Input(km, false, "", "XXXXX-XXXXX-XXXXX");
+                    TextBlock hint = U.Text("", 12.5, FontWeights.Normal, "faint");
+                    hint.Inlines.Add(new Run(m.WindowsDeployment ? "Printed in the install window and in " : "Printed in the container log: "));
+                    hint.Inlines.Add(Code(m.WindowsDeployment ? LoginLogic.ServiceLog : LoginLogic.DockerLogs));
+                    form.Children.Add(field("Setup code", code, hint));
+                }
             }
             if (m.Insecure)
             {
@@ -820,7 +824,7 @@ namespace SentrySix.Ui.Flux
             StackPanel head = new StackPanel();
             TextBlock h1 = U.Text(p.Title, 22, U.W(650), "text");
             head.Children.Add(h1);
-            TextBlock lead = U.Text(U.PhaseLine(p), 14, FontWeights.Normal, "muted");
+            TextBlock lead = U.Text(U.BrowserLine(p), 14, FontWeights.Normal, "muted");
             lead.Margin = new Thickness(0, 4, 0, 0);
             head.Children.Add(lead);
             head.Margin = new Thickness(0, 0, 0, 16);
@@ -833,7 +837,7 @@ namespace SentrySix.Ui.Flux
             glyph.Opacity = 0.6;
             glyph.HorizontalAlignment = HorizontalAlignment.Center;
             empty.Children.Add(glyph);
-            TextBlock t = U.Text("Phase " + p.Phase + ". " + U.PhaseWhat(p.Phase) + " " + U.OpenInBrowserText, 14, FontWeights.Normal, "muted");
+            TextBlock t = U.Text(U.BrowserHeading + ". " + U.OpenInBrowserText, 14, FontWeights.Normal, "muted");
             t.TextAlignment = TextAlignment.Center;
             t.MaxWidth = 560;
             t.Margin = new Thickness(0, 8, 0, 8);

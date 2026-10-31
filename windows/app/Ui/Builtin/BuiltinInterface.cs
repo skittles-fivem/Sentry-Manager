@@ -161,7 +161,7 @@ namespace SentrySix.Ui.Builtin
             card.Children.Add(title);
             string where = LoginLogic.LogWhere(m);
             TextBlock lead = U.Text(m.NeedsSetup
-                ? "This is the first start. Enter the setup code from " + where + ", then choose the user name and password that protect this Sentry Six Manager."
+                ? (m.CodeRequired ? "This is the first start. Enter the setup code from " + where + ", then choose the user name and password that protect this Sentry Six Manager." : "This is the first start. Choose the user name and password that protect this Sentry Six Manager.")
                 : "Use the account for this Sentry Six Manager.", 12.5, FontWeights.Normal, "muted");
             lead.Margin = new Thickness(0, 6, 0, 20);
             card.Children.Add(lead);
@@ -184,12 +184,16 @@ namespace SentrySix.Ui.Builtin
             if (m.NeedsSetup)
             {
                 form.Children.Add(field("Confirm password", confirm, null));
-                k.Font = U.Inter;
-                code = U.Input(k, false, "", "XXXXX-XXXXX-XXXXX");
-                TextBlock hint = U.Text("", 12.5, FontWeights.Normal, "muted");
-                hint.Inlines.Add(new Run(m.WindowsDeployment ? "Printed in the install window and in " : "Printed in the container log: "));
-                hint.Inlines.Add(Code(m.WindowsDeployment ? LoginLogic.ServiceLog : LoginLogic.DockerLogs));
-                form.Children.Add(field("Setup code", code, hint));
+                // (Windows, on the PC itself: the server needs no setup code, so none is asked for)
+                if (m.CodeRequired)
+                {
+                    k.Font = U.Inter;
+                    code = U.Input(k, false, "", "XXXXX-XXXXX-XXXXX");
+                    TextBlock hint = U.Text("", 12.5, FontWeights.Normal, "muted");
+                    hint.Inlines.Add(new Run(m.WindowsDeployment ? "Printed in the install window and in " : "Printed in the container log: "));
+                    hint.Inlines.Add(Code(m.WindowsDeployment ? LoginLogic.ServiceLog : LoginLogic.DockerLogs));
+                    form.Children.Add(field("Setup code", code, hint));
+                }
             }
             if (m.Insecure)
             {
@@ -613,7 +617,7 @@ namespace SentrySix.Ui.Builtin
             }
         }
 
-        // ---------- pages: a placeholder in the built-in style ----------
+        // ---------- pages: until each is drawn here, where it opens (the browser), in the built-in style ----------
         public FrameworkElement Page(string id, PageContext ctx)
         {
             PageDef p = null;
@@ -626,8 +630,8 @@ namespace SentrySix.Ui.Builtin
             s.Children.Add(h1);
             // .card: panel, 1px border, radius 16, padding 28
             StackPanel body = new StackPanel();
-            body.Children.Add(U.Text("Coming in Phase " + p.Phase, 20, FontWeights.Bold, "text"));
-            TextBlock para = U.Text(U.PhaseLine(p) + " " + U.PhaseWhat(p.Phase) + " " + U.OpenInBrowserText, 15.5, FontWeights.Normal, "text");
+            body.Children.Add(U.Text(U.BrowserHeading, 20, FontWeights.Bold, "text"));
+            TextBlock para = U.Text(U.BrowserLine(p) + " " + U.OpenInBrowserText, 15.5, FontWeights.Normal, "text");
             para.Opacity = 0.88;
             para.MaxWidth = 560;
             para.HorizontalAlignment = HorizontalAlignment.Left;

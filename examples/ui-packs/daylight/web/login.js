@@ -76,6 +76,7 @@
     }
   }
   let setup = false;
+  let needCode = false;
   fetch('/api/auth/me', { credentials: 'same-origin' }).then((r) => r.json()).catch(() => ({})).then(async (me) => {
     if (me.user) return location.replace(next);
     if (await askWindows) windowsWords();
@@ -86,11 +87,13 @@
       $('fingerprint').hidden = false;
     }
     setup = Boolean(me.needsSetup);
+    // (Windows, on the PC itself: no setup code is needed, so none is asked for)
+    needCode = setup && me.setupCodeRequired !== false;
     if (setup) {
       $('title').textContent = 'Let’s set things up';
-      $('lead').textContent = `This is the first start. Enter the setup code from ${logWhere}, then pick the user name and password that will protect your footage.`;
+      $('lead').textContent = needCode ? `This is the first start. Enter the setup code from ${logWhere}, then pick the user name and password that will protect your footage.` : 'This is the first start. Pick the user name and password that will protect your footage.';
       $('confirm-row').hidden = false;
-      $('code-row').hidden = false;
+      $('code-row').hidden = !needCode;
       $('submit').textContent = 'Create my account';
       document.querySelector('[name=password]').autocomplete = 'new-password';
     }
@@ -110,7 +113,7 @@
     if (setup) {
       if (String(f.get('password')).length < 8) { err.textContent = 'Choose a password of at least 8 characters.'; return; }
       if (f.get('password') !== f.get('confirm')) { err.textContent = 'The two passwords don’t match.'; return; }
-      if (!String(f.get('code') || '').trim()) { err.textContent = `Enter the setup code from ${logWhere}.`; return; }
+      if (needCode && !String(f.get('code') || '').trim()) { err.textContent = `Enter the setup code from ${logWhere}.`; return; }
     }
     const btn = $('submit');
     btn.disabled = true;
@@ -120,7 +123,7 @@
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'sentry-six-manager' },
-      body: JSON.stringify({ username: f.get('username'), password: f.get('password'), ...(setup ? { code: f.get('code') } : {}) })
+      body: JSON.stringify({ username: f.get('username'), password: f.get('password'), ...(needCode ? { code: f.get('code') } : {}) })
     }).catch(() => null);
     btn.disabled = false;
     btn.textContent = label;
