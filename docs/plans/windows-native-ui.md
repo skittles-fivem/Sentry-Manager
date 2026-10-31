@@ -247,11 +247,11 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   extra hidden line). Renders of a variant with `scroll` (footage-open,
   footage-long) scroll the same element to the top as capture.js does on
   the web after its clicks (the open recording's card).
-- Phase 2 (built-in Viewer): in progress. The playback engine and the
-  telemetry are written; the Viewer page itself (Studio's controls, clip
-  list, dashboard, map, settings modal: `Ui/Builtin/ViewerPage.cs`), the
-  clip library (ViewerLibrary: scan and grouping) and the Viewer's render
-  are not, so the Viewer still opens in the browser. Core (C# 5, tested
+- Phase 2 (built-in Viewer): in progress. The playback engine, the
+  telemetry and the clip library (scan and grouping, part 2) are written;
+  the rest of the Viewer page (Studio's controls, clip list, dashboard,
+  map, settings modal: `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
+  still opens in the browser. Core (C# 5, tested
   under mono with a stub runner here, by Core.Tests on Windows):
   `Telemetry` (protobuf.js's SeiMetadata.decode step for step, atob,
   collectSei, hasValidGps, findSeiAtTime, and an 8-clip cache asking
@@ -335,10 +335,46 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   notifications.js, loadingOverlay.js and the shim's readDir and writes
   Core.Tests/Fixtures/expected-viewer-states.json; Core.Tests
   ViewerStatesTests (7 tests, passing under mono).
+  Viewer part 2, the clip library (what the Viewer reads from the server;
+  type-checked with mcs, not yet built or rendered on Windows):
+  `Core/Dashcam.cs` (dashcamProfiles.mjs and teslaFilename.mjs: both
+  profiles, their file names, the camera words; `JsText`: toLowerCase,
+  stable sorts, the scan's digit patterns; `JsDate`: new Date(y, m, d, h,
+  mi, s) in the PC's zone with clock changes, Date.parse's ISO form) and
+  `Core/ViewerLibrary.cs` (`LibraryScan`: traverseDirectoryElectron's
+  folder scan with dashcamSourceDiscovery.mjs's GM discovery,
+  scanRecentClips / scanEventFolder / scanLooseClips, registerLooseDate,
+  gatherFilesForDateElectron, buildTeslaCamIndex, buildDashcamCollections
+  with recent:/sentry:/saved:/custom: keys, formatDateDisplay;
+  `ViewerLibrary`: loadDefaultFolderOnStartup, the day list and its
+  marker, loadDateContent(Electron), mergeIntoLibrary's subtitle and newest
+  collection, ingestSentryEventJson with the 15 s lead seek, Studio's
+  toasts and loading overlay). The Viewer page makes one per start folder:
+  every read through the shim's readDir / readFile, the drop overlay gone
+  once days are listed, Play day through the day list. `FixtureApi`
+  answers a POST by its body ("POST /api/studio/readDir {"path":…}") when
+  the fixture has that entry; capture.js records every folder under the
+  start folder and each event.json. test/windowsNativeViewerLibrary.test.js
+  runs script.js's own scan functions (cut out of the file) with the shared
+  modules and teslaCamIndex.js on 18 folder trees (Tesla parents and clip
+  folders, an event folder, loose and custom folders, GM Continuous, a GM
+  day, the phone's recorder folder, mixed sources, empty, unreadable and
+  odd answers; days picked after), 25 file names, the cameras, timestamp
+  keys across Chicago's clock changes and 16 event times, and writes
+  Core.Tests/Fixtures/expected-viewer-library.json; Core.Tests
+  ViewerLibraryTests (3 tests, passing under mono) replays every read,
+  toast, loading step, event.json seek and the library after each step.
+  Render list: viewer-mixed (viewer, -day, -recording now list their days).
 - Phases 3-7 (Encoder, Horizon, Flux, Aurora, Daylight): not started.
   Their pages open in the browser.
 
-Known differences so far (for the parity checklist): the Viewer's next
+Known differences so far (for the parity checklist): the Viewer's
+clip library reads an event.json time in a form other than the ISO one
+the way .NET reads it (browsers differ among themselves there) and lower
+cases names with .NET's Unicode tables (U+0130 and the final sigma as
+JavaScript); SentryUSB drive matching (matchClipsTodrives) is not ported
+(the web version has no drive data); in the render test mode the Viewer's
+expiring toasts are left out (the web's are gone by its capture). The Viewer's next
 segment starts loading 3 s before the boundary (the web: 12 s, a Chrome
 limit that does not apply to waiting ffmpeg processes); telemetry is
 asked without gzip (the browser accepts it), so a remote server sends a

@@ -124,7 +124,10 @@ const PAGES = {
   // status line and Try again once the reads have gone quiet) or fail (Can't open the footage)
   'viewer-scanning': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
   'viewer-noclips': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
-  'viewer-readerror': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 }
+  'viewer-readerror': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
+  // the clip library (part 2): a start folder with Tesla and GM footage side by side (Studio's
+  // "both Tesla and GMC footage" toast, then the status line: no clips shown)
+  'viewer-mixed': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 }
 };
 
 // the Footage page's first page of days, as it asks for it
@@ -144,6 +147,24 @@ function viewerFolder(api, vehicle) {
   const rec = state.expanded[0];
   const detail = rec ? api[`GET /api/vehicles/${encodeURIComponent(vehicle)}/recordings/${encodeURIComponent(rec)}`] : null;
   return detail ? detail.folderPath : undefined;
+}
+
+/** The Viewer's start folder holding RecentClips and a GM Continuous folder (folder reads answered by their body). */
+function viewerMixed(api) {
+  const v = (api['GET /api/vehicles'].vehicles || [])[0] || {};
+  const start = v.studioRoot || v.root;
+  const read = (p) => `POST /api/studio/readDir ${JSON.stringify({ path: p })}`;
+  const dir = (parent, name) => ({ name, isDirectory: true, isFile: false, path: `${parent}/${name}` });
+  const file = (parent, name) => ({ name, isDirectory: false, isFile: true, path: `${parent}/${name}` });
+  const day = `${start}/Continuous/2026-10-10`;
+  return {
+    route: 'viewer',
+    api: {
+      [read(start)]: [dir(start, 'RecentClips'), dir(start, 'Continuous')],
+      [read(`${start}/Continuous`)]: [dir(`${start}/Continuous`, '2026-10-10')],
+      [read(day)]: ['FRONT', 'LEFT', 'RIGHT', 'REAR', 'INTERIOR'].map((c) => file(day, `${c}_2026_10_10_T_08_00_00.mp4`))
+    }
+  };
 }
 
 /**
@@ -194,6 +215,7 @@ const VARIANTS = {
   'viewer-scanning': { route: 'viewer', api: { 'POST /api/studio/readDir': { $pending: true } } },
   'viewer-noclips': { route: 'viewer', api: { 'POST /api/studio/readDir': [] } },
   'viewer-readerror': { route: 'viewer', api: { 'POST /api/studio/readDir': { $error: 'That path is outside the vehicle shares.', $status: 403 } } },
+  'viewer-mixed': (api) => viewerMixed(api),
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },
@@ -492,6 +514,21 @@ async function writeFixture(base, file, dir) {
   api['GET /api/stats'] = STATS;
   // (a POST with no body, as vehicleEncoding.js invoke() sends one)
   for (const p of posts) api[`POST ${p}`] = answer(await c.request('POST', p));
+  // the Viewer's clip library: every folder it may read under the vehicle's start folder and
+  // each event.json, keyed by the body it sends ("POST <path> <body as JSON>", FixtureApi)
+  const start = vehicles[0].studioRoot || vehicles[0].root;
+  const walk = async (p, depth) => {
+    const r = await c.request('POST', '/api/studio/readDir', { path: p });
+    api[`POST /api/studio/readDir ${JSON.stringify({ path: p })}`] = answer(r);
+    if (depth >= 3 || !Array.isArray(r.body)) return;
+    for (const e of r.body) {
+      if (e.isDirectory) await walk(e.path, depth + 1);
+      else if (String(e.name).toLowerCase() === 'event.json') {
+        api[`POST /api/studio/readFile ${JSON.stringify({ path: e.path })}`] = answer(await c.request('POST', '/api/studio/readFile', { path: e.path }));
+      }
+    }
+  };
+  if (start) await walk(start, 0);
   const fill = (x) => JSON.parse(JSON.stringify(x).replace(/\{vehicle\}/g, vehicle));
   const fixture = {
     about: 'Written by tools/parity/capture.js from its fixture server: the answers the native pages get in SentrySix.exe --render (windows/app/Shell/RENDER-PAGES.md).',
@@ -590,10 +627,13 @@ async function setInterface(ctx, base, ui) {
  */
 async function answerAs(ctx, answers) {
   for (const [key, value] of Object.entries(answers)) {
+    // ("METHOD path" or "METHOD path <body as JSON>": then only a request with that body)
     const [method, p] = key.split(' ');
+    const body = key.length > method.length + p.length + 1 ? key.slice(method.length + p.length + 2) : null;
     const [pathname, query = ''] = p.split('?');
     await ctx.route((url) => url.pathname === pathname && url.search.replace(/^\?/, '') === query, (route) => {
       if (route.request().method() !== method) return route.fallback();
+      if (body !== null && route.request().postData() !== body) return route.fallback();
       if (value && value.$pending) return undefined;
       if (value && value.$error) return route.fulfill({ status: value.$status || 500, contentType: 'application/json', body: JSON.stringify({ error: value.$error, ...(value.$code ? { code: value.$code } : {}) }) });
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });

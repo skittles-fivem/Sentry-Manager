@@ -295,6 +295,7 @@ namespace SentrySix.Ui.Builtin
         readonly System.Threading.CancellationTokenSource life = new System.Threading.CancellationTokenSource();
         Player player;
         DayWish wish;
+        ViewerLibrary library;
         bool disposed;
 
         public StudioViewer(ShellModel shell, IJsonApi api, ViewerStart start, bool still)
@@ -357,6 +358,7 @@ namespace SentrySix.Ui.Builtin
                 if (v["id"].IsString && v["id"].Str == Start.VehicleId) { name = v["name"].Str; break; }
             Say(ViewerStart.Opening(name), false);
             if (!string.IsNullOrEmpty(Start.Date)) wish = new DayWish(Start.Date, NowMs());
+            MakeLibrary();
             Begin();
         }
 
@@ -391,17 +393,68 @@ namespace SentrySix.Ui.Builtin
         async void Load()
         {
             if (disposed) return;
-            ShowLoading(StudioText.LoadingDefault, StudioText.LookingForClips);
+            // (the clip library shows and hides the loading overlay itself, as loadDefaultFolderOnStartup does)
+            bool own = Scan == null;
+            if (own) ShowLoading(StudioText.LoadingDefault, StudioText.LookingForClips);
             try
             {
                 await ScanFolders();
+                // the render test mode: Play day's day picked at once (the web's timer picks it within 300 ms)
+                if (still && wish != null && Days != null && Days.Contains(Start.Date) && PickedDay != Start.Date && PickDay != null)
+                    await library.PickDay(Start.Date);
+                if (still && library != null) await library.EventReads;
             }
             catch (OperationCanceledException) { }
             catch (Exception) { }
             if (disposed) return;
-            HideLoading();
+            if (own) HideLoading();
             if (still) Settle();
         }
+
+        /// <summary>
+        /// The clip library (part 2): Studio's scan of the start folder
+        /// through this Viewer's reads, its loading overlay and toasts here,
+        /// the day list for Play day, and the drop overlay gone once days are
+        /// listed. The clip list and the player take its collections from
+        /// <see cref="Library"/> (Selected, ClipsChanged, EventSeek).
+        /// </summary>
+        void MakeLibrary()
+        {
+            library = new ViewerLibrary(new Files(this), new Surface(this));
+            library.DaysListed = HideOverlay;
+            Scan = v => v.library.Open(v.Start.StartFolder);
+            PickDay = d =>
+            {
+                Task t = library.PickDay(d);
+                t.ContinueWith(x => { Exception ignored = x.Exception; }, TaskContinuationOptions.OnlyOnFaulted);
+            };
+        }
+
+        sealed class Files : IStudioFiles
+        {
+            readonly StudioViewer v;
+            public Files(StudioViewer v) { this.v = v; }
+            public Task<JsonValue> ReadDir(string path) { return v.ReadDir(path); }
+            public Task<string> ReadFile(string path) { return v.ReadFile(path); }
+        }
+
+        sealed class Surface : IStudioSurface
+        {
+            readonly StudioViewer v;
+            public Surface(StudioViewer v) { this.v = v; }
+            public void ShowLoading(string text, string progress) { if (!v.disposed) v.ShowLoading(text, progress); }
+            public void HideLoading() { if (!v.disposed) v.HideLoading(); }
+            public void Notify(string message, string type)
+            {
+                StudioNotice n = StudioNotice.Of(message, type);
+                // the render test mode: the web's capture comes 5 s after the scan, when its toasts have gone
+                if (v.still && n.Expires) return;
+                v.Notify(n);
+            }
+        }
+
+        /// <summary>The clip library (null without a start folder).</summary>
+        public ViewerLibrary Library { get { return library; } }
 
         /// <summary>
         /// Reads the folders the clips are in (the clip library's scan:
@@ -437,16 +490,30 @@ namespace SentrySix.Ui.Builtin
             return reads.ReadDir(api, path, NowMs, life.Token);
         }
 
+        /// <summary>electronAPI.readFile: the file's text (POST /api/studio/readFile; throws when it cannot be read).</summary>
+        public async Task<string> ReadFile(string path)
+        {
+            JsonValue answer = await api.Post("/api/studio/readFile", JsonValue.Object("path", path), life.Token);
+            JsonValue text = answer["text"];
+            return text.IsString ? text.Str : null;
+        }
+
         /// <summary>The folder reads so far.</summary>
         public ViewerReads Reads { get { return reads; } }
 
-        /// <summary>The day list's values for Play day (null: no list yet; the clip list sets it).</summary>
-        public IList<string> Days { get; set; }
+        /// <summary>The day list's values for Play day (null: no list yet).</summary>
+        public IList<string> Days
+        {
+            get { return library != null && library.Folders != null && library.DayOptions.Count > 0 ? library.DayOptions : null; }
+        }
 
         /// <summary>The day picked in the day list.</summary>
-        public string PickedDay { get; set; }
+        public string PickedDay
+        {
+            get { return library != null ? library.DayValue : null; }
+        }
 
-        /// <summary>Picks a day in the day list (Play day; the clip list sets it).</summary>
+        /// <summary>Picks a day in the day list (Play day: #dayFilter's change).</summary>
         public Action<string> PickDay { get; set; }
 
         /// <summary>showLoading(text, progress).</summary>

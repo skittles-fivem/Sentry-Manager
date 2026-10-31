@@ -12,7 +12,10 @@ namespace SentrySix.Core
     /// A value { "$error": "text", "$status": 500, "$code": "X" } fails with
     /// ApiError; a GET with no entry fails with a 404 ApiError, as an unknown
     /// API would. POST, PUT and DELETE answer their own entry if there is one,
-    /// else { ok: true }. { "$pending": true } never answers (a page still
+    /// else { ok: true }; a POST whose body is an object may have an entry of
+    /// its own, "POST &lt;path&gt; &lt;body as JSON&gt;" (the Viewer's folder reads:
+    /// POST /api/studio/readDir {"path":"/srv/…/TeslaCam"}), which wins over
+    /// the path's. { "$pending": true } never answers (a page still
     /// loading: the Overview's numbers before the first sample). Files (GetBytes) answer "BYTES &lt;path&gt;" entries
     /// as base64, else fail, so thumbnails show their fallback text.
     /// Every other task is already completed, so a page's awaits finish at once.
@@ -36,7 +39,14 @@ namespace SentrySix.Core
             JsonValue merged = JsonValue.Object();
             foreach (KeyValuePair<string, JsonValue> kv in fixture["api"].Props) merged = merged.With(kv.Key, kv.Value);
             if (!string.IsNullOrEmpty(variant))
-                foreach (KeyValuePair<string, JsonValue> kv in fixture["variants"][variant]["api"].Props) merged = merged.With(kv.Key, kv.Value);
+                foreach (KeyValuePair<string, JsonValue> kv in fixture["variants"][variant]["api"].Props)
+                {
+                    // a variant's answer for a path is its answer whatever the body (the recorded per-body ones go)
+                    JsonValue kept = JsonValue.Object();
+                    foreach (KeyValuePair<string, JsonValue> m in merged.Props)
+                        if (!m.Key.StartsWith(kv.Key + " ", StringComparison.Ordinal)) kept = kept.With(m.Key, m.Value);
+                    merged = kept.With(kv.Key, kv.Value);
+                }
             return new FixtureApi(merged);
         }
 
@@ -45,7 +55,13 @@ namespace SentrySix.Core
 
         Task<JsonValue> Answer(string method, string path, bool mustExist, CancellationToken ct)
         {
+            return Answer(method, path, null, mustExist, ct);
+        }
+
+        Task<JsonValue> Answer(string method, string path, JsonValue body, bool mustExist, CancellationToken ct)
+        {
             string key = method + " " + path;
+            if (body != null && body.IsObject && answers.Has(key + " " + body.ToJson())) key = key + " " + body.ToJson();
             asked.Add(key);
             TaskCompletionSource<JsonValue> t = new TaskCompletionSource<JsonValue>();
             if (!answers.Has(key))
@@ -77,7 +93,7 @@ namespace SentrySix.Core
         }
 
         public Task<JsonValue> Get(string path, CancellationToken ct) { return Answer("GET", path, true, ct); }
-        public Task<JsonValue> Post(string path, JsonValue body, CancellationToken ct) { return Answer("POST", path, false, ct); }
+        public Task<JsonValue> Post(string path, JsonValue body, CancellationToken ct) { return Answer("POST", path, body, false, ct); }
         public Task<JsonValue> Put(string path, JsonValue body, CancellationToken ct) { return Answer("PUT", path, false, ct); }
         public Task<JsonValue> Delete(string path, JsonValue body, CancellationToken ct) { return Answer("DELETE", path, false, ct); }
 

@@ -38,6 +38,7 @@ namespace SentrySix.Core.Tests
             SettingsTests.Register(Test);
             ViewerHostTests.Register(Test);
             ViewerStatesTests.Register(Test);
+            ViewerLibraryTests.Register(Test);
             PlaybackTests.Register(Test, Test);
             ServerTests.Register(Test);
             int failed = 0, passed = 0;

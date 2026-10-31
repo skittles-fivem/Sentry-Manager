@@ -203,6 +203,18 @@ does once the reads have been quiet 2 s; the spinner is drawn at rest.
 The web's "No video clips found…" toast after the scan is gone by the
 capture (3.2 s). On the web the clip list floats over the empty screen;
 the native side has no clip list yet.
+The clip library (part 2): the Viewer now reads the start folder as
+Studio does (the fixture answers each folder read by its body,
+"POST /api/studio/readDir {"path":…}", and each event.json by
+"POST /api/studio/readFile {"path":…}", recorded by capture.js from its
+fixture server), so viewer, viewer-day and viewer-recording list their
+days and the drop overlay goes; the native render leaves out the toasts
+that expire (the web's are gone by the capture) and picks Play day's day
+at once. The clip list and the cameras are the next parts, so the native
+stage is still black there. viewer-mixed: the start folder holds
+RecentClips and a GM Continuous folder ("This folder contains both Tesla
+and GMC footage…", gone by the capture; then the status line's "No
+dashcam clips found in <folder>…" with Try again).
 
 - builtin overview
 - builtin overview-off
@@ -260,3 +272,4 @@ the native side has no clip list yet.
 - builtin viewer-scanning
 - builtin viewer-noclips
 - builtin viewer-readerror
+- builtin viewer-mixed

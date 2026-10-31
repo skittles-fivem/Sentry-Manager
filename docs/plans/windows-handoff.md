@@ -804,3 +804,47 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   (RenderFixture.json updated in place, capture.js has the variants).
 - Not done here: telemetry absent -> PARKED is the dashboard's part (9);
   401 needs nothing new (the Api's SignedOut already signs in again).
+
+
+### Phase 2: Viewer part 2, the clip library (2026-10-31)
+
+- `Core/Dashcam.cs`: `Dashcam` (Tesla and GM profiles with layout slots,
+  capabilities, mirrored cameras, export defaults; `Parse`, `ParseTesla`,
+  `ParseGmc` written out by hand, not as .NET regular expressions, whose
+  \d, $ and /i differ from JavaScript's), `JsText`, `JsDate` (local time
+  through TimeZoneInfo: a time skipped or repeated by a clock change takes
+  the offset of the day before, as JavaScript; V8 takes any day up to 31
+  in Date.parse, so February 30 is March 2).
+- `Core/ViewerLibrary.cs`: `OrderedMap` (JavaScript's Map order),
+  `StudioEntry`, `IStudioFiles`, `StudioFolders` / `DateHandle`
+  (folderStructure), `ClipGroup` (`ToSegment()` gives the Player's
+  `PlaybackSegment`), `DayCollection` (`Segments()`), `LibraryScan` (the
+  scan, index and collections, static and testable) and `ViewerLibrary`
+  (the state: `DayOptions`, `DayValue`, `ClipGroups`, `DayCollections`,
+  `Subtitle`, `Active`, `EventMetaByKey`; `Open(folder)`, `PickDay(day)`;
+  callbacks `ProfileApplied`, `DaysListed`, `ClipsChanged`, `Selected`
+  (selectDayCollection's key: the clip list / player part opens it and
+  calls `StudioViewer.CollectionOpening`), `EventShown`, `EventSeek`,
+  `EventsRead`). A readDir answer that is not an array throws where
+  iterating it throws in Studio (and is caught where Studio catches it).
+- `StudioViewer` (ViewerPage.cs): `Library`, `ReadFile(path)`; `Scan`,
+  `Days`, `PickedDay`, `PickDay` now come from the library (Days and
+  PickedDay are read-only); Load leaves the loading overlay to the
+  library; the render mode picks Play day's day at once, waits for the
+  event.json reads and leaves out expiring toasts.
+- `FixtureApi`: "POST <path> <body JSON>" entries win over "POST <path>";
+  a variant's "POST <path>" drops the recorded per-body ones. capture.js
+  `writeFixture` records the start folder's tree (3 levels) and each
+  event.json; `answerAs` matches a body-keyed answer on the request's
+  body. RenderFixture.json updated in place from a real capture.js
+  fixture run (its readDir / readFile answers) and the viewer-mixed
+  variant.
+- Seen while porting (the web's own behaviour, kept): Footage > Play
+  recording on a Sentry or Saved event opens the event folder itself as a
+  loose folder, and its event.mp4 (not a camera clip, no date) makes an
+  "Unknown" day, which sorts first and is loaded first ("Loaded 1 files
+  for Unknown-undefined-undefined", no clips); the event's own day is
+  second in the list. Worth fixing on the web side (and then here).
+- Next part: the clip list (renderClipList over `DayCollections`, the
+  day select with `DayOptionText`, `Subtitle`) and opening `Selected`
+  in the Player.

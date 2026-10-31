@@ -13151,6 +13151,210 @@
     "defaultDevice": null,
     "defaultDevices": null
    }
+  },
+  "POST /api/studio/readDir {\"path\":\"/srv/sentry-parity/footage/TeslaCam\"}": [
+   {
+    "name": "RecentClips",
+    "isDirectory": true,
+    "isFile": false,
+    "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips"
+   },
+   {
+    "name": "SavedClips",
+    "isDirectory": true,
+    "isFile": false,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips"
+   },
+   {
+    "name": "SentryClips",
+    "isDirectory": true,
+    "isFile": false,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips"
+   }
+  ],
+  "POST /api/studio/readDir {\"path\":\"/srv/sentry-parity/footage/TeslaCam/RecentClips\"}": [
+   {
+    "name": "2026-10-20_08-00-00-back.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-back.mp4"
+   },
+   {
+    "name": "2026-10-20_08-00-00-front.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4"
+   },
+   {
+    "name": "2026-10-20_08-00-00-left_pillar.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-left_pillar.mp4"
+   },
+   {
+    "name": "2026-10-20_08-00-00-left_repeater.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-left_repeater.mp4"
+   },
+   {
+    "name": "2026-10-20_08-00-00-right_pillar.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-right_pillar.mp4"
+   },
+   {
+    "name": "2026-10-20_08-00-00-right_repeater.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-right_repeater.mp4"
+   },
+   {
+    "name": "2026-10-20_08-01-00-back.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-back.mp4"
+   },
+   {
+    "name": "2026-10-20_08-01-00-front.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-front.mp4"
+   },
+   {
+    "name": "2026-10-20_08-01-00-left_pillar.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-left_pillar.mp4"
+   },
+   {
+    "name": "2026-10-20_08-01-00-left_repeater.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-left_repeater.mp4"
+   },
+   {
+    "name": "2026-10-20_08-01-00-right_pillar.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-right_pillar.mp4"
+   },
+   {
+    "name": "2026-10-20_08-01-00-right_repeater.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-right_repeater.mp4"
+   }
+  ],
+  "POST /api/studio/readDir {\"path\":\"/srv/sentry-parity/footage/TeslaCam/SavedClips\"}": [
+   {
+    "name": "2026-10-18_17-30-12",
+    "isDirectory": true,
+    "isFile": false,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12"
+   }
+  ],
+  "POST /api/studio/readDir {\"path\":\"/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12\"}": [
+   {
+    "name": "2026-10-18_17-29-11-back.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-back.mp4"
+   },
+   {
+    "name": "2026-10-18_17-29-11-front.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-front.mp4"
+   },
+   {
+    "name": "2026-10-18_17-29-11-left_pillar.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-left_pillar.mp4"
+   },
+   {
+    "name": "2026-10-18_17-29-11-left_repeater.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-left_repeater.mp4"
+   },
+   {
+    "name": "2026-10-18_17-29-11-right_pillar.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-right_pillar.mp4"
+   },
+   {
+    "name": "2026-10-18_17-29-11-right_repeater.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-right_repeater.mp4"
+   },
+   {
+    "name": "event.json",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/event.json"
+   }
+  ],
+  "POST /api/studio/readFile {\"path\":\"/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/event.json\"}": {
+   "text": "{\"timestamp\":\"2026-10-18T17:30:12\",\"city\":\"Round Rock\",\"est_lat\":\"30.5083\",\"est_lon\":\"-97.6789\",\"reason\":\"user_interaction_honk\",\"camera\":\"0\"}"
+  },
+  "POST /api/studio/readDir {\"path\":\"/srv/sentry-parity/footage/TeslaCam/SentryClips\"}": [
+   {
+    "name": "2026-10-19_22-14-03",
+    "isDirectory": true,
+    "isFile": false,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03"
+   }
+  ],
+  "POST /api/studio/readDir {\"path\":\"/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03\"}": [
+   {
+    "name": "2026-10-19_22-13-02-back.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-back.mp4"
+   },
+   {
+    "name": "2026-10-19_22-13-02-front.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-front.mp4"
+   },
+   {
+    "name": "2026-10-19_22-13-02-left_pillar.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-left_pillar.mp4"
+   },
+   {
+    "name": "2026-10-19_22-13-02-left_repeater.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-left_repeater.mp4"
+   },
+   {
+    "name": "2026-10-19_22-13-02-right_pillar.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-right_pillar.mp4"
+   },
+   {
+    "name": "2026-10-19_22-13-02-right_repeater.mp4",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-right_repeater.mp4"
+   },
+   {
+    "name": "event.json",
+    "isDirectory": false,
+    "isFile": true,
+    "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/event.json"
+   }
+  ],
+  "POST /api/studio/readFile {\"path\":\"/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/event.json\"}": {
+   "text": "{\"timestamp\":\"2026-10-19T22:14:03\",\"city\":\"Austin\",\"est_lat\":\"30.2672\",\"est_lon\":\"-97.7431\",\"reason\":\"sentry_aware_object_detection\",\"camera\":\"0\"}"
   }
  },
  "variants": {
@@ -17158,6 +17362,65 @@
      "$error": "That path is outside the vehicle shares.",
      "$status": 403
     }
+   }
+  },
+  "viewer-mixed": {
+   "route": "viewer",
+   "api": {
+    "POST /api/studio/readDir {\"path\":\"/srv/sentry-parity/footage/TeslaCam\"}": [
+     {
+      "name": "RecentClips",
+      "isDirectory": true,
+      "isFile": false,
+      "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips"
+     },
+     {
+      "name": "Continuous",
+      "isDirectory": true,
+      "isFile": false,
+      "path": "/srv/sentry-parity/footage/TeslaCam/Continuous"
+     }
+    ],
+    "POST /api/studio/readDir {\"path\":\"/srv/sentry-parity/footage/TeslaCam/Continuous\"}": [
+     {
+      "name": "2026-10-10",
+      "isDirectory": true,
+      "isFile": false,
+      "path": "/srv/sentry-parity/footage/TeslaCam/Continuous/2026-10-10"
+     }
+    ],
+    "POST /api/studio/readDir {\"path\":\"/srv/sentry-parity/footage/TeslaCam/Continuous/2026-10-10\"}": [
+     {
+      "name": "FRONT_2026_10_10_T_08_00_00.mp4",
+      "isDirectory": false,
+      "isFile": true,
+      "path": "/srv/sentry-parity/footage/TeslaCam/Continuous/2026-10-10/FRONT_2026_10_10_T_08_00_00.mp4"
+     },
+     {
+      "name": "LEFT_2026_10_10_T_08_00_00.mp4",
+      "isDirectory": false,
+      "isFile": true,
+      "path": "/srv/sentry-parity/footage/TeslaCam/Continuous/2026-10-10/LEFT_2026_10_10_T_08_00_00.mp4"
+     },
+     {
+      "name": "RIGHT_2026_10_10_T_08_00_00.mp4",
+      "isDirectory": false,
+      "isFile": true,
+      "path": "/srv/sentry-parity/footage/TeslaCam/Continuous/2026-10-10/RIGHT_2026_10_10_T_08_00_00.mp4"
+     },
+     {
+      "name": "REAR_2026_10_10_T_08_00_00.mp4",
+      "isDirectory": false,
+      "isFile": true,
+      "path": "/srv/sentry-parity/footage/TeslaCam/Continuous/2026-10-10/REAR_2026_10_10_T_08_00_00.mp4"
+     },
+     {
+      "name": "INTERIOR_2026_10_10_T_08_00_00.mp4",
+      "isDirectory": false,
+      "isFile": true,
+      "path": "/srv/sentry-parity/footage/TeslaCam/Continuous/2026-10-10/INTERIOR_2026_10_10_T_08_00_00.mp4"
+     }
+    ]
    }
   }
  },
