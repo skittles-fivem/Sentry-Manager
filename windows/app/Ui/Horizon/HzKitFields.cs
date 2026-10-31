@@ -58,7 +58,12 @@ namespace SentrySix.Ui.Horizon
             bool on, enabled = true;
             public event Action<bool> Changed;
 
-            public Check(string label, bool value, bool isRadio)
+            public Check(string label, bool value, bool isRadio) : this(label, value, isRadio, 10)
+            {
+            }
+
+            /// <param name="gap">The room between the box and its words (10; 6 in web/vehicleEncoding.js's .ve-choices).</param>
+            public Check(string label, bool value, bool isRadio, double gap)
             {
                 radio = isRadio;
                 mark = new Grid();
@@ -98,7 +103,7 @@ namespace SentrySix.Ui.Horizon
                 {
                     TextBlock t = Text(label, 15, "ink");
                     t.VerticalAlignment = VerticalAlignment.Center;
-                    t.Margin = new Thickness(10, 0, 0, 0);
+                    t.Margin = new Thickness(gap, 0, 0, 0);
                     Grid.SetColumn(t, 1);
                     g.Children.Add(t);
                 }

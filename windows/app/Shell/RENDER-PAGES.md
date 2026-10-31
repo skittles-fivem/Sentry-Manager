@@ -290,3 +290,16 @@ readable: the page shows none).
 - horizon alerts-empty
 - horizon alerts-all
 - horizon alerts-error
+
+### Horizon: Encoding per vehicle
+
+web/vehicleEncoding.js in Horizon's look (hz/pages/vehicles.js) on the same
+answers as the built-in page's states: vehicles (three vehicles: automatic
+on, saved, not set up, one with a long name), vehicles-edit (?edit=<id>: the
+first one's editor open), vehicles-empty (no vehicles), vehicles-error (the
+Encoder still starting: the view is the message).
+
+- horizon vehicles
+- horizon vehicles-edit
+- horizon vehicles-empty
+- horizon vehicles-error
