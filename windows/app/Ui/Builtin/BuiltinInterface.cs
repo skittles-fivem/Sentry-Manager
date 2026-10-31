@@ -34,6 +34,36 @@ namespace SentrySix.Ui.Builtin
         };
         public IReadOnlyList<PageDef> Pages { get { return pages; } }
 
+        // The pages drawn here, by route ("overview") or route and sub page
+        // ("encoder/vehicles"). A page listed here is Native: its navigation
+        // shows it in the window instead of opening the browser.
+        static readonly Dictionary<string, Func<PageContext, INativePage>> native = new Dictionary<string, Func<PageContext, INativePage>>
+        {
+        };
+
+        static BuiltinInterface()
+        {
+            foreach (string key in native.Keys)
+            {
+                int slash = key.IndexOf('/');
+                string id = slash < 0 ? key : key.Substring(0, slash);
+                foreach (PageDef p in pages)
+                {
+                    if (p.Id != id) continue;
+                    if (slash < 0) p.Native = true;
+                    else p.NativeSubs.Add(key.Substring(slash + 1));
+                }
+            }
+        }
+
+        static Func<PageContext, INativePage> NativeFor(string id, string sub)
+        {
+            Func<PageContext, INativePage> make;
+            string first = string.IsNullOrEmpty(sub) ? "" : sub.Split('/', '?')[0];
+            if (first.Length > 0 && native.TryGetValue(id + "/" + first, out make)) return make;
+            return native.TryGetValue(id, out make) ? make : null;
+        }
+
         // web/index.html's <symbol>s (class .i: fill none, stroke currentColor 1.8, round)
         static readonly Dictionary<string, string> Icons = new Dictionary<string, string>
         {
@@ -93,30 +123,20 @@ namespace SentrySix.Ui.Builtin
         }
 
         // ---------- shared controls ----------
+        // .input, .btn and .btn.solid (Look has every variant)
         static InputLook InputK()
         {
-            InputLook k = new InputLook();
-            k.Bg = "panel"; k.Border = "border-strong"; k.Focus = "accent"; k.Fg = "text"; k.Placeholder = "muted";
-            k.Radius = 10; k.FontSize = 14; k.MinHeight = 44; k.Padding = new Thickness(14, 0, 14, 0);
-            k.Font = U.Inter;
-            return k;
+            return Look.InputK();
         }
 
-        // .btn and .btn.solid
         static BtnLook Btn()
         {
-            BtnLook b = new BtnLook();
-            b.Bg = "panel-2"; b.Border = "border-strong"; b.Fg = "text"; b.HoverBg = "panel-3"; b.HoverBorder = "hover-border";
-            b.Radius = new CornerRadius(10); b.MinHeight = 44; b.Padding = new Thickness(16, 0, 16, 0); b.FontSize = 14; b.Weight = FontWeights.SemiBold;
-            b.Font = U.Inter;
-            return b;
+            return Look.BtnK(BtnKind.Plain);
         }
 
         static BtnLook Solid()
         {
-            BtnLook b = Btn();
-            b.Bg = "accent"; b.Fg = "accent-ink"; b.Border = Brushes.Transparent; b.HoverBg = null; b.HoverBorder = null;
-            return b;
+            return Look.BtnK(BtnKind.Solid);
         }
 
         static FrameworkElement Brand(double markSize)
@@ -420,6 +440,9 @@ namespace SentrySix.Ui.Builtin
                 return a;
             }
 
+            /// <summary>app.js: route viewer, or encoder without a sub page.</summary>
+            bool Embedded { get { return m.Route == "viewer" || (m.Route == "encoder" && string.IsNullOrEmpty(m.Sub)); } }
+
             void PaintItem(string id, bool hover)
             {
                 Border a = items[id];
@@ -448,15 +471,15 @@ namespace SentrySix.Ui.Builtin
                 string label = "";
                 foreach (PageDef p in pages) if (p.Id == m.Route) label = p.Title;
                 crumb.Text = "Sentry Six Manager" + (label.Length > 0 ? " / " + label : "");
-                // the Viewer and the Encoder hide the top bar (embedded)
-                topbar.Visibility = m.Route == "viewer" || m.Route == "encoder" ? Visibility.Collapsed : Visibility.Visible;
+                // the Viewer and the Encoder hide the top bar (embedded); the Encoder's sub pages have it
+                topbar.Visibility = Embedded ? Visibility.Collapsed : Visibility.Visible;
             }
 
             /// <summary>shell.css: 224 px sidebar (76 collapsed); at 760 px and below one compact bar on top.</summary>
             void Layout(bool force)
             {
                 if (width <= 0) return;
-                bool embedded = m.Route == "viewer" || m.Route == "encoder";
+                bool embedded = Embedded;
                 // app.js: give Studio the room on windows under 1200 px; the sidebar comes back after
                 if (embedded && width < 1200 && !collapsed) { collapsed = true; autoCollapsed = true; }
                 if (!embedded && autoCollapsed) { collapsed = false; autoCollapsed = false; }
@@ -564,74 +587,59 @@ namespace SentrySix.Ui.Builtin
             }
         }
 
-        /// <summary>A checkbox drawn as Chrome draws one with accent-color (17 px, the theme's accent when on).</summary>
-        sealed class CheckBoxLike
-        {
-            public readonly FrameworkElement Root;
-            readonly Border box;
-            readonly System.Windows.Shapes.Path tick;
-            bool on;
-            readonly Action<bool> changed;
-
-            public CheckBoxLike(string label, bool value, Action<bool> changed)
-            {
-                this.changed = changed;
-                box = new Border();
-                box.Width = 17;
-                box.Height = 17;
-                box.CornerRadius = new CornerRadius(3);
-                box.BorderThickness = new Thickness(1);
-                tick = new System.Windows.Shapes.Path();
-                tick.Data = Geometry.Parse("M3.5 8.5 7 12 13.5 4.5");
-                tick.StrokeThickness = 2;
-                tick.SetResourceReference(Shape.StrokeProperty, "accent-ink");
-                tick.StrokeStartLineCap = PenLineCap.Round;
-                tick.StrokeEndLineCap = PenLineCap.Round;
-                tick.StrokeLineJoin = PenLineJoin.Round;
-                box.Child = tick;
-                TextBlock t = U.Text(label, 14, FontWeights.Normal, "text-2");
-                t.TextWrapping = TextWrapping.NoWrap;
-                t.VerticalAlignment = VerticalAlignment.Center;
-                box.VerticalAlignment = VerticalAlignment.Center;
-                Flex f = Flex.Row(10, box, t);
-                f.Background = Brushes.Transparent;
-                Root = U.Click(f, () => { Set(!on); this.changed(on); });
-                Set(value);
-            }
-
-            public void Set(bool v)
-            {
-                on = v;
-                if (on)
-                {
-                    box.SetResourceReference(Border.BackgroundProperty, "accent");
-                    box.SetResourceReference(Border.BorderBrushProperty, "accent");
-                    tick.Visibility = Visibility.Visible;
-                }
-                else
-                {
-                    box.SetResourceReference(Border.BackgroundProperty, "check-off");
-                    box.SetResourceReference(Border.BorderBrushProperty, "check-off-border");
-                    tick.Visibility = Visibility.Collapsed;
-                }
-            }
-        }
-
         // ---------- pages: until each is drawn here, where it opens (the browser), in the built-in style ----------
         public FrameworkElement Page(string id, PageContext ctx)
         {
             PageDef p = null;
             foreach (PageDef x in pages) if (x.Id == id) p = x;
             if (p == null) p = pages[0];
+            string sub = ctx != null && ctx.Sub != null ? ctx.Sub : "";
+            Func<PageContext, INativePage> make = NativeFor(p.Id, sub);
+            if (make != null && ctx != null)
+            {
+                // (a page that cannot even be made shows why, as a failed draw does)
+                INativePage page;
+                try { page = make(ctx); }
+                catch (Exception ex) { return Look.PageError(ex.Message); }
+                return new PageHost(page, ctx.Shell, Look.PageError).Root;
+            }
+            return Placeholder(p, sub, ctx);
+        }
+
+        /// <summary>A page not drawn here yet: where it opens (the browser), in the built-in style.</summary>
+        FrameworkElement Placeholder(PageDef p, string sub, PageContext ctx)
+        {
+            bool perCar = p.Id == "encoder" && sub.Split('/', '?')[0] == "vehicles";
+            string title = perCar ? "Encoding per vehicle" : p.Title;
+            string route = perCar ? "encoder/vehicles" : p.Id;
             StackPanel s = new StackPanel();
+            if (p.Id == "encoder")
+            {
+                // the Encoder's two tabs (its iframe shows them on the web): the Encoder | Encoding per vehicle
+                Flex tabs = Flex.Row(8);
+                tabs.Margin = new Thickness(0, 0, 0, 18);
+                Button enc = Look.Btn("Encoder", perCar ? BtnKind.Small : BtnKind.Small | BtnKind.Green, () => { if (ctx != null && ctx.Shell != null) ctx.Shell.Navigate("encoder"); });
+                Button veh = Look.Btn("Encoding per vehicle", perCar ? BtnKind.Small | BtnKind.Green : BtnKind.Small, () => { if (ctx != null && ctx.Shell != null) ctx.Shell.Navigate("encoder/vehicles"); });
+                enc.Uid = "tab-encoder";
+                veh.Uid = "tab-vehicles";
+                tabs.Children.Add(enc);
+                tabs.Children.Add(veh);
+                s.Children.Add(tabs);
+            }
             // .page-head > h1 (34px 700 -0.02em), margin-bottom 26
-            SpacedText h1 = U.Spaced(p.Title, 34, FontWeights.Bold, -0.02, "text");
+            if (perCar)
+            {
+                TextBlock eyebrow = U.Text("Encoder", 13, FontWeights.Normal, "text-2");
+                eyebrow.Margin = new Thickness(0, 0, 0, 4);
+                s.Children.Add(eyebrow);
+            }
+            SpacedText h1 = U.Spaced(title, 34, FontWeights.Bold, -0.02, "text");
             h1.Margin = new Thickness(0, 0, 0, 26);
             s.Children.Add(h1);
             // .card: panel, 1px border, radius 16, padding 28
             StackPanel body = new StackPanel();
             body.Children.Add(U.Text(U.BrowserHeading, 20, FontWeights.Bold, "text"));
-            TextBlock para = U.Text(U.BrowserLine(p) + " " + U.OpenInBrowserText, 15.5, FontWeights.Normal, "text");
+            TextBlock para = U.Text("The " + title + " page opens in your browser, with the same data. " + U.OpenInBrowserText, 15.5, FontWeights.Normal, "text");
             para.Opacity = 0.88;
             para.MaxWidth = 560;
             para.HorizontalAlignment = HorizontalAlignment.Left;
@@ -639,11 +647,7 @@ namespace SentrySix.Ui.Builtin
             para.Margin = new Thickness(0, 12, 0, 18);
             body.Children.Add(para);
             FrameworkElement ext = Icon("external", 18, 1.8);
-            BtnLook green = Btn();
-            green.Fg = "accent"; green.Border = "accent-border"; green.Bg = "accent-bg"; green.HoverBg = "panel-3";
-            Button open = U.Button(U.IconLabel(ext, "Open in the browser", 8), green);
-            open.HorizontalAlignment = HorizontalAlignment.Left;
-            open.Click += delegate { if (ctx != null && ctx.Shell != null) ctx.Shell.OpenInBrowser(p.Id); };
+            Button open = Look.Btn("Open in the browser", ext, BtnKind.Green, () => { if (ctx != null && ctx.Shell != null) ctx.Shell.OpenInBrowser(route); });
             body.Children.Add(open);
             Border card = U.Box(body, "panel", "border", 1, new CornerRadius(16), new Thickness(28));
             card.Margin = new Thickness(0, 0, 0, 20);

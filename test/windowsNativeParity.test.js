@@ -80,7 +80,7 @@ function web() {
   return new Function(`${esc}${top}${monitor}${minutes}${day}${account}
     return { clockPref, bytes, plural, when, clockText, took, ago, humanize, minutesText, dayTitle,
       clampPct, size, sizeOf, rate, pct, watts, temp, clock, energyText, inCurrency, money, span, answer, linkSpeed, cpuName,
-      toldHow, printedIn, macAccount, serviceAccount,
+      toldHow, printedIn, macAccount, serviceAccount, spark,
       consts: { MAC_UPDATE, WIN_LOGS, WIN_UPDATE, CPU_NA_WINDOWS, CPU_NA, CPU_NA_SHORT } };`)();
 }
 
@@ -122,6 +122,12 @@ const CASES = [
   ...[{ how: 'Run docker compose pull' }, { how: 'Restart it!' }, { how: '   ' }, {}, null].map((u) => ['toldHow', u]),
   ...['windows', 'macos', 'docker', 'linux'].map((d) => ['printedIn', d]),
   ...[{ runningAsRoot: true }, { account: '_sentry' }, {}].map((s) => ['macAccount', s]),
+  ['spark', [1, 2, 3, 4], 'var(--accent)', 100, []],
+  ['spark', [10, null, 20, 30, null, 5, 7, 9], 'var(--accent)', 0, []],
+  ['spark', [0, 0, 0], 'red', 10, []],
+  ['spark', [5], 'red', 10, []],
+  ['spark', [null, 'x', -4, 50, 60], 'blue', 1, [[[70, 80, null, 10], 'green'], [[1], 'grey']]],
+  ['spark', [], 'red', 10, [[[3, 4], 'green']]],
   ...[{ elevated: true }, { account: 'NT SERVICE\\SentrySixManager' }, {}].map((s) => ['serviceAccount', s])
 ];
 

@@ -39,6 +39,9 @@ namespace SentrySix.Shell
         // the web UI was opened for this run's first shell (its pages are not all native yet)
         bool browserOpened;
         readonly HashSet<string> seenNotes = new HashSet<string>();
+        // over every interface's page: the toasts and the in-window dialogs (built-in look)
+        readonly ToastHost toasts = new ToastHost(SentrySix.Ui.Builtin.Overlays.ToastK());
+        DialogHost dialogs;
         bool notesPrimed;
 
         public AppController(Uri server, bool local, int localPort, bool startHidden)
@@ -128,7 +131,27 @@ namespace SentrySix.Shell
             StopEvents();
             if (api != null) api.Dispose();
             api = new Api(new ServerAddress(server), new CertificatePrompt(() => win));
-            api.AskPassword = () => PasswordDialog.Ask(win, api.AskPasswordMessage);
+            // the web's "Confirm with your password" dialog in the window; a separate
+            // window only while this one is hidden (the tray)
+            // (asked from the Api's own threads: drawn on the window's)
+            api.AskPassword = () =>
+            {
+                string message = api.AskPasswordMessage;
+                TaskCompletionSource<string> done = new TaskCompletionSource<string>();
+                ui.BeginInvoke(new Action(async () =>
+                {
+                    try
+                    {
+                        bool inWindow = win.IsVisible && dialogs != null && dialogs.Root.Parent != null && dialogs.Root.Parent == win.Content;
+                        done.TrySetResult(inWindow ? await dialogs.Password(message) : await PasswordDialog.Ask(win, message));
+                    }
+                    catch (Exception ex)
+                    {
+                        done.TrySetException(ex);
+                    }
+                }));
+                return done.Task;
+            };
             api.SignedOut += () => ui.BeginInvoke(new Action(() => { if (inShell && !quitting) { Task t = ShowLogin(); } }));
             session = new Session(api);
         }
@@ -233,9 +256,15 @@ namespace SentrySix.Shell
             model.Host = server.Authority;
             model.Still = Still;
             model.VehicleId = prefs.Get("vehicle", null);
+            if (dialogs == null) dialogs = new DialogHost(SentrySix.Ui.Builtin.Overlays.DialogK());
+            model.Dialogs = dialogs;
+            model.Toast = (text, bad) => toasts.Show(text, bad);
+            model.Owner = () => win;
+            model.Repin = sha => { if (api != null) api.Repin(sha); };
             // (a click: a page this app does not draw yet opens in the browser)
             model.Navigate = r => Navigate(r, true);
-            model.PickVehicle = id => { model.VehicleId = id; prefs.Set("vehicle", id); };
+            // as the web's pills: the Footage page starts again at its first page, nothing selected
+            model.PickVehicle = id => { model.PageState.Remove("footage"); prefs.Set("vehicle", id); model.VehicleId = id; };
             model.SignOut = () => SignOut();
             model.OpenInBrowser = r => OpenInBrowser(r);
             model.SetReduceEffects = v => { model.ReduceEffects = v; PutAppearance("reduceEffects", v); };
@@ -249,12 +278,13 @@ namespace SentrySix.Shell
                 return;
             }
             string route = prefs.Get("route:" + iface.Id, iface.Pages[0].Id);
-            if (!HasPage(route)) route = iface.Pages[0].Id;
+            if (!HasPage(First(route))) route = iface.Pages[0].Id;
             Navigate(route, false);
             Show(iface, iface.Shell(model));
             // Until every page is drawn here, the window shows where they are
             // and the web UI opens in the browser: once per run, when the
-            // window is on screen (not at a sign-in start in the tray).
+            // window is on screen (not at a sign-in start in the tray), and
+            // only when the first page is one of those.
             if (!browserOpened && win.IsVisible && !NativePage(route))
             {
                 browserOpened = true;
@@ -262,9 +292,29 @@ namespace SentrySix.Shell
             }
         }
 
+        /// <summary>"settings/vehicle/1" is the Settings page's "vehicle/1".</summary>
+        static string First(string route)
+        {
+            string r = (route ?? "").TrimStart('#', '/');
+            int q = r.IndexOf('?');
+            int slash = r.IndexOf('/');
+            if (slash < 0 || (q >= 0 && q < slash)) return q >= 0 ? r.Substring(0, q) : r;
+            return r.Substring(0, slash);
+        }
+
+        static string Rest(string route)
+        {
+            string r = (route ?? "").TrimStart('#', '/');
+            int slash = r.IndexOf('/');
+            int q = r.IndexOf('?');
+            if (slash < 0 || (q >= 0 && q < slash)) return "";
+            return r.Substring(slash + 1);
+        }
+
         bool NativePage(string route)
         {
-            foreach (PageDef p in iface.Pages) if (p.Id == route) return p.Native;
+            string first = First(route);
+            foreach (PageDef p in iface.Pages) if (p.Id == first) return p.IsNative(Rest(route));
             return false;
         }
 
@@ -274,20 +324,35 @@ namespace SentrySix.Shell
             return false;
         }
 
+        /// <summary>
+        /// Shows #/route (with its sub path: "settings/vehicle/1", "overview/logs",
+        /// "encoder/vehicles?edit=1"), as web/app.js render(): the first segment
+        /// picks the page and its navigation item, the rest goes to the page.
+        /// </summary>
         void Navigate(string route, bool clicked)
         {
-            if (iface == null || !HasPage(route)) return;
-            if (clicked && !NativePage(route)) OpenInBrowser(route);
+            // the Logs moved from Settings to the Overview: old links land there
+            string r = (route ?? "").TrimStart('#', '/');
+            if (r == "settings/logs" || r == "settings/logs/") r = "overview/logs";
+            string first = First(r);
+            if (first.Length == 0) first = "overview";
+            if (iface == null || !HasPage(first)) return;
+            string sub = Rest(r);
+            if (clicked && !NativePage(r)) OpenInBrowser(r);
             PageDef def = null;
-            foreach (PageDef p in iface.Pages) if (p.Id == route) def = p;
-            prefs.Set("route:" + iface.Id, route);
-            model.Route = route;
+            foreach (PageDef p in iface.Pages) if (p.Id == first) def = p;
+            // (only the page itself is remembered, as the web's start is #/<page>)
+            prefs.Set("route:" + iface.Id, first);
+            model.Sub = sub;
+            model.Route = first;
             PageContext ctx = new PageContext();
             ctx.Shell = model;
             ctx.Def = def;
+            ctx.Sub = sub;
             ctx.Api = api;
-            model.PageContent = iface.Page(route, ctx);
-            win.Title = def.Title + " · Sentry Six Manager";
+            model.PageContent = iface.Page(first, ctx);
+            // document.title: the navigation's label, "Overview" when none
+            win.Title = (def != null && def.Title.Length > 0 ? def.Title : "Overview") + " · Sentry Six Manager";
         }
 
         /// <summary>The interface's page in the window, with its theme.</summary>
@@ -296,17 +361,32 @@ namespace SentrySix.Shell
             Grid root = new Grid();
             root.Resources.MergedDictionaries.Add(look.Theme());
             root.Children.Add(content);
+            // the toasts and dialogs on top, in the built-in look whatever the interface
+            if (dialogs == null) dialogs = new DialogHost(SentrySix.Ui.Builtin.Overlays.DialogK());
+            SentrySix.Ui.Builtin.Overlays.Attach(root, toasts.Root, dialogs.Root);
             win.Content = root;
         }
 
         async Task LoadSettings()
         {
-            try { ShellData.Settings(await api.Get("/api/settings"), model); } catch (Exception) { }
+            try
+            {
+                JsonValue s = await api.Get("/api/settings");
+                ShellData.Settings(s, model);
+                model.Power = s["power"];
+            }
+            catch (Exception) { }
         }
 
         async Task LoadVehicles()
         {
-            try { model.SetVehicles(ShellData.Vehicles(await api.Get("/api/vehicles"))); } catch (Exception) { }
+            try
+            {
+                JsonValue v = await api.Get("/api/vehicles");
+                model.VehiclesReply = v;
+                model.SetVehicles(ShellData.Vehicles(v));
+            }
+            catch (Exception) { }
         }
 
         async Task LoadJobs()
@@ -323,7 +403,12 @@ namespace SentrySix.Shell
         async Task LoadNotes()
         {
             List<NoteInfo> notes;
-            try { notes = ShellData.Notes(await api.Get("/api/notifications?open=1")); }
+            try
+            {
+                JsonValue reply = await api.Get("/api/notifications?open=1");
+                model.NotesReply = reply;
+                notes = ShellData.Notes(reply);
+            }
             catch (Exception) { return; }
             model.SetNotes(notes);
             foreach (NoteInfo n in notes)
@@ -383,8 +468,13 @@ namespace SentrySix.Shell
             List<Task> work = new List<Task>();
             if (topics.Contains("vehicles") || topics.Contains("inventory") || topics.Contains("bin")) work.Add(LoadVehicles());
             if (topics.Contains("notifications")) work.Add(LoadNotes());
-            if (topics.Contains("jobs")) work.Add(LoadJobs());
+            // on the Jobs page its own list sets the badge (the web: only elsewhere)
+            if (topics.Contains("jobs") && !(model.Route == "jobs" && NativePage("jobs"))) work.Add(LoadJobs());
             await Task.WhenAll(work);
+            if (model == null) return;
+            // then the page, as the web's live update (PageHost skips it while a
+            // dialog is open or a field is being filled, as the web does)
+            model.RaiseChanged(topics);
         }
 
         // ---------- actions ----------

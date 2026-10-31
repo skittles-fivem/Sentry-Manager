@@ -18,7 +18,14 @@ namespace SentrySix.Shell
     /// renders it with RenderTargetBitmap and writes a PNG. Animations stand still.
     /// &lt;page&gt; is "login", "login-setup", "login-local" (the first start on the
     /// Windows PC itself: no setup code), "shell" (the interface's first page) or
-    /// any route of the interface (its page inside the shell).
+    /// any route of the interface (its page inside the shell). A page name
+    /// may also be a variant of the fixture (fixture.variants[name]: its own
+    /// route and sub page, API answers over fixture.api, prefs), or
+    /// "&lt;route&gt;-&lt;variant&gt;" for one; see RENDER-PAGES.md.
+    /// The pages ask fixture.api through a <see cref="FixtureApi"/>, whose
+    /// answers are there at once, so the page is drawn before the picture.
+    /// Without --fixture, Shell\RenderFixture.json beside the exe is used when
+    /// it is there, else the small built-in fixture below.
     /// </summary>
     public static class RenderMode
     {
@@ -45,7 +52,30 @@ namespace SentrySix.Shell
         {
             try
             {
+                if (fixtureFile == null)
+                {
+                    string beside = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Shell", "RenderFixture.json");
+                    if (File.Exists(beside)) fixtureFile = beside;
+                }
                 JsonValue fx = JsonValue.Parse(fixtureFile != null ? File.ReadAllText(fixtureFile) : DefaultFixture);
+                // "footage-empty": a variant of the fixture, or "<route>-<variant>"
+                string variant = null;
+                JsonValue vx = JsonValue.Object();
+                if (fx["variants"].Has(page)) { variant = page; vx = fx["variants"][page]; }
+                // the shell's own data: the fixture's keys, else the same answers the pages get
+                string[,] shellKeys = { { "me", "GET /api/auth/me" }, { "settings", "GET /api/settings" }, { "vehicles", "GET /api/vehicles" }, { "notifications", "GET /api/notifications?open=1" }, { "jobs", "GET /api/jobs?limit=50" } };
+                for (int i = 0; i < shellKeys.GetLength(0); i++)
+                {
+                    string key = shellKeys[i, 0], path = shellKeys[i, 1];
+                    JsonValue answer = vx["api"].Has(path) ? vx["api"][path] : fx["api"][path];
+                    if (!fx.Has(key) && answer.IsObject) fx = fx.With(key, answer);
+                    else if (vx["api"].Has(path) && answer.IsObject) fx = fx.With(key, answer);
+                }
+                foreach (System.Collections.Generic.KeyValuePair<string, JsonValue> kv in vx.Props)
+                {
+                    if (kv.Key == "prefs") foreach (System.Collections.Generic.KeyValuePair<string, JsonValue> pr in kv.Value.Props) fx = fx.With("prefs", fx["prefs"].With(pr.Key, pr.Value));
+                    else if (kv.Key != "route" && kv.Key != "sub" && kv.Key != "api" && kv.Key != "state") fx = fx.With(kv.Key, kv.Value);
+                }
                 IInterface look = Interfaces.Get(ifaceId);
                 if (look == null) throw new ArgumentException("No such interface: " + ifaceId + " (builtin, horizon, flux, aurora, daylight).");
                 MemoryPrefs prefs = new MemoryPrefs();
@@ -83,15 +113,31 @@ namespace SentrySix.Shell
                     m.LiveKnown = fx.Has("live");
                     m.Live = fx["live"].Bool;
                     m.Deployment = fx["me"]["deployment"].Str ?? "docker";
+                    m.VehiclesReply = fx["vehicles"];
+                    m.NotesReply = fx["notifications"];
+                    m.Power = fx["settings"]["power"];
                     string route = page == "shell" ? look.Pages[0].Id : page;
+                    string sub = "";
+                    if (variant != null)
+                    {
+                        route = vx["route"].Str ?? page.Split('-')[0];
+                        sub = vx["sub"].Str ?? "";
+                    }
                     PageDef def = null;
                     foreach (PageDef p in look.Pages) if (p.Id == route) def = p;
                     if (def == null) throw new ArgumentException("No page " + route + " in " + ifaceId + ".");
+                    m.Sub = sub;
                     m.Route = route;
+                    // what the page keeps between visits (the Footage page's open days...)
+                    if (vx.Has("state")) m.PageState[route] = vx["state"];
+                    // the toasts and dialogs a page may show (none is open in a picture)
+                    m.Dialogs = new DialogHost(SentrySix.Ui.Builtin.Overlays.DialogK());
                     PageContext ctx = new PageContext();
                     ctx.Shell = m;
                     ctx.Def = def;
+                    ctx.Sub = sub;
                     ctx.Fixture = fx;
+                    ctx.Api = FixtureApi.For(fx, variant);
                     m.PageContent = look.Page(route, ctx);
                     content = look.Shell(m);
                 }

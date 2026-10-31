@@ -82,7 +82,7 @@
   <ItemGroup>
     <Compile Include="Shell/**/*.cs;Ui/**/*.cs;Core/**/*.cs" Exclude="$(SentryNotSources)" />
 
-    <Content Include="Shell/**/*.xaml;Ui/**/*.xaml;Shell/**/*.ttf;Ui/**/*.ttf;Shell/**/*.otf;Ui/**/*.otf;Shell/**/*.png;Ui/**/*.png;Shell/**/*.ico;Ui/**/*.ico"
+    <Content Include="Shell/**/*.json;Shell/**/*.xaml;Ui/**/*.xaml;Shell/**/*.ttf;Ui/**/*.ttf;Shell/**/*.otf;Ui/**/*.otf;Shell/**/*.png;Ui/**/*.png;Shell/**/*.ico;Ui/**/*.ico"
              Exclude="$(SentryNotSources)"
              CopyToOutputDirectory="PreserveNewest" />
     <!-- also as a file, for the tray icon and the window -->

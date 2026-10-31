@@ -1618,6 +1618,116 @@
    "out": "runs as the macOS service account <code>_sentrysix</code>, not as root; it connects shares itself"
   },
   {
+   "fn": "spark",
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4
+    ],
+    "var(--accent)",
+    100,
+    []
+   ],
+   "out": "<svg class=\"nd-spark\" viewBox=\"0 0 220 40\" preserveAspectRatio=\"none\" aria-hidden=\"true\"><polyline points=\"0.0,40 0.0,36.7 73.3,36.3 146.7,36.0 220.0,35.6 220.0,40\" fill=\"var(--accent)\" opacity=\"0.08\" stroke=\"none\"/><polyline points=\"0.0,36.7 73.3,36.3 146.7,36.0 220.0,35.6\" fill=\"none\" stroke=\"var(--accent)\" stroke-width=\"2\" vector-effect=\"non-scaling-stroke\"/></svg>"
+  },
+  {
+   "fn": "spark",
+   "args": [
+    [
+     10,
+     null,
+     20,
+     30,
+     null,
+     5,
+     7,
+     9
+    ],
+    "var(--accent)",
+    0,
+    []
+   ],
+   "out": "<svg class=\"nd-spark\" viewBox=\"0 0 220 40\" preserveAspectRatio=\"none\" aria-hidden=\"true\"><polyline points=\"62.9,40 62.9,17.3 94.3,7.4 94.3,40\" fill=\"var(--accent)\" opacity=\"0.08\" stroke=\"none\"/><polyline points=\"62.9,17.3 94.3,7.4\" fill=\"none\" stroke=\"var(--accent)\" stroke-width=\"2\" vector-effect=\"non-scaling-stroke\"/><polyline points=\"157.1,40 157.1,32.1 188.6,30.1 220.0,28.1 220.0,40\" fill=\"var(--accent)\" opacity=\"0.08\" stroke=\"none\"/><polyline points=\"157.1,32.1 188.6,30.1 220.0,28.1\" fill=\"none\" stroke=\"var(--accent)\" stroke-width=\"2\" vector-effect=\"non-scaling-stroke\"/></svg>"
+  },
+  {
+   "fn": "spark",
+   "args": [
+    [
+     0,
+     0,
+     0
+    ],
+    "red",
+    10,
+    []
+   ],
+   "out": "<svg class=\"nd-spark\" viewBox=\"0 0 220 40\" preserveAspectRatio=\"none\" aria-hidden=\"true\"><polyline points=\"0.0,40 0.0,37.0 110.0,37.0 220.0,37.0 220.0,40\" fill=\"red\" opacity=\"0.08\" stroke=\"none\"/><polyline points=\"0.0,37.0 110.0,37.0 220.0,37.0\" fill=\"none\" stroke=\"red\" stroke-width=\"2\" vector-effect=\"non-scaling-stroke\"/></svg>"
+  },
+  {
+   "fn": "spark",
+   "args": [
+    [
+     5
+    ],
+    "red",
+    10,
+    []
+   ],
+   "out": ""
+  },
+  {
+   "fn": "spark",
+   "args": [
+    [
+     null,
+     "x",
+     -4,
+     50,
+     60
+    ],
+    "blue",
+    1,
+    [
+     [
+      [
+       70,
+       80,
+       null,
+       10
+      ],
+      "green"
+     ],
+     [
+      [
+       1
+      ],
+      "grey"
+     ]
+    ]
+   ],
+   "out": "<svg class=\"nd-spark\" viewBox=\"0 0 220 40\" preserveAspectRatio=\"none\" aria-hidden=\"true\"><polyline points=\"110.0,40 110.0,37.0 165.0,18.5 220.0,14.8 220.0,40\" fill=\"blue\" opacity=\"0.08\" stroke=\"none\"/><polyline points=\"110.0,37.0 165.0,18.5 220.0,14.8\" fill=\"none\" stroke=\"blue\" stroke-width=\"2\" vector-effect=\"non-scaling-stroke\"/><polyline points=\"0.0,40 0.0,11.1 73.3,7.4 73.3,40\" fill=\"green\" opacity=\"0.08\" stroke=\"none\"/><polyline points=\"0.0,11.1 73.3,7.4\" fill=\"none\" stroke=\"green\" stroke-width=\"2\" vector-effect=\"non-scaling-stroke\"/></svg>"
+  },
+  {
+   "fn": "spark",
+   "args": [
+    [],
+    "red",
+    10,
+    [
+     [
+      [
+       3,
+       4
+      ],
+      "green"
+     ]
+    ]
+   ],
+   "out": "<svg class=\"nd-spark\" viewBox=\"0 0 220 40\" preserveAspectRatio=\"none\" aria-hidden=\"true\"><polyline points=\"0.0,40 0.0,26.8 220.0,23.4 220.0,40\" fill=\"green\" opacity=\"0.08\" stroke=\"none\"/><polyline points=\"0.0,26.8 220.0,23.4\" fill=\"none\" stroke=\"green\" stroke-width=\"2\" vector-effect=\"non-scaling-stroke\"/></svg>"
+  },
+  {
    "fn": "serviceAccount",
    "args": [
     {

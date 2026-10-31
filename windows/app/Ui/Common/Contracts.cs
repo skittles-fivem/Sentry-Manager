@@ -50,6 +50,19 @@ namespace SentrySix.Ui
         /// says so; set when its native page lands.
         /// </summary>
         public bool Native { get; set; }
+
+        readonly HashSet<string> nativeSubs = new HashSet<string>();
+        /// <summary>Sub pages drawn here although the page itself is not ("vehicles" of #/encoder/vehicles).</summary>
+        public ISet<string> NativeSubs { get { return nativeSubs; } }
+
+        /// <summary>Whether #/&lt;Id&gt;/&lt;sub&gt; is drawn here.</summary>
+        public bool IsNative(string sub)
+        {
+            if (Native) return true;
+            if (string.IsNullOrEmpty(sub)) return false;
+            string first = sub.Split('/', '?')[0];
+            return nativeSubs.Contains(first);
+        }
     }
 
     public sealed class LoginResult
@@ -141,8 +154,11 @@ namespace SentrySix.Ui
         }
 
         string route;
+        /// <summary>The route's first segment ("settings" of #/settings/vehicle/1): the navigation's item.</summary>
         public string Route { get { return route; } set { if (route != value) { route = value; Raise("Route"); } } }
-        public string Sub;
+        string sub = "";
+        /// <summary>The rest of the route ("vehicle/1", "logs", "vehicles?edit=1"); "" for none.</summary>
+        public string Sub { get { return sub; } set { string v = value ?? ""; if (sub != v) { sub = v; Raise("Sub"); } } }
 
         FrameworkElement page;
         /// <summary>The current page, built by the interface; the shell shows it.</summary>
@@ -169,6 +185,34 @@ namespace SentrySix.Ui
         {
             get { int n = 0; foreach (VehicleInfo v in Vehicles) n += v.BinItems; return n; }
         }
+
+        /// <summary>The whole GET /api/vehicles answer (pages read share, inventory, saved, binBytes, timezone, source, root, studioRoot...).</summary>
+        public JsonValue VehiclesReply = JsonValue.Object();
+        /// <summary>GET /api/settings power (currency, price), as the web's state.power; null until read.</summary>
+        public JsonValue Power = JsonValue.Null;
+        /// <summary>The raw open notifications answer (GET /api/notifications?open=1).</summary>
+        public JsonValue NotesReply = JsonValue.Object();
+
+        /// <summary>
+        /// The event stream's "changed" topics, raised after the shell's own
+        /// data (vehicles, notifications, jobs) is read again for them; pages
+        /// redraw on the topics they show (PageHost). The app also raises
+        /// "clock" when the 24-hour clock is switched (the web redraws then).
+        /// </summary>
+        public event Action<HashSet<string>> Changed;
+
+        public void RaiseChanged(HashSet<string> topics)
+        {
+            Action<HashSet<string>> h = Changed;
+            if (h != null && topics != null && topics.Count > 0) h(topics);
+        }
+
+        /// <summary>
+        /// What the web keeps in its state object between visits of a page
+        /// (the Footage page's offset, selection, open days...), by route.
+        /// Picking another vehicle clears the Footage page's.
+        /// </summary>
+        public readonly Dictionary<string, object> PageState = new Dictionary<string, object>();
 
         public List<NoteInfo> Notes { get; private set; }
         public void SetNotes(List<NoteInfo> list)
@@ -214,6 +258,21 @@ namespace SentrySix.Ui
         public Action<string> OpenInBrowser = delegate { };
         public Action<bool> SetReduceEffects = delegate { };
         public Action<bool> SetClock24 = delegate { };
+        /// <summary>Trusts the certificate the server says it now uses (Api.Repin; Settings > Security).</summary>
+        public Action<string> Repin = delegate { };
+        /// <summary>web/app.js toast(message, bad).</summary>
+        public Action<string, bool> Toast = delegate { };
+        /// <summary>The in-window dialogs (confirm, prompt, password); null in a shell without them.</summary>
+        public DialogHost Dialogs;
+        /// <summary>A dialog is open: live redraws wait (the web's dialog[open] check).</summary>
+        public bool DialogOpen { get { return Dialogs != null && Dialogs.IsOpen; } }
+        /// <summary>web/app.js confirmDialog(); false when there is no dialog host.</summary>
+        public Task<bool> Confirm(ConfirmSpec spec)
+        {
+            return Dialogs != null ? Dialogs.Confirm(spec) : Task.FromResult(false);
+        }
+        /// <summary>The window, for Windows' own Save and Open dialogs.</summary>
+        public Func<Window> Owner = () => null;
         /// <summary>The wall clock (Aurora's top bar); the render test mode fixes it.</summary>
         public Func<DateTime> Now = () => DateTime.Now;
     }
@@ -225,7 +284,7 @@ namespace SentrySix.Ui
         public string Sub;
         /// <summary>The render test mode's fixture (null when live).</summary>
         public JsonValue Fixture;
-        /// <summary>The API client (null in the render test mode).</summary>
-        public Api Api;
+        /// <summary>The server's API: the real one, or the render test mode's fixture answers.</summary>
+        public IJsonApi Api;
     }
 }

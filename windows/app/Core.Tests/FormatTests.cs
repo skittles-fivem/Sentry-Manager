@@ -49,6 +49,12 @@ namespace SentrySix.Core.Tests
                 case "cpuName": return Format.CpuName(a[0].Str);
                 case "toldHow": return Wording.ToldHow(a[0]);
                 case "serviceAccount": return Wording.ServiceAccount(a[0]);
+                case "spark":
+                {
+                    var also = new List<KeyValuePair<IList<double?>, string>>();
+                    foreach (JsonValue x in a[3].Items) also.Add(new KeyValuePair<IList<double?>, string>(Spark.Values(x[0]), x[1].Str));
+                    return Spark.Svg(Spark.Values(a[0]), a[1].Str, a[2].Num, also);
+                }
                 default: throw new AssertFailed("no C# twin for " + fn);
             }
         }

@@ -14,6 +14,14 @@
 //
 //   node tools/parity/capture.js [--out <dir>] [--only builtin,horizon]
 //                                [--pages login,shell] [--keep]
+//                                [--fixture <file>] [--fixture-only]
+//
+// It also writes the fixture server's answers to every request the native
+// pages make (tools/parity/fixture.json, or --fixture <file>): the native
+// renders read the same data with --fixture (RENDER-PAGES.md). With
+// --fixture-only it writes that file and takes no pictures (no Playwright).
+// The built-in interface's own pages (overview, footage, ... and their
+// variants) are taken for it alone; the packs have their own routes.
 //
 // Needs Playwright with Chromium (require('playwright')), and ffmpeg on PATH
 // for real clips (without it the clips are placeholders and have no
@@ -37,7 +45,41 @@ const PASSWORD = 'parity-fixture-pass';
 const INTERFACES = ['builtin', 'horizon', 'flux', 'aurora', 'daylight'];
 const PAGES = {
   login: { signedIn: false, path: '/login' },
-  shell: { signedIn: true, path: '/' }
+  shell: { signedIn: true, path: '/' },
+  // the built-in interface's pages (docs/plans/windows-native-ui.md, phase 1), with the
+  // names the native render list uses (windows/app/Shell/RENDER-PAGES.md)
+  overview: { signedIn: true, path: '/#/overview', only: 'builtin' },
+  'overview-off': { signedIn: true, path: '/#/overview', only: 'builtin', storage: { 'sm:nerdStats': 'false' } },
+  'overview-logs': { signedIn: true, path: '/#/overview/logs', only: 'builtin' },
+  nodes: { signedIn: true, path: '/#/nodes', only: 'builtin' },
+  footage: { signedIn: true, path: '/#/footage', only: 'builtin' },
+  policies: { signedIn: true, path: '/#/policies', only: 'builtin' },
+  jobs: { signedIn: true, path: '/#/jobs', only: 'builtin' },
+  bin: { signedIn: true, path: '/#/bin', only: 'builtin' },
+  notifications: { signedIn: true, path: '/#/notifications', only: 'builtin' },
+  settings: { signedIn: true, path: '/#/settings', only: 'builtin' },
+  'settings-vehicle': { signedIn: true, path: (v) => `/#/settings/vehicle/${encodeURIComponent(v)}`, only: 'builtin' },
+  'settings-vehicle-new': { signedIn: true, path: '/#/settings/vehicle-new', only: 'builtin' },
+  'settings-security': { signedIn: true, path: '/#/settings/security', only: 'builtin' },
+  percar: { signedIn: true, path: '/#/encoder/vehicles', only: 'builtin' },
+  'percar-edit': { signedIn: true, path: '/#/encoder/vehicles?edit=1', only: 'builtin' }
+};
+
+// The fixture's variants: the same pages in another state, by name (the
+// native render list's page names). route/sub pick the page; api answers go
+// over the recorded ones (a { "$error", "$status" } answer is a failure);
+// prefs are this PC's choices (the web's localStorage "sm:" keys).
+// {vehicle} is the fixture vehicle's id.
+const VARIANTS = {
+  'overview-off': { route: 'overview', prefs: { nerdStats: 'false' } },
+  'overview-logs': { route: 'overview', sub: 'logs' },
+  'settings-vehicle': { route: 'settings', sub: 'vehicle/{vehicle}' },
+  'settings-vehicle-new': { route: 'settings', sub: 'vehicle-new' },
+  'settings-security': { route: 'settings', sub: 'security' },
+  percar: { route: 'encoder', sub: 'vehicles' },
+  'percar-edit': { route: 'encoder', sub: 'vehicles?edit=1' },
+  'jobs-error': { route: 'jobs', api: { 'GET /api/jobs?vehicle={vehicle}': { $error: 'The job list could not be read.', $status: 500 } } },
+  'bin-error': { route: 'bin', api: { 'GET /api/bin?vehicle={vehicle}': { $error: 'The Recycle Bin could not be read.', $status: 500 } } }
 };
 const SIZES = [
   { width: 1400, height: 900, mobile: false },
@@ -46,13 +88,15 @@ const SIZES = [
 const HEADERS = { 'X-Requested-With': 'sentry-six-manager' };
 
 function args(argv) {
-  const o = { out: path.join(__dirname, 'out', 'web'), only: INTERFACES, pages: Object.keys(PAGES), keep: false };
+  const o = { out: path.join(__dirname, 'out', 'web'), only: INTERFACES, pages: Object.keys(PAGES), keep: false, fixture: path.join(__dirname, 'fixture.json'), fixtureOnly: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--out') o.out = path.resolve(argv[++i]);
     else if (a === '--only') o.only = argv[++i].split(',').filter(Boolean);
     else if (a === '--pages') o.pages = argv[++i].split(',').filter(Boolean);
     else if (a === '--keep') o.keep = true;
+    else if (a === '--fixture') o.fixture = path.resolve(argv[++i]);
+    else if (a === '--fixture-only') o.fixtureOnly = true;
     else throw new Error(`unknown argument ${a}`);
   }
   for (const ui of o.only) if (!INTERFACES.includes(ui)) throw new Error(`unknown interface ${ui} (${INTERFACES.join(', ')})`);
@@ -171,6 +215,92 @@ async function startServer(dir) {
   throw new Error(`the fixture server did not start:\n${output}`);
 }
 
+// ---- the fixture for the native renders --------------------------------------------
+//
+// The answers the native pages get (Core's FixtureApi), keyed "METHOD path"
+// with the path exactly as the page asks it, recorded from the fixture
+// server with a plain HTTPS client (no browser needed).
+
+function client(base) {
+  let cookie = '';
+  const request = (method, p, data) => new Promise((resolve, reject) => {
+    const body = data === undefined ? null : Buffer.from(JSON.stringify(data));
+    const req = https.request(base + p, {
+      method,
+      rejectUnauthorized: false,
+      timeout: 30000,
+      headers: { ...HEADERS, Origin: base, ...(cookie ? { Cookie: cookie } : {}), ...(body ? { 'Content-Type': 'application/json', 'Content-Length': body.length } : {}) }
+    }, (res) => {
+      const set = res.headers['set-cookie'];
+      if (set && set.length) cookie = set.map((c) => c.split(';')[0]).join('; ');
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
+        let json = null;
+        try { json = JSON.parse(text); } catch {}
+        resolve({ status: res.statusCode, body: json });
+      });
+    });
+    req.on('error', reject);
+    req.on('timeout', () => req.destroy(new Error(`${method} ${p}: timed out`)));
+    if (body) req.write(body);
+    req.end();
+  });
+  return { request };
+}
+
+/** The GETs (and Encoder calls) the built-in pages make, for the fixture's vehicle. */
+function fixturePaths(vehicle, days) {
+  const v = encodeURIComponent(vehicle);
+  const gets = [
+    '/api/auth/me', '/api/info', '/api/settings', '/api/vehicles', '/api/notifications?open=1', '/api/notifications',
+    '/api/jobs?limit=50', `/api/jobs?vehicle=${v}`, '/api/jobs', `/api/bin?vehicle=${v}`, '/api/bin',
+    '/api/nodes', '/api/nodes/worker', `/api/vehicles/${v}/policy`,
+    `/api/vehicles/${v}/days?${new URLSearchParams({ category: 'all', offset: '0', limit: '30' })}`,
+    ...days.map((d) => `/api/vehicles/${v}/recordings?${new URLSearchParams({ category: 'all', date: d, limit: '500' })}`),
+    '/api/stats', '/api/stats/history?range=24h', '/api/logs?level=problems', '/api/logs?level=all', '/api/logs/archive',
+    '/api/security', '/api/system', '/api/system/volumes', '/api/updates', '/api/ui-packs', '/api/speeds/status', '/api/settings/network'
+  ];
+  const posts = ['getAuto', 'getCapabilities', 'devices'].map((n) => `/api/converter/invoke/${n}`);
+  return { gets, posts };
+}
+
+async function writeFixture(base, file, dir) {
+  const c = client(base);
+  const login = await c.request('POST', '/api/auth/login', { username: USER, password: PASSWORD });
+  if (login.status !== 200) throw new Error(`fixture: sign-in failed (${login.status})`);
+  const answer = (r) => (r.status >= 200 && r.status < 300 ? (r.body ?? {}) : { $error: (r.body && r.body.error) || `HTTP ${r.status}`, $status: r.status, ...(r.body && r.body.code ? { $code: r.body.code } : {}) });
+  const vehicles = (await c.request('GET', '/api/vehicles')).body?.vehicles || [];
+  if (!vehicles.length) throw new Error('fixture: the server has no vehicle');
+  const vehicle = String(vehicles[0].id);
+  const daysPath = `/api/vehicles/${encodeURIComponent(vehicle)}/days?${new URLSearchParams({ category: 'all', offset: '0', limit: '30' })}`;
+  const days = ((await c.request('GET', daysPath)).body?.days || []).map((d) => d.day).filter(Boolean);
+  const { gets, posts } = fixturePaths(vehicle, days);
+  const api = {};
+  for (const p of gets) api[`GET ${p}`] = answer(await c.request('GET', p));
+  // (a POST with no body, as vehicleEncoding.js invoke() sends one)
+  for (const p of posts) api[`POST ${p}`] = answer(await c.request('POST', p));
+  const fill = (x) => JSON.parse(JSON.stringify(x).replace(/\{vehicle\}/g, vehicle));
+  const fixture = {
+    about: 'Written by tools/parity/capture.js from its fixture server: the answers the native pages get in SentrySix.exe --render (windows/app/Shell/RENDER-PAGES.md).',
+    host: new URL(base).host,
+    now: new Date().toISOString().slice(0, 19),
+    live: true,
+    vehicle,
+    api,
+    variants: fill(VARIANTS),
+    prefs: {}
+  };
+  await fsp.mkdir(path.dirname(file), { recursive: true });
+  // the run's temporary folder is a fixed name, so two runs write the same paths
+  let text = JSON.stringify(fixture, null, 1);
+  if (dir) text = text.split(JSON.stringify(dir).slice(1, -1)).join('/srv/sentry-parity');
+  await fsp.writeFile(file, `${text}\n`);
+  console.log(`fixture: ${Object.keys(api).length} answers in ${file}`);
+  return fixture;
+}
+
 // ---- browser side ------------------------------------------------------------------
 
 async function api(ctx, base, method, p, data) {
@@ -215,6 +345,21 @@ async function waitForFootage(ctx, base, want) {
   }
 }
 
+// the same wait without a browser (--fixture-only)
+async function waitForScan(base, want) {
+  const c = client(base);
+  await c.request('POST', '/api/auth/login', { username: USER, password: PASSWORD });
+  const vehicles = (await c.request('GET', '/api/vehicles')).body?.vehicles || [];
+  if (!vehicles.length) throw new Error('the fixture server has no vehicle');
+  const until = Date.now() + 90000;
+  for (;;) {
+    const r = (await c.request('GET', `/api/vehicles/${encodeURIComponent(vehicles[0].id)}/recordings`)).body || {};
+    if (!r.scanning && r.total >= want) return r.total;
+    if (Date.now() > until) throw new Error(`the scan found ${r.total} recordings, expected ${want}`);
+    await new Promise((res) => setTimeout(res, 500));
+  }
+}
+
 async function setInterface(ctx, base, ui) {
   if (ui === 'builtin') {
     await api(ctx, base, 'PUT', '/api/ui-packs/active', { id: null });
@@ -228,16 +373,19 @@ async function setInterface(ctx, base, ui) {
   await api(ctx, base, 'PUT', '/api/ui-packs/active', { id: pack.id });
 }
 
-async function shoot(browser, base, ui, pageName, size, file) {
+async function shoot(browser, base, ui, pageName, size, file, vehicle) {
   const spec = PAGES[pageName];
   const ctx = await browser.newContext(contextOptions(size, ui));
   const errors = [];
   try {
     if (spec.signedIn) await signIn(ctx, base);
+    // this browser's own choices (localStorage), before the page's script reads them
+    if (spec.storage) await ctx.addInitScript((pairs) => { for (const [k, v] of Object.entries(pairs)) localStorage.setItem(k, v); }, spec.storage);
     const page = await ctx.newPage();
     page.on('pageerror', (e) => errors.push(e.message));
     // (the signed-in pages keep the event stream open: no network idle there)
-    await page.goto(base + spec.path, { waitUntil: 'load' });
+    const where = typeof spec.path === 'function' ? spec.path(vehicle) : spec.path;
+    await page.goto(base + where, { waitUntil: 'load' });
     await page.evaluate(() => document.fonts && document.fonts.ready).catch(() => {});
     await page.waitForTimeout(spec.signedIn ? 3000 : 1200);
     await page.screenshot({ path: file, animations: 'disabled', caret: 'hide' });
@@ -249,7 +397,7 @@ async function shoot(browser, base, ui, pageName, size, file) {
 
 async function main() {
   const opts = args(process.argv.slice(2));
-  const { chromium } = loadPlaywright();
+  const { chromium } = opts.fixtureOnly ? {} : loadPlaywright();
   await fsp.mkdir(opts.out, { recursive: true });
   const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'sm-parity-'));
   let server = null;
@@ -259,18 +407,25 @@ async function main() {
     console.log(`fixture data in ${dir}`);
     server = await startServer(dir);
     console.log(`fixture server on ${server.base}`);
+    if (opts.fixtureOnly) {
+      await waitForScan(server.base, RECORDINGS.length);
+      await writeFixture(server.base, opts.fixture, dir);
+      return;
+    }
     browser = await chromium.launch();
     const admin = await browser.newContext({ ignoreHTTPSErrors: true });
     await signIn(admin, server.base);
     // (consecutive RecentClips minutes are one recording)
     const count = RECORDINGS.length;
     console.log(`recordings: ${await waitForFootage(admin, server.base, count)}`);
+    const { vehicle } = await writeFixture(server.base, opts.fixture, dir);
     for (const ui of opts.only) {
       await setInterface(admin, server.base, ui);
       for (const pageName of opts.pages) {
+        if (PAGES[pageName].only && PAGES[pageName].only !== ui) continue;
         for (const size of SIZES) {
           const name = `${ui}-${pageName}-${size.width}x${size.height}.png`;
-          const errors = await shoot(browser, server.base, ui, pageName, size, path.join(opts.out, name));
+          const errors = await shoot(browser, server.base, ui, pageName, size, path.join(opts.out, name), vehicle);
           shots.push({ file: name, interface: ui, page: pageName, width: size.width, height: size.height, errors });
           console.log(`${name}${errors.length ? `  (page errors: ${errors.join(' | ')})` : ''}`);
         }
