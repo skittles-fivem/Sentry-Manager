@@ -688,3 +688,40 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   recording card is `rec-<id>`) to the top of its scroller. footage-open
   and footage-long have it (RenderFixture.json updated in place).
 
+### Phase 2: playback engine and telemetry (2026-10-31)
+
+- Core (C# 5, also netstandard2.0): `Telemetry.cs` (`Sei.Decode` is
+  protobuf.js 8's generated SeiMetadata decoder: a known field with
+  another wire type is skipped as unknown, the slow and fast varint
+  paths, tag / length / group checks, recursion limit 100; `ClipTelemetry`
+  is extractSeiFromServer + collectSei + findSeiAtTime, `Atob` the
+  browser's; `TelemetryCache` uses the new `Api.GetIfChanged`, 304 via
+  If-None-Match), `PlaybackClock.cs` (+ `PlaybackSync.Decide`),
+  `SegmentPlan.cs` (+ `PlaybackSegment`, `LayoutSlot`, `PlanSegment`),
+  `FfmpegArgs.cs`, `MediaRelay.cs` (`Api.OpenMedia`: SendOnce with the
+  Range, any status passed on), `Playback.cs` (`FrameRing`,
+  `CameraStream`, `DecodePaths`, `FfmpegTools`: ffmpeg\ next to app-ui\,
+  else PATH; `FfmpegTools.Started` is where the app puts each process in
+  its job). CameraStream and the probe are in Core, not Ui, so Core.Tests
+  can run them against the real server and ffmpeg.
+- `Ui/Common/Playback/VideoSurface.cs` (+ `PlaybackJob`) and `Player.cs`:
+  nothing uses them yet; the Viewer page is the next step (it attaches a
+  VideoSurface per slot, calls Open with the day's segments, and reads
+  Position / Total / CurrentSei / Telemetry.MapPath on Player.Tick).
+  Decode paths: the page should run `DecodePaths.Probe` once on a
+  background thread and keep `Save()` in the prefs.
+- `test/windowsNativeTelemetry.test.js` -> `Core.Tests/Fixtures/
+  expected-telemetry.json` (UPDATE_NATIVE_PARITY=1 rewrites it; without
+  ffmpeg the clips' answers come from the file). There are no real Tesla
+  clips in the repository: the clips are the H.264 Tesla-style fixtures
+  of test/fixtures/ffmpegFixtures.js.
+- `Core.Tests/PlaybackTests.cs` (15 tests; `NodeServer.Env` is new for
+  FOOTAGE_PATH / VEHICLE_NAME). Under mono with a stub runner all 15 pass
+  here, the server one included (H.264, H.265 and AV1 decoded on the CPU;
+  this container has no D3D11VA). windows.yml's app job has a "Pinned
+  ffmpeg" step now (a copy of the test job's).
+- To check on Windows: the dotnet build (Core treats warnings as errors),
+  Core.Tests' decode test with D3D11VA on the runner (the probe logs the
+  paths it picked), and later, with the Viewer page, the render tick's
+  timing and memory against the plan's budget.
+

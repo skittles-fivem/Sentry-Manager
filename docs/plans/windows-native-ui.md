@@ -247,10 +247,57 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   extra hidden line). Renders of a variant with `scroll` (footage-open,
   footage-long) scroll the same element to the top as capture.js does on
   the web after its clicks (the open recording's card).
-- Phases 2-7 (Viewer, Encoder, Horizon, Flux, Aurora, Daylight): not started.
+- Phase 2 (built-in Viewer): in progress. The playback engine and the
+  telemetry are written; the Viewer page itself (Studio's controls, clip
+  list, dashboard, map, settings modal: `Ui/Builtin/ViewerPage.cs`), the
+  clip library (ViewerLibrary: scan and grouping) and the Viewer's render
+  are not, so the Viewer still opens in the browser. Core (C# 5, tested
+  under mono with a stub runner here, by Core.Tests on Windows):
+  `Telemetry` (protobuf.js's SeiMetadata.decode step for step, atob,
+  collectSei, hasValidGps, findSeiAtTime, and an 8-clip cache asking
+  GET /api/telemetry again with its ETag), `PlaybackClock` (one clock,
+  the master's newest frame holds it: buffering; followers drop frames
+  past 0.15 s and restart past 1.5 s), `SegmentPlan` (cumulativeStarts,
+  probed and opened durations, seek, skip, event start and marker,
+  shouldStartPreload and planSegment of segmentPreload.js), `FfmpegArgs`
+  (every command line, quoting, tile sizes, ffprobe / -hwaccels /
+  -filters parsing), `MediaRelay` (127.0.0.1, random 128-bit tokens, GET
+  and HEAD with Range passed to /api/media through the Api's HttpClient:
+  no TLS, cookie or server path on ffmpeg's command line), `Playback`
+  (`FrameRing` with backpressure, `CameraStream`: one ffmpeg per camera
+  per segment writing bgr0 at a constant rate, `DecodePaths`: D3D11VA
+  with GPU scaling, D3D11VA with copy, or the CPU, per codec, picked by a
+  timed test decode of samples the pinned ffmpeg makes itself and
+  remembered as a string; `FfmpegTools`). `Ui/Common/Playback`
+  (WPF, type-checked with mcs, not yet built or run on Windows):
+  `VideoSurface` (Image + WriteableBitmap Bgr32, mirror, zoom and pan),
+  `PlaybackJob` (the kill-on-close Job Object of the ffmpeg processes),
+  `Player` (the clock, six decoders per segment, the next segment's six
+  started 3 s before the boundary, one CompositionTarget.Rendering tick,
+  latest-wins seeks, one-frame scrub previews every 80 ms, focus at the
+  source size, resize restarts debounced 300 ms, -skip_frame nonref for
+  followers at 2x and faster, a failed GPU decode retried on the CPU, a
+  failed segment skipped, pause off screen and decoders let go after
+  30 s). test/windowsNativeTelemetry.test.js runs the web's own
+  seiExtractor.js and protobuf.js on the server's answers for four H.264
+  fixture clips (made with ffmpeg, read by server/telemetry.js), seven
+  made answers and 313 hand-made and fuzzed records, and writes
+  Core.Tests/Fixtures/expected-telemetry.json; Core.Tests PlaybackTests
+  compare the C# (and fail when the tag check, a wire type or the
+  nearest-sample tie are changed), test the clock, timeline, command
+  lines and ring, and against the real server: the relay's Range round
+  trip and 3 cameras x H.264 / H.265 / AV1 clips decoded through it (54
+  frames each at the right times, on the CPU here; windows.yml's app job
+  now fetches the pinned ffmpeg so the runner does the same, plus D3D11VA
+  where it decodes with it).
+- Phases 3-7 (Encoder, Horizon, Flux, Aurora, Daylight): not started.
   Their pages open in the browser.
 
-Known differences so far (for the parity checklist): WPF puts a line's baseline
+Known differences so far (for the parity checklist): the Viewer's next
+segment starts loading 3 s before the boundary (the web: 12 s, a Chrome
+limit that does not apply to waiting ffmpeg processes); telemetry is
+asked without gzip (the browser accepts it), so a remote server sends a
+clip's records uncompressed; WPF puts a line's baseline
 lower in a CSS-tall line than the browser does (in proportion to the
 font's ascent rather than half the leading above), about 1 px at 14 px; an unreachable
 server reads as the app's own "Can't reach Sentry Six Manager at …"

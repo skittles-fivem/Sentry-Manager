@@ -160,6 +160,57 @@ namespace SentrySix.Core
             }
         }
 
+        /// <summary>A GET asked with If-None-Match: the body and its ETag, or NotModified (304).</summary>
+        public sealed class Conditional
+        {
+            public bool NotModified;
+            public string ETag;
+            public string Text;
+        }
+
+        /// <summary>
+        /// A GET with the ETag of the copy already held (null: none), as the
+        /// browser's cache asks GET /api/telemetry again. 304 is NotModified;
+        /// other errors as for JSON calls.
+        /// </summary>
+        public async Task<Conditional> GetIfChanged(string path, string etag, CancellationToken ct = default(CancellationToken))
+        {
+            Dictionary<string, string> headers = null;
+            if (!string.IsNullOrEmpty(etag)) { headers = new Dictionary<string, string>(); headers["If-None-Match"] = etag; }
+            try
+            {
+                using (HttpResponseMessage res = await Send(HttpMethod.Get, path, null, headers, ct, false).ConfigureAwait(false))
+                {
+                    Conditional c = new Conditional();
+                    c.ETag = res.Headers.ETag == null ? null : res.Headers.ETag.ToString();
+                    c.Text = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    return c;
+                }
+            }
+            catch (ApiError e)
+            {
+                if (e.Status != 304 || etag == null) throw;
+                Conditional c = new Conditional();
+                c.NotModified = true;
+                c.ETag = etag;
+                return c;
+            }
+        }
+
+        /// <summary>
+        /// /api/media?path= for the playback relay: the response once its
+        /// headers are in, whatever its status (206, 404, 416 ... are passed on
+        /// to ffmpeg as they are), with the Range asked. HEAD asks only the
+        /// headers. The certificate and session are this Api's; nothing is
+        /// retried (ffmpeg asks again).
+        /// </summary>
+        public Task<HttpResponseMessage> OpenMedia(string serverPath, string range, bool head, CancellationToken ct)
+        {
+            Dictionary<string, string> headers = null;
+            if (!string.IsNullOrEmpty(range)) { headers = new Dictionary<string, string>(); headers["Range"] = range; }
+            return SendOnce(head ? HttpMethod.Head : HttpMethod.Get, "/api/media?path=" + Uri.EscapeDataString(serverPath ?? ""), null, headers, ct, true);
+        }
+
         /// <summary>
         /// A raw body, e.g. an interface pack .zip to /api/ui-packs/upload
         /// (with headers such as X-File-Name). Returns the JSON reply.

@@ -36,6 +36,7 @@ namespace SentrySix.Core.Tests
             NotificationsTests.Register(Test);
             VehicleEncodingTests.Register(Test);
             SettingsTests.Register(Test);
+            PlaybackTests.Register(Test, Test);
             ServerTests.Register(Test);
             int failed = 0, passed = 0;
             var sw = Stopwatch.StartNew();
@@ -63,6 +64,7 @@ namespace SentrySix.Core.Tests
             }
             finally
             {
+                PlaybackTests.StopAll();
                 ServerTests.StopAll();
             }
             Console.WriteLine($"{passed} passed, {failed} failed ({sw.Elapsed.TotalSeconds:0.0} s)");
@@ -354,6 +356,8 @@ namespace SentrySix.Core.Tests
         public string Password;
         /// <summary>TRUST_PROXY=true: then even this PC needs the setup code (behind a proxy every request is local).</summary>
         public bool TrustProxy;
+        /// <summary>More environment for the server (FOOTAGE_PATH, VEHICLE_NAME ...).</summary>
+        public Dictionary<string, string> Env = new Dictionary<string, string>();
         Process proc;
         readonly StringBuilder output = new StringBuilder();
 
@@ -391,6 +395,7 @@ namespace SentrySix.Core.Tests
             else psi.Environment.Remove("UI_PASSWORD");
             if (TrustProxy) psi.Environment["TRUST_PROXY"] = "true";
             else psi.Environment.Remove("TRUST_PROXY");
+            foreach (var kv in Env) psi.Environment[kv.Key] = kv.Value;
             proc = Process.Start(psi);
             proc.OutputDataReceived += (s, e) => { lock (output) output.AppendLine(e.Data); };
             proc.ErrorDataReceived += (s, e) => { lock (output) output.AppendLine(e.Data); };

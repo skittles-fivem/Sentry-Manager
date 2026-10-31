@@ -182,6 +182,46 @@ jobs:
         with:
           node-version: 24
 
+      # the Core tests decode clips through the relay with the package's ffmpeg
+      # (the playback engine's CPU path, and D3D11VA where the runner decodes with it)
+      - name: Pinned ffmpeg
+        run: |
+          $pin = (Get-Content -Raw -LiteralPath windows/versions.json | ConvertFrom-Json).ffmpeg
+          $url = [string]$pin.url
+          if ($url -notmatch '^https://') { throw "windows/versions.json: the ffmpeg url must be https" }
+          $dl = Join-Path $env:RUNNER_TEMP 'ffmpeg-download'
+          New-Item -ItemType Directory -Force -Path $dl | Out-Null
+          $zip = Join-Path $dl 'ffmpeg.zip'
+          $ProgressPreference = 'SilentlyContinue'
+          Write-Host "Downloading ffmpeg $($pin.version) from $url"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
+          $want = ([string]$pin.sha256).ToLowerInvariant()
+          Write-Host "ffmpeg sha256: $got"
+          if ($want -eq 'update_me') {
+            Write-Host "::warning title=ffmpeg not verified::ffmpeg sha256: $got (windows/versions.json still says UPDATE_ME; check it against the publisher's and put it in the sha256 field. This test run used it unverified; package will not.)"
+          } elseif ($want -notmatch '^[0-9a-f]{64}$') {
+            throw "windows/versions.json: the ffmpeg sha256 is neither a SHA-256 nor UPDATE_ME"
+          } elseif ($got -ne $want) {
+            throw "the ffmpeg download does not match its pinned SHA-256 (expected $want, got $got)"
+          }
+          # only the two programs leave the archive, each to a fixed name
+          $bin = Join-Path $env:RUNNER_TEMP 'ffmpeg'
+          New-Item -ItemType Directory -Force -Path $bin | Out-Null
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $z = [IO.Compression.ZipFile]::OpenRead($zip)
+          try {
+            foreach ($name in 'ffmpeg.exe', 'ffprobe.exe') {
+              $from = [string]$pin.files.$name
+              $entry = $z.GetEntry($from)
+              if (-not $entry) { throw "the ffmpeg archive has no ${from}: fix its path in windows/versions.json" }
+              [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, (Join-Path $bin $name), $true)
+            }
+          } finally { $z.Dispose() }
+          Remove-Item -LiteralPath $dl -Recurse -Force
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value $bin
+          & (Join-Path $bin 'ffmpeg.exe') -hide_banner -version | Select-Object -First 1
+
       - name: Build SentrySix.exe
         run: |
           if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) { throw 'no .NET SDK (dotnet) on this runner' }
