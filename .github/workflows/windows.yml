@@ -356,6 +356,7 @@ jobs:
       run:
         shell: powershell
     env:
+      ZIP: ${{ needs.package.outputs.zip }}
       SETUP: ${{ needs.package.outputs.setup }}
       VERSION: ${{ needs.package.outputs.version }}
       PORT: '9000'
@@ -415,6 +416,38 @@ jobs:
           })
           if ($all.Count -ne 1) { throw "expected one Settings > Apps entry for Sentry Six Manager, found $($all.Count): $($all -join ', ')" }
           Write-Host "One Settings > Apps entry ($($all[0])), version $($e.DisplayVersion), uninstaller $unins"
+
+      # update.ps1 and the in-app updates install the zip, not the Setup: it
+      # must hold exactly what the Setup installed
+      - name: The zip matches SHA256SUMS and holds what the Setup installed
+        run: |
+          $zip = Join-Path $PWD "dist\$env:ZIP"
+          $line = Get-Content -LiteralPath dist\SHA256SUMS | Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($env:ZIP))$" } | Select-Object -First 1
+          if (-not $line) { throw "SHA256SUMS has no line for $env:ZIP" }
+          $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
+          if ($got -ne $line.Substring(0, 64)) { throw "$env:ZIP does not match SHA256SUMS" }
+          $pkg = Join-Path $env:RUNNER_TEMP 'pkg'
+          if (Test-Path -LiteralPath $pkg) { Remove-Item -LiteralPath $pkg -Recurse -Force }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [IO.Compression.ZipFile]::ExtractToDirectory($zip, $pkg)
+          $ver = (Get-Content -LiteralPath (Join-Path $pkg 'app\version.json') -Raw | ConvertFrom-Json).version
+          if ($ver -ne $env:VERSION) { throw "the zip's app\version.json says '$ver', expected $env:VERSION" }
+          foreach ($need in 'install.ps1', 'uninstall.ps1', 'update.ps1', 'Install.cmd', 'README-Windows.txt', 'app-ui\SentrySix.exe', 'node\node.exe') {
+            if (-not (Test-Path -LiteralPath (Join-Path $pkg $need) -PathType Leaf)) { throw "the zip has no $need" }
+          }
+          $inst = Join-Path $env:ProgramFiles 'SentrySixManager'
+          $files = @(Get-ChildItem -LiteralPath $pkg -Recurse -File -Force)
+          $bad = @()
+          foreach ($f in $files) {
+            $rel = $f.FullName.Substring($pkg.Length + 1)
+            # install.ps1 copies everything but the readme into Program Files
+            if ($rel -eq 'README-Windows.txt') { continue }
+            $there = Join-Path $inst $rel
+            if (-not (Test-Path -LiteralPath $there -PathType Leaf)) { $bad += "missing: $rel"; continue }
+            if ((Get-FileHash -Algorithm SHA256 -LiteralPath $f.FullName).Hash -ne (Get-FileHash -Algorithm SHA256 -LiteralPath $there).Hash) { $bad += "differs: $rel" }
+          }
+          if ($bad.Count -gt 0) { $bad | Select-Object -First 30 | ForEach-Object { Write-Host $_ }; throw "$($bad.Count) of the zip's $($files.Count) files are not what the Setup installed" }
+          Write-Host "$env:ZIP matches SHA256SUMS; its $($files.Count) files are the ones the Setup installed in $inst"
 
       - name: The web UI answers over HTTPS
         run: |

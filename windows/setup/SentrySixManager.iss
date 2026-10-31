@@ -349,15 +349,19 @@ end;
 
 { install.ps1 runs here, before Inno writes anything: when it fails, Setup
   stops on this page with its last lines, and there is no Settings > Apps
-  entry for a copy that is not there (silent: exit code 7). }
+  entry for a copy that is not there (silent: exit code 7). A first install
+  that failed after its program files were in place (the service, Start menu
+  entry and firewall rule may be there too) is rolled back with its
+  uninstall.ps1, keeping the data, so nothing is left that has no entry. }
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
-  Mode, Params, ForUser: String;
-  ResultCode: Integer;
-  Ok: Boolean;
+  Mode, Params, ForUser, Failed, Undo: String;
+  ResultCode, UndoCode: Integer;
+  Ok, HadFolder: Boolean;
 begin
   Result := '';
   Mode := ChosenMode;
+  HadFolder := DirExists(ExpandConstant('{commonpf64}\SentrySixManager'));
   OutputLog := ExpandConstant('{%TEMP}\SentrySixManager-Setup.log');
   DeleteFile(OutputLog);
   Summary := '';
@@ -396,6 +400,34 @@ begin
   end;
   if Result <> '' then begin
     Log('Install failed: ' + Result);
+    Undo := ExpandConstant('{commonpf64}\SentrySixManager\uninstall.ps1');
+    if (PrevMode = '') and not HadFolder and FileExists(Undo) then begin
+      Failed := Result;
+      SaveStringToFile(OutputLog, #13#10 + Failed + #13#10 + #13#10 + 'Removing what this install put in place (your data is kept)...' + #13#10, True);
+      if ShowStatus then begin
+        RunPage.SetText('Removing what was installed...', '');
+        RunPage.Show;
+      end;
+      UndoCode := 0;
+      Ok := False;
+      try
+        try
+          Ok := RunScript(Undo, '-Force -FromSetup', UndoCode);
+        except
+          Log('Could not run uninstall.ps1: ' + GetExceptionMessage);
+        end;
+      finally
+        if ShowStatus then
+          RunPage.Hide;
+      end;
+      if Ok and (UndoCode = 0) then
+        Result := Failed + #13#10#13#10 + 'What this install had put in place was removed again (your data in ' +
+          ExpandConstant('{commonappdata}\SentrySixManager') + ' is kept).'
+      else
+        Result := Failed + #13#10#13#10 + 'Removing what this install had put in place did not finish either. Run ' +
+          Undo + ' as administrator to remove it.';
+      Log('Rollback: ' + IntToStr(UndoCode));
+    end;
     SaveStringToFile(OutputLog, #13#10 + Result + #13#10, True);
   end;
 end;

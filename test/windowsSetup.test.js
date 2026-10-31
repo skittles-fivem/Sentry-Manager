@@ -248,3 +248,43 @@ test('windows.yml builds, proves and ships the Setup', () => {
   // the 5.1 parse check covers the Setup's helper
   assert.match(WINDOWS_YML, /Get-ChildItem -Path windows, windows\\setup -Filter \*\.ps1/);
 });
+
+test('setup-user.ps1 writes the account name as UTF-8 bytes (Setup reads its output as UTF-8)', () => {
+  const s = read('windows/setup/setup-user.ps1');
+  assert.match(s, /New-Object System\.Text\.UTF8Encoding\(\$false\)/);
+  assert.match(s, /\[Console\]::OpenStandardOutput\(\)/);
+  assert.doesNotMatch(s, /\[Console\]::OutputEncoding\s*=/, 'setting OutputEncoding can throw without a console');
+  // the last statement is the write, not a bare value through the host
+  const code = s.split('\n').filter((l) => l.trim() && !l.trim().startsWith('#'));
+  assert.match(code[code.length - 1], /\$out\.Flush\(\)/);
+  assert.ok(/^[\x00-\x7f]*$/.test(s), 'the script is ASCII (5.1 reads BOM-less files as ANSI)');
+});
+
+test('a first install that fails is rolled back, so nothing is left without a Settings > Apps entry', () => {
+  const m = ISS.match(/function PrepareToInstall[\s\S]*?\nend;\n/);
+  assert.ok(m, 'PrepareToInstall');
+  const body = m[0];
+  assert.match(body, /HadFolder := DirExists\(ExpandConstant\('\{commonpf64\}\\SentrySixManager'\)\)/);
+  assert.match(body, /\(PrevMode = ''\) and not HadFolder and FileExists\(Undo\)/);
+  assert.match(body, /RunScript\(Undo, '-Force -FromSetup', UndoCode\)/);
+  assert.doesNotMatch(body, /-RemoveData/, 'the rollback keeps the data');
+});
+
+test('Settings > Apps shows a version only once it works, and update.ps1 writes the old one back when it rolls back', () => {
+  const at = INSTALL.indexOf("-Name 'DisplayVersion'");
+  assert.ok(at > 0);
+  assert.ok(at > INSTALL.indexOf("Say \"Uninstall: "), 'written after the summary, on the success path');
+  assert.ok(at < INSTALL.indexOf('$finished = $true'));
+  const UPDATE = read('windows/update.ps1');
+  assert.ok(UPDATE.includes(APPS_KEY), 'update.ps1 uses the Setup\'s entry');
+  const back = UPDATE.indexOf("-Name 'DisplayVersion'");
+  assert.ok(back > UPDATE.indexOf('Move-Folder $Backup $InstallDir'), 'after the previous version is back');
+});
+
+test('install-check still proves the zip the updater installs holds what the Setup installed', () => {
+  const job = WINDOWS_YML.slice(WINDOWS_YML.indexOf('\n  install-check:'), WINDOWS_YML.indexOf('\n  install-check-app:'));
+  assert.match(job, /ZIP: \$\{\{ needs\.package\.outputs\.zip \}\}/);
+  assert.match(job, /\[IO\.Compression\.ZipFile\]::ExtractToDirectory\(\$zip, \$pkg\)/);
+  assert.match(job, /SHA256SUMS has no line for \$env:ZIP/);
+  assert.match(job, /Get-FileHash -Algorithm SHA256 -LiteralPath \$there/);
+});

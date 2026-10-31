@@ -457,12 +457,6 @@ try {
       }
     }
     Say 'Program files are in place.'
-    # installed with the Setup: its entry shows this version after an
-    # update.ps1 update too
-    if ($ver -and (Test-Path -LiteralPath $SetupAppsKey)) {
-      try { Set-ItemProperty -LiteralPath $SetupAppsKey -Name 'DisplayVersion' -Value ([string]$ver) -Type String }
-      catch { Warn "Could not update the version shown in Settings > Apps ($($_.Exception.Message))." }
-    }
   }
 
   # --- 4. data folders and manager.env ---
@@ -880,6 +874,13 @@ $portLine
   }
   Say "Settings: $EnvFile    Log: $LogFile"
   Say "Uninstall: $(Join-Path $InstallDir 'uninstall.ps1') (keeps your data unless -RemoveData)"
+  # installed with the Setup: its entry shows this version after an
+  # update.ps1 update too (only now that it works; update.ps1 writes the old
+  # one back when it rolls back)
+  if ($ver -and (Test-Path -LiteralPath $SetupAppsKey)) {
+    try { Set-ItemProperty -LiteralPath $SetupAppsKey -Name 'DisplayVersion' -Value ([string]$ver) -Type String }
+    catch { Warn "Could not update the version shown in Settings > Apps ($($_.Exception.Message))." }
+  }
   $finished = $true
 } catch {
   Write-Host ''

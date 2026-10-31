@@ -47,4 +47,12 @@ for ($i = 0; $i -lt 8 -and $null -ne $child; $i++) {
   $child = $parent
 }
 
-(New-Object System.Security.Principal.SecurityIdentifier($who)).Translate([System.Security.Principal.NTAccount]).Value
+# Setup reads this as UTF-8, and Windows PowerShell would write it in the
+# console's code page (a name with letters like e-acute would arrive broken), so the bytes
+# are written as UTF-8 here. ([Console]::OutputEncoding is not set: it can
+# throw when there is no console.)
+$name = (New-Object System.Security.Principal.SecurityIdentifier($who)).Translate([System.Security.Principal.NTAccount]).Value
+$bytes = (New-Object System.Text.UTF8Encoding($false)).GetBytes($name + "`r`n")
+$out = [Console]::OpenStandardOutput()
+$out.Write($bytes, 0, $bytes.Length)
+$out.Flush()

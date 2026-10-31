@@ -236,7 +236,13 @@ releaseUpdates.js use the zip; SHA256SUMS gains the Setup's line).
   `windows/setup/setup-user.ps1`, which finds who started the Setup when
   Windows asked another account for the admin password). install.ps1 failing
   stops the Setup there with its last lines (silent: exit code 7; all
-  output in `%TEMP%\SentrySixManager-Setup.log` and Inno's /LOG).
+  output in `%TEMP%\SentrySixManager-Setup.log` and Inno's /LOG). A first
+  install (no earlier copy, no program folder before) that fails after its
+  program files were in place is rolled back with the installed
+  `uninstall.ps1 -Force -FromSetup` (data kept), so nothing is left behind
+  without a Settings > Apps entry. setup-user.ps1 writes the account name
+  as UTF-8 bytes, because Inno reads its output as UTF-8 (names with
+  non-ASCII letters).
 - Silent: `/VERYSILENT /SUPPRESSMSGBOXES /MODE=service|app` (no /MODE:
   keeps the installed mode, a first install is app mode).
 - Settings > Apps: Inno's entry is the only one (install.ps1 never wrote
@@ -246,15 +252,20 @@ releaseUpdates.js use the zip; SHA256SUMS gains the Setup's line).
   and runs `uninstall.ps1 -Force -FromSetup` hidden, keeping the data unless
   the person says yes to deleting it (silent: `/REMOVEDATA=1`). If
   uninstall.ps1 fails, the uninstall stops and the entry stays.
-- install.ps1: sets the entry's DisplayVersion after copying the program
-  files, so an update.ps1 update shows the right version (no other change).
+- install.ps1: sets the entry's DisplayVersion at the end, once the install
+  worked, so an update.ps1 update shows the right version (no other change).
+- update.ps1: when it rolls back, writes the restored version back to that
+  DisplayVersion (only if the Setup's entry exists).
 - uninstall.ps1: new `-FromSetup`; without it (run by hand) it also removes
   the Setup's entry and its uninstaller folder once everything else is gone.
 - windows.yml: package also uploads the artifact `SentrySixManager-Setup`;
   install-check and install-check-app install with the Setup silently
   (`/MODE=service`, `/MODE=app`) and uninstall with `unins000.exe
   /VERYSILENT /REMOVEDATA=1`, with every earlier check kept plus "one Apps
-  entry" and "no uninstaller left"; publish attaches the Setup to the
+  entry" and "no uninstaller left". install-check also checks the zip
+  against SHA256SUMS, unpacks it and checks every file in it (but the
+  readme) is in Program Files with the same hash: the updater's zip holds
+  what the Setup installed. publish attaches the Setup to the
   release; the 5.1 parse check covers `windows/setup/*.ps1` too.
 - Not changed yet (yours, wording): `server/releaseUpdates.js` HOW and the
   setup-code text in `server/auth.js` still say Install.cmd; they could say
