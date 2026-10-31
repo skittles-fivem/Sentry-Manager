@@ -70,6 +70,7 @@ const { canonicalRoot, emptyDir, darwinAccount } = require('./platform/darwinRun
 const { continueTemplate, fingerprintFallback } = require('./continueWording');
 const { VERSIONS, DEFAULT_VERSION, securitySummary } = require('./mountSpec');
 const { TlsManager, localTlsSource, supervisorTlsSource, parseHostnames } = require('./tls');
+const listenAddress = require('./listenAddress');
 const { Router, HttpError, sendJson, readJson, readRaw, serveFile } = require('./http');
 const { createUiPacks, originalPack, MAX_ZIP_BYTES: MAX_UI_PACK_BYTES } = require('./uiPacks');
 const { createSmbTester } = require('./smbTest');
@@ -97,7 +98,6 @@ const DATA = rootPath(path.resolve(process.env.DATA_PATH || platform.defaults.da
 const RUN_DIR = rootPath(path.resolve(process.env.RUN_DIR || platform.defaults.run));
 const FOOTAGE_ROOT = rootPath(path.resolve(process.env.FOOTAGE_ROOT || platform.defaults.footage));
 const PORT = Number(process.env.PORT || 9000);
-const HOST = process.env.HOST || '0.0.0.0';
 const FFMPEG = process.env.FFMPEG_PATH || platform.defaults.ffmpeg;
 const FFPROBE = process.env.FFPROBE_PATH || platform.defaults.ffprobe;
 const TLS_MODE = (process.env.TLS_MODE || 'auto').toLowerCase(); // auto | off
@@ -246,8 +246,22 @@ async function main() {
   fs.mkdirSync(DATA, { recursive: true });
   const buildInfo = readBuildInfo();
   const db = new ManagerDB(path.join(DATA, 'manager.db'));
+  // Where the web UI listens (listenAddress.js): HOST, as always, on Docker
+  // and a Mac; this PC only on Windows until Settings > Security lets other
+  // devices in. (Read before UI_PASSWORD may create the account below: an
+  // install already in use keeps listening everywhere.)
+  const listen = listenAddress.listenPlan({ platformName: platform.name, envHost: process.env.HOST, db, hadAccount: db.userCount() > 0 });
+  // Windows: the PC itself creates the first account without the setup code.
+  // Only a request that really comes from this PC (the socket's own address,
+  // never a forwarded header) for a name of this PC (a page on another site
+  // that rebinds its name to 127.0.0.1 cannot) counts; behind a reverse proxy
+  // (TRUST_PROXY) every request comes from the proxy, so the code stays.
+  const codeFree = (req) => platform.name === 'win32' && !TRUST_PROXY
+    && listenAddress.isLoopbackAddress(req.socket?.remoteAddress)
+    && listenAddress.isLoopbackHost(req.headers.host || req.headers[':authority']);
   const auth = new Auth({ db, log: logger.scope('auth'), isSecure, setupFile: path.join(DATA, 'setup-code.txt'), channel: buildInfo.channel || null });
-  auth.bootstrap();
+  // (and no code is shown at all while nothing but this PC can reach the page)
+  auth.bootstrap(process.env, { quiet: platform.name === 'win32' && !TRUST_PROXY && listenAddress.loopbackOnly(listen.addresses) });
   const jobs = new Jobs({ db });
   // a scan or a move to the Recycle Bin that a restart stopped: interrupted
   const stoppedJobs = jobs.interruptLeftovers();
@@ -509,12 +523,19 @@ async function main() {
   platform.rmRetry(path.join(DATA, 'app'), { recursive: true, force: true }).catch(() => {});
 
   // ---- HTTPS
+  const tlsManager = TLS_MODE === 'off' || SWITCHES.ipcTls ? null : new TlsManager({
+    dir: path.join(DATA, 'tls'), log: logger.scope('tls'), hostnames: parseHostnames(process.env.TLS_HOSTNAMES || ''),
+    certFile: process.env.TLS_CERT_FILE || null, keyFile: process.env.TLS_KEY_FILE || null
+  });
   const tlsSource = TLS_MODE === 'off' ? null : SWITCHES.ipcTls
     ? supervisorTlsSource({ dir: process.env.SENTRY_TLS_DIR, channel: process })
-    : localTlsSource(new TlsManager({
-      dir: path.join(DATA, 'tls'), log: logger.scope('tls'), hostnames: parseHostnames(process.env.TLS_HOSTNAMES || ''),
-      certFile: process.env.TLS_CERT_FILE || null, keyFile: process.env.TLS_KEY_FILE || null
-    }));
+    : localTlsSource(tlsManager);
+  // Windows, other devices let in: the certificate also covers this PC's
+  // network addresses and <name>.local (checked again with the daily renewal)
+  const coverNetwork = () => {
+    if (listen.switchable && tlsManager) tlsManager.setNetworkHostnames(listen.otherDevices ? listenAddress.networkNames() : []);
+  };
+  coverNetwork();
   // macOS app: engine.json, the public file it finds and pins this server by
   // (only with PUBLIC_INFO_PATH; nothing elsewhere)
   const publicInfo = createPublicInfo({ platformName: platform.name, port: PORT, buildInfo, tlsSource, log: logger.scope('tls') });
@@ -620,7 +641,8 @@ async function main() {
     }
   };
   // (public: the sign-in page reads it; `deployment` picks its wording, 'docker' or 'windows')
-  r.add('GET', '/api/auth/me', (req) => ({ user: auth.user(req), needsSetup: auth.needsSetup(), secure: isSecure(req), fingerprint: req.socket?.encrypted ? certFingerprint() : null, deployment: platform.deployment }), { public: true });
+  // (setupCodeRequired: false when this request may create the first account without the code)
+  r.add('GET', '/api/auth/me', (req) => ({ user: auth.user(req), needsSetup: auth.needsSetup(), setupCodeRequired: !codeFree(req), secure: isSecure(req), fingerprint: req.socket?.encrypted ? certFingerprint() : null, deployment: platform.deployment }), { public: true });
   // Where this server runs ('docker', 'linux' or 'windows'), so the pages
   // (the sign-in page too, hence public) word their hints for it
   r.add('GET', '/api/info', () => ({ deployment: platform.deployment }), { public: true });
@@ -654,7 +676,7 @@ async function main() {
     const wait = auth.throttled(key);
     if (wait) throw new HttpError(429, `Too many attempts. Try again in ${wait} s.`);
     try {
-      auth.setup(String(body?.username || ''), String(body?.password || ''), body?.code);
+      auth.setup(String(body?.username || ''), String(body?.password || ''), body?.code, { codeFree: codeFree(req) });
     } catch (err) {
       if (err.status === 403) {
         auth.noteFailure(key);
@@ -663,7 +685,7 @@ async function main() {
       throw err;
     }
     auth.login(req, res, body.username);
-    audit.info(`Account "${body.username}" created with the setup code: ${by(req, body.username)}`);
+    audit.info(`Account "${body.username}" created ${codeFree(req) ? 'on this PC' : 'with the setup code'}: ${by(req, body.username)}`);
     return { ok: true };
   }, { public: true });
   r.add('POST', '/api/auth/logout', (req, res, { user }) => {
@@ -752,6 +774,46 @@ async function main() {
     publicInfo.write({ cert: out.cert });
     audit.info(`HTTPS certificate names set to [${list.join(', ')}]${out.caReplaced ? ' (new certificate authority)' : ''}: ${by(req, user)}`);
     return { ok: true, caReplaced: Boolean(out.caReplaced), tls: tlsSource.status() };
+  });
+  // Windows: "Allow other devices" (phones, other PCs, node pairing). Off,
+  // the web UI answers this PC only; on, every address (listenAddress.js).
+  const networkView = () => ({
+    available: listen.switchable, otherDevices: listen.otherDevices,
+    // HOST in manager.env decides instead (Windows only; Docker's is the container's)
+    fixedHost: platform.name === 'win32' ? listen.fixedHost : null,
+    addresses: listen.otherDevices ? listenAddress.networkNames().filter((n) => !n.includes(':')) : [],
+    port: PORT
+  });
+  r.add('GET', '/api/settings/network', () => networkView());
+  r.add('PUT', '/api/settings/network', async (req, res, { body, user }) => {
+    if (!listen.switchable) throw new HttpError(409, listen.fixedHost ? `HOST=${listen.fixedHost} in manager.env sets where the web UI listens.` : 'Only the Windows app has this switch.');
+    if (typeof body?.otherDevices !== 'boolean') throw new HttpError(400, 'Allow other devices is on or off.');
+    if (listen.changing) throw new HttpError(409, 'Where the web UI listens is being changed. Try again in a moment.');
+    if (body.otherDevices !== listen.otherDevices) {
+      listen.changing = true;
+      const before = listen.addresses;
+      listen.otherDevices = body.otherDevices;
+      listen.addresses = listenAddress.saveOtherDevices(db, body.otherDevices);
+      try {
+        if (body.otherDevices && tlsSource) {
+          coverNetwork();
+          const m = await tlsSource.load();
+          httpsServer?.setSecureContext({ key: m.key, cert: m.cert });
+          publicInfo.write({ cert: m.cert });
+        }
+        await bindAll(listen.addresses);
+      } catch (err) {
+        listen.otherDevices = !body.otherDevices;
+        listen.addresses = listenAddress.saveOtherDevices(db, listen.otherDevices);
+        coverNetwork();
+        await bindAll(before).catch((e) => log.error(`Could not listen again on ${before.join(', ')}: ${e.message}`));
+        throw new HttpError(500, `Could not change where the web UI listens: ${err.message}`);
+      } finally {
+        listen.changing = false;
+      }
+      (body.otherDevices ? audit.warn : audit.info).call(audit, `Other devices ${body.otherDevices ? 'allowed: the web UI now answers on every network address' : 'no longer allowed: the web UI answers this PC only'}: ${by(req, user)}`);
+    }
+    return networkView();
   });
   r.add('GET', '/api/security/ca.crt', (req, res) => {
     const pem = tlsSource?.caPem();
@@ -1587,13 +1649,69 @@ async function main() {
   // trusts the certificate; anything else is redirected.
   let httpsServer = null;
   const servers = [];
+  // The listening sockets, one per address (Docker: just HOST). Each hands
+  // its connections to onSocket; bindAll swaps them when Settings changes
+  // where the web UI listens, and open connections carry on.
+  let onSocket = null;
+  let onListening = () => {};
+  let fronts = [];
+  const shown = (a) => (a.includes(':') ? `[${a}]` : a);
+  const listenOne = (address) => new Promise((resolve, reject) => {
+    const front = net.createServer((socket) => onSocket(socket));
+    // more open connections than a household's devices ever need are refused
+    front.maxConnections = 1024;
+    const fail = (err) => reject(err);
+    front.once('error', fail);
+    // (:: only takes IPv6 here: 0.0.0.0 has IPv4)
+    front.listen({ port: PORT, host: address, ...(address === '::' ? { ipv6Only: true } : {}) }, () => {
+      front.off('error', fail);
+      front.on('error', (err) => log.warn(`Listening on ${shown(address)}: ${err.message}`));
+      resolve(front);
+    });
+  });
+  // The first address must work; another (IPv6 on a PC without it) may not.
+  let rebinding = false;
+  async function bindAll(addresses) {
+    rebinding = fronts.length > 0;
+    for (const f of fronts) f.close();
+    fronts = [];
+    const bound = [];
+    for (const [n, address] of addresses.entries()) {
+      let front = null;
+      for (let attempt = 0; !front; attempt++) {
+        try {
+          front = await listenOne(address);
+        } catch (err) {
+          // (the port the old socket held may take a moment to come free)
+          if (err.code === 'EADDRINUSE' && n === 0 && rebinding && attempt < 10) {
+            await new Promise((r) => setTimeout(r, 200));
+            continue;
+          }
+          if (n === 0) {
+            for (const f of fronts) f.close();
+            fronts = [];
+            throw err;
+          }
+          // (a PC without IPv6 has no ::1 or ::: nothing is missing)
+          (['EAFNOSUPPORT', 'EADDRNOTAVAIL'].includes(err.code) ? log.info : log.warn).call(log, `Not listening on ${shown(address)}: ${err.message}`);
+          break;
+        }
+      }
+      if (front) {
+        fronts.push(front);
+        bound.push(address);
+      }
+    }
+    onListening(bound);
+  }
   if (!tlsSource) {
     const server = http.createServer(handler);
     servers.push(server);
-    server.listen(PORT, HOST, () => {
-      log.warn(`Sentry Six Manager on http://${HOST}:${PORT} WITHOUT HTTPS (TLS_MODE=off): only use this behind a reverse proxy that does HTTPS.`);
+    onSocket = (socket) => server.emit('connection', socket);
+    onListening = (bound) => {
+      for (const a of bound) log.warn(`Sentry Six Manager on http://${shown(a)}:${PORT} WITHOUT HTTPS (TLS_MODE=off): only use this behind a reverse proxy that does HTTPS.`);
       publicInfo.write();
-    });
+    };
   } else {
     const material = await tlsSource.load();
     // HTTP/2: the Viewer plays six cameras at once next to live updates and
@@ -1642,7 +1760,7 @@ async function main() {
       });
       return res.end(page);
     });
-    const front = net.createServer((socket) => {
+    onSocket = (socket) => {
       socket.setTimeout(15000, () => socket.destroy());
       socket.on('error', () => socket.destroy());
       socket.once('data', (chunk) => {
@@ -1653,16 +1771,17 @@ async function main() {
         (chunk[0] === 0x16 ? httpsServer : redirect).emit('connection', socket);
         process.nextTick(() => socket.resume());
       });
-    });
-    // more open connections than a household's devices ever need are refused
-    front.maxConnections = 1024;
-    servers.push(front, httpsServer, redirect);
-    front.listen(PORT, HOST, () => {
-      log.info(`Sentry Six Manager on https://${HOST}:${PORT} (${buildInfo.sha ? buildInfo.sha.slice(0, 7) : 'dev'})`);
+    };
+    servers.push(httpsServer, redirect);
+    let first = true;
+    onListening = (bound) => {
+      for (const a of bound) log.info(`Sentry Six Manager on https://${shown(a)}:${PORT} (${buildInfo.sha ? buildInfo.sha.slice(0, 7) : 'dev'})`);
       // (macOS app: once it listens, so the app finds a server that answers)
-      publicInfo.write({ cert: material.cert });
-    });
+      if (first) publicInfo.write({ cert: material.cert });
+      first = false;
+    };
   }
+  await bindAll(listen.addresses);
   vehicles.startAll();
   // macOS: a drive plugged in or ejected re-checks the folder vehicles on
   // drives at once (the 30 s poll stays as the fallback)
@@ -1784,6 +1903,8 @@ async function main() {
   if (tlsSource) {
     setInterval(async () => {
       try {
+        // (this PC's addresses may have changed since)
+        coverNetwork();
         const m = await tlsSource.load();
         httpsServer?.setSecureContext({ key: m.key, cert: m.cert });
         publicInfo.write({ cert: m.cert });
@@ -1799,7 +1920,7 @@ async function main() {
     stopping = true;
     log.info(`${signal}: shutting down`);
     for (const res of clients) res.end();
-    for (const s of servers) s.close();
+    for (const s of [...fronts, ...servers]) s.close();
     stopDriveWatch?.();
     try { stats.stop(); } catch { /* history is saved on a best-effort basis */ }
     nodeWorker.close();

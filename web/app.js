@@ -1814,9 +1814,41 @@
   // (server/nodes.js), and this one can encode for another (server/nodeWorker.js).
   // Clips go over HTTPS to the paired certificate only; nodes never get share
   // passwords and never touch footage.
+  // ---- Windows: "Allow other devices" (GET/PUT /api/settings/network) ----
+  // Off, the web UI answers this PC only; on, phones, other PCs and main
+  // servers (nodes) reach it too. Settings > Security has the switch; the
+  // Nodes page offers it when pairing needs it.
+  const thisPc = () => /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$/i.test(location.hostname);
+  async function setOtherDevices(on) {
+    if (!on && !thisPc()) {
+      const ok = await confirmDialog({
+        title: 'Turn off other devices?',
+        body: '<p>Only the PC Sentry Six Manager runs on can open it after this, so this page stops working here. Paired main servers can no longer send clips to it.</p>',
+        ok: 'Turn off', danger: true
+      });
+      if (!ok) return false;
+    }
+    try {
+      await api('/api/settings/network', { method: 'PUT', body: { otherDevices: on } });
+    } catch (err) {
+      toast(err.message, true);
+      return false;
+    }
+    if (on) {
+      // the certificate now covers this PC's network addresses too: the
+      // browser has to pick it up, as after saving certificate names
+      toast('Other devices can open Sentry Six Manager now. Reloading the page for the new certificate…');
+      setTimeout(() => location.reload(), 2500);
+    } else toast('Only this PC can open Sentry Six Manager now.');
+    return true;
+  }
+  const otherDevicesNote = (id, what) => `<div class="note amber small" style="margin-top:14px">${what} <button class="btn sm" type="button" id="${id}">Allow other devices</button></div>`;
+
   pages.nodes = async () => {
     const seq = renderSeq;
-    const [{ nodes, worker }, { vehicles: cars = [] }] = await Promise.all([api('/api/nodes'), api('/api/vehicles').catch(() => ({ vehicles: [] }))]);
+    const [{ nodes, worker }, { vehicles: cars = [] }, network] = await Promise.all([api('/api/nodes'), api('/api/vehicles').catch(() => ({ vehicles: [] })), api('/api/settings/network').catch(() => null)]);
+    // (Windows with Allow other devices off: no main server can reach this one)
+    const closed = Boolean(network?.available && !network.otherDevices);
     const benches = Object.fromEntries(await Promise.all(nodes.map(async (n) => [n.id, (await api(`/api/nodes/${encodeURIComponent(n.id)}/benchmark`).catch(() => ({}))).benchmark || null])));
     if (seq !== renderSeq) return;
     const benchRunning = Object.values(benches).some((b) => b?.state === 'running');
@@ -1893,6 +1925,7 @@
           <label class="check"><input type="checkbox" id="worker-on"${worker.enabled ? ' checked' : ''}> Encode for paired main servers</label>
         </div>
         <p class="muted small" style="margin-top:8px">The main server picks which of this server's GPUs (and its CPU) encode, and how many clips each converts at once, in its own Encoder.</p>
+        ${closed && (pairing || worker.enabled || worker.mains.length) ? otherDevicesNote('nodes-open', 'Only this PC can reach Sentry Six Manager, so a main server cannot pair with it or send it clips.') : ''}
         ${pairing ? `<div class="note green pair-code" style="margin-top:14px">
             <div class="muted small">Pairing code (one use, ${plural(mins, 'minute')} left)</div>
             <div class="mono pair-code-value">${esc(pairing.code)}</div>
@@ -2044,6 +2077,7 @@
       render();
     };
     $('worker-on').onchange = saveWorker;
+    if ($('nodes-open')) $('nodes-open').onclick = async () => { if (await setOtherDevices(true)) render(); };
     if ($('pair-start')) $('pair-start').onclick = async () => {
       try { await api('/api/nodes/worker/pair', { body: {} }); } catch (err) { toast(err.message, true); }
       render();
@@ -2080,7 +2114,7 @@
   pages.settings = async (sub) => {
     const seq = renderSeq;
     const editing = sub?.startsWith('vehicle/') ? sub.slice(8) : sub === 'vehicle-new' ? 'new' : null;
-    const [settings, upd, sys, sec, ui] = await Promise.all([api('/api/settings'), api('/api/updates'), api('/api/system').catch(() => null), api('/api/security').catch(() => null), api('/api/ui-packs').catch(() => null)]);
+    const [settings, upd, sys, sec, ui, network] = await Promise.all([api('/api/settings'), api('/api/updates'), api('/api/system').catch(() => null), api('/api/security').catch(() => null), api('/api/ui-packs').catch(() => null), api('/api/settings/network').catch(() => null)]);
     if (seq !== renderSeq) return; // the user moved on while this loaded
     state.system = sys || state.system;
     if (sys?.deployment) state.deployment = sys.deployment;
@@ -2106,7 +2140,7 @@
         <div class="full form-actions" style="margin-top:0"><button class="btn solid" type="submit">Change password</button></div></form></div>`;
 
     if (ui) html += interfaceCard(ui);
-    if (sec) html += securityCard(sec);
+    if (sec) html += securityCard(sec, state.deployment, network);
 
     if (sys) {
       const caps = sys.converter.capabilities || {};
@@ -2124,6 +2158,13 @@
     wireSettings(editing);
     if (ui) wireInterface(ui);
     if (sec) wireSecurity(sec);
+    if ($('net-other')) {
+      $('net-other').onchange = async (e) => {
+        e.target.disabled = true;
+        await setOtherDevices(e.target.checked);
+        render();
+      };
+    }
     if (settings.power) wirePower(settings.power);
   };
 
@@ -2360,7 +2401,23 @@
     return `runs as ${esc(sec.account || 'its own service account')}, not an administrator`;
   }
 
-  function securityCard(sec, deployment = state.deployment) {
+  // Windows: where the web UI listens (null or unavailable elsewhere: nothing shown)
+  function otherDevicesBlock(network) {
+    if (!network || (!network.available && !network.fixedHost)) return '';
+    const port = network.port && network.port !== 443 ? `:${network.port}` : '';
+    const where = (network.addresses || []).map((a) => `<span class="mono">https://${esc(a)}${port}</span>`).join(', ');
+    if (!network.available) {
+      return `<div style="margin-top:16px"><b>Other devices</b><p class="muted small" style="margin-top:4px">HOST=${esc(network.fixedHost)} in manager.env sets where Sentry Six Manager listens. To use the switch here, remove HOST from manager.env and restart the service.</p></div>`;
+    }
+    return `<div class="form" style="margin-top:16px">
+        <label class="check"><input type="checkbox" id="net-other"${network.otherDevices ? ' checked' : ''}> Allow other devices</label>
+        <p class="muted small full" style="margin-top:-6px">${network.otherDevices
+    ? `Phones, tablets and other PCs on your network can open Sentry Six Manager${where ? ` at ${where}` : ''}, and other servers can use this one as a node. Turn it off to keep it to this PC.`
+    : 'Only this PC can open Sentry Six Manager. Turn it on to use it from a phone, a tablet or another PC, or to let another server use this one as a node.'}</p>
+      </div>`;
+  }
+
+  function securityCard(sec, deployment = state.deployment, network = null) {
     const tls = sec.tls || {};
     const ca = tls.ca;
     const host = (sec.currentHost || '').replace(/:\d+$/, '').replace(/^\[|\]$/g, '');
@@ -2368,6 +2425,8 @@
     let body = `<dl class="kv" style="margin-top:16px">
       <dt>This connection</dt><dd>${sec.https ? 'HTTPS (encrypted)' : '<b class="bad-text">not encrypted</b>: others on the network could read your password and the footage. Use https:// or a reverse proxy that does HTTPS.'}</dd>
       <dt>Server process</dt><dd>${onWindows(deployment) ? serviceAccount(sec) : onMac(deployment) ? macAccount(sec) : sec.runningAsRoot ? 'runs as root (not supervised; fine for development, not for the Docker image)' : 'runs as an unprivileged user; only the supervisor can mount shares'}</dd>`;
+    // (Windows: the switch comes first, above the connection details)
+    const others = network ? otherDevicesBlock(network) : '';
     if (sec.tlsMode === 'off') {
       body += '<dt>HTTPS</dt><dd>turned off (TLS_MODE=off): only use this behind a reverse proxy that does HTTPS.</dd></dl>';
     } else if (tls.mode === 'own') {
@@ -2397,7 +2456,7 @@
           <div class="full form-actions" style="margin-top:0"><a class="btn" href="/api/security/ca.crt" download>Download certificate authority</a><button class="btn solid" type="submit">Save names</button></div>
         </form>`;
     }
-    return `<div class="card" data-section="security"><h2>Security</h2>${body}</div>`;
+    return `<div class="card" data-section="security"><h2>Security</h2>${others}${body}</div>`;
   }
 
   function wireSecurity(sec) {

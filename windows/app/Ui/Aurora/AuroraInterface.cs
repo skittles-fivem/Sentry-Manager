@@ -304,7 +304,7 @@ namespace SentrySix.Ui.Aurora
             h1.Margin = new Thickness(0, 0, 0, 8);
             card.Children.Add(h1);
             string where = LoginLogic.LogWhere(m);
-            card.Children.Add(U.Text(m.NeedsSetup ? "First start: enter the setup code from " + where + ", then choose the user name and password that protect this server." : "Sign in to your dashcam archive.", 16, FontWeights.Normal, "ink-3"));
+            card.Children.Add(U.Text(m.NeedsSetup ? (m.CodeRequired ? "First start: enter the setup code from " + where + ", then choose the user name and password that protect this server." : "First start: choose the user name and password that protect this server.") : "Sign in to your dashcam archive.", 16, FontWeights.Normal, "ink-3"));
 
             InputLook k = InK();
             Func<string, Control, FrameworkElement, FrameworkElement> field = (label, input, extra) =>
@@ -322,13 +322,17 @@ namespace SentrySix.Ui.Aurora
             {
                 confirm = U.Input(k, true, null, null);
                 form.Children.Add(field("Confirm password", confirm, null));
-                InputLook km = InK();
-                km.Font = U.Cascadia;
-                code = U.Input(km, false, "", "XXXXX-XXXXX-XXXXX");
-                TextBlock hint = U.Text("", 14, FontWeights.Normal, "ink-3");
-                hint.Inlines.Add(new Run(m.WindowsDeployment ? "Printed in the install window and in " : "Printed in the container log: "));
-                hint.Inlines.Add(Code(m.WindowsDeployment ? LoginLogic.ServiceLog : LoginLogic.DockerLogs));
-                form.Children.Add(field("Setup code", code, hint));
+                // (Windows, on the PC itself: the server needs no setup code, so none is asked for)
+                if (m.CodeRequired)
+                {
+                    InputLook km = InK();
+                    km.Font = U.Cascadia;
+                    code = U.Input(km, false, "", "XXXXX-XXXXX-XXXXX");
+                    TextBlock hint = U.Text("", 14, FontWeights.Normal, "ink-3");
+                    hint.Inlines.Add(new Run(m.WindowsDeployment ? "Printed in the install window and in " : "Printed in the container log: "));
+                    hint.Inlines.Add(Code(m.WindowsDeployment ? LoginLogic.ServiceLog : LoginLogic.DockerLogs));
+                    form.Children.Add(field("Setup code", code, hint));
+                }
             }
             if (m.Insecure)
             {
@@ -780,7 +784,7 @@ namespace SentrySix.Ui.Aurora
             body.Children.Add(kicker);
             TextBlock h1 = U.Text(p.Title, 48, FontWeights.Light, "ink");
             body.Children.Add(h1);
-            TextBlock sub = U.Text(U.PhaseLine(p), 15, FontWeights.Normal, "ink-3");
+            TextBlock sub = U.Text(U.BrowserLine(p), 15, FontWeights.Normal, "ink-3");
             sub.Margin = new Thickness(0, 8, 0, 26);
             body.Children.Add(sub);
             // .empty: the orb, a light heading, the words, a button
@@ -797,11 +801,11 @@ namespace SentrySix.Ui.Aurora
             orb.Child = oi;
             orb.HorizontalAlignment = HorizontalAlignment.Center;
             empty.Children.Add(orb);
-            TextBlock h3 = U.Text("Coming in Phase " + p.Phase, 22, FontWeights.Light, "ink");
+            TextBlock h3 = U.Text(U.BrowserHeading, 22, FontWeights.Light, "ink");
             h3.HorizontalAlignment = HorizontalAlignment.Center;
             h3.Margin = new Thickness(0, 10, 0, 10);
             empty.Children.Add(h3);
-            TextBlock t = U.Text(U.PhaseWhat(p.Phase) + " " + U.OpenInBrowserText, 16, FontWeights.Normal, "ink-3");
+            TextBlock t = U.Text(U.OpenInBrowserText, 16, FontWeights.Normal, "ink-3");
             t.TextAlignment = TextAlignment.Center;
             t.MaxWidth = 520;
             t.Margin = new Thickness(0, 0, 0, 10);

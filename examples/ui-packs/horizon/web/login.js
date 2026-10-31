@@ -298,12 +298,14 @@
     $('fp').hidden = false;
   }
   const setup = Boolean(me.needsSetup);
+  // (Windows, on the PC itself: no setup code is needed, so none is asked for)
+  const needCode = setup && me.setupCodeRequired !== false;
   const form = $('form');
   if (setup) {
     $('title').textContent = 'Create your account';
-    $('lead').textContent = `First start. Type the setup code from ${logWhere}, then choose the user name and password that will protect this server.`;
+    $('lead').textContent = needCode ? `First start. Type the setup code from ${logWhere}, then choose the user name and password that will protect this server.` : 'First start. Choose the user name and password that will protect this server.';
     $('confirm-row').hidden = false;
-    $('code-row').hidden = false;
+    $('code-row').hidden = !needCode;
     $('go').textContent = 'Create account';
     form.password.autocomplete = 'new-password';
   }
@@ -334,7 +336,7 @@
     if (setup) {
       if (String(f.get('password')).length < 8) { $('err').textContent = 'Choose a password of at least 8 characters.'; return; }
       if (f.get('password') !== f.get('confirm')) { $('err').textContent = 'The two passwords are not the same.'; return; }
-      if (!f.get('code')) { $('err').textContent = `Type the setup code from ${logWhere}.`; return; }
+      if (needCode && !f.get('code')) { $('err').textContent = `Type the setup code from ${logWhere}.`; return; }
     }
     $('go').disabled = true;
     document.body.classList.add('igniting');
@@ -342,7 +344,7 @@
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'sentry-six-manager' },
-      body: JSON.stringify({ username: f.get('username'), password: f.get('password'), ...(setup ? { code: f.get('code') } : {}) })
+      body: JSON.stringify({ username: f.get('username'), password: f.get('password'), ...(needCode ? { code: f.get('code') } : {}) })
     }).catch(() => null);
     $('go').disabled = false;
     if (res && res.ok) {

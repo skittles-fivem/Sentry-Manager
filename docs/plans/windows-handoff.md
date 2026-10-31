@@ -214,3 +214,27 @@ it edited `windows/install.ps1` (ebabdba):
   SID has entries. icacls refused the SID of a service that never existed.
 
 Nothing else in the file changed. Please pull before editing it.
+
+## Local only by default, no setup code on this PC (Windows session, 2026-10-31)
+
+The owner asked for it ("all this is is a 1:1 but 100% native with node support;
+we dont need a secret code on install since its local; the only time we would open
+the ports is for node pairing and usage"), so these files were edited outside their
+usual owner; please pull before editing them:
+
+- `server/listenAddress.js` (new), `server/index.js` (listen plan, `codeFree`,
+  `GET/PUT /api/settings/network`, the listening sockets now swappable),
+  `server/auth.js` (`bootstrap(env, { quiet })`, `setup(..., { codeFree })`),
+  `server/tls.js` (`setNetworkHostnames`).
+- `windows/install.ps1`: no setup code shown and only `https://localhost:PORT`
+  listed when `manager.env` has no `HOST`; a commented `HOST=` line in a new
+  `manager.env`. Nothing else in the file changed.
+- `web/login.js`, `web/app.js` (Settings > Security switch, Nodes hint) and the four
+  packs' `web/login.js` (no code field when `setupCodeRequired` is false).
+- `windows/app/**`: `LoginModel.CodeRequired`, `PageDef.Native`, pages not drawn
+  natively open in the browser, no "Phase" wording on screen, `--render ...
+  login-local`, Core.Tests (the code path behind `TRUST_PROXY`, the no-code path on
+  this PC).
+
+Docker is unchanged: `HOST` (default 0.0.0.0), the setup code and its words.
+Details: docs/plans/windows.md section 13.

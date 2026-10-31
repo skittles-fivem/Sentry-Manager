@@ -135,6 +135,8 @@ class TlsManager {
     this.inProcess = issuer ? issuer === 'x509' : (platform === 'win32' || platform === 'darwin');
     this.log = log;
     this.extraHostnames = hostnames;
+    // Windows with other devices allowed: this PC's network names (index.js)
+    this.networkHostnames = [];
     this.ownCert = certFile && keyFile ? { certFile, keyFile } : null;
     this.files = {
       caKey: path.join(dir, 'ca.key'), caCrt: path.join(dir, 'ca.crt'),
@@ -150,9 +152,14 @@ class TlsManager {
     }
   }
 
+  /** This PC's network addresses and <name>.local, for the certificate (only names the local CA may vouch for). */
+  setNetworkHostnames(list) {
+    this.networkHostnames = (list || []).filter((n) => (net.isIP(n) ? ipPermitted(n) : DNS_RE.test(n) && dnsPermitted(n, [])));
+  }
+
   /** Every name the server certificate covers. */
   hostnames() {
-    const names = ['localhost', '127.0.0.1', '::1', ...this.extraHostnames, ...this.storedHostnames()];
+    const names = ['localhost', '127.0.0.1', '::1', ...this.extraHostnames, ...this.storedHostnames(), ...this.networkHostnames];
     return [...new Set(names.map(canonicalName))];
   }
 

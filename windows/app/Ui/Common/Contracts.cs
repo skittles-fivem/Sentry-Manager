@@ -42,8 +42,14 @@ namespace SentrySix.Ui
         public string Title { get; private set; }
         /// <summary>The icon's name in the interface's icon table (the web's symbol id).</summary>
         public string Icon { get; private set; }
-        /// <summary>The phase of docs/plans/windows-native-ui.md that brings the native page.</summary>
+        /// <summary>The phase of docs/plans/windows-native-ui.md that brings the native page (never shown).</summary>
         public int Phase { get; private set; }
+        /// <summary>
+        /// Drawn by this app. Until a page is, its navigation opens it in the
+        /// browser (the web UI, same server, same data) and the page area
+        /// says so; set when its native page lands.
+        /// </summary>
+        public bool Native { get; set; }
     }
 
     public sealed class LoginResult
@@ -64,6 +70,8 @@ namespace SentrySix.Ui
         }
 
         public bool NeedsSetup;
+        /// <summary>/api/auth/me setupCodeRequired: false on Windows on the PC itself (no code field then).</summary>
+        public bool CodeRequired = true;
         /// <summary>The server certificate's SHA-256, colon separated (null over plain HTTP).</summary>
         public string Fingerprint;
         /// <summary>The server is reached over plain HTTP (the web's location.protocol !== 'https:').</summary>

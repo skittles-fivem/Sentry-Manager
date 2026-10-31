@@ -358,28 +358,18 @@ namespace SentrySix.Ui
             if (bg != null) Paint(b, Border.BackgroundProperty, bg);
         }
 
-        /// <summary>The words every placeholder page says: which phase brings the page.</summary>
-        public static string PhaseLine(PageDef p)
+        /// <summary>
+        /// The words a page this app does not draw yet says (its navigation
+        /// opens it in the browser): no plans or phases, only where it is.
+        /// </summary>
+        public static string BrowserLine(PageDef p)
         {
-            return "The " + p.Title + " page comes to this app in Phase " + p.Phase + ".";
+            return "The " + p.Title + " page opens in your browser, with the same data.";
         }
 
-        public static string PhaseWhat(int phase)
-        {
-            switch (phase)
-            {
-                case 1: return "Phase 1 brings the built-in interface's pages.";
-                case 2: return "Phase 2 brings the Viewer: six cameras, telemetry, map and export.";
-                case 3: return "Phase 3 brings the Encoder.";
-                case 4: return "Phase 4 brings every Horizon page.";
-                case 5: return "Phase 5 brings every Flux page.";
-                case 6: return "Phase 6 brings every Aurora page.";
-                case 7: return "Phase 7 brings every Daylight page.";
-                default: return "";
-            }
-        }
+        public const string BrowserHeading = "Opens in your browser";
 
-        public const string OpenInBrowserText = "Until then it works in the browser, with the same data.";
+        public const string OpenInBrowserText = "If it did not open, use the button. Sign in there with the same account.";
 
         // ---------- fonts ----------
         static FontFamily inter, mono;

@@ -342,6 +342,8 @@ namespace SentrySix.Core.Tests
         public int Port;
         public string Data;
         public string Password;
+        /// <summary>TRUST_PROXY=true: then even this PC needs the setup code (behind a proxy every request is local).</summary>
+        public bool TrustProxy;
         Process proc;
         readonly StringBuilder output = new StringBuilder();
 
@@ -377,6 +379,8 @@ namespace SentrySix.Core.Tests
             psi.Environment["HOST"] = "127.0.0.1";
             if (Password != null) psi.Environment["UI_PASSWORD"] = Password;
             else psi.Environment.Remove("UI_PASSWORD");
+            if (TrustProxy) psi.Environment["TRUST_PROXY"] = "true";
+            else psi.Environment.Remove("TRUST_PROXY");
             proc = Process.Start(psi);
             proc.OutputDataReceived += (s, e) => { lock (output) output.AppendLine(e.Data); };
             proc.ErrorDataReceived += (s, e) => { lock (output) output.AppendLine(e.Data); };
@@ -416,6 +420,7 @@ namespace SentrySix.Core.Tests
         }
 
         public string SetupCode() => File.ReadAllText(Path.Combine(Data, "setup-code.txt")).Trim();
+        public bool HasSetupCodeFile() => File.Exists(Path.Combine(Data, "setup-code.txt"));
     }
 
     static class Temp
@@ -673,7 +678,8 @@ namespace SentrySix.Core.Tests
             {
                 a.Stop();
                 // the same host:port, another installation: its own certificate authority and certificate
-                var b = await Run(new NodeServer { Port = a.Port, Data = Temp.Dir("b"), Password = null });
+                // (behind a reverse proxy, so the setup code is needed on this PC too)
+                var b = await Run(new NodeServer { Port = a.Port, Data = Temp.Dir("b"), Password = null, TrustProxy = true });
                 var e = await Assert.ApiFails(() => main.Get("/api/info"), 0, "CERT_CHANGED", "pinned client");
                 Assert.True(e.PresentedSha256 != null && e.PresentedSha256 != mainPrompt.LastSha, "the new fingerprint");
                 Assert.Equal(1, mainPrompt.Calls, "never asked about the changed one");
@@ -692,6 +698,7 @@ namespace SentrySix.Core.Tests
 
                 // no account yet: the setup code from the server
                 Assert.True(await s.NeedsSetup(), "needs setup");
+                Assert.True(s.Me["setupCodeRequired"].Bool, "the code is required behind a proxy");
                 await Assert.ApiFails(() => s.SignIn("admin", Password), 401, null, "no account");
                 var bad = await Assert.ApiFails(() => s.CreateFirstAccount("AAAAA-AAAAA-AAAAA", "owner", "longenough1"), 403, null, "wrong code");
                 Assert.True(bad.Message.StartsWith("That setup code is not right."), bad.Message);
@@ -699,6 +706,27 @@ namespace SentrySix.Core.Tests
                 Assert.Equal("owner", s.User.Str, "signed in as the new account");
                 Assert.True(!await s.NeedsSetup(), "set up");
                 await Assert.ApiFails(() => s.CreateFirstAccount("AAAAA-AAAAA-AAAAA", "x", "longenough2"), 409, null, "only once");
+            });
+
+            test("first account on this PC: no setup code on Windows (none shown either); Docker and Linux still need it", async () =>
+            {
+                var c = await Run(new NodeServer { Port = NodeServer.FreePort(), Data = Temp.Dir("c"), Password = null });
+                using var api = new Api(ServerAddress.Local(c.Port), new Prompt(), null);
+                var s = new Session(api);
+                Assert.True(await s.NeedsSetup(), "needs setup");
+                if (!LocalServer.IsWindows)
+                {
+                    Assert.True(s.Me["setupCodeRequired"].Bool, "required off Windows");
+                    await Assert.ApiFails(() => s.CreateFirstAccount(null, "owner", "longenough1"), 403, null, "no code off Windows");
+                    return;
+                }
+                Assert.True(!s.Me["setupCodeRequired"].Bool, "not required on this PC");
+                Assert.True(!c.HasSetupCodeFile(), "no setup-code.txt while only this PC can reach the server");
+                Assert.True(!System.Text.RegularExpressions.Regex.IsMatch(c.Output, "setup code [A-Z0-9]{5}-"), "no code in the log");
+                await s.CreateFirstAccount(null, "owner", "longenough1");
+                Assert.Equal("owner", s.User.Str, "signed in as the new account");
+                Assert.True(!await s.NeedsSetup(), "set up");
+                await Assert.ApiFails(() => s.CreateFirstAccount(null, "x", "longenough2"), 409, null, "only once");
             });
         }
     }

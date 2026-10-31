@@ -367,22 +367,26 @@ async function open(base, { point = null, concurrency = 1, mode = 'replace', net
 // Runs a job in a child process (a process group of its own) that dies at the
 // kill point; resolves once it died. `script` is the one to run (this file,
 // or winCrashPoints.js).
-function crash(base, { point, concurrency = 1, mode = 'replace', networkMode = 'direct', timeout = 120_000, script = __filename }) {
+function crash(base, { point, concurrency = 1, mode = 'replace', networkMode = 'direct', timeout = 300_000, script = __filename }) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [script], {
       env: { ...process.env, BASE: base, POINT: point, CONCURRENCY: String(concurrency), MODE: mode, NETMODE: networkMode },
       detached: !WINDOWS, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe']
     });
     let stderr = '';
+    // the kill point was not reached in time: the child is killed from here,
+    // and assertRecovered says so instead of blaming the recovery
+    let timedOut = false;
     child.stderr.on('data', (chunk) => { stderr += chunk; });
     const timer = setTimeout(() => {
+      timedOut = true;
       if (WINDOWS) killTree(child.pid);
       else try { process.kill(-child.pid, 'SIGKILL'); } catch (_) { /* gone */ }
     }, timeout);
     child.on('exit', (code, signal) => {
       clearTimeout(timer);
       trace(`crash child ${child.pid} exited (${code}, ${signal}); its trace:\n${stderr}`);
-      resolve({ code, signal: exitSignal({ code, signal }, base), stderr });
+      resolve({ code, signal: exitSignal({ code, signal }, base), stderr, timedOut, timeout });
     });
   });
 }
@@ -419,7 +423,7 @@ function leftovers(base, folder) {
 // given up on once nothing has changed for STALL_MS (a converter that waits
 // on something that never comes), or after WAIT_MS in all. Resolves why the
 // wait ended: 'finished', 'stalled' or 'too long'.
-const STALL_MS = 60_000;
+const STALL_MS = 150_000;
 const WAIT_MS = 240_000;
 async function waitForJob(runtime, id, note = () => {}) {
   let finished = false;
@@ -499,6 +503,7 @@ async function crashAndRecover({ point, mode = 'replace', networkMode = 'direct'
 }
 
 function assertRecovered(result, { mode = 'replace' } = {}) {
+  assert.equal(result.died.timedOut, false, `kill point not reached within ${Math.round((result.died.timeout || 0) / 1000)}s (${result.died.stderr.slice(0, 300)})`);
   assert.equal(result.died.signal, 'SIGKILL', `the converter died at the point (${result.died.stderr.slice(0, 300)})`);
   // (what each clip was doing, when the job had not finished)
   const clipStates = () => result.job.items.map((item) => `${item.relativePath}: ${item.state} ${item.resultCode || ''}`

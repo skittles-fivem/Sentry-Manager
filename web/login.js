@@ -48,16 +48,19 @@
     $('fingerprint').hidden = false;
   }
   const setup = me.needsSetup;
+  // (Windows, on the PC itself: the server needs no setup code, so none is asked for)
+  const needCode = setup && me.setupCodeRequired !== false;
   if (setup) {
     $('title').textContent = 'Create your account';
     $('lead').textContent = `This is the first start. Enter the setup code from ${windows ? 'the install window' : 'the container log'}, then choose the user name and password that protect this Sentry Six Manager.`;
     if (mac) $('lead').textContent = 'This is the first start. Enter the setup code (in Terminal on the Mac, run sudo sentry-six-manager setup-code), then choose the user name and password that protect this Sentry Six Manager.';
+    if (!needCode) $('lead').textContent = 'This is the first start. Choose the user name and password that protect this Sentry Six Manager.';
     $('confirm-row').hidden = false;
-    $('code-row').hidden = false;
+    $('code-row').hidden = !needCode;
     $('submit').textContent = 'Create account';
     document.querySelector('[name=password]').autocomplete = 'new-password';
     document.querySelector('[name=password]').minLength = 8;
-    document.querySelector('[name=code]').required = true;
+    document.querySelector('[name=code]').required = needCode;
   }
   $('form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -70,7 +73,7 @@
     const res = await fetch(setup ? '/api/auth/setup' : '/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'sentry-six-manager' },
-      body: JSON.stringify({ username: f.get('username'), password: f.get('password'), ...(setup ? { code: f.get('code') } : {}) })
+      body: JSON.stringify({ username: f.get('username'), password: f.get('password'), ...(needCode ? { code: f.get('code') } : {}) })
     }).catch(() => null);
     $('submit').disabled = false;
     if (res && res.ok) return location.replace(safeNext);

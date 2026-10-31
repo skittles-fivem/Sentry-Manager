@@ -36,6 +36,8 @@ namespace SentrySix.Shell
         IInterface iface;
         string activePack = "";
         bool inShell, quitting, switching;
+        // the web UI was opened for this run's first shell (its pages are not all native yet)
+        bool browserOpened;
         readonly HashSet<string> seenNotes = new HashSet<string>();
         bool notesPrimed;
 
@@ -166,6 +168,8 @@ namespace SentrySix.Shell
             JsonValue me = session.Me ?? JsonValue.Null;
             try { if (me.IsNull) me = await session.Refresh(); } catch (Exception) { }
             lm.NeedsSetup = me["needsSetup"].Bool;
+            // (an older server sends no setupCodeRequired: it always needs the code)
+            lm.CodeRequired = me["setupCodeRequired"].Kind != JsonKind.Bool || me["setupCodeRequired"].Bool;
             lm.Fingerprint = me["fingerprint"].Str;
             string deployment = me["deployment"].Str;
             if (deployment == null) { try { deployment = (await session.Info())["deployment"].Str; } catch (Exception) { } }
@@ -229,7 +233,8 @@ namespace SentrySix.Shell
             model.Host = server.Authority;
             model.Still = Still;
             model.VehicleId = prefs.Get("vehicle", null);
-            model.Navigate = Navigate;
+            // (a click: a page this app does not draw yet opens in the browser)
+            model.Navigate = r => Navigate(r, true);
             model.PickVehicle = id => { model.VehicleId = id; prefs.Set("vehicle", id); };
             model.SignOut = () => SignOut();
             model.OpenInBrowser = r => OpenInBrowser(r);
@@ -245,8 +250,22 @@ namespace SentrySix.Shell
             }
             string route = prefs.Get("route:" + iface.Id, iface.Pages[0].Id);
             if (!HasPage(route)) route = iface.Pages[0].Id;
-            Navigate(route);
+            Navigate(route, false);
             Show(iface, iface.Shell(model));
+            // Until every page is drawn here, the window shows where they are
+            // and the web UI opens in the browser: once per run, when the
+            // window is on screen (not at a sign-in start in the tray).
+            if (!browserOpened && win.IsVisible && !NativePage(route))
+            {
+                browserOpened = true;
+                OpenInBrowser(route);
+            }
+        }
+
+        bool NativePage(string route)
+        {
+            foreach (PageDef p in iface.Pages) if (p.Id == route) return p.Native;
+            return false;
         }
 
         bool HasPage(string route)
@@ -255,9 +274,10 @@ namespace SentrySix.Shell
             return false;
         }
 
-        void Navigate(string route)
+        void Navigate(string route, bool clicked)
         {
             if (iface == null || !HasPage(route)) return;
+            if (clicked && !NativePage(route)) OpenInBrowser(route);
             PageDef def = null;
             foreach (PageDef p in iface.Pages) if (p.Id == route) def = p;
             prefs.Set("route:" + iface.Id, route);
@@ -315,7 +335,7 @@ namespace SentrySix.Shell
                     tray.Notify(n.Title, n.Message, n.Level == "warning" || n.Level == "critical", () =>
                     {
                         win.Bring();
-                        if (iface != null) foreach (PageDef p in iface.Pages) if (p.Icon == "bell") Navigate(p.Id);
+                        if (iface != null) foreach (PageDef p in iface.Pages) if (p.Icon == "bell") Navigate(p.Id, true);
                     });
             }
             notesPrimed = true;
@@ -378,7 +398,9 @@ namespace SentrySix.Shell
         {
             try
             {
-                string url = server.GetLeftPart(UriPartial.Authority) + "/" + (string.IsNullOrEmpty(route) ? "" : "#/" + route);
+                // (this PC's server: https://localhost:<port>, the name the install window shows)
+                string root = local ? server.Scheme + "://localhost:" + server.Port : server.GetLeftPart(UriPartial.Authority);
+                string url = root + "/" + (string.IsNullOrEmpty(route) ? "" : "#/" + route);
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             }
             catch (Exception ex)
