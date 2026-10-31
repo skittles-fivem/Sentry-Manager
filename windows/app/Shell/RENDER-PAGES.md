@@ -247,3 +247,18 @@ Try again).
 - horizon jobs-running-only
 - horizon jobs-long
 - horizon jobs-error
+
+### Horizon: Policies
+
+A service schedule per vehicle (hz/pages/policies.js) on the same answers as
+the built-in Policies page's states: policies (on, two kinds kept, the next
+run moving something, a last run), policies-off (the fixture server's own
+answer), policies-novehicle ("Add a vehicle first."), policies-error (the
+panel is the message), policies-long (a second vehicle with a long name, a
+last run that failed).
+
+- horizon policies
+- horizon policies-off
+- horizon policies-novehicle
+- horizon policies-error
+- horizon policies-long
