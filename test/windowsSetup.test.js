@@ -148,7 +148,7 @@ test('the payload is the stage folder build.ps1 zips, with the files the Setup r
   assert.match(code, /ExpandConstant\('\{tmp\}\\payload\\install\.ps1'\)/);
   assert.match(code, /ExpandConstant\('\{app\}\\uninstall\.ps1'\)/);
   // what "Open Sentry Six Manager" starts is what install.ps1 puts in the Start menu
-  assert.match(section('Run'), /^Filename: "\{commonpf64\}\\SentrySixManager\\app-ui\\SentrySix\.exe";.*Flags: postinstall nowait skipifsilent$/m);
+  assert.match(section('Run'), /^Filename: "\{commonpf64\}\\SentrySixManager\\app-ui\\SentrySix\.exe";.*Flags: postinstall nowait skipifsilent runasoriginaluser$/m);
   assert.match(INSTALL, /\$AppExe = Join-Path \$InstallDir 'app-ui\\SentrySix\.exe'/);
   assert.match(INSTALL, /\$lnk\.TargetPath = \$AppExe/);
 });
