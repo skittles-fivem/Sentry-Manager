@@ -35,48 +35,6 @@ const EVENT = path.join('TeslaCam', 'SentryClips', '2026-10-20_07-44-14');
 const clipName = (index) => `2026-10-20_07-${String(40 + index).padStart(2, '0')}-00-front.mp4`;
 
 const WINDOWS = process.platform === 'win32';
-
-// SENTRY_CRASH_TRACE=1 (diagnostics only; nothing changes when unset): a timed
-// trace on stderr of the helper calls, the kill, the processes left running
-// and, while the test waits, the job's state every second.
-const TRACE = process.env.SENTRY_CRASH_TRACE === '1';
-const traceStart = Date.now();
-const trace = TRACE
-  ? (text) => process.stderr.write(`[trace ${process.pid} +${((Date.now() - traceStart) / 1000).toFixed(2)}s] ${text}\n`)
-  : () => {};
-if (TRACE && WINDOWS) {
-  const adapter = require('./ownedFsAdapter');
-  const make = adapter.makeWindowsHelper;
-  adapter.makeWindowsHelper = (...args) => {
-    const helper = make(...args);
-    if (helper.traced) return helper;
-    const request = helper.request.bind(helper);
-    const name = (value) => (typeof value === 'string' ? path.basename(value) : '');
-    return Object.assign(Object.create(helper), {
-      traced: true,
-      request: async (op, a, ...more) => {
-        const at = Date.now();
-        const what = `${op} ${name(a?.path || a?.from)}${a?.to ? ` -> ${name(a.to)}` : ''}`;
-        try {
-          const out = await request(op, a, ...more);
-          trace(`helper ${what}: ok ${Date.now() - at} ms`);
-          return out;
-        } catch (error) {
-          trace(`helper ${what}: ${error?.code} ${Date.now() - at} ms ${String(error?.message || '').slice(0, 120)}`);
-          throw error;
-        }
-      }
-    });
-  };
-}
-function traceProcesses(label) {
-  if (!TRACE || !WINDOWS) return;
-  for (const image of ['SentryHelper.exe', 'ffmpeg.exe', 'ffprobe.exe']) {
-    const out = spawnSync('tasklist', ['/FI', `IMAGENAME eq ${image}`, '/FO', 'CSV', '/NH'], { encoding: 'utf8', windowsHide: true });
-    const rows = String(out.stdout || '').split(/\r?\n/).filter((line) => line.startsWith('"'));
-    trace(`${label}: ${image} x${rows.length} ${rows.map((line) => line.split(',')[1]).join(' ')}`);
-  }
-}
 const available = () => spawnSync('ffmpeg', ['-version']).status === 0 && (WINDOWS ? windowsHelperBuilt() : fs.existsSync(HELPER));
 
 // One Tesla-like H.264 clip, made once per test process and copied (each copy
@@ -114,7 +72,6 @@ const codecOf = (file) => String(spawnSync('ffprobe', ['-v', 'error', '-select_s
 // the converter; the mark tells crash() it died here (processTree.js).
 const started = new Set();
 function die() {
-  trace(`dying at ${process.env.POINT}; started ${[...started].join(' ')}`);
   if (WINDOWS) {
     markKilled(process.env.BASE);
     for (const pid of started) killTree(pid);
@@ -385,7 +342,6 @@ function crash(base, { point, concurrency = 1, mode = 'replace', networkMode = '
     }, timeout);
     child.on('exit', (code, signal) => {
       clearTimeout(timer);
-      trace(`crash child ${child.pid} exited (${code}, ${signal}); its trace:\n${stderr}`);
       resolve({ code, signal: exitSignal({ code, signal }, base), stderr, timedOut, timeout });
     });
   });
@@ -415,13 +371,12 @@ function leftovers(base, folder) {
   return found;
 }
 
-
 // Waits for the restarted job to finish. A slow machine (a CI runner with
 // every crash suite and their ffmpegs at once) can take minutes for what
-// takes seconds here, so there is no fixed limit on the time: the job is
-// waited for while it moves (its record or a running encode changes), and
-// given up on once nothing has changed for STALL_MS (a converter that waits
-// on something that never comes), or after WAIT_MS in all. Resolves why the
+// takes seconds here, so the job is waited for while it moves (its record
+// or a running encode changes), and given up on once nothing has changed
+// for STALL_MS (a converter that waits on something that never comes), or
+// after WAIT_MS in all. Resolves why the
 // wait ended: 'finished', 'stalled' or 'too long'.
 const STALL_MS = 150_000;
 const WAIT_MS = 240_000;
@@ -467,14 +422,11 @@ async function crashAndRecover({ point, mode = 'replace', networkMode = 'direct'
   try {
     env = await open(base, { concurrency, mode, networkMode });
     if (beforeStart) await beforeStart(env);
-    traceProcesses('before the restart');
-    // what the restarted converter did, for a test that fails (and, with
-    // SENTRY_CRASH_TRACE=1, on stderr as it happens)
+    // what the restarted converter did, for a test that fails
     const restartStarted = Date.now();
     const timeline = [`the crash took ${restartStarted - crashStarted} ms`];
     const note = (text) => {
       if (timeline.length < 400) timeline.push(`+${((Date.now() - restartStarted) / 1000).toFixed(1)}s ${text}`);
-      trace(text);
     };
     env.runtime.service.subscribe((event) => {
       if (/snapshot|progress/i.test(event.type)) return;
@@ -485,7 +437,6 @@ async function crashAndRecover({ point, mode = 'replace', networkMode = 'direct'
     const [listed] = await env.runtime.service.list();
     const outcome = await waitForJob(env.runtime, listed.id, note);
     note(`wait over: ${outcome}`);
-    traceProcesses('after the wait');
     const job = await env.runtime.service.get(listed.id);
     const clipsAfter = names.map((name) => {
       const output = mode === 'replace' ? path.join(folder, name) : path.join(base, 'out', 'SentryClips', path.basename(path.dirname(path.join(folder, name))), name);
