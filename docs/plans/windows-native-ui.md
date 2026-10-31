@@ -192,7 +192,21 @@ is done when every item is ticked in both. Run on the owner's PC runner.
     NotificationsTests checks the C#). Render list: notifications, -empty,
     -error (desktop and phone; tools/parity/notificationsVariants.js on
     both sides). Redrawn on "notifications".
-  - Encoding per vehicle ("Per car", #/encoder/vehicles): not started
+  - Encoding per vehicle ("Per car", #/encoder/vehicles): native
+    (`Ui/Builtin/VehicleEncodingPage.cs`; web/vehicleEncoding.js's words,
+    form, checks and requests in `Core/VehicleEncoding.cs`, one copy for
+    the packs' pages too); type-checked with mcs, not yet built or rendered
+    on Windows. The cards (tag, the settings in words, Edit / Set up), the
+    editor (every control, what sync() shows, the order buttons, Save with
+    every check and the "Replace originals?" question, Forget) and the
+    failures are compared with the web's own file run in a small pretend
+    DOM: 23 pages and 16 sessions of clicks and typing, step by step
+    (test/windowsNativeVehicleEncoding.test.js writes
+    Core.Tests/Fixtures/expected-vehicle-encoding.json; Core.Tests
+    VehicleEncodingTests checks the C#). Render list: percar, -edit,
+    -empty, -error (desktop and phone; tools/parity/percarVariants.js on
+    both sides). No live updates (as the web's). The Encoder tab and "Open
+    the Encoder" go to the Encoder page, which still opens in the browser.
   - Settings: not started
 - Phases 2-7 (Viewer, Encoder, Horizon, Flux, Aurora, Daylight): not started.
   Their pages open in the browser.
@@ -231,6 +245,16 @@ sends numbers).
 Notifications: an empty message leaves the web's `<span></span><br>`,
 drawn natively as an empty first line; whether a browser gives that line
 its height is to be checked in the parity pictures.
+
+Encoding per vehicle: kept as the browser draws it, though it reads oddly:
+the editor's error line is text-2, not red (`.card p` outranks
+`.ve-error`; only the load failure outside a card is red); Forget asks with
+the built-in "Replace originals?" dialog and its danger button (app.js
+passes one confirm for both questions); the order buttons put How often and
+When back to the saved schedule (the editor is drawn again from the draft,
+which does not keep them). Not drawn yet: Chrome shrinks a checkbox whose
+words wrap (the native box stays 17 px), and the bitrate field's arrow keys
+step by 1 (the browser's by 0.25).
 
 ## Costs the owner should know
 

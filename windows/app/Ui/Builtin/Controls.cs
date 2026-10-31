@@ -96,6 +96,88 @@ namespace SentrySix.Ui.Builtin
     }
 
     /// <summary>
+    /// A radio button drawn as Chrome draws one with accent-color (17 px:
+    /// the accent ring and dot when chosen, the dark scheme's grey circle
+    /// when not; faded when disabled), its words <see cref="Gap"/> px to the
+    /// right. Picking it calls back; the page unticks the others of its name.
+    /// Disabled, the button is greyed and its words are not (the label is
+    /// not disabled, only its input).
+    /// </summary>
+    public sealed class RadioLike
+    {
+        public readonly FrameworkElement Root;
+        readonly Ellipse ring, dot;
+        readonly Grid circle;
+        readonly TextBlock text;
+        bool on, enabled = true;
+        readonly Action picked;
+
+        public RadioLike(string label, bool value, Action picked, double gap)
+        {
+            this.picked = picked;
+            ring = new Ellipse();
+            ring.Width = 17;
+            ring.Height = 17;
+            ring.StrokeThickness = 1;
+            dot = new Ellipse();
+            dot.Width = 9;
+            dot.Height = 9;
+            dot.HorizontalAlignment = HorizontalAlignment.Center;
+            dot.VerticalAlignment = VerticalAlignment.Center;
+            dot.SetResourceReference(Shape.FillProperty, "accent");
+            Grid g = new Grid();
+            g.Width = 17;
+            g.Height = 17;
+            g.Children.Add(ring);
+            g.Children.Add(dot);
+            g.VerticalAlignment = VerticalAlignment.Center;
+            circle = g;
+            text = U.Text(label ?? "", 14, FontWeights.Normal, "text");
+            text.TextWrapping = TextWrapping.NoWrap;
+            text.VerticalAlignment = VerticalAlignment.Center;
+            Flex f = Flex.Row(gap, g, text);
+            f.Background = Brushes.Transparent;
+            Root = U.Click(f, () => { if (!enabled || on) return; Set(true); if (this.picked != null) this.picked(); });
+            Root.FocusVisualStyle = null;
+            Set(value);
+        }
+
+        public bool Value { get { return on; } }
+
+        public bool Enabled
+        {
+            get { return enabled; }
+            set
+            {
+                enabled = value;
+                // (only the button is greyed: its label's words stay as they are)
+                circle.Opacity = value ? 1 : 0.5;
+                Root.Cursor = value ? Cursors.Hand : Cursors.Arrow;
+                Root.Focusable = value;
+            }
+        }
+
+        public void Set(bool v)
+        {
+            on = v;
+            if (on)
+            {
+                ring.SetResourceReference(Shape.StrokeProperty, "accent");
+                ring.StrokeThickness = 2;
+                ring.SetResourceReference(Shape.FillProperty, "check-off");
+                dot.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ring.SetResourceReference(Shape.StrokeProperty, "check-off-border");
+                ring.StrokeThickness = 1;
+                ring.SetResourceReference(Shape.FillProperty, "check-off");
+                dot.Visibility = Visibility.Collapsed;
+            }
+        }
+    }
+
+    /// <summary>
     /// The web's select.input: the box as the other fields (44 px, radius 10,
     /// 40 px on the right for the chevron at right 15), its list opening as a
     /// menu under it; Up and Down change the choice from the keyboard as a
@@ -160,6 +242,9 @@ namespace SentrySix.Ui.Builtin
         }
 
         public string Value { get { return value; } }
+
+        /// <summary>The chosen option's text size (a select takes its field's font: 13 px in a .field, 16 px on a touch screen).</summary>
+        public double FontSize { get { return label.FontSize; } set { label.FontSize = value; } }
 
         public bool Enabled
         {

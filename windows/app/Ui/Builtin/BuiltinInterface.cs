@@ -45,7 +45,8 @@ namespace SentrySix.Ui.Builtin
             { "policies", c => new PoliciesPage(c) },
             { "jobs", c => new JobsPage(c) },
             { "bin", c => new BinPage(c) },
-            { "notifications", c => new NotificationsPage(c) }
+            { "notifications", c => new NotificationsPage(c) },
+            { "encoder/vehicles", c => new VehicleEncodingPage(c) }
         };
 
         static BuiltinInterface()
@@ -616,17 +617,17 @@ namespace SentrySix.Ui.Builtin
         /// <summary>A page not drawn here yet: where it opens (the browser), in the built-in style.</summary>
         FrameworkElement Placeholder(PageDef p, string sub, PageContext ctx)
         {
-            bool perCar = p.Id == "encoder" && sub.Split('/', '?')[0] == "vehicles";
-            string title = perCar ? "Encoding per vehicle" : p.Title;
-            string route = perCar ? "encoder/vehicles" : p.Id;
+            // (Encoder > Encoding per vehicle is drawn here: VehicleEncodingPage)
+            string title = p.Title;
+            string route = p.Id;
             StackPanel s = new StackPanel();
             if (p.Id == "encoder")
             {
                 // the Encoder's two tabs (its iframe shows them on the web): the Encoder | Encoding per vehicle
                 Flex tabs = Flex.Row(8);
                 tabs.Margin = new Thickness(0, 0, 0, 18);
-                Button enc = Look.Btn("Encoder", perCar ? BtnKind.Small : BtnKind.Small | BtnKind.Green, () => { if (ctx != null && ctx.Shell != null) ctx.Shell.Navigate("encoder"); });
-                Button veh = Look.Btn("Encoding per vehicle", perCar ? BtnKind.Small | BtnKind.Green : BtnKind.Small, () => { if (ctx != null && ctx.Shell != null) ctx.Shell.Navigate("encoder/vehicles"); });
+                Button enc = Look.Btn("Encoder", BtnKind.Small | BtnKind.Green, () => { if (ctx != null && ctx.Shell != null) ctx.Shell.Navigate("encoder"); });
+                Button veh = Look.Btn("Encoding per vehicle", BtnKind.Small, () => { if (ctx != null && ctx.Shell != null) ctx.Shell.Navigate("encoder/vehicles"); });
                 enc.Uid = "tab-encoder";
                 veh.Uid = "tab-vehicles";
                 tabs.Children.Add(enc);
@@ -634,12 +635,6 @@ namespace SentrySix.Ui.Builtin
                 s.Children.Add(tabs);
             }
             // .page-head > h1 (34px 700 -0.02em), margin-bottom 26
-            if (perCar)
-            {
-                TextBlock eyebrow = U.Text("Encoder", 13, FontWeights.Normal, "text-2");
-                eyebrow.Margin = new Thickness(0, 0, 0, 4);
-                s.Children.Add(eyebrow);
-            }
             SpacedText h1 = U.Spaced(title, 34, FontWeights.Bold, -0.02, "text");
             h1.Margin = new Thickness(0, 0, 0, 26);
             s.Children.Add(h1);

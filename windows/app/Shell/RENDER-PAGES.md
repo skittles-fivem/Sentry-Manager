@@ -148,6 +148,17 @@ red badge is the three open ones), notifications-empty (the fixture
 server's own answer: "No notifications."; a variant with only its route)
 and notifications-error (the list not readable: the whole page is the
 message). Times are from the fixture's `now`.
+Encoder > Encoding per vehicle's states (tools/parity/percarVariants.js, in
+capture.js's `VARIANTS`; the Encoder's answers are `POST
+/api/converter/invoke/<name>` entries): percar (three vehicles: the
+fixture's own with automatic conversion on, replacing originals on its own
+devices between set hours; Model Y saved with automatic conversion off; a
+long-named one not set up), percar-edit (the same, the fixture vehicle's
+editor open from `?edit=<id>`: replace with the box ticked, automatic
+between 01:00 and 06:00), percar-empty (no vehicles: "Add a vehicle in
+Settings first.") and percar-error (getAuto answers CONVERTER_STARTING:
+"The Encoder is still starting. Try again in a moment." under the head and
+tabs).
 
 - builtin overview
 - builtin overview-off
@@ -192,3 +203,5 @@ message). Times are from the fixture's `now`.
 - builtin settings-security
 - builtin percar
 - builtin percar-edit
+- builtin percar-empty
+- builtin percar-error

@@ -42,6 +42,7 @@ const { nodesVariants } = require('./nodesVariants');
 const { jobsVariants, JOBS_VARIANTS } = require('./jobsVariants');
 const { binVariants, BIN_VARIANTS } = require('./binVariants');
 const { notificationsVariants, NOTIFICATIONS_VARIANTS } = require('./notificationsVariants');
+const { percarVariants, PERCAR_VARIANTS } = require('./percarVariants');
 const REPO = path.join(__dirname, '..', '..');
 const SERVER = path.join(REPO, 'server', 'index.js');
 const USER = 'admin';
@@ -100,8 +101,11 @@ const PAGES = {
   'settings-vehicle': { signedIn: true, path: (v) => `/#/settings/vehicle/${encodeURIComponent(v)}`, only: 'builtin' },
   'settings-vehicle-new': { signedIn: true, path: '/#/settings/vehicle-new', only: 'builtin' },
   'settings-security': { signedIn: true, path: '/#/settings/security', only: 'builtin' },
-  percar: { signedIn: true, path: '/#/encoder/vehicles', only: 'builtin' },
-  'percar-edit': { signedIn: true, path: '/#/encoder/vehicles?edit=1', only: 'builtin' }
+  // (Encoder > Encoding per vehicle: percarVariants.js)
+  percar: { signedIn: true, path: '/#/encoder/vehicles', only: 'builtin', variant: true },
+  'percar-edit': { signedIn: true, path: (v) => `/#/encoder/vehicles?edit=${encodeURIComponent(v)}`, only: 'builtin', variant: true },
+  'percar-empty': { signedIn: true, path: '/#/encoder/vehicles', only: 'builtin', variant: true },
+  'percar-error': { signedIn: true, path: '/#/encoder/vehicles', only: 'builtin', variant: true }
 };
 
 // the Footage page's first page of days, as it asks for it
@@ -181,8 +185,9 @@ const VARIANTS = {
   'settings-vehicle': { route: 'settings', sub: 'vehicle/{vehicle}' },
   'settings-vehicle-new': { route: 'settings', sub: 'vehicle-new' },
   'settings-security': { route: 'settings', sub: 'security' },
-  percar: { route: 'encoder', sub: 'vehicles' },
-  'percar-edit': { route: 'encoder', sub: 'vehicles?edit=1' },
+  // Encoder > Encoding per vehicle: three vehicles (automatic on, saved, not set up), the first one's
+  // editor open, no vehicles, the Encoder still starting
+  ...Object.fromEntries(PERCAR_VARIANTS.map((k) => [k, (api, vehicle) => percarVariants(api, vehicle)[k]])),
   // the Jobs page: every kind of job, every job running (Clear jobs disabled), long names;
   // the list not readable (the whole page is the message)
   // (jobs-empty: the fixture server's own answer; named here so the native render list finds the page)

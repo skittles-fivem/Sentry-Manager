@@ -534,3 +534,51 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   notifications-error is captured on both sides. Injected into
   `Shell/RenderFixture.json` with the fixture's own `now`; the rest of the
   file is unchanged.
+
+### Phase 1: Encoding per vehicle (2026-10-31)
+
+- `Core/VehicleEncoding.cs`: web/vehicleEncoding.js for every interface.
+  `VehicleEncoding` has the lists, the page's words (each `public const`
+  is checked against the web's files by the node test), the plain words
+  (`Describe`, `Summary`, `CodecWords` … `AutoWords`), `FolderOf`,
+  `SavedFor`, `Defaults`, `Shared`, `Save` (setAuto / saveVehicle as the
+  web sends them), `ErrorText` (the Encoder's codes only; an HTTP refusal
+  is its message) and `EditParam` (?edit=). Values are read as JavaScript
+  reads them (String(), Number(), ===, ||). `VehicleEncodingView` is
+  mount(): `Load` (GET /api/vehicles, any refusal "Can’t load the
+  vehicles."; getAuto; getCapabilities and devices with their failures
+  ignored), `Cards` (the editor keeps its draft from the first draw, as
+  editor() does), `Edit`, `Cancel`, `ReadForm`, `Move`, `ConfigOf`,
+  `Submit` (the checks in the web's order, then save), `Forget`, and
+  `Outline` for the tests. `VeForm` is the editor as the browser holds it:
+  each radio's checked and disabled, the selects (the first option when
+  none is marked), the number fields' values as Chrome keeps them, `Sync`
+  (sync()), `Check`/`Tick`/`Set` for the reader's changes and `Data`
+  (FormData: disabled and unticked controls left out).
+- `test/windowsNativeVehicleEncoding.test.js` runs web/vehicleEncoding.js
+  itself: its words on 86 settings, folders and defaults, save() on 7
+  states, and mount() with app.js's options in a pretend DOM (the HTML
+  parsed into elements, FormData, change, submit and the buttons' clicks)
+  on 23 pages and 16 sessions of 97 steps (every check of Save, confirm
+  yes and no, the order buttons and the focus after them, Forget,
+  refusals, an Edit whose draw throws). It writes
+  `Core.Tests/Fixtures/expected-vehicle-encoding.json`;
+  `Core.Tests/VehicleEncodingTests.cs` replays the same steps on the C#.
+  Under mono with a stub runner the six VehicleEncodingTests pass (and
+  fail when sync, the interval words, the order bounds or configOf's keys
+  are changed); not run under dotnet yet.
+- `Ui/Builtin/VehicleEncodingPage.cs`, registered as "encoder/vehicles"
+  (its browser card is gone; the Encoder's own placeholder keeps its tabs).
+  Made afresh on each draw (the web mounts again on render()); Edit,
+  Cancel, ↑/↓, Save and Forget draw the view again without reading. The
+  cards are `NdGrid` (min 420, gap 16, each card at the top of its row);
+  `VeFlex` (new, in the page file) is the wrapping flex rows with grow and
+  space-between (the card head, the radio rows, the group rows). New in
+  `Controls.cs`: `RadioLike`, and `SelectBox.FontSize` (fields are 13 px in
+  a .field, 16 px at phone width as the touch screen's rule).
+- `tools/parity/percarVariants.js`: percar, percar-edit (`?edit=` the
+  fixture vehicle), percar-empty, percar-error, in capture.js's PAGES and
+  VARIANTS and in `Shell/RenderFixture.json` (computed from its own api and
+  vehicle; the rest unchanged). The web pictures were taken here with
+  Playwright (capture.js --only builtin --pages percar,…); the native ones
+  need the Windows runner.

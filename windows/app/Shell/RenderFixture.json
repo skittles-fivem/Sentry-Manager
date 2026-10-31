@@ -14292,14 +14292,6 @@
    "route": "settings",
    "sub": "security"
   },
-  "percar": {
-   "route": "encoder",
-   "sub": "vehicles"
-  },
-  "percar-edit": {
-   "route": "encoder",
-   "sub": "vehicles?edit=1"
-  },
   "jobs-empty": {
    "route": "jobs"
   },
@@ -15144,6 +15136,637 @@
     "GET /api/notifications": {
      "$error": "The notifications could not be read.",
      "$status": 500
+    }
+   }
+  },
+  "percar": {
+   "route": "encoder",
+   "sub": "vehicles",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "timezone": "UTC",
+       "source": {
+        "type": "path",
+        "path": "/srv/sentry-parity/footage"
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y",
+       "timezone": "UTC",
+       "source": {
+        "type": "path",
+        "path": "/srv/sentry-parity/footage"
+       },
+       "root": "/srv/sentry-parity/model-y",
+       "studioRoot": "/srv/sentry-parity/model-y/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      },
+      {
+       "id": "cybertruck",
+       "name": "Cybertruck with a name far too long for one line of its card",
+       "timezone": "UTC",
+       "source": {
+        "type": "path",
+        "path": "/srv/sentry-parity/footage"
+       },
+       "root": "/srv/sentry-parity/cybertruck",
+       "studioRoot": "/srv/sentry-parity/cybertruck/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      }
+     ]
+    },
+    "POST /api/converter/invoke/getAuto": {
+     "ok": true,
+     "value": {
+      "settings": {
+       "enabled": true,
+       "intervalMinutes": 180,
+       "window": {
+        "startHour": 1,
+        "endHour": 6
+       },
+       "holdManual": false,
+       "keepRunning": false,
+       "openAtLogin": false,
+       "configs": [
+        {
+         "sourceRoot": "/srv/sentry-parity/footage/TeslaCam",
+         "destinationRoot": null,
+         "codec": "h265",
+         "profileId": "balanced",
+         "networkMode": "auto",
+         "outputMode": "replace",
+         "includedGroups": [
+          "SavedClips",
+          "SentryClips"
+         ],
+         "groupOrder": [
+          "SavedClips",
+          "SentryClips",
+          "RecentClips"
+         ],
+         "replacementConfirmed": true,
+         "verifyMode": "quick",
+         "keepOffTarget": false,
+         "lanes": [
+          {
+           "device": "cpu",
+           "concurrency": 2
+          },
+          {
+           "device": "node:garage-pc@192.168.1.20",
+           "concurrency": 3
+          }
+         ]
+        }
+       ]
+      },
+      "status": {},
+      "saved": [
+       {
+        "sourceRoot": "/srv/sentry-parity/model-y/TeslaCam",
+        "destinationRoot": "/output/Model Y",
+        "codec": "av1",
+        "profileId": "custom",
+        "bitrateKbps": 6500,
+        "networkMode": "auto",
+        "outputMode": "separate",
+        "includedGroups": [
+         "RecentClips",
+         "SavedClips",
+         "SentryClips"
+        ],
+        "groupOrder": [
+         "SavedClips",
+         "SentryClips",
+         "RecentClips"
+        ],
+        "replacementConfirmed": false,
+        "verifyMode": "full",
+        "concurrency": 3
+       }
+      ]
+     }
+    },
+    "POST /api/converter/invoke/getCapabilities": {
+     "ok": true,
+     "value": {
+      "replacement": "available"
+     }
+    }
+   }
+  },
+  "percar-edit": {
+   "route": "encoder",
+   "sub": "vehicles?edit=model-3",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "timezone": "UTC",
+       "source": {
+        "type": "path",
+        "path": "/srv/sentry-parity/footage"
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y",
+       "timezone": "UTC",
+       "source": {
+        "type": "path",
+        "path": "/srv/sentry-parity/footage"
+       },
+       "root": "/srv/sentry-parity/model-y",
+       "studioRoot": "/srv/sentry-parity/model-y/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      },
+      {
+       "id": "cybertruck",
+       "name": "Cybertruck with a name far too long for one line of its card",
+       "timezone": "UTC",
+       "source": {
+        "type": "path",
+        "path": "/srv/sentry-parity/footage"
+       },
+       "root": "/srv/sentry-parity/cybertruck",
+       "studioRoot": "/srv/sentry-parity/cybertruck/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      }
+     ]
+    },
+    "POST /api/converter/invoke/getAuto": {
+     "ok": true,
+     "value": {
+      "settings": {
+       "enabled": true,
+       "intervalMinutes": 180,
+       "window": {
+        "startHour": 1,
+        "endHour": 6
+       },
+       "holdManual": false,
+       "keepRunning": false,
+       "openAtLogin": false,
+       "configs": [
+        {
+         "sourceRoot": "/srv/sentry-parity/footage/TeslaCam",
+         "destinationRoot": null,
+         "codec": "h265",
+         "profileId": "balanced",
+         "networkMode": "auto",
+         "outputMode": "replace",
+         "includedGroups": [
+          "SavedClips",
+          "SentryClips"
+         ],
+         "groupOrder": [
+          "SavedClips",
+          "SentryClips",
+          "RecentClips"
+         ],
+         "replacementConfirmed": true,
+         "verifyMode": "quick",
+         "keepOffTarget": false,
+         "lanes": [
+          {
+           "device": "cpu",
+           "concurrency": 2
+          },
+          {
+           "device": "node:garage-pc@192.168.1.20",
+           "concurrency": 3
+          }
+         ]
+        }
+       ]
+      },
+      "status": {},
+      "saved": [
+       {
+        "sourceRoot": "/srv/sentry-parity/model-y/TeslaCam",
+        "destinationRoot": "/output/Model Y",
+        "codec": "av1",
+        "profileId": "custom",
+        "bitrateKbps": 6500,
+        "networkMode": "auto",
+        "outputMode": "separate",
+        "includedGroups": [
+         "RecentClips",
+         "SavedClips",
+         "SentryClips"
+        ],
+        "groupOrder": [
+         "SavedClips",
+         "SentryClips",
+         "RecentClips"
+        ],
+        "replacementConfirmed": false,
+        "verifyMode": "full",
+        "concurrency": 3
+       }
+      ]
+     }
+    },
+    "POST /api/converter/invoke/getCapabilities": {
+     "ok": true,
+     "value": {
+      "replacement": "available"
+     }
+    }
+   }
+  },
+  "percar-empty": {
+   "route": "encoder",
+   "sub": "vehicles",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": []
+    }
+   }
+  },
+  "percar-error": {
+   "route": "encoder",
+   "sub": "vehicles",
+   "api": {
+    "POST /api/converter/invoke/getAuto": {
+     "ok": false,
+     "error": {
+      "code": "CONVERTER_STARTING"
+     }
     }
    }
   }
