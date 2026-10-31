@@ -247,3 +247,24 @@ Try again).
 - horizon jobs-running-only
 - horizon jobs-long
 - horizon jobs-error
+
+### Horizon: Dashboard
+
+The instrument cluster and the server's telemetry (hz/pages/dashboard.js,
+hz/gauges.js) on test/fixtures/statsSample.json, with the pack's own
+requests answered by the module (the vehicle's days, 15 minutes of history
+for the sparklines, the log's lines): dashboard (two open notifications, a
+conversion running), dashboard-novehicle, dashboard-error (no numbers, so
+"Reading the server…" and empty boxes; the log's own error line),
+dashboard-long (long vehicle, host, process and storage names),
+dashboard-idle (no conversion: Start a conversion; a node's power: All
+servers), dashboard-logs-all (the log level Everything, stored on both
+sides). The sparklines take the live samples of a few polls on the web, so
+their right ends can differ by a sample or two.
+
+- horizon dashboard
+- horizon dashboard-novehicle
+- horizon dashboard-error
+- horizon dashboard-long
+- horizon dashboard-idle
+- horizon dashboard-logs-all
