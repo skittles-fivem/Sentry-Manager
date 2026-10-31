@@ -582,3 +582,45 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   vehicle; the rest unchanged). The web pictures were taken here with
   Playwright (capture.js --only builtin --pages percar,…); the native ones
   need the Windows runner.
+
+### Phase 1: Settings (2026-10-31)
+
+- `Core/Settings.cs`: `Load` (the web's Promise.all: /api/settings and
+  /api/updates must answer, /api/system, /api/security, /api/ui-packs and
+  /api/settings/network are null when they fail), `Sections`, `Editing`,
+  `View` (SettingsView: the tabs and the section shown, the Vehicles rows,
+  `SetVehicleForm` as the browser holds it, `SetUpdates`, `SetInterface`,
+  `SetSecurity` with otherDevicesBlock, the System rows, `SetPower` with its
+  rates), `PickTab`, `Outline()`, and the handlers: `TestSmb`/`TestLine`,
+  `VehicleBody` (the source left out when it is the saved one) and
+  `SaveVehicle`, `RemoveVehicle`, `LoadDrives` (macOS), `CheckUpdates`,
+  `ChangePassword`/`TooShort`, `UsePack`, `DeletePack`, `Upload`,
+  `SaveHostnames`/`SplitNames`/`WithHost`, `SetOtherDevices`/`ThisPc`,
+  `PickMode`, `AddRate`, `RemoveRateAt`, `PowerBody`/`SavePower` (JavaScript's
+  Number() for prices: `JsNumber`), `Entries` (Object.entries' key order)
+  and `IanaZone` (Windows zone to IANA, CLDR's table).
+- `SettingsUi`: `InterfaceChanged` and `CertificateChanged` stand for the
+  web's `location.reload()`. The page implements them as
+  `ShellModel.SwitchInterface` (new; the app controller's ShowShell) and
+  `ShellModel.Repin` with the fingerprint from the answer or GET
+  /api/security, then a redraw. `ShellModel.OpenUrl` (new) opens a server
+  path ("/original") in the browser.
+- `test/windowsNativeSettings.test.js` runs the web's own pages.settings and
+  its handlers in a small pretend DOM (HTML parsed into elements, descendant
+  selectors, FormData, classList, insertAdjacentHTML, reset) on 28 pages and
+  54 sessions of steps and writes `Core.Tests/Fixtures/expected-settings.json`
+  (`UPDATE_NATIVE_PARITY=1` rewrites it); it also checks every
+  `public const string` of Settings.cs against the web's text.
+  `Core.Tests/SettingsTests.cs` replays the same steps on the C#. Under mono
+  with a stub runner the three SettingsTests pass; not run under dotnet yet.
+- `Ui/Builtin/SettingsPage.cs` (registered in BuiltinInterface: its browser
+  card is gone). The tab strip and the SMB test line use `VeFlex` (grow on
+  wrapping lines); `Basis` (in the page file) is a flex-basis box.
+- `tools/parity/settingsVariants.js` (required by capture.js's `VARIANTS`;
+  all eight settings pages are variants now): settings, settings-vehicle,
+  settings-vehicle-new (the web clicks "Folder on this PC"; native `state`
+  `{ sourceType: "path" }`), settings-security, settings-system,
+  settings-windows, settings-novehicles, settings-error. Injected into
+  `Shell/RenderFixture.json` with the fixture's own api, vehicle and now;
+  the rest of the file is unchanged. The web pictures were taken here with
+  Playwright; the native ones need the Windows runner.

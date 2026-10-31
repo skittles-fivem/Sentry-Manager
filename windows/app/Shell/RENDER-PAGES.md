@@ -159,6 +159,21 @@ between 01:00 and 06:00), percar-empty (no vehicles: "Add a vehicle in
 Settings first.") and percar-error (getAuto answers CONVERTER_STARTING:
 "The Encoder is still starting. Try again in a moment." under the head and
 tabs).
+The Settings page's states (tools/parity/settingsVariants.js, in capture.js's
+`VARIANTS`): settings (every card on a Docker server: two vehicles, an image
+update available, a GPU, the shipped packs and an uploaded one in use, the
+server's own certificate), settings-vehicle (the fixture vehicle's form with
+an SMB share), settings-vehicle-new (a new vehicle from a folder on a
+Windows PC: the web clicks "Folder on this PC", the native side has it as
+the page's `state` `{ "sourceType": "path" }`), settings-security (at phone
+width the Security tab; a host the certificate does not cover: the amber
+note), settings-system (the System tab, a time-of-use plan with two rates),
+settings-windows (the Windows service: Allow other devices on, the release
+update wording), settings-novehicles (no vehicles, only the required
+answers: no Interface, Security or System card) and settings-error (GET
+/api/settings fails: the whole page is the message). At phone width the
+tab strip shows one section; on a desktop every card. The new vehicle's
+time zone is this PC's (Windows' zone as its IANA name), as the browser's.
 
 - builtin overview
 - builtin overview-off
@@ -201,6 +216,10 @@ tabs).
 - builtin settings-vehicle
 - builtin settings-vehicle-new
 - builtin settings-security
+- builtin settings-system
+- builtin settings-windows
+- builtin settings-novehicles
+- builtin settings-error
 - builtin percar
 - builtin percar-edit
 - builtin percar-empty

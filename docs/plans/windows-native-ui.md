@@ -207,7 +207,27 @@ is done when every item is ticked in both. Run on the owner's PC runner.
     -empty, -error (desktop and phone; tools/parity/percarVariants.js on
     both sides). No live updates (as the web's). The Encoder tab and "Open
     the Encoder" go to the Encoder page, which still opens in the browser.
-  - Settings: not started
+  - Settings: native (`Ui/Builtin/SettingsPage.cs`; its requests, words,
+    forms, dialogs and toasts in `Core/Settings.cs`); type-checked with mcs,
+    not yet built or rendered on Windows. Every card (Vehicles with the
+    vehicle form under the table, Updates, Account, Interface, Security
+    with the Windows "Allow other devices" switch, System, Electricity
+    price), the 760 px tab strip with one section shown, and every button
+    and field (Test connection, Save / Add vehicle with the source sent only
+    when it changed, Remove vehicle, Check now, Change password, the
+    interface select, Delete and Upload a pack, Save names / Add <host>,
+    Allow other devices, the plan buttons, + Add a rate, Remove, Save price)
+    are compared with web/app.js's own pages.settings and its handlers run
+    in a small pretend DOM: 28 pages and 54 sessions of clicks and typing
+    (test/windowsNativeSettings.test.js writes
+    Core.Tests/Fixtures/expected-settings.json; Core.Tests SettingsTests
+    replays the same steps on the C#; it also checks every wording
+    constant). Render list: settings, -vehicle, -vehicle-new, -security,
+    -system, -windows, -novehicles, -error (desktop and phone;
+    tools/parity/settingsVariants.js on both sides). No live updates (as the
+    web's). Picking an interface switches the app's shell (the web reloads
+    the page); a new certificate (Save names, Allow other devices) is
+    re-pinned and the page drawn again (the web reloads after 2.5 s).
 - Phases 2-7 (Viewer, Encoder, Horizon, Flux, Aurora, Daylight): not started.
   Their pages open in the browser.
 
@@ -255,6 +275,19 @@ When back to the saved schedule (the editor is drawn again from the draft,
 which does not keep them). Not drawn yet: Chrome shrinks a checkbox whose
 words wrap (the native box stays 17 px), and the bitrate field's arrow keys
 step by 1 (the browser's by 0.25).
+
+Settings: an empty Name, Current or New password field, and a new password
+under 8 characters, are told under the field ("Please fill out this
+field.", Chrome's "Please lengthen this text to 8 characters or more …"),
+not as Chrome's bubble. A new vehicle's time zone is this PC's Windows zone
+as its IANA name through CLDR's table (the browser asks ICU), so a zone
+missing from the table would show its Windows name. Download certificate
+authority and Download the original ask where to save (Windows' Save
+dialog), as the browser's download does when it asks. The /original link
+opens the browser (the native app never shows the original interface
+itself, so its note is not drawn there). The SMB test line's room beside
+the button (flex 1 1 260px) is drawn with its 260 px basis; its height is
+the text's at that width.
 
 ## Costs the owner should know
 

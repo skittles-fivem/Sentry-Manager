@@ -43,6 +43,7 @@ const { jobsVariants, JOBS_VARIANTS } = require('./jobsVariants');
 const { binVariants, BIN_VARIANTS } = require('./binVariants');
 const { notificationsVariants, NOTIFICATIONS_VARIANTS } = require('./notificationsVariants');
 const { percarVariants, PERCAR_VARIANTS } = require('./percarVariants');
+const { settingsVariants, SETTINGS_VARIANTS } = require('./settingsVariants');
 const REPO = path.join(__dirname, '..', '..');
 const SERVER = path.join(REPO, 'server', 'index.js');
 const USER = 'admin';
@@ -97,10 +98,15 @@ const PAGES = {
   'notifications-empty': { signedIn: true, path: '/#/notifications', only: 'builtin' },
   notifications: { signedIn: true, path: '/#/notifications', only: 'builtin', variant: true },
   'notifications-error': { signedIn: true, path: '/#/notifications', only: 'builtin', variant: true },
-  settings: { signedIn: true, path: '/#/settings', only: 'builtin' },
-  'settings-vehicle': { signedIn: true, path: (v) => `/#/settings/vehicle/${encodeURIComponent(v)}`, only: 'builtin' },
-  'settings-vehicle-new': { signedIn: true, path: '/#/settings/vehicle-new', only: 'builtin' },
-  'settings-security': { signedIn: true, path: '/#/settings/security', only: 'builtin' },
+  // (settingsVariants.js; settings-vehicle-new: the web clicks "Folder on this PC")
+  settings: { signedIn: true, path: '/#/settings', only: 'builtin', variant: true },
+  'settings-vehicle': { signedIn: true, path: (v) => `/#/settings/vehicle/${encodeURIComponent(v)}`, only: 'builtin', variant: true },
+  'settings-vehicle-new': { signedIn: true, path: '/#/settings/vehicle-new', only: 'builtin', variant: true, clicks: ['#src-type [data-type="path"]'] },
+  'settings-security': { signedIn: true, path: '/#/settings/security', only: 'builtin', variant: true },
+  'settings-system': { signedIn: true, path: '/#/settings/system', only: 'builtin', variant: true },
+  'settings-windows': { signedIn: true, path: '/#/settings', only: 'builtin', variant: true },
+  'settings-novehicles': { signedIn: true, path: '/#/settings', only: 'builtin', variant: true },
+  'settings-error': { signedIn: true, path: '/#/settings', only: 'builtin', variant: true },
   // (Encoder > Encoding per vehicle: percarVariants.js)
   percar: { signedIn: true, path: '/#/encoder/vehicles', only: 'builtin', variant: true },
   'percar-edit': { signedIn: true, path: (v) => `/#/encoder/vehicles?edit=${encodeURIComponent(v)}`, only: 'builtin', variant: true },
@@ -182,9 +188,9 @@ const VARIANTS = {
   policies: (api, vehicle) => policiesVariant(vehicle, Date.now()),
   'policies-novehicle': { route: 'policies', api: { 'GET /api/vehicles': { vehicles: [] } } },
   'policies-error': { route: 'policies', api: { 'GET /api/vehicles/{vehicle}/policy': { $error: 'The policy could not be read.', $status: 500 } } },
-  'settings-vehicle': { route: 'settings', sub: 'vehicle/{vehicle}' },
-  'settings-vehicle-new': { route: 'settings', sub: 'vehicle-new' },
-  'settings-security': { route: 'settings', sub: 'security' },
+  // the Settings page: every card, a vehicle's form, a new one from a folder (Windows), the Security
+  // and System tabs, the Windows service, no vehicles, the settings not readable
+  ...Object.fromEntries(SETTINGS_VARIANTS.map((k) => [k, (api, vehicle) => settingsVariants(api, vehicle, Date.now())[k]])),
   // Encoder > Encoding per vehicle: three vehicles (automatic on, saved, not set up), the first one's
   // editor open, no vehicles, the Encoder still starting
   ...Object.fromEntries(PERCAR_VARIANTS.map((k) => [k, (api, vehicle) => percarVariants(api, vehicle)[k]])),

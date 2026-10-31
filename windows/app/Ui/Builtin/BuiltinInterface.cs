@@ -46,6 +46,7 @@ namespace SentrySix.Ui.Builtin
             { "jobs", c => new JobsPage(c) },
             { "bin", c => new BinPage(c) },
             { "notifications", c => new NotificationsPage(c) },
+            { "settings", c => new SettingsPage(c) },
             { "encoder/vehicles", c => new VehicleEncodingPage(c) }
         };
 

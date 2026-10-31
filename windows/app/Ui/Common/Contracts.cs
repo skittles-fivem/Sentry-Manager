@@ -256,6 +256,10 @@ namespace SentrySix.Ui
         public Action SignOut = delegate { };
         /// <summary>Opens the current page (or the given route) in the browser.</summary>
         public Action<string> OpenInBrowser = delegate { };
+        /// <summary>Opens a path of the server ("/original") in the browser, as a link of the web's page does.</summary>
+        public Action<string> OpenUrl = delegate { };
+        /// <summary>The interface was switched (Settings > Interface; the web reloads the page): the shell and its pages again, in the server's chosen interface.</summary>
+        public Func<Task> SwitchInterface = () => Task.FromResult(0);
         public Action<bool> SetReduceEffects = delegate { };
         public Action<bool> SetClock24 = delegate { };
         /// <summary>Trusts the certificate the server says it now uses (Api.Repin; Settings > Security).</summary>

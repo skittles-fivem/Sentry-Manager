@@ -277,6 +277,8 @@ namespace SentrySix.Shell
             model.ReloadVehicles = () => LoadVehicles();
             model.ReloadNotes = () => LoadNotes();
             model.OpenInBrowser = r => OpenInBrowser(r);
+            model.OpenUrl = path => OpenPath(path);
+            model.SwitchInterface = () => ShowShell();
             model.SetReduceEffects = v => { model.ReduceEffects = v; PutAppearance("reduceEffects", v); };
             model.SetClock24 = v => { model.Clock24 = v; PutAppearance("clock24", v); };
 
@@ -502,6 +504,20 @@ namespace SentrySix.Shell
                 string root = local ? server.Scheme + "://localhost:" + server.Port : server.GetLeftPart(UriPartial.Authority);
                 string url = root + "/" + (string.IsNullOrEmpty(route) ? "" : "#/" + route);
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(win, ex.Message, "Sentry Six Manager");
+            }
+        }
+
+        /// <summary>A path of the server ("/original") in the browser.</summary>
+        void OpenPath(string path)
+        {
+            try
+            {
+                string root = local ? server.Scheme + "://localhost:" + server.Port : server.GetLeftPart(UriPartial.Authority);
+                Process.Start(new ProcessStartInfo(root + (path ?? "/")) { UseShellExecute = true });
             }
             catch (Exception ex)
             {

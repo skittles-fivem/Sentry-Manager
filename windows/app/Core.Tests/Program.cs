@@ -35,6 +35,7 @@ namespace SentrySix.Core.Tests
             BinTests.Register(Test);
             NotificationsTests.Register(Test);
             VehicleEncodingTests.Register(Test);
+            SettingsTests.Register(Test);
             ServerTests.Register(Test);
             int failed = 0, passed = 0;
             var sw = Stopwatch.StartNew();
