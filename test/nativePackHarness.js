@@ -180,7 +180,11 @@ class El {
 
   // ---- form values
   get checked() { return this._checked; }
-  set checked(on) { this._checked = Boolean(on); }
+  set checked(on) {
+    this._checked = Boolean(on);
+    // a radio button ticked unticks the others of its name (in its form)
+    if (on && this.tag === 'input' && this.type === 'radio' && this.name) for (const r of (this.closest('form') || this.doc.body).querySelectorAll('input[type="radio"]')) if (r !== this && r.name === this.name) r._checked = false;
+  }
   get options() { return this.all().filter((x) => x.tag === 'option'); }
   get selectedIndex() { const o = this.options; return o.indexOf(o.find((x) => x.value === this.value)); }
   set selectedIndex(i) { const o = this.options[i]; if (o) this.value = o.value; }

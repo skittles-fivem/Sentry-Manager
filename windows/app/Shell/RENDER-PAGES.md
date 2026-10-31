@@ -288,3 +288,58 @@ and settings-error (the pack's "could not load" box with Try again).
 - horizon settings-windows
 - horizon settings-novehicles
 - horizon settings-error
+### Horizon: Policies
+
+A service schedule per vehicle (hz/pages/policies.js) on the same answers as
+the built-in Policies page's states: policies (on, two kinds kept, the next
+run moving something, a last run), policies-off (the fixture server's own
+answer), policies-novehicle ("Add a vehicle first."), policies-error (the
+panel is the message), policies-long (a second vehicle with a long name, a
+last run that failed).
+
+- horizon policies
+- horizon policies-off
+- horizon policies-novehicle
+- horizon policies-error
+- horizon policies-long
+
+### Horizon: Recycle Bin
+
+The Recycle Bin (hz/pages/bin.js) on the same answers as the built-in
+page's states: bin (one item of yours, one of the policy, one with a file
+left behind), bin-empty (the fixture server's own answer), bin-long,
+bin-error (the pack's "could not load" box with Try again), and
+bin-every-vehicle ("Every vehicle" picked: each item names its vehicle).
+
+- horizon bin
+- horizon bin-empty
+- horizon bin-long
+- horizon bin-error
+- horizon bin-every-vehicle
+
+### Horizon: Notifications
+
+The warning lights (hz/pages/alerts.js) on the same answers as the built-in
+Notifications page's states: alerts (two open and unread, critical and
+warning, one long; the resolved one hidden), alerts-empty (the fixture
+server's own answer: "All lights are off."), alerts-all ("All, with
+resolved" picked: the resolved one faded), alerts-error (the list not
+readable: the page shows none).
+
+- horizon alerts
+- horizon alerts-empty
+- horizon alerts-all
+- horizon alerts-error
+
+### Horizon: Encoding per vehicle
+
+web/vehicleEncoding.js in Horizon's look (hz/pages/vehicles.js) on the same
+answers as the built-in page's states: vehicles (three vehicles: automatic
+on, saved, not set up, one with a long name), vehicles-edit (?edit=<id>: the
+first one's editor open), vehicles-empty (no vehicles), vehicles-error (the
+Encoder still starting: the view is the message).
+
+- horizon vehicles
+- horizon vehicles-edit
+- horizon vehicles-empty
+- horizon vehicles-error
