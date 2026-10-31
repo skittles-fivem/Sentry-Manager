@@ -609,7 +609,9 @@ function loadPack(pack, o = {}) {
   const location = { hash: o.hash || '', pathname: '/', search: '', href: 'https://sentry.local:9443/', host: 'sentry.local:9443', hostname: 'sentry.local', protocol: 'https:', origin: 'https://sentry.local:9443', reload() { rec.navigations.push('reload'); }, assign(u) { rec.navigations.push(String(u)); }, replace(u) { rec.navigations.push(String(u)); } };
   const fetchFake = async (url, init = {}) => {
     const key = `${(init.method || 'GET').toUpperCase()} ${url}`;
-    const a = answerFor(key);
+    let a = answerFor(key);
+    // (a write nobody gave an answer for: { ok: true }, as the comment above says)
+    if (a === undefined && (init.method || 'GET').toUpperCase() !== 'GET') a = { ok: true };
     rec.asked.push(init.body !== undefined && init.body !== '' && typeof init.body === 'string' ? `${key} ${init.body}` : key);
     if (a === undefined || (a && a.$pending)) return new Promise(() => {});
     const status = a && a.$error ? a.$status || 500 : 200;
