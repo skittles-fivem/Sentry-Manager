@@ -145,7 +145,7 @@ namespace SentrySix.Ui.Builtin
             {
                 b.BorderThickness = new Thickness(2);
                 b.Padding = Css.T(11, 19, 11, 17);
-                Color a = Css.C("#1AC8F25A");
+                Color a = Color.FromArgb(0x1A, 0xC8, 0xF2, 0x5A); // --accent-bg, rgba(200, 242, 90, 0.10) (Css.C reads #RRGGBBAA)
                 b.Background = new LinearGradientBrush(a, Color.FromArgb(0, a.R, a.G, a.B), 90);
             }
             return b;

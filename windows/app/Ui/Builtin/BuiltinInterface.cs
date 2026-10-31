@@ -372,7 +372,8 @@ namespace SentrySix.Ui.Builtin
                 });
 
                 // .topbar: crumb + the two checks
-                crumb = U.Line("Sentry Six Manager", 14, FontWeights.Normal, "text-2");
+                // (the crumb wraps when the row is short of room, as a flex item does)
+                crumb = U.Text("Sentry Six Manager", 14, FontWeights.Normal, "text-2");
                 crumb.VerticalAlignment = VerticalAlignment.Center;
                 clock24 = new CheckBoxLike("24-hour clock", m.Clock24, v => m.SetClock24(v));
                 reduce = new CheckBoxLike("Reduce visual effects", m.ReduceEffects, v => m.SetReduceEffects(v));
@@ -381,7 +382,12 @@ namespace SentrySix.Ui.Builtin
                 checks.LineGap = 6;
                 checks.Justify = "end";
                 checks.HorizontalAlignment = HorizontalAlignment.Right;
-                topbar = Flex.Row(16, Flex.Grow(crumb, 1), checks);
+                // display: flex; justify-content: space-between; no gap; both shrink in
+                // proportion to their widths when the row is short (the phone: the crumb
+                // on two lines, the checks wrapping right-aligned)
+                topbar = Flex.Row(0, crumb, checks);
+                topbar.Justify = "between";
+                topbar.Shrink = true;
                 topbar.Margin = new Thickness(0, 0, 0, 40);
                 checks.VerticalAlignment = VerticalAlignment.Center;
 

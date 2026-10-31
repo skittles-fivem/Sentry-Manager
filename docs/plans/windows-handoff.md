@@ -655,3 +655,11 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   let it through), then 67 passed; the Overview's narrow-width redraw
   replaced a panel child with the indexer, which WPF refuses (RemoveAt +
   Insert now).
+- Run 41234507314 (4533638): test, app, package, install-check and
+  install-check-app green; every render in RENDER-PAGES.md drawn. From its
+  parity report: the active vehicle pill was teal (Css.C reads #RRGGBBAA,
+  the colour was written ARGB; now --accent-bg as ARGB), the phone top bar
+  cut the crumb to "Se…" (now a space-between row whose items shrink in
+  proportion, Flex.Shrink, so the crumb wraps and the checks stack right),
+  and on the phone Sign out sat next to the title instead of at the right
+  (Flex wrapped lines now honour space-between).

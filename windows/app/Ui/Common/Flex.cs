@@ -22,8 +22,15 @@ namespace SentrySix.Ui
         /// <summary>Gap between wrapped lines (row-gap).</summary>
         public double LineGap;
         public bool Wrap;
-        /// <summary>"start", "end", "center", "between".</summary>
+        /// <summary>"start", "end", "center", "between" (on wrapped lines too).</summary>
         public string Justify = "start";
+        /// <summary>
+        /// CSS flex-shrink: 1 (a row with no Grow children): when the children's
+        /// own widths overflow the row, each gives up a share of the overflow in
+        /// proportion to its width and is measured again that narrow (text wraps,
+        /// a wrapping Flex takes more lines).
+        /// </summary>
+        public bool Shrink;
 
         public Flex() { }
 
@@ -76,6 +83,21 @@ namespace SentrySix.Ui
                 cross = Math.Max(cross, Cross(c.DesiredSize, h));
             }
             double gaps = Math.Max(0, shown - 1) * Gap;
+            if (Shrink && grow <= 0 && !double.IsInfinity(mainAvail) && used + gaps > mainAvail + 0.5 && used > 0)
+            {
+                double over = used + gaps - mainAvail, basis = used;
+                used = 0;
+                cross = 0;
+                foreach (UIElement c in InternalChildren)
+                {
+                    if (c.Visibility == Visibility.Collapsed) continue;
+                    double b = Main(c.DesiredSize, h);
+                    double m = Math.Max(0, b - over * b / basis);
+                    c.Measure(h ? new Size(m, crossAvail) : new Size(crossAvail, m));
+                    used += Math.Min(m, Main(c.DesiredSize, h));
+                    cross = Math.Max(cross, Cross(c.DesiredSize, h));
+                }
+            }
             double left = double.IsInfinity(mainAvail) ? double.PositiveInfinity : Math.Max(0, mainAvail - used - gaps);
             foreach (UIElement c in InternalChildren)
             {
@@ -173,13 +195,15 @@ namespace SentrySix.Ui
             Action flush = delegate
             {
                 double pos = Justify == "end" ? mainAvail - lineMain : Justify == "center" ? (mainAvail - lineMain) / 2 : 0;
+                // space-between: each line spreads its own items (one alone stays at the start)
+                double gap = Justify == "between" && line.Count > 1 ? Gap + Math.Max(0, mainAvail - lineMain) / (line.Count - 1) : Gap;
                 foreach (UIElement c in line)
                 {
                     double m = Main(c.DesiredSize, h);
                     double cs = Cross(c.DesiredSize, h);
                     double off = (lineCross - cs) / 2;
                     c.Arrange(h ? new Rect(pos, crossPos + off, m, cs) : new Rect(crossPos + off, pos, cs, m));
-                    pos += m + Gap;
+                    pos += m + gap;
                 }
                 crossPos += lineCross + LineGap;
                 line.Clear();
