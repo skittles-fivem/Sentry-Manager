@@ -22,7 +22,7 @@ namespace SentrySix.Ui.Horizon
     /// key-value lists. Every Horizon page is drawn from these, as every pack
     /// page is drawn from the same classes on the web.
     /// </summary>
-    public static class HzKit
+    public static partial class HzKit
     {
         // ---------------------------------------------------------------- text
 

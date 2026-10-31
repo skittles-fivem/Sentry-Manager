@@ -13,7 +13,7 @@ namespace SentrySix.Core.Horizon
     /// (Core.Tests/Fixtures/expected-horizon-format.json). Dates are shown in
     /// <see cref="Format.Zone"/>, as the browser's local time.
     /// </summary>
-    public static class Hz
+    public static partial class Hz
     {
         public const string Dash = "—";
         static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
