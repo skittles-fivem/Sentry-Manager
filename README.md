@@ -104,6 +104,25 @@ on **Overview → Server** shows the update took; if it didn't, *Edit* the app
 and *Save* to have TrueNAS recreate it. Your settings stay in the `/data`
 dataset.
 
+### Windows
+
+No Docker needed: download `SentrySixManager-Setup-<version>.exe` from the
+[latest release](https://github.com/skittles-fivem/Sentry-Manager/releases/latest)
+and run it. It asks one question, how to run:
+
+- **as a Windows service**: always on, also when nobody is signed in
+  (recommended for a PC that stays on), or
+- **as an app when you sign in**: it converts while you are signed in and
+  stops when you quit it.
+
+At the end it shows the address, the setup code and the certificate
+fingerprint, and puts Sentry Six Manager in the Start menu (it also starts in
+the tray when you sign in). Running a newer Setup upgrades in place and keeps
+your data in `%ProgramData%\SentrySixManager`; uninstall it in
+*Settings → Apps* (your data stays unless you choose to delete it). For
+scripts: `SentrySixManager-Setup-<version>.exe /VERYSILENT /SUPPRESSMSGBOXES
+/MODE=service` (or `/MODE=app`).
+
 ## Overview and Footage
 
 ![Overview](docs/images/overview.png)

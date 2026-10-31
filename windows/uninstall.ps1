@@ -13,11 +13,17 @@
   skips that question, for scripts).
 
   Safe to run more than once: whatever is already gone is skipped.
+
+  Installed with SentrySixManager-Setup.exe, it also removes the Setup's
+  entry in Settings > Apps and its uninstaller
+  (%ProgramFiles%\SentrySixManager-Uninstall), once everything else is gone.
+  That uninstaller runs this script with -FromSetup and removes those itself.
 #>
 [CmdletBinding()]
 param(
   [switch]$RemoveData,
-  [switch]$Force
+  [switch]$Force,
+  [switch]$FromSetup
 )
 
 Set-StrictMode -Version Latest
@@ -29,6 +35,8 @@ $ModeKey = 'HKLM:\SOFTWARE\SentrySixManager'
 $RunKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
 $RunValueName = 'SentrySixManager'
 $ShortcutName = 'Sentry Six Manager.lnk'
+# SentrySixManager-Setup.exe's entry (its AppId in windows\setup\SentrySixManager.iss)
+$SetupAppsKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{37874499-7900-4DA9-8103-133AFC180A56}_is1'
 
 function Say([string]$Text) { Write-Host $Text }
 function Warn([string]$Text) { Write-Host "Warning: $Text" -ForegroundColor Yellow }
@@ -97,6 +105,7 @@ if (-not [Environment]::Is64BitProcess) {
 $InstallDir = Join-Path $programFiles 'SentrySixManager'
 $DataRoot = Join-Path $programData 'SentrySixManager'
 $DataDir = Join-Path $DataRoot 'data'
+$SetupUninstallDir = Join-Path $programFiles 'SentrySixManager-Uninstall'
 
 $ok = $true
 try {
@@ -218,6 +227,17 @@ try {
   foreach ($p in $leftovers) {
     if (Test-Path -LiteralPath $p) {
       if (-not (Remove-Folder $p)) { $ok = $false }
+    }
+  }
+
+  # --- the Setup's entry in Settings > Apps (its own uninstaller does this itself) ---
+  if (-not $FromSetup -and $ok) {
+    if (Test-Path -LiteralPath $SetupAppsKey) {
+      Say 'Removing the entry in Settings > Apps...'
+      Remove-Item -LiteralPath $SetupAppsKey -Recurse -Force
+    }
+    if (Test-Path -LiteralPath $SetupUninstallDir) {
+      if (-not (Remove-Folder $SetupUninstallDir)) { $ok = $false }
     }
   }
 
