@@ -230,8 +230,50 @@ is done when every item is ticked in both. Run on the owner's PC runner.
     web's). Picking an interface switches the app's shell (the web reloads
     the page); a new certificate (Save names, Allow other devices) is
     re-pinned and the page drawn again (the web reloads after 2.5 s).
-- Phases 2-7 (Viewer, Encoder, Horizon, Flux, Aurora, Daylight): not started.
-  Their pages open in the browser.
+- Phases 2-3 (built-in Viewer, Encoder): another session; their pages open
+  in the browser until then.
+- Phases 4-7 (the packs): in progress on wip, one pack at a time (this
+  session works in its own files: `Core/Horizon/`, `Ui/Horizon/Hz*.cs`,
+  later `Core/Flux/`, `Ui/Flux/Fx*.cs` …). Shared pieces, added once for
+  every pack: `test/nativePackHarness.js` (runs a pack's own core.js and page
+  modules in Node on a pretend DOM with its index.html's dialog and toasts,
+  fixed answers, a fixed clock and timers run on demand; records requests,
+  dialogs, toasts, the status line), `Core.Tests/PackScript.cs` (the same
+  answers and recorders in C#) and `PackTests.cs` (Horizon*/Flux*/Aurora*/
+  Daylight*Tests found by name, one line in Program.cs),
+  `Ui/Common/PackPage.cs` (`IPackPage` = a pack page module's mount /
+  unmount / onTopics / onCar, `PackHost` = the pack router's render(): the
+  loading box, the "could not load" box with Try again, live topics, the
+  vehicle, the status line; `[PackPage("horizon", "jobs")]` registers a
+  page, no shared table), `ShellModel.PageStatus` (a pack page's own shell
+  line), the parity modules `tools/parity/packs/<pack>-<page>.js` (page
+  names, web capture, variants) with `tools/parity/packFixtures.js` writing
+  `Shell/Fixtures/<pack>-<page>.json` (merged over RenderFixture.json by
+  `--render`; a `"<pack>:<name>"` variant wins) and
+  test/windowsNativePackFixtures.test.js keeping them, RENDER-PAGES.md and
+  the packs' routes in step; capture.js takes `<pack>:<name>` pages.
+  - Phase 4, Horizon: in progress. Shared: `Core/Horizon/Hz.cs` (core.js's
+    formatters, 221 cases against core.js: test/windowsNativeHorizon.test.js,
+    Core.Tests HorizonFormatTests), `HzUi.cs` (toast, ask, askText, go,
+    status, act), `Ui/Horizon/HzKit.cs` (panels, title strip, buttons,
+    fields, segs, pills, bars, blank, loading, notes, kv), `HzIcons.cs` (the
+    whole sprite), `HzOverlay.cs` (Horizon's own dialog, sheet and toasts in
+    the shell; the shell's toasts are Horizon's now), the shell's keyboard
+    ([ ] ?) and its shortcut sheet drawn as Horizon's sheet.
+    - Jobs: native (`Ui/Horizon/HzJobsPage.cs`, `Core/Horizon/HzJobs.cs`);
+      type-checked with mcs, not yet built or rendered on Windows. The pit
+      log, the status / vehicle filters, Filter jobs, the 1 s tick, the live
+      reload, Clear finished… (preview, dialog, clear, toasts, ?clear=1) are
+      compared with hz/pages/jobs.js itself on 12 sessions of clicks and
+      typing and 11 clears (test/windowsNativeHorizonJobs.test.js,
+      Core.Tests HorizonJobsTests). Render list: horizon jobs, -empty,
+      -running-only, -long, -error.
+    - Dashboard, Footage, Nodes, Policies, Recycle Bin, Notifications,
+      Encoding per vehicle, Settings: in progress.
+    - Viewer (with the speed graph) and Encoder: after phases 2 and 3 land;
+      the browser until then.
+  - Phases 5-7 (Flux, Aurora, Daylight): not started; their pages open in
+    the browser.
 
 Known differences so far (for the parity checklist): an unreachable
 server reads as the app's own "Can't reach Sentry Six Manager at …"

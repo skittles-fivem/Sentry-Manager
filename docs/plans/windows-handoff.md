@@ -663,3 +663,35 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   proportion, Flex.Shrink, so the crumb wraps and the checks stack right),
   and on the phone Sign out sat next to the title instead of at the right
   (Flex wrapped lines now honour space-between).
+
+## UI packs, phases 4-7 (the packs session, 2026-10-31)
+
+A separate session builds the four packs' pages natively while the other
+does phases 2 and 3. Shared files it touched (small, additive; please merge
+rather than overwrite):
+
+- `Ui/Common/Contracts.cs`: `ShellModel.PageStatus` (a pack page's line in
+  its shell; Horizon's radio sub line).
+- `Ui/Common/PackPage.cs` (new): `IPackPage`, `PackPageContext`, `PackHost`,
+  `[PackPage(pack, route)]`.
+- `Shell/RenderMode.cs`: `WithPageFixtures` merges `Shell\Fixtures\*.json`
+  over the fixture, and `--render <pack> <name>` looks for a
+  `"<pack>:<name>"` variant before `"<name>"`. Nothing changes for builtin.
+- `Core.Tests/Program.cs`: one line, `PackTests.Register(Test, Test)`;
+  `Core.Tests/PackScript.cs`, `PackTests.cs` (new).
+- `tools/parity/capture.js`: requires `packFixtures.js`, adds the pack
+  modules' `<pack>:<name>` pages and variants, answers a pack page's variant
+  through Playwright routes as for builtin, names the picture without the
+  `<pack>:` prefix. `tools/parity/packs/`, `packFixtures.js` (new).
+- `Shell/RENDER-PAGES.md`: a "UI packs' pages" section at the end, one
+  sub-heading per pack page.
+- `Ui/Horizon/HorizonInterface.cs` (phase 0 file): native pages by
+  attribute, the pack host, `HzOverlay` in the shell, the keyboard.
+
+Everything else is under `Core/<Pack>/`, `Ui/<Pack>/`, `Core.Tests/<Pack>*`,
+`test/windowsNative<Pack>*.test.js`, `test/nativePackHarness.js`.
+Checking here: mono's mcs against the .NET Framework 4.8 reference
+assemblies (Microsoft.NETFramework.ReferenceAssemblies.net48 1.0.3 from
+nuget.org) at `-langversion:5` for Core and the app, and the Core tests
+under mono with a stub runner (the test classes and PackScript.cs compiled
+with Core, a Main that calls their Register).

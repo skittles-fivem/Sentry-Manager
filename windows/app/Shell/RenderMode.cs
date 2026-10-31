@@ -48,6 +48,26 @@ namespace SentrySix.Shell
   ""prefs"": { }
 }";
 
+        /// <summary>
+        /// The UI packs' page fixtures (Shell\Fixtures\*.json beside the exe,
+        /// written by tools/parity/packFixtures.js): their API answers and
+        /// variants ("horizon:jobs-long") over the main fixture's, file by file.
+        /// </summary>
+        static JsonValue WithPageFixtures(JsonValue fx)
+        {
+            string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Shell", "Fixtures");
+            if (!Directory.Exists(dir)) return fx;
+            string[] files = Directory.GetFiles(dir, "*.json");
+            Array.Sort(files, StringComparer.Ordinal);
+            foreach (string f in files)
+            {
+                JsonValue extra = JsonValue.Parse(File.ReadAllText(f));
+                foreach (System.Collections.Generic.KeyValuePair<string, JsonValue> kv in extra["api"].Props) fx = fx.With("api", fx["api"].With(kv.Key, kv.Value));
+                foreach (System.Collections.Generic.KeyValuePair<string, JsonValue> kv in extra["variants"].Props) fx = fx.With("variants", fx["variants"].With(kv.Key, kv.Value));
+            }
+            return fx;
+        }
+
         public static int Run(string ifaceId, string page, int width, int height, string outFile, string fixtureFile)
         {
             try
@@ -58,10 +78,12 @@ namespace SentrySix.Shell
                     if (File.Exists(beside)) fixtureFile = beside;
                 }
                 JsonValue fx = JsonValue.Parse(fixtureFile != null ? File.ReadAllText(fixtureFile) : DefaultFixture);
-                // "footage-empty": a variant of the fixture, or "<route>-<variant>"
+                fx = WithPageFixtures(fx);
+                // "footage-empty": a variant of the fixture ("horizon:jobs" for one interface's own), or "<route>-<variant>"
                 string variant = null;
                 JsonValue vx = JsonValue.Object();
-                if (fx["variants"].Has(page)) { variant = page; vx = fx["variants"][page]; }
+                if (fx["variants"].Has(ifaceId + ":" + page)) { variant = ifaceId + ":" + page; vx = fx["variants"][variant]; }
+                else if (fx["variants"].Has(page)) { variant = page; vx = fx["variants"][page]; }
                 // the shell's own data: the fixture's keys, else the same answers the pages get
                 string[,] shellKeys = { { "me", "GET /api/auth/me" }, { "settings", "GET /api/settings" }, { "vehicles", "GET /api/vehicles" }, { "notifications", "GET /api/notifications?open=1" }, { "jobs", "GET /api/jobs?limit=50" } };
                 for (int i = 0; i < shellKeys.GetLength(0); i++)
@@ -121,6 +143,7 @@ namespace SentrySix.Shell
                     if (variant != null)
                     {
                         route = vx["route"].Str ?? page.Split('-')[0];
+                        if (route.IndexOf(':') >= 0) route = route.Substring(route.IndexOf(':') + 1);
                         sub = vx["sub"].Str ?? "";
                     }
                     PageDef def = null;

@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -39,6 +40,32 @@ namespace SentrySix.Ui.Horizon
             { "dashboard", "Dash" }, { "vehicles", "Per car" }, { "bin", "Bin" }, { "alerts", "Alerts" }
         };
         public IReadOnlyList<PageDef> Pages { get { return pages; } }
+
+        // the pages drawn here ([PackPage("horizon", route)]); the others open in the browser
+        static readonly Dictionary<string, Func<IPackPage>> native = PackPageAttribute.Of("horizon");
+
+        static HorizonInterface()
+        {
+            foreach (string key in native.Keys)
+            {
+                int slash = key.IndexOf('/');
+                string id = slash < 0 ? key : key.Substring(0, slash);
+                foreach (PageDef p in pages)
+                {
+                    if (p.Id != id) continue;
+                    if (slash < 0) p.Native = true;
+                    else p.NativeSubs.Add(key.Substring(slash + 1));
+                }
+            }
+        }
+
+        static Func<IPackPage> NativeFor(string id, string sub)
+        {
+            Func<IPackPage> make;
+            string first = string.IsNullOrEmpty(sub) ? "" : sub.Split('/', '?')[0];
+            if (first.Length > 0 && native.TryGetValue(id + "/" + first, out make)) return make;
+            return native.TryGetValue(id, out make) ? make : null;
+        }
 
         static string ShortOf(PageDef p)
         {
@@ -340,6 +367,7 @@ namespace SentrySix.Ui.Horizon
         {
             readonly ShellModel m;
             public readonly Grid Root = new Grid();
+            HzOverlay overlay;
             readonly HorizonSky sky;
             readonly Grid dash = new Grid();
             readonly Border dashBox = new Border();
@@ -554,8 +582,20 @@ namespace SentrySix.Ui.Horizon
                 fab.Click += delegate { Quick(); };
                 Root.Children.Add(fab);
 
+                // Horizon's own dialog and toasts (core.js modal(), toast()), over everything
+                overlay = new HzOverlay(m);
+                Panel.SetZIndex(overlay.Root, 10);
+                Root.Children.Add(overlay.Root);
+                m.Toast = (text, bad) => overlay.Toast(text, bad ? "bad" : "ok");
+                HzKit.Still = m.Still || m.ReduceEffects;
+
                 m.PropertyChanged += Changed;
                 Root.Unloaded += delegate { m.PropertyChanged -= Changed; };
+                // main.js keydown: [ and ] tune the radio, ? the sheet (not while typing or with a dialog open)
+                KeyEventHandler keysDown = OnKey;
+                Window win = null;
+                Root.Loaded += delegate { win = Window.GetWindow(Root); if (win != null) { win.KeyDown -= keysDown; win.KeyDown += keysDown; } };
+                Root.Unloaded += delegate { if (win != null) win.KeyDown -= keysDown; };
                 U.OnSize(Root, (w, h) => { width = w; height = h; Layout(); });
                 Paint();
             }
@@ -712,7 +752,8 @@ namespace SentrySix.Ui.Horizon
                 ch.Text = "CH " + (i + 1).ToString("00");
                 radioName.Text = p.Title.ToUpperInvariant();
                 VehicleInfo v = m.Current;
-                radioSub.Text = v != null ? v.Name : "no vehicle";
+                // main.js radioSub(): the page's status line, else the vehicle
+                radioSub.Text = m.PageStatus.Length > 0 ? m.PageStatus : v != null ? v.Name : "no vehicle";
                 // LIVE: green and glowing when connected, pink while reconnecting
                 liveTxt.Foreground = Css.Brush(!m.LiveKnown ? "#7d86a8" : m.Live ? "#5dffb0" : "#ffb3c2");
                 liveTxt.Effect = m.LiveKnown && m.Live ? Css.Glow(6, "rgba(93,255,176,.8)") : null;
@@ -832,9 +873,81 @@ namespace SentrySix.Ui.Horizon
                 Paint();
             }
 
+            void OnKey(object sender, KeyEventArgs e)
+            {
+                if (overlay.IsOpen || m.DialogOpen) return;
+                DependencyObject f = Keyboard.FocusedElement as DependencyObject;
+                if (f is System.Windows.Controls.Primitives.TextBoxBase || f is PasswordBox || f is ComboBox)
+                {
+                    if (e.Key == Key.Escape) { Keyboard.ClearFocus(); e.Handled = true; }
+                    return;
+                }
+                if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Windows)) != 0) return;
+                bool shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+                if (e.Key == Key.OemOpenBrackets && !shift) { e.Handled = true; Seek(-1); }
+                else if (e.Key == Key.OemCloseBrackets && !shift) { e.Handled = true; Seek(1); }
+                else if (e.Key == Key.OemQuestion && shift) { e.Handled = true; KeysSheet(); }
+            }
+
+            // main.js keysSheet(): the shortcuts everywhere (a page's own under its name)
             void KeysSheet()
             {
-                MessageBox.Show(Window.GetWindow(Root), "[ / ]   Previous / next page (tune the radio)\n?   This sheet\nEsc   Close a dialog\n\nEvery shortcut has a button too, so everything also works by touch.", "Keyboard shortcuts");
+                if (overlay.IsOpen) return;
+                StackPanel s = new StackPanel();
+                s.Children.Add(KeysSection("Everywhere", new[] { new[] { "[ / ]", "Previous / next page (tune the radio)" }, new[] { "?", "This sheet" }, new[] { "Esc", "Close a dialog" } }));
+                TextBlock foot = HzKit.Small("Every shortcut has a button too, so everything also works by touch.", "dim");
+                foot.Margin = new Thickness(0, 12, 0, 0);
+                s.Children.Add(foot);
+                overlay.Sheet("Keyboard shortcuts", s, true, null);
+            }
+
+            static FrameworkElement KeysSection(string title, string[][] rows)
+            {
+                StackPanel sec = new StackPanel();
+                SpacedText h3 = new SpacedText(title.ToUpperInvariant(), 12, FontWeights.Bold, 0.18);
+                h3.Foreground = Css.Brush("#ffd2ef");
+                h3.Margin = new Thickness(0, 6, 0, 6);
+                sec.Children.Add(h3);
+                foreach (string[] r in rows)
+                {
+                    Flex keys = Flex.Row(4);
+                    foreach (string k in r[0].Split(' '))
+                    {
+                        if (k == "/" || k == "or" || k == "·") { TextBlock d = HzKit.Text(k, 14, "dim"); d.VerticalAlignment = VerticalAlignment.Center; keys.Children.Add(d); continue; }
+                        TextBlock kt = new TextBlock();
+                        kt.Text = k;
+                        kt.FontFamily = U.Consolas;
+                        kt.FontWeight = FontWeights.Bold;
+                        kt.FontSize = 12;
+                        kt.SetResourceReference(TextBlock.ForegroundProperty, "ink");
+                        Border kbd = new Border();
+                        kbd.Child = kt;
+                        kbd.Padding = Css.T(2, 6);
+                        kbd.CornerRadius = new CornerRadius(3);
+                        kbd.BorderThickness = new Thickness(1);
+                        kbd.BorderBrush = Css.Brush("rgba(207,195,238,.4)");
+                        kbd.Background = Css.Brush("rgba(255,255,255,.06)");
+                        kbd.VerticalAlignment = VerticalAlignment.Center;
+                        keys.Children.Add(kbd);
+                    }
+                    TextBlock desc = HzKit.Text(r[1], 14, "ink");
+                    desc.TextAlignment = TextAlignment.Right;
+                    Grid row = new Grid();
+                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    row.Children.Add(keys);
+                    desc.Margin = new Thickness(12, 0, 0, 0);
+                    Grid.SetColumn(desc, 1);
+                    row.Children.Add(desc);
+                    Border b = new Border();
+                    b.Child = row;
+                    b.Padding = Css.T(4, 0);
+                    b.BorderThickness = new Thickness(0, 0, 0, 1);
+                    b.SetResourceReference(Border.BorderBrushProperty, "line-soft");
+                    b.Margin = new Thickness(0, 0, 0, 6);
+                    sec.Children.Add(b);
+                }
+                return sec;
             }
 
             void Quick()
@@ -861,11 +974,29 @@ namespace SentrySix.Ui.Horizon
             }
         }
 
-        // ---------- pages: a placeholder in Horizon's style ----------
+        // ---------- pages: drawn here (PackHost, as main.js render()), else a placeholder in Horizon's style ----------
         public FrameworkElement Page(string id, PageContext ctx)
         {
             PageDef p = pages[0];
             foreach (PageDef x in pages) if (x.Id == id) p = x;
+            Func<IPackPage> make = ctx != null ? NativeFor(p.Id, ctx.Sub) : null;
+            if (make != null)
+            {
+                PackPageContext pc = new PackPageContext();
+                pc.Shell = ctx.Shell;
+                pc.Api = ctx.Api;
+                pc.Def = p;
+                pc.Sub = ctx.Sub ?? "";
+                pc.Fixture = ctx.Fixture;
+                pc.Still = ctx.Shell == null || ctx.Shell.Still || ctx.Shell.ReduceEffects;
+                ShellModel sm = ctx.Shell;
+                pc.Go = hash => { if (sm != null) sm.Navigate((hash ?? "").TrimStart('#').TrimStart('/')); };
+                HzKit.Still = pc.Still;
+                PackHost host = new PackHost(make, pc, HzKit.Loading, HzKit.LoadFailed);
+                // main.js: a picked vehicle mounts these again when the page has no onCar
+                foreach (string r in new[] { "footage", "policies", "jobs", "bin", "dashboard" }) host.RemountOnCar.Add(r);
+                return host.Start().Root;
+            }
             Flex col = Flex.Col(16);
             // .ptitle.hud: h1 clamp(22px, 2.4vw, 30px) 800, 0.06em, uppercase; p dim 14px
             SpacedText h1 = new SpacedText(p.Title.ToUpperInvariant(), 30, U.W(800), 0.06);

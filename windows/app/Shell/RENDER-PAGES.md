@@ -224,3 +224,26 @@ time zone is this PC's (Windows' zone as its IANA name), as the browser's.
 - builtin percar-edit
 - builtin percar-empty
 - builtin percar-error
+
+## The UI packs' pages (phases 4-7)
+
+Each at both sizes. A pack page's states are its module in
+`tools/parity/packs/<pack>-<page>.js` (the page names below, how capture.js
+takes the web side, and the variants); `node tools/parity/packFixtures.js`
+writes the native side's into `Shell\Fixtures\<pack>-<page>.json`, which
+`--render` merges over `Shell\RenderFixture.json` (a `"<pack>:<name>"`
+variant wins over a built-in one of the same name). Pages not drawn here
+yet render their "Opens in your browser" panel.
+
+### Horizon: Jobs
+
+The pit log (hz/pages/jobs.js) on the same answers as the built-in Jobs
+page's states: jobs, jobs-empty, jobs-running-only (Clear finished…
+disabled), jobs-long, jobs-error (the pack's "could not load" box with
+Try again).
+
+- horizon jobs
+- horizon jobs-empty
+- horizon jobs-running-only
+- horizon jobs-long
+- horizon jobs-error

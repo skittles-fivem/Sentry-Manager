@@ -226,6 +226,10 @@ namespace SentrySix.Ui
         public int UnreadNotes { get { int n = 0; foreach (NoteInfo x in Notes) if (!x.Resolved && !x.Read) n++; return n; } }
         public bool CriticalOpen { get { foreach (NoteInfo x in Notes) if (!x.Resolved && x.Level == "critical") return true; return false; } }
 
+        string pageStatus = "";
+        /// <summary>A pack page's own line in the shell (Horizon's radio sub line, main.js status()); "" for none.</summary>
+        public string PageStatus { get { return pageStatus; } set { string v = value ?? ""; if (pageStatus != v) { pageStatus = v; Raise("PageStatus"); } } }
+
         int runningJobs;
         public int RunningJobs { get { return runningJobs; } set { runningJobs = value; Raise("RunningJobs"); } }
         bool converting;

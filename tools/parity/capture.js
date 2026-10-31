@@ -44,6 +44,8 @@ const { binVariants, BIN_VARIANTS } = require('./binVariants');
 const { notificationsVariants, NOTIFICATIONS_VARIANTS } = require('./notificationsVariants');
 const { percarVariants, PERCAR_VARIANTS } = require('./percarVariants');
 const { settingsVariants, SETTINGS_VARIANTS } = require('./settingsVariants');
+// the UI packs' own pages (tools/parity/packs/<pack>-<page>.js): "<pack>:<name>" here
+const packPages = require('./packFixtures');
 const REPO = path.join(__dirname, '..', '..');
 const SERVER = path.join(REPO, 'server', 'index.js');
 const USER = 'admin';
@@ -113,6 +115,11 @@ const PAGES = {
   'percar-empty': { signedIn: true, path: '/#/encoder/vehicles', only: 'builtin', variant: true },
   'percar-error': { signedIn: true, path: '/#/encoder/vehicles', only: 'builtin', variant: true }
 };
+
+// each pack page module's pages, as "<pack>:<name>" (the picture is <pack>-<name>-<w>x<h>.png)
+for (const m of packPages.modules()) {
+  for (const [name, spec] of Object.entries(m.pages || {})) PAGES[`${m.pack}:${name}`] = { signedIn: true, ...spec, only: m.pack, variant: true };
+}
 
 // the Footage page's first page of days, as it asks for it
 const DAYS_PATH = `/api/vehicles/{vehicle}/days?${new URLSearchParams({ category: 'all', offset: '0', limit: '30' })}`;
@@ -213,6 +220,8 @@ const VARIANTS = {
   // (notifications-empty: the fixture server's own answer; named here so the native render list finds the page)
   'notifications-empty': { route: 'notifications' },
   ...Object.fromEntries(NOTIFICATIONS_VARIANTS.map((k) => [k, () => notificationsVariants(Date.now())[k]])),
+  // (the packs' pages: their modules' variants, "<pack>:<name>")
+  ...Object.fromEntries(packPages.modules().flatMap((m) => Object.keys(m.pages || {}).map((k) => [`${m.pack}:${k}`, (api, vehicle) => ({ route: k.split('-')[0], ...m.variants(api, vehicle, Date.now())[k] })]))),
   'notifications-error': { route: 'notifications', api: { 'GET /api/notifications': { $error: 'The notifications could not be read.', $status: 500 } } }
 };
 /** The Policies page with every part shown (the web asks /api/vehicles/<id>/policy, the id not encoded). */
@@ -569,6 +578,7 @@ async function shoot(browser, base, ui, pageName, size, file, vehicle, fixture) 
   try {
     if (spec.signedIn) await signIn(ctx, base);
     if (spec.signedIn && ui === 'builtin') await answerAs(ctx, { 'GET /api/stats': fixture.api['GET /api/stats'], ...(spec.variant ? fixture.variants[pageName].api : {}) });
+    else if (spec.signedIn) await answerAs(ctx, { 'GET /api/stats': fixture.api['GET /api/stats'], ...(spec.variant ? (fixture.variants[pageName] || {}).api || {} : {}) });
     // this browser's own choices (localStorage), before the page's script reads them
     if (spec.storage) await ctx.addInitScript((pairs) => { for (const [k, v] of Object.entries(pairs)) localStorage.setItem(k, v); }, spec.storage);
     const page = await ctx.newPage();
@@ -619,7 +629,7 @@ async function main() {
       for (const pageName of opts.pages) {
         if (PAGES[pageName].only && PAGES[pageName].only !== ui) continue;
         for (const size of SIZES) {
-          const name = `${ui}-${pageName}-${size.width}x${size.height}.png`;
+          const name = `${ui}-${pageName.replace(/^[a-z]+:/, '')}-${size.width}x${size.height}.png`;
           const errors = await shoot(browser, server.base, ui, pageName, size, path.join(opts.out, name), vehicle, fixture);
           shots.push({ file: name, interface: ui, page: pageName, width: size.width, height: size.height, errors });
           console.log(`${name}${errors.length ? `  (page errors: ${errors.join(' | ')})` : ''}`);
