@@ -21,7 +21,7 @@ namespace SentrySix.Ui.Horizon
         /// tick when on), the label beside it, gap 10, 44px tall; a click or
         /// Space toggles it, then calls back with the new state.
         /// </summary>
-        public sealed class Check
+        public sealed class NodeCheck
         {
             public readonly Flex Root;
             readonly Border box = new Border();
@@ -29,7 +29,7 @@ namespace SentrySix.Ui.Horizon
             bool on;
             public event Action<bool> Changed;
 
-            public Check(bool on, UIElement label, string name)
+            public NodeCheck(bool on, UIElement label, string name)
             {
                 box.Width = 20;
                 box.Height = 20;
@@ -75,7 +75,7 @@ namespace SentrySix.Ui.Horizon
         /// the right), opening its options as a list under it; picking one
         /// calls back with its value.
         /// </summary>
-        public static Border Select(string label, IList<KeyValuePair<string, string>> options, Action<string> picked)
+        public static Border NodeSelect(string label, IList<KeyValuePair<string, string>> options, Action<string> picked)
         {
             TextBlock t = Text(options.Count > 0 ? options[0].Value : "", 16, "ink");
             t.TextTrimming = TextTrimming.CharacterEllipsis;

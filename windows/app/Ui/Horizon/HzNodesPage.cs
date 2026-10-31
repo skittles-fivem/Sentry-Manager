@@ -360,7 +360,7 @@ namespace SentrySix.Ui.Horizon
                 opts.Add(new KeyValuePair<string, string>("", HzNodes.CarsPick));
                 foreach (HzCar v in c.Left) opts.Add(new KeyValuePair<string, string>(v.Id, v.Name));
                 string node = c.Id;
-                Border sel = HzKit.Select(c.AddLabel, opts, v => Run(() => m.AddCar(ctx.Api, ui, node, v, DrawNow)));
+                Border sel = HzKit.NodeSelect(c.AddLabel, opts, v => Run(() => m.AddCar(ctx.Api, ui, node, v, DrawNow)));
                 sel.Tag = "field";
                 f.Children.Add(sel);
             }
@@ -377,7 +377,7 @@ namespace SentrySix.Ui.Horizon
             hint.FontSize = 13.5;
             hint.SetResourceReference(TextElement.ForegroundProperty, "faint");
             t.Inlines.Add(hint);
-            HzKit.Check box = new HzKit.Check(c.Trusted, t, HzNodes.TrustLabel);
+            HzKit.NodeCheck box = new HzKit.NodeCheck(c.Trusted, t, HzNodes.TrustLabel);
             box.Root.Tag = "field";
             string id = c.Id;
             box.Changed += on => Run(async () =>
@@ -529,7 +529,7 @@ namespace SentrySix.Ui.Horizon
             TextBlock text = HzKit.Small(HzNodes.WorkerText, "dim");
             text.TextWrapping = TextWrapping.Wrap;
             col.Children.Add(text);
-            HzKit.Check on = new HzKit.Check(v.WorkerChecked, HzKit.Text(HzNodes.WorkerCheck, 15, "ink"), HzNodes.WorkerCheck);
+            HzKit.NodeCheck on = new HzKit.NodeCheck(v.WorkerChecked, HzKit.Text(HzNodes.WorkerCheck, 15, "ink"), HzNodes.WorkerCheck);
             on.Root.Tag = "field";
             on.Root.Margin = new Thickness(0, 12, 0, 0);
             on.Changed += x => Run(() => m.SetWorker(ctx.Api, ui, x, DrawNow));

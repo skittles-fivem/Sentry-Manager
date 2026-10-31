@@ -421,7 +421,7 @@ namespace SentrySix.Ui.Horizon
             form.Children.Add(HzKit.Field(HzSettings.SourceLabel, src.Root));
             if (f.Type == "smb")
             {
-                HzKit.Select version = new HzKit.Select(HzSettings.VersionLabel);
+                HzKit.SetSelect version = new HzKit.SetSelect(HzSettings.VersionLabel);
                 version.Options(f.Versions, f.Version);
                 version.Picked += v => f.Version = v;
                 HzKit.CheckBox encrypt = new HzKit.CheckBox(f.Encrypt);
@@ -443,7 +443,7 @@ namespace SentrySix.Ui.Horizon
                         HzKit.Field(HzSettings.DomainLabel, Field(f.Domain, null, v => f.Domain = v)),
                         HzKit.Field(HzSettings.VersionLabel, version.Root),
                         HzKit.Field(HzSettings.PortLabel, Field(f.Port, HzSettings.PortPlaceholder, v => f.Port = v)),
-                        HzKit.SpanAll(HzKit.Check(encrypt, HzSettings.EncryptLabel)),
+                        HzKit.SpanAll(HzKit.SetCheck(encrypt, HzSettings.EncryptLabel)),
                         HzKit.SpanAll(testRow)),
                     Small(HzSettings.SmbNote, "faint")));
             }
@@ -511,7 +511,7 @@ namespace SentrySix.Ui.Horizon
                 note.Margin = new Thickness(0, 10, 0, 0);
                 body.Children.Add(note);
             }
-            HzKit.Select pick = new HzKit.Select(HzSettings.PickLabel);
+            HzKit.SetSelect pick = new HzKit.SetSelect(HzSettings.PickLabel);
             pick.Options(m.UiOptions(), m.Picked);
             pick.Picked += async v => { await m.PickInterface(ctx.Api, ui, hooks, v); if (!gone) pick.Show(m.Picked); };
             Flex fld = HzKit.Field(HzSettings.PickLabel, pick.Root);
@@ -600,9 +600,9 @@ namespace SentrySix.Ui.Horizon
             units.Changed += on => m.ToggleUnits(ui, hooks);
             Flex two = Form(
                 HzKit.PanelHead(HzSettings.MotionTitle, "gear"),
-                HzKit.Check(calm, HzSettings.CalmLabel),
-                HzKit.Check(clock, HzSettings.Clock24Label),
-                HzKit.Check(units, HzSettings.UnitsLabel),
+                HzKit.SetCheck(calm, HzSettings.CalmLabel),
+                HzKit.SetCheck(clock, HzSettings.Clock24Label),
+                HzKit.SetCheck(units, HzSettings.UnitsLabel),
                 HzKit.WithKeys(HzSettings.KeysHtml, 13.5, "faint"));
             panel.Children.Add(HzKit.Panel(two));
         }

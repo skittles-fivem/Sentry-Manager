@@ -156,7 +156,7 @@ namespace SentrySix.Ui.Horizon
         }
 
         /// <summary>label.chk: the box and the label (15px ink), gap 10, 44px tall; a click anywhere toggles it.</summary>
-        public static Flex Check(CheckBox box, string label)
+        public static Flex SetCheck(CheckBox box, string label)
         {
             TextBlock t = Text(label, 15, "ink");
             t.VerticalAlignment = VerticalAlignment.Center;
@@ -173,7 +173,7 @@ namespace SentrySix.Ui.Horizon
         // ---------------------------------------------------------------- select.in
 
         /// <summary>select.in: the field with the chosen option and the cyan caret; a click opens the options (the browser's own list).</summary>
-        public sealed class Select
+        public sealed class SetSelect
         {
             public readonly Border Root;
             readonly TextBlock label = new TextBlock();
@@ -181,7 +181,7 @@ namespace SentrySix.Ui.Horizon
             public string Value = "";
             public event Action<string> Picked;
 
-            public Select(string name)
+            public SetSelect(string name)
             {
                 label.FontSize = 16;
                 label.SetResourceReference(TextBlock.ForegroundProperty, "ink");
