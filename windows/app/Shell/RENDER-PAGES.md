@@ -262,3 +262,17 @@ last run that failed).
 - horizon policies-novehicle
 - horizon policies-error
 - horizon policies-long
+
+### Horizon: Recycle Bin
+
+The Recycle Bin (hz/pages/bin.js) on the same answers as the built-in
+page's states: bin (one item of yours, one of the policy, one with a file
+left behind), bin-empty (the fixture server's own answer), bin-long,
+bin-error (the pack's "could not load" box with Try again), and
+bin-every-vehicle ("Every vehicle" picked: each item names its vehicle).
+
+- horizon bin
+- horizon bin-empty
+- horizon bin-long
+- horizon bin-error
+- horizon bin-every-vehicle
