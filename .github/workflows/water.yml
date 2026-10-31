@@ -127,7 +127,7 @@ jobs:
               $summary += "PawnIO $v was already installed: used and left installed."
             } else {
               $sig = Get-AuthenticodeSignature -LiteralPath $setup
-              if ($sig.Status -ne 'Valid' -or [string]$sig.SignerCertificate.Subject -notmatch '(^|, )CN=namazso(,|$)') { throw "PawnIO_setup.exe: signature $($sig.Status), signer $($sig.SignerCertificate.Subject)" }
+              if ($sig.Status -ne 'Valid' -or [string]$sig.SignerCertificate.Subject -notmatch '(^|, )CN=namazso\.eu(,|$)' -or [string]$sig.SignerCertificate.Subject -notmatch '(^|, )O=namazso(,|$)') { throw "PawnIO_setup.exe: signature $($sig.Status), signer $($sig.SignerCertificate.Subject)" }
               Write-Host "PawnIO is not installed: installing the pinned $($pins.'pawnio-setup'.version) for this step (signed $($sig.SignerCertificate.Subject))"
               $installedHere = $true
               [IO.File]::WriteAllText($record, "PawnIO $($pins.'pawnio-setup'.version) installed by run $env:GITHUB_RUN_ID at $(Get-Date -Format o)`r`n")

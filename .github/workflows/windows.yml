@@ -496,9 +496,26 @@ jobs:
           if (-not $rule.Count) { throw 'install.ps1 added no firewall rule' }
           Write-Host "The service and node run as $account ($mine), which is not an administrator"
 
-      # /CPUPOWER=1: PawnIO and the CPU power service. A runner is a virtual
-      # machine, whose MSRs the hypervisor keeps, so no watts are expected;
-      # this shows what was installed and what the service says.
+      # /CPUPOWER=1 on a runner with no PawnIO: Setup ran the pinned, signed
+      # installer (its hash and signer checked by cpupower.ps1) and recorded
+      # the copy as its own, with a fingerprint
+      - name: PawnIO installed by Setup
+        run: |
+          $log = Get-Content -Raw -LiteralPath (Join-Path $env:RUNNER_TEMP 'setup.log')
+          foreach ($bad in 'is not signed by its author', 'is not the one this release pins', 'has no pinned SHA-256', "signature is not valid", "PawnIO's installer failed") {
+            if ($log.Contains($bad)) { throw "Setup did not install PawnIO: '$bad' (see the Install step's log)" }
+          }
+          $entry = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO' -ErrorAction SilentlyContinue
+          if ($null -eq $entry) { throw 'PawnIO has no Uninstall entry after Setup /CPUPOWER=1' }
+          $mark = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\SentrySixManager\PawnIO' -ErrorAction SilentlyContinue
+          if ($null -eq $mark -or $mark.InstalledBySentry -ne 1) { throw 'Setup installed PawnIO but did not record it as its own' }
+          if ([string]$mark.Version -ne [string]$entry.DisplayVersion) { throw "the record says PawnIO $($mark.Version), installed is $($entry.DisplayVersion)" }
+          if ([string]::IsNullOrEmpty([string]$mark.Fingerprint)) { throw 'the record of PawnIO has no fingerprint' }
+          Write-Host "PawnIO $($entry.DisplayVersion) installed by Setup; fingerprint $($mark.Fingerprint)"
+
+      # A runner is a virtual machine, whose MSRs the hypervisor keeps, so no
+      # watts are expected; this shows what was installed and what the
+      # service says.
       - name: CPU power (informational)
         if: always()
         run: |
@@ -519,6 +536,9 @@ jobs:
           $log = Join-Path $env:RUNNER_TEMP 'uninstall.log'
           $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/REMOVEDATA=1', "/LOG=`"$log`"") -Wait -PassThru
           if ($p.ExitCode -ne 0) { Write-Host "::error::the uninstaller failed (exit code $($p.ExitCode))"; exit 1 }
+          # PawnIO was Setup's own and nothing else uses it on a runner: it goes too
+          $text = if (Test-Path -LiteralPath $log) { Get-Content -Raw -LiteralPath $log } else { '' }
+          if (-not $text.Contains('PawnIO removed')) { Write-Host "::error::the uninstall did not remove the PawnIO Setup installed"; Get-Content -LiteralPath $log -Tail 80; exit 1 }
 
       # (the uninstaller deletes itself and its folder a moment after it exits)
       - name: Nothing is left

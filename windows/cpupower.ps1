@@ -27,7 +27,7 @@
   Nothing here downloads anything: the installer is pawnio\PawnIO_setup.exe
   of the release (pinned in windows\versions.json), checked against its
   pinned SHA-256 when the package was built and again before it is run
-  (build.ps1 writes the hash into this file), and signed CN=namazso.
+  (build.ps1 writes the hash into this file), and signed CN=namazso.eu, O=namazso.
 #>
 
 $PowerServiceName = 'SentrySixPower'
@@ -241,10 +241,11 @@ function Install-PawnIO([string]$SetupExe) {
     CpuPower-Warn "The PawnIO installer's signature is not valid ($($sig.Status)); it was not run."
     return 'unavailable'
   }
-  # (signed by its author: Azure Trusted Signing, CN=namazso exactly)
+  # (signed by its author: E=admin@namazso.eu, CN=namazso.eu, O=namazso,
+  # L=Debrecen, C=HU; the CN and the O compared whole, not as substrings)
   $signer = ''
   if ($null -ne $sig.SignerCertificate) { $signer = [string]$sig.SignerCertificate.Subject }
-  if ($signer -notmatch '(^|, )CN=namazso(,|$)') {
+  if ($signer -notmatch '(^|, )CN=namazso\.eu(,|$)' -or $signer -notmatch '(^|, )O=namazso(,|$)') {
     CpuPower-Warn "The PawnIO installer is not signed by its author ($signer); it was not run."
     return 'unavailable'
   }

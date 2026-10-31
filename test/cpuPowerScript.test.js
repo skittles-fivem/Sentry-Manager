@@ -41,11 +41,19 @@ const noPs = process.platform !== 'win32'
   ? 'Windows only: the harness keeps its marker in HKCU (runs in the Windows workflow)'
   : needsTool(Boolean(ps), 'needs Windows PowerShell');
 
-test('cpupower.ps1: the installer is checked against its pinned SHA-256 and signed CN=namazso exactly', () => {
+test('cpupower.ps1: the installer is checked against its pinned SHA-256 and signed CN=namazso.eu, O=namazso exactly', () => {
   assert.match(cpu, /\$PawnSetupSha256 = '@PAWNIO_SETUP_SHA256@'/);
   assert.match(cpu, /\$got = CpuPower-Sha256 \$SetupExe/);
   assert.match(cpu, /\[System\.Security\.Cryptography\.SHA256\]::Create\(\)/);
-  assert.match(cpu, /\$signer -notmatch '\(\^\|, \)CN=namazso\(,\|\$\)'/);
+  assert.match(cpu, /\$signer -notmatch '\(\^\|, \)CN=namazso\\\.eu\(,\|\$\)' -or \$signer -notmatch '\(\^\|, \)O=namazso\(,\|\$\)'/);
+  // the subject PawnIO_setup.exe 2.2.0 is signed with passes, look-alikes do not
+  const cn = /'(\(\^\|, \)CN=[^']+)'/.exec(cpu)[1];
+  const o = /'(\(\^\|, \)O=[^']+)'/.exec(cpu)[1];
+  const ok = (subject) => new RegExp(cn, 'i').test(subject) && new RegExp(o, 'i').test(subject);
+  assert.ok(ok('E=admin@namazso.eu, CN=namazso.eu, O=namazso, L=Debrecen, C=HU'));
+  assert.ok(!ok('CN=namazso-tools, O=namazso'));
+  assert.ok(!ok('CN=namazso.eu.evil, O=namazso'));
+  assert.ok(!ok('CN=namazso.eu, O=namazso-tools'));
   // the hash check comes before the installer runs
   assert.ok(cpu.indexOf('$got = CpuPower-Sha256 $SetupExe') < cpu.indexOf("CpuPower-Run $SetupExe '-install -silent'"));
   // build.ps1 writes the pinned hash into the packaged copy
