@@ -195,3 +195,29 @@ test('native app: Core/Converter.cs has web/vehicleEncoding.js\'s error texts, a
   const didNot = cs.match(/DidNotWork = "((?:[^"\\]|\\.)*)"/);
   assert.ok(didNot && VE.includes(`|| '${csString(didNot[1])}'`), 'the fallback text is the web\'s');
 });
+
+// windows.yml's "Render the pages" step runs SentrySix.exe --render for every
+// "<interface> <page>" pair RENDER-PAGES.md lists (with this regex); a builtin
+// page that is neither one of BuiltinInterface's page ids (or "shell", "login",
+// "login-setup", "login-local") nor a
+// variant in Shell/RenderFixture.json makes the exe throw "No page ...".
+test('native app: every builtin page in RENDER-PAGES.md is a page of the interface or a fixture variant', () => {
+  const list = fs.readFileSync(path.join(REPO, 'windows/app/Shell/RENDER-PAGES.md'), 'utf8');
+  const yml = fs.readFileSync(path.join(REPO, '.github/workflows/windows.yml'), 'utf8');
+  const m = /\$rx = '([^']+)'/.exec(yml);
+  assert.ok(m, 'windows.yml still has the render list regex ($rx = \'...\')');
+  const rx = new RegExp(m[1]);
+  const builtin = fs.readFileSync(path.join(REPO, 'windows/app/Ui/Builtin/BuiltinInterface.cs'), 'utf8');
+  // (the shell and the three sign-in screens are RenderMode's own pages)
+  const ids = new Set(['shell', 'login', 'login-setup', 'login-local', ...[...builtin.matchAll(/new PageDef\("([a-z0-9-]+)"/g)].map((x) => x[1])]);
+  assert.ok(ids.has('overview') && ids.has('settings'), 'BuiltinInterface.cs still lists its pages as new PageDef("id", ...)');
+  const variants = JSON.parse(fs.readFileSync(path.join(REPO, 'windows/app/Shell/RenderFixture.json'), 'utf8')).variants || {};
+  const pages = [];
+  for (const line of list.split(/\r?\n/)) {
+    const p = rx.exec(line);
+    if (p && p[1] === 'builtin') pages.push(p[2]);
+  }
+  assert.ok(pages.length > 0, 'RENDER-PAGES.md lists builtin pages');
+  const unknown = [...new Set(pages)].filter((p) => !ids.has(p) && !Object.prototype.hasOwnProperty.call(variants, p));
+  assert.deepEqual(unknown, [], 'builtin pages in RENDER-PAGES.md that SentrySix.exe --render cannot find');
+});

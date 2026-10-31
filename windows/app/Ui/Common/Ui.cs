@@ -73,6 +73,8 @@ namespace SentrySix.Ui
         {
             e.Cursor = Cursors.Hand;
             e.Focusable = true;
+            // the web's :focus-visible outline (2px accent, offset 2px); FocusRing.Set again changes it
+            FocusRing.Set(e, 2, -1);
             bool down = false;
             e.MouseLeftButtonDown += delegate(object s, MouseButtonEventArgs a) { down = true; a.Handled = true; };
             e.MouseLeftButtonUp += delegate(object s, MouseButtonEventArgs a)
@@ -87,6 +89,21 @@ namespace SentrySix.Ui
                 if (a.Key == Key.Enter || a.Key == Key.Space) { act(); a.Handled = true; }
             };
             return e;
+        }
+
+        /// <summary>
+        /// The parent of an element in the window, visual first, else logical.
+        /// VisualTreeHelper.GetParent throws on a ContentElement (a focused
+        /// Hyperlink, a Run, an InlineUIContainer), so those go by their logical
+        /// parent only.
+        /// </summary>
+        public static DependencyObject Up(DependencyObject d)
+        {
+            if (d == null) return null;
+            if (d is Visual || d is System.Windows.Media.Media3D.Visual3D)
+                return VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d);
+            FrameworkContentElement fce = d as FrameworkContentElement;
+            return fce != null ? fce.Parent : LogicalTreeHelper.GetParent(d);
         }
 
         /// <summary>CSS :hover.</summary>
@@ -128,7 +145,7 @@ namespace SentrySix.Ui
                     if (d is Window) break;
                     FrameworkElement fe = d as FrameworkElement;
                     if (fe != null) last = fe;
-                    d = VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d);
+                    d = Up(d);
                 }
                 if (top != null) top.SizeChanged -= h;
                 top = last;
@@ -196,6 +213,8 @@ namespace SentrySix.Ui
             if (password) ((PasswordBox)c).PasswordChanged += delegate { UpdatePlaceholder(c); };
             else ((TextBox)c).TextChanged += delegate { UpdatePlaceholder(c); };
             c.Padding = new Thickness(k.Padding.Left, 0, k.Padding.Right, 0);
+            // input:focus-visible (a text field matches it however it was focused)
+            FocusRing.Set(c, 2, k.Radius, true);
             return c;
         }
 
@@ -273,7 +292,8 @@ namespace SentrySix.Ui
             b.MinHeight = k.MinHeight;
             if (k.MinWidth > 0) b.MinWidth = k.MinWidth;
             b.Cursor = Cursors.Hand;
-            b.FocusVisualStyle = null;
+            // .btn:focus-visible: 2px accent outline, offset 2px, round the button's corners
+            FocusRing.Set(b, 2, k.Radius.TopLeft);
             return b;
         }
 

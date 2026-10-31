@@ -409,7 +409,8 @@ namespace SentrySix.Ui.Builtin
                     page.Content = m.PageContent;
                     scroller.ScrollToTop();
                 }
-                if (e.PropertyName == "Route") { Paint(); Layout(false); }
+                // (Embedded also depends on Sub: #/encoder and #/encoder/vehicles share the Route)
+                if (e.PropertyName == "Route" || e.PropertyName == "Sub") { Paint(); Layout(false); }
                 if (e.PropertyName == "ReduceEffects") reduce.Set(m.ReduceEffects);
                 if (e.PropertyName == "Clock24") clock24.Set(m.Clock24);
                 Paint();

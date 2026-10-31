@@ -180,7 +180,8 @@ namespace SentrySix.Ui.Builtin
                 string key = sec.Key;
                 b.Uid = "tab-" + key;
                 U.Click(b, () => PickTab(key));
-                b.FocusVisualStyle = null;
+                // .set-tabs button:focus-visible: the outline inside the tab (offset -2px)
+                FocusRing.Set(b, -2, 0);
                 VeFlex.SetGrow(b, 1);
                 tabs[key] = b;
                 row.Children.Add(b);
@@ -225,10 +226,15 @@ namespace SentrySix.Ui.Builtin
             return t;
         }
 
-        /// <summary>.muted.small paragraph.</summary>
+        /// <summary>
+        /// A &lt;p class="muted small"&gt; (12.5 px). Every one of them sits in a
+        /// .card, where `.card p { color: var(--text-2) }` (0,1,1) beats
+        /// `.muted { color: var(--muted) }` (0,1,0): text-2, not muted. Only a
+        /// span or div with .muted is drawn muted.
+        /// </summary>
         static TextBlock MutedSmall(Rich r, double top, Action<string> follow)
         {
-            TextBlock t = Look.RichBlock(r, 12.5, "muted", follow);
+            TextBlock t = Look.RichBlock(r, 12.5, "text-2", follow);
             t.Margin = new Thickness(0, top, 0, 0);
             return t;
         }
@@ -1038,7 +1044,6 @@ namespace SentrySix.Ui.Builtin
                     chip.SetResourceReference(TextElement.ForegroundProperty, on ? "accent" : "text-2");
                 };
                 U.Click(chip, () => { if (!r.Days.Remove(d)) r.Days.Add(d); paint(); });
-                chip.FocusVisualStyle = null;
                 paint();
                 chips.Add(chip);
             }

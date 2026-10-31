@@ -102,7 +102,9 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   `Look` and controls; routes with sub pages; live topics to the page;
   the render fixture from the parity fixture server
   (`Shell/RenderFixture.json`) and the builtin pages in the render list
-  and in capture.js. Per page (not started / in progress / native and
+  and in capture.js. Review fixes (focus ring, text colours, nodes-empty,
+  pages closed with the shell, safe tree walks, streamed downloads): see
+  windows-handoff.md. Per page (not started / in progress / native and
   rendered / parity ticked):
   - Overview: native (`Ui/Builtin/OverviewPage.cs`, its tiles worked out by
     `Core/Overview.cs`); type-checked with mcs, not yet built or rendered

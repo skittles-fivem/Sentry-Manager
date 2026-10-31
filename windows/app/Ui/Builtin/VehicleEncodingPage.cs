@@ -148,7 +148,6 @@ namespace SentrySix.Ui.Builtin
                 Color a = Css.C("#1AC8F25A");
                 b.Background = new LinearGradientBrush(a, Color.FromArgb(0, a.R, a.G, a.B), 90);
             }
-            b.FocusVisualStyle = null;
             return b;
         }
 
@@ -454,7 +453,8 @@ namespace SentrySix.Ui.Builtin
                 g.Background = Brushes.Transparent;
                 g.HorizontalAlignment = HorizontalAlignment.Left;
                 U.Click(g, () => { cb.Set(!cb.Value); if (changed != null) changed(cb.Value); });
-                g.FocusVisualStyle = null;
+                // input:focus-visible rings the box, not the words
+                FocusRing.Set(g, 2, 3, false, cb.Box);
                 PageHost.SetField(g, true);
                 return g;
             }

@@ -141,7 +141,7 @@ namespace SentrySix.Ui.Builtin
                 FrameworkElement fe = f as FrameworkElement;
                 if (fe != null && inputs.Contains(fe)) return true;
                 if (f is Window) break;
-                f = VisualTreeHelper.GetParent(f) ?? LogicalTreeHelper.GetParent(f);
+                f = U.Up(f);
             }
             return false;
         }
@@ -230,18 +230,21 @@ namespace SentrySix.Ui.Builtin
                 t.Root.Margin = new Thickness(0, 14, 0, 0);
                 body.Children.Add(t.Root);
                 Rich group = new Rich().Text(Nodes.GroupBefore).Add(RichKind.Link, Nodes.GroupLink, "#/encoder").Text(Nodes.GroupAfter);
-                TextBlock g = Look.RichBlock(group, 12.5, "muted", href => shell.Navigate(href));
+                // <p class="muted small"> in the .card: `.card p` (text-2) beats .muted
+                TextBlock g = Look.RichBlock(group, 12.5, "text-2", href => shell.Navigate(href));
                 g.Margin = new Thickness(0, 10, 0, 0);
                 body.Children.Add(g);
             }
             else
             {
-                TextBlock none = U.Text(Nodes.NoNodes, 14, FontWeights.Normal, "text");
+                // a <p> in the .card: text-2
+                TextBlock none = Look.P(Nodes.NoNodes);
                 none.Margin = new Thickness(0, 12, 0, 0);
                 body.Children.Add(none);
             }
             body.Children.Add(AddForm());
-            body.Children.Add(Look.Small(Nodes.AddHint));
+            // <p class="muted small"> in the .card: text-2 (`.card p` over .muted)
+            body.Children.Add(Small(Nodes.AddHint, "text-2"));
             return card;
         }
 
@@ -548,7 +551,8 @@ namespace SentrySix.Ui.Builtin
             on.Root.Margin = new Thickness(0, 14, 0, 0);
             inputs.Add(on.Root);
             body.Children.Add(on.Root);
-            TextBlock hint = Look.Small(Nodes.WorkerHint);
+            // <p class="muted small"> in the .card: text-2 (`.card p` over .muted)
+            TextBlock hint = Small(Nodes.WorkerHint, "text-2");
             hint.Margin = new Thickness(0, 8, 0, 0);
             body.Children.Add(hint);
             if (v.ShowOpen) body.Children.Add(ClosedNote());

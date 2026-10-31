@@ -537,7 +537,6 @@ namespace SentrySix.Ui.Builtin
                 string id = v.Id;
                 pill.Uid = "pill-" + id;
                 U.Click(pill, () => shell.PickVehicle(id));
-                pill.FocusVisualStyle = null;
                 f.Children.Add(pill);
             }
             if (add != null)

@@ -87,13 +87,13 @@ namespace SentrySix.Ui.Builtin
             s.Children.Add(note);
             if (view.Rows.Count == 0)
             {
-                // <p> in the card: the body's colour
-                s.Children.Add(Look.Card(U.Text(Bin.IsEmpty, 14, FontWeights.Normal, "text")));
+                // a <p> in the .card: text-2 (`.card p`)
+                s.Children.Add(Look.Card(Look.P(Bin.IsEmpty)));
             }
             else
             {
-                // p.muted, margin-bottom 12
-                TextBlock sum = U.Text(view.Summary, 14, FontWeights.Normal, "muted");
+                // p.muted, margin-bottom 12, in the .card: `.card p` (text-2) beats .muted
+                TextBlock sum = U.Text(view.Summary, 14, FontWeights.Normal, "text-2");
                 sum.Margin = new Thickness(0, 0, 0, 12);
                 s.Children.Add(Look.Card(sum, BinTable(view)));
             }

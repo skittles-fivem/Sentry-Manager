@@ -105,7 +105,7 @@ namespace SentrySix.Ui
             while (d != null)
             {
                 if (d == box) return true;
-                d = VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d);
+                d = U.Up(d);
             }
             return false;
         }

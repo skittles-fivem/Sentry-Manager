@@ -20,6 +20,9 @@ namespace SentrySix.Ui.Builtin
     {
         public readonly FrameworkElement Root;
         readonly Border box;
+
+        /// <summary>The box itself (where the focus ring goes).</summary>
+        public FrameworkElement Box { get { return box; } }
         readonly Path tick;
         bool on;
         bool enabled = true;
@@ -62,7 +65,8 @@ namespace SentrySix.Ui.Builtin
             else f = Flex.Row(0, box);
             f.Background = Brushes.Transparent;
             Root = U.Click(f, () => { if (!enabled) return; Set(!on); if (this.changed != null) this.changed(on); });
-            Root.FocusVisualStyle = null;
+            // input:focus-visible rings the box, not its label
+            FocusRing.Set(Root, 2, 3, false, box);
             Set(value);
         }
 
@@ -138,7 +142,8 @@ namespace SentrySix.Ui.Builtin
             Flex f = Flex.Row(gap, g, text);
             f.Background = Brushes.Transparent;
             Root = U.Click(f, () => { if (!enabled || on) return; Set(true); if (this.picked != null) this.picked(); });
-            Root.FocusVisualStyle = null;
+            // input:focus-visible rings the circle, not its label
+            FocusRing.Set(Root, 2, 8.5, false, g);
             Set(value);
         }
 
@@ -224,7 +229,8 @@ namespace SentrySix.Ui.Builtin
             Root.MinHeight = k.MinHeight;
             Root.MinWidth = 190;
             U.Click(Root, Open);
-            Root.FocusVisualStyle = null;
+            // select:focus-visible
+            FocusRing.Set(Root, 2, k.Radius);
             Root.GotKeyboardFocus += delegate { Root.SetResourceReference(Border.BorderBrushProperty, "accent"); };
             Root.LostKeyboardFocus += delegate { Root.SetResourceReference(Border.BorderBrushProperty, "border-strong"); };
             Root.PreviewKeyDown += delegate(object s, KeyEventArgs e)
@@ -318,7 +324,6 @@ namespace SentrySix.Ui.Builtin
                 string key = o.Key;
                 b.Uid = "seg-" + key;
                 U.Click(b, () => Pick(key));
-                b.FocusVisualStyle = null;
                 buttons[key] = b;
                 row.Children.Add(b);
             }
@@ -375,7 +380,6 @@ namespace SentrySix.Ui.Builtin
             hit.Background = Brushes.Transparent;
             hit.Child = s;
             U.Click(hit, () => Set(!open));
-            hit.FocusVisualStyle = null;
             Root.Children.Add(hit);
             Root.Children.Add(body);
             Set(startOpen);

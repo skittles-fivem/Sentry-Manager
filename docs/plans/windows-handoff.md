@@ -624,3 +624,29 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   `Shell/RenderFixture.json` with the fixture's own api, vehicle and now;
   the rest of the file is unchanged. The web pictures were taken here with
   Playwright; the native ones need the Windows runner.
+
+### Phase 1: review fixes (2026-10-31)
+
+- Keyboard focus is drawn: `Ui/Common/FocusRing.cs` (an adorner, 2px of
+  the theme's "accent", the web's `:focus-visible` outline and offset;
+  only after keyboard input, always for text, time and date fields). U.Click,
+  U.Button and U.Input set it; the Settings tabs use offset -2, the day
+  toggle and .nd-more radius 4, check boxes and radios ring the box only.
+  The colour is looked up from the element (a FocusVisualStyle sits in the
+  window's adorner layer, above the Grid that holds the theme).
+- `.card p` (text-2) beats `.muted`: Settings' `<p class="muted small">`,
+  the Nodes paragraphs and the Recycle Bin's summary and empty line are
+  text-2 now.
+- `nodes-empty` is a fixture variant (capture.js VARIANTS and
+  RenderFixture.json); RenderMode also tries `<route>` for a
+  `<route>-<name>` with no variant. test/windowsNativeParity.test.js checks
+  every builtin entry of RENDER-PAGES.md is a page or a variant.
+- The shell closes the page on screen (`AppController.DropPage`) before a
+  new shell, the sign-in screen, a message, switching mode and quitting:
+  the Overview and Nodes timers no longer run on after sign-out.
+- Tree walks go through `U.Up` (VisualTreeHelper only on visuals): a
+  focused Hyperlink no longer throws on a live update.
+- The built-in shell lays out again when Sub changes (#/encoder and
+  #/encoder/vehicles).
+- Footage Download streams the recording into the file (`Api.GetToFile`,
+  no time limit, not held in memory).

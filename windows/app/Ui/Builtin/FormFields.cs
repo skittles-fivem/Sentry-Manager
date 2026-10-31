@@ -202,7 +202,8 @@ namespace SentrySix.Ui.Builtin
             Root = U.Box(g, k.Bg, k.Border, 1, new CornerRadius(k.Radius), k.Padding);
             Root.MinHeight = k.MinHeight;
             Root.Focusable = true;
-            Root.FocusVisualStyle = null;
+            // input:focus-visible (a time field matches it however it was focused)
+            FocusRing.Set(Root, 2, k.Radius, true);
             Root.Cursor = Cursors.IBeam;
             KeyboardNavigation.SetIsTabStop(Root, true);
             PageHost.SetField(Root, true);

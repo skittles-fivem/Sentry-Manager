@@ -55,13 +55,24 @@ namespace SentrySix.Ui
             return true;
         }
 
-        /// <summary>A recording's file (the Footage page's "Download"): GET /api/media?path=…, saved under its own name.</summary>
-        public static Task<bool> DownloadMedia(IJsonApi api, string mediaPath, Window owner)
+        /// <summary>
+        /// A recording's file (the Footage page's "Download"): GET
+        /// /api/media?path=…, saved under its own name. It is streamed into the
+        /// file as it arrives (Api.GetToFile: no time limit, not held in memory),
+        /// as the browser downloads the web's link.
+        /// </summary>
+        public static async Task<bool> DownloadMedia(IJsonApi api, string mediaPath, Window owner)
         {
             string name = mediaPath ?? "";
             int slash = Math.Max(name.LastIndexOf('/'), name.LastIndexOf('\\'));
             if (slash >= 0) name = name.Substring(slash + 1);
-            return Download(api, "/api/media?path=" + Uri.EscapeDataString(mediaPath ?? ""), name, owner);
+            string path = "/api/media?path=" + Uri.EscapeDataString(mediaPath ?? "");
+            Api real = api as Api;
+            if (real == null) return await Download(api, path, name, owner);
+            string file = AskSave(owner, name, null);
+            if (file == null) return false;
+            await real.GetToFile(path, file, CancellationToken.None);
+            return true;
         }
 
         /// <summary>Asks for a file to open; null when cancelled.</summary>

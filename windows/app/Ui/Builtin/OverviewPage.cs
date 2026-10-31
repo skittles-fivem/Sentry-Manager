@@ -1028,7 +1028,8 @@ namespace SentrySix.Ui.Builtin
                 UIElement again = Find(body, "nd-more-" + key);
                 if (again != null) again.Focus();
             });
-            t.FocusVisualStyle = null;
+            // .nd-more:focus-visible: offset 2px, border-radius 4px
+            FocusRing.Set(t, 2, 4);
             return t;
         }
 
@@ -1140,7 +1141,8 @@ namespace SentrySix.Ui.Builtin
             box.Margin = new Thickness(0, 10, 0, 0);
             box.MaxHeight = 324;
             box.Focusable = true;
-            box.FocusVisualStyle = null;
+            // .nd-procs-box:focus-visible (square corners)
+            FocusRing.Set(box, 2, 0);
             AutomationProperties.SetName(box, "Processes, " + (procs.Rows.Count > Nd.ProcessRows ? "scroll for more" : "all shown"));
             // the header stays on top while the rows scroll under it
             double restore = procScroll;

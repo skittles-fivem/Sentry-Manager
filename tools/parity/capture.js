@@ -194,6 +194,9 @@ const VARIANTS = {
   // Encoder > Encoding per vehicle: three vehicles (automatic on, saved, not set up), the first one's
   // editor open, no vehicles, the Encoder still starting
   ...Object.fromEntries(PERCAR_VARIANTS.map((k) => [k, (api, vehicle) => percarVariants(api, vehicle)[k]])),
+  // the Nodes page with no nodes yet
+  // (nodes-empty: the fixture server's own answer; named here so the native render list finds the page)
+  'nodes-empty': { route: 'nodes' },
   // the Jobs page: every kind of job, every job running (Clear jobs disabled), long names;
   // the list not readable (the whole page is the message)
   // (jobs-empty: the fixture server's own answer; named here so the native render list finds the page)

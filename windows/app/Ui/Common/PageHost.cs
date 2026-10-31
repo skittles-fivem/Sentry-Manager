@@ -109,8 +109,12 @@ namespace SentrySix.Ui
             bool hit = false;
             foreach (string t in page.Affects) if (topics.Contains(t)) hit = true;
             if (!hit) return;
-            if (shell.DialogOpen) return;
-            if (Typing()) return;
+            try
+            {
+                if (shell.DialogOpen) return;
+                if (Typing()) return;
+            }
+            catch (Exception) { return; }
             Refresh();
         }
 
@@ -134,7 +138,7 @@ namespace SentrySix.Ui
                 if (GetField(f)) return true;
                 // a ComboBox's popup items
                 if (f is ComboBoxItem) return true;
-                f = VisualTreeHelper.GetParent(f) ?? LogicalTreeHelper.GetParent(f);
+                f = U.Up(f);
                 if (f is Window) break;
             }
             return false;
@@ -190,7 +194,7 @@ namespace SentrySix.Ui
             while (d != null)
             {
                 if (d == root) return f.Uid;
-                d = VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d);
+                d = U.Up(d);
             }
             return null;
         }
@@ -201,6 +205,8 @@ namespace SentrySix.Ui
             UIElement cur = now as UIElement;
             // someone else took the focus meanwhile (the web: activeElement is not body)
             if (cur != null && cur.IsVisible && Inside(cur)) return;
+            // (a focused link in the page's text: a ContentElement)
+            if (now is ContentElement && Inside((DependencyObject)now)) return;
             UIElement e = Find(root, uid);
             if (e != null) e.Focus();
         }
@@ -210,7 +216,7 @@ namespace SentrySix.Ui
             while (d != null)
             {
                 if (d == root) return true;
-                d = VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d);
+                d = U.Up(d);
             }
             return false;
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -135,6 +136,31 @@ namespace SentrySix.Core
         }
 
         /// <summary>
+        /// A file the API serves written into <paramref name="file"/> as it
+        /// arrives (a recording from /api/media: no time limit, not held in
+        /// memory, as the browser's download). Errors as for JSON calls; a file
+        /// left half written is deleted.
+        /// </summary>
+        public async Task GetToFile(string path, string file, CancellationToken ct = default(CancellationToken))
+        {
+            using (HttpResponseMessage res = await Send(HttpMethod.Get, path, null, null, ct, false, true).ConfigureAwait(false))
+            using (Stream body = await res.Content.ReadAsStreamAsync().ConfigureAwait(false))
+            {
+                bool done = false;
+                try
+                {
+                    using (FileStream f = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true))
+                        await body.CopyToAsync(f, 81920, ct).ConfigureAwait(false);
+                    done = true;
+                }
+                finally
+                {
+                    if (!done) { try { File.Delete(file); } catch (Exception) { } }
+                }
+            }
+        }
+
+        /// <summary>
         /// A raw body, e.g. an interface pack .zip to /api/ui-packs/upload
         /// (with headers such as X-File-Name). Returns the JSON reply.
         /// </summary>
@@ -184,10 +210,16 @@ namespace SentrySix.Core
         }
 
         /// <summary>Sends, handles CONFIRM_PASSWORD and 401, and returns a successful (2xx) response.</summary>
-        async Task<HttpResponseMessage> Send(HttpMethod method, string path, Func<HttpContent> content, IDictionary<string, string> headers, CancellationToken ct, bool retried)
+        Task<HttpResponseMessage> Send(HttpMethod method, string path, Func<HttpContent> content, IDictionary<string, string> headers, CancellationToken ct, bool retried)
+        {
+            return Send(method, path, content, headers, ct, retried, false);
+        }
+
+        /// <summary>stream: the response once its headers are in, with no time limit (a download the body of which is read as it comes).</summary>
+        async Task<HttpResponseMessage> Send(HttpMethod method, string path, Func<HttpContent> content, IDictionary<string, string> headers, CancellationToken ct, bool retried, bool stream)
         {
             DateTime sentUtc = DateTime.UtcNow;
-            HttpResponseMessage res = await SendOnce(method, path, content, headers, ct, false).ConfigureAwait(false);
+            HttpResponseMessage res = await SendOnce(method, path, content, headers, ct, stream).ConfigureAwait(false);
             if (res.IsSuccessStatusCode) return res;
             JsonValue data;
             using (res)
@@ -204,7 +236,7 @@ namespace SentrySix.Core
             {
                 // changes that could hand someone the shares or the server need the password again
                 await ConfirmPassword(sentUtc, data, ct).ConfigureAwait(false);
-                return await Send(method, path, content, headers, ct, true).ConfigureAwait(false);
+                return await Send(method, path, content, headers, ct, true, stream).ConfigureAwait(false);
             }
             throw Error(status, data["code"].Str, data, res.ReasonPhrase);
         }

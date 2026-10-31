@@ -370,6 +370,8 @@ namespace SentrySix.Ui.Builtin
             toggle.Padding = new Thickness(0, 12, 0, 0);
             toggle.Margin = new Thickness(0, 14, 0, 0);
             U.Click(toggle, () => Change(() => f.Open.Toggle(day)));
+            // .day-toggle:focus-visible: offset 2px, border-radius 4px
+            FocusRing.Set(toggle, 2, 4);
             toggle.Uid = "day-" + day + "-toggle";
             System.Windows.Automation.AutomationProperties.SetName(toggle, d.Toggle);
 
@@ -688,7 +690,6 @@ namespace SentrySix.Ui.Builtin
                 try { await Files.DownloadMedia(api, path, shell.Owner()); }
                 catch (Exception ex) { Toast(ex.Message, true); }
             });
-            link.FocusVisualStyle = null;
             Grid.SetColumn(link, 3);
             g.Children.Add(link);
             // gap 14 (an empty tag cell takes none of it but the gap)

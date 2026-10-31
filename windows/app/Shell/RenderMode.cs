@@ -125,6 +125,12 @@ namespace SentrySix.Shell
                     }
                     PageDef def = null;
                     foreach (PageDef p in look.Pages) if (p.Id == route) def = p;
+                    if (def == null && variant == null && route.IndexOf('-') > 0)
+                    {
+                        // "<route>-<variant>" with no fixture variant: the page on the fixture's own answers
+                        route = route.Split('-')[0];
+                        foreach (PageDef p in look.Pages) if (p.Id == route) def = p;
+                    }
                     if (def == null) throw new ArgumentException("No page " + route + " in " + ifaceId + ".");
                     m.Sub = sub;
                     m.Route = route;

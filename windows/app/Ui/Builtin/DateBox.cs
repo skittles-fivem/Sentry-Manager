@@ -55,7 +55,8 @@ namespace SentrySix.Ui.Builtin
             Root.MinWidth = 190;
             Root.HorizontalAlignment = HorizontalAlignment.Left;
             U.Click(Root, Open);
-            Root.FocusVisualStyle = null;
+            // input:focus-visible (a date field matches it however it was focused)
+            FocusRing.Set(Root, 2, k.Radius, true);
             Root.GotKeyboardFocus += delegate { Root.SetResourceReference(Border.BorderBrushProperty, "accent"); };
             Root.LostKeyboardFocus += delegate { Root.SetResourceReference(Border.BorderBrushProperty, "border-strong"); };
             Root.PreviewKeyDown += delegate(object s, KeyEventArgs e)

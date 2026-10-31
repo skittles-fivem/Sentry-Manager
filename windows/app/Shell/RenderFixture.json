@@ -14675,6 +14675,9 @@
     }
    }
   },
+  "nodes-empty": {
+   "route": "nodes"
+  },
   "nodes": {
    "route": "nodes",
    "api": {

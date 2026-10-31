@@ -79,8 +79,20 @@ namespace SentrySix.Shell
             await Begin();
         }
 
+        /// <summary>
+        /// Closes the page on screen before the shell goes away: PageHost closes
+        /// a page (its timers, its pending calls) when the shell's PageContent
+        /// changes, and a new shell, the sign-in screen or quitting would
+        /// otherwise drop it without that (an Overview polling on).
+        /// </summary>
+        void DropPage()
+        {
+            if (model != null && model.PageContent != null) model.PageContent = null;
+        }
+
         async Task Begin()
         {
+            DropPage();
             if (local)
             {
                 win.Content = Splash("Starting Sentry Six Manager…");
@@ -175,6 +187,7 @@ namespace SentrySix.Shell
         // ---------- sign-in ----------
         async Task ShowLogin()
         {
+            DropPage();
             inShell = false;
             StopEvents();
             // the public /login is the active pack's own page: it tells which interface to draw
@@ -251,6 +264,7 @@ namespace SentrySix.Shell
             iface = Interfaces.ForPack(activePack, shipped);
             prefs.Set("iface:" + HostKey, iface != null ? iface.Id : "uploaded");
 
+            DropPage();
             model = new ShellModel();
             model.Prefs = prefs;
             model.Host = server.Authority;
@@ -492,6 +506,7 @@ namespace SentrySix.Shell
         // ---------- actions ----------
         async void SignOut()
         {
+            DropPage();
             try { await session.SignOut(); } catch (Exception) { }
             await ShowLogin();
         }
@@ -533,6 +548,7 @@ namespace SentrySix.Shell
             try
             {
                 win.Bring();
+                DropPage();
                 win.Content = Splash(on ? "Switching to a Windows service…" : "Switching to running in this app…");
                 StopEvents();
                 // the port is the app's child's until it stops; the service takes it after
@@ -556,6 +572,7 @@ namespace SentrySix.Shell
         {
             if (quitting) return;
             quitting = true;
+            DropPage();
             StopEvents();
             if (host.Running)
             {
@@ -589,6 +606,7 @@ namespace SentrySix.Shell
 
         void Message(string title, string text, string button, Func<Task> act)
         {
+            DropPage();
             IInterface b = Interfaces.Builtin;
             Grid root = new Grid();
             root.Resources = b.Theme();
