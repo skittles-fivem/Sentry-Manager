@@ -140,7 +140,19 @@ is done when every item is ticked in both. Run on the owner's PC runner.
     -closed (desktop and phone; tools/parity/nodesVariants.js on both sides).
     Allow other devices re-pins the server's new certificate
     (GET /api/security) and redraws instead of reloading the page.
-  - Policies: not started
+  - Policies: native (`Ui/Builtin/PoliciesPage.cs`; its request, words,
+    dialog and toasts in `Core/Policies.cs`; the number and time fields in
+    `Ui/Builtin/FormFields.cs`); type-checked with mcs, not yet built or
+    rendered on Windows. The page (Retention for <vehicle>, Run this policy
+    every day, the four Keep … clips (days) fields, Run at, the note with
+    the next run and the last run) and Save policy / Run now (PUT, then GET
+    and the "Run the policy now?" dialog, POST …/run, the toasts and the
+    redraw) are compared with web/app.js's own pages.policies and handlers
+    on 11 pages and 12 clicks (test/windowsNativePolicies.test.js writes
+    Core.Tests/Fixtures/expected-policies.json; Core.Tests PoliciesTests
+    checks the C#, and Chrome's number and time field rules). Render list:
+    policies, -off, -novehicle, -error (desktop and phone; capture.js
+    `VARIANTS` on both sides). Redrawn on "inventory".
   - Jobs: not started
   - Recycle Bin: not started
   - Notifications ("Alerts"): not started
@@ -166,6 +178,12 @@ Windows draws it) under a box drawn like the web's field; a thumbnail's
 box shows its fallback text while the picture loads (the web shows it
 only when the picture fails); a live update is not held back while a
 check box has the focus (the web holds it for any focused input).
+Policies: the number and time fields are drawn as Chrome draws them (the
+time field on the Windows clock's 12 or 24 hours, as Chrome on Windows;
+its list of hours and minutes is a small native list, not Chrome's); the
+browser's messages when Save policy cannot send a field ("Value must be
+greater than or equal to 1.", "Please enter a number.", the time field's
+"incomplete") are drawn under the field, not as Chrome's bubble.
 
 ## Costs the owner should know
 

@@ -14623,6 +14623,57 @@
      "port": 9000
     }
    }
+  },
+  "policies-off": {
+   "route": "policies"
+  },
+  "policies": {
+   "route": "policies",
+   "api": {
+    "GET /api/vehicles/model-3/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "04:15",
+      "keepDays": {
+       "Recent": 30,
+       "Sentry": 90,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": 1793375466000,
+      "lastResult": {
+       "moved": 12,
+       "skipped": 3
+      }
+     },
+     "preview": {
+      "recordings": 7,
+      "bytes": 3435973837,
+      "byCategory": {
+       "Recent": 5,
+       "Sentry": 2
+      },
+      "ids": []
+     }
+    }
+   }
+  },
+  "policies-novehicle": {
+   "route": "policies",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": []
+    }
+   }
+  },
+  "policies-error": {
+   "route": "policies",
+   "api": {
+    "GET /api/vehicles/model-3/policy": {
+     "$error": "The policy could not be read.",
+     "$status": 500
+    }
+   }
   }
  },
  "prefs": {}

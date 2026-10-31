@@ -114,13 +114,24 @@ namespace SentrySix.Ui
             Refresh();
         }
 
-        /// <summary>A text field, password field or list has the keyboard: the reader is filling it in.</summary>
+        /// <summary>
+        /// Marks a drawn field that is not a WPF text box (a time field, a
+        /// checkbox the page does not keep itself): while it or anything in it
+        /// has the keyboard, a live update waits, as the web's does for a
+        /// focused input.
+        /// </summary>
+        public static readonly DependencyProperty FieldProperty = DependencyProperty.RegisterAttached("Field", typeof(bool), typeof(PageHost), new PropertyMetadata(false));
+        public static bool GetField(DependencyObject e) { return (bool)e.GetValue(FieldProperty); }
+        public static void SetField(DependencyObject e, bool v) { e.SetValue(FieldProperty, v); }
+
+        /// <summary>A text field, password field, list or marked field has the keyboard: the reader is filling it in.</summary>
         static bool Typing()
         {
             DependencyObject f = Keyboard.FocusedElement as DependencyObject;
             while (f != null)
             {
                 if (f is TextBoxBase || f is PasswordBox || f is ComboBox) return true;
+                if (GetField(f)) return true;
                 // a ComboBox's popup items
                 if (f is ComboBoxItem) return true;
                 f = VisualTreeHelper.GetParent(f) ?? LogicalTreeHelper.GetParent(f);

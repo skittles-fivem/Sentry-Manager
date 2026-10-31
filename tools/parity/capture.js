@@ -73,7 +73,11 @@ const PAGES = {
   'footage-novehicle': { signedIn: true, path: '/#/footage', only: 'builtin', variant: true },
   'footage-paged': { signedIn: true, path: '/#/footage', only: 'builtin', variant: true },
   'footage-long': { signedIn: true, path: '/#/footage', only: 'builtin', variant: true, clicks: ['.day [data-toggle]', '.rec [data-files]'] },
-  policies: { signedIn: true, path: '/#/policies', only: 'builtin' },
+  // (policies-off is the fixture server's own answer: a new vehicle's policy; the others are VARIANTS)
+  'policies-off': { signedIn: true, path: '/#/policies', only: 'builtin' },
+  policies: { signedIn: true, path: '/#/policies', only: 'builtin', variant: true },
+  'policies-novehicle': { signedIn: true, path: '/#/policies', only: 'builtin', variant: true },
+  'policies-error': { signedIn: true, path: '/#/policies', only: 'builtin', variant: true },
   jobs: { signedIn: true, path: '/#/jobs', only: 'builtin' },
   bin: { signedIn: true, path: '/#/bin', only: 'builtin' },
   notifications: { signedIn: true, path: '/#/notifications', only: 'builtin' },
@@ -152,6 +156,13 @@ const VARIANTS = {
   },
   // the Nodes page: nodes with every box, a benchmark running, no HTTPS, Windows closed to other devices
   ...Object.fromEntries(NODES_VARIANTS.map((k) => [k, (api, vehicle) => nodesVariants(api, vehicle, Date.now())[k]])),
+  // the Policies page: on, two categories kept, the next run moving something (amber), a last run;
+  // no vehicle; the policy not readable (the whole page is the message)
+  // (policies-off: the fixture server's own answer; named here so the native render list finds the page)
+  'policies-off': { route: 'policies' },
+  policies: (api, vehicle) => policiesVariant(vehicle, Date.now()),
+  'policies-novehicle': { route: 'policies', api: { 'GET /api/vehicles': { vehicles: [] } } },
+  'policies-error': { route: 'policies', api: { 'GET /api/vehicles/{vehicle}/policy': { $error: 'The policy could not be read.', $status: 500 } } },
   'settings-vehicle': { route: 'settings', sub: 'vehicle/{vehicle}' },
   'settings-vehicle-new': { route: 'settings', sub: 'vehicle-new' },
   'settings-security': { route: 'settings', sub: 'security' },
@@ -160,6 +171,18 @@ const VARIANTS = {
   'jobs-error': { route: 'jobs', api: { 'GET /api/jobs?vehicle={vehicle}': { $error: 'The job list could not be read.', $status: 500 } } },
   'bin-error': { route: 'bin', api: { 'GET /api/bin?vehicle={vehicle}': { $error: 'The Recycle Bin could not be read.', $status: 500 } } }
 };
+/** The Policies page with every part shown (the web asks /api/vehicles/<id>/policy, the id not encoded). */
+function policiesVariant(vehicle, now) {
+  return {
+    route: 'policies',
+    api: {
+      [`GET /api/vehicles/${vehicle}/policy`]: {
+        policy: { enabled: true, runAt: '04:15', keepDays: { Recent: 30, Sentry: 90, Saved: null, Other: null }, lastRunAt: now - 86400000, lastResult: { moved: 12, skipped: 3 } },
+        preview: { recordings: 7, bytes: 3435973837, byCategory: { Recent: 5, Sentry: 2 }, ids: [] }
+      }
+    }
+  };
+}
 // The Overview's numbers on both sides: a real server's sample
 // (test/fixtures/statsSample.json) rather than what this machine reports
 const STATS = JSON.parse(fs.readFileSync(path.join(REPO, 'test', 'fixtures', 'statsSample.json'), 'utf8'));

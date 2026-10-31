@@ -405,3 +405,35 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   from that module with the fixture's own `api`, `vehicle` and `now` (not
   a `--fixture-only` rerun, so the rest of the file is unchanged).
 
+### Phase 1: Policies (2026-10-31)
+
+- `Core/Policies.cs`: `Load` (GET /api/vehicles/<id>/policy, the id not
+  encoded, as the web), `View` (PolicyView: title, Run this policy every
+  day, the four keep values, Run at, the note's preview line, amber, the
+  last run line), `Outline()`, `PolicyForm.Body()` (the values as typed,
+  empty ones null, the checkbox a bool), `Save` and `RunNow` (PUT the form,
+  GET, "Nothing to move right now." or the confirm, POST …/run, toast,
+  redraw). Chrome's field rules: `NumberValue` (a number field's value:
+  the text as typed when it is a number, else ""), `NumberMessage` (min 1,
+  max 3650, step 1 messages), `NumberStep` (ArrowUp/Down), `NumberChar`,
+  `ParseTime`/`TimeValue`, `TimeIncomplete`.
+- `test/windowsNativePolicies.test.js` runs the web's own pages.policies
+  and its two handlers (sliced from app.js, a pretend DOM; `$seq` answers
+  in turn for the second GET of Run now) and writes
+  `Core.Tests/Fixtures/expected-policies.json`; it also checks that every
+  wording constant in Policies.cs is in pages.policies.
+  `Core.Tests/PoliciesTests.cs` compares the C#. Under mono with a stub
+  runner the three PoliciesTests pass; not run under dotnet yet.
+- `Ui/Builtin/PoliciesPage.cs` (registered in BuiltinInterface: its browser
+  card is gone) and `Ui/Builtin/FormFields.cs` (NumberBox, TimeBox,
+  FieldBubble). `PageHost.Field` (attached property): a drawn field that
+  is not a WPF text box (the time field, the policy's checkbox) holds a
+  live redraw while it has the focus, as the web's focused-input check.
+- `tools/parity/capture.js`: PAGES policies-off (the fixture server's own
+  answer), policies, policies-novehicle, policies-error; VARIANTS for the
+  same names (policies-off only names its route, so the native render list
+  finds the page). Injected into `Shell/RenderFixture.json` with the
+  fixture's own `vehicle` and `now`; the rest of the file is unchanged.
+- Note for the Nodes stage: `nodes-empty` is in RENDER-PAGES.md but has no
+  entry in `variants`, so `--render builtin nodes-empty` looks for a route
+  named "nodes-empty" and fails; a `{ "route": "nodes" }` variant fixes it.

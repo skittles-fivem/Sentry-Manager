@@ -117,6 +117,14 @@ server), nodes-running, nodes-noworker (TLS_MODE=off) and nodes-closed
 (Windows, other devices off); nodes-empty is the fixture server's own
 answer. Its times are the fixture's `now`, so the pairing code says about 10
 minutes left on both sides.
+The Policies page's states (capture.js `VARIANTS`): policies (on, Recent and
+Sentry kept, the next run moving 7 recordings: the amber note, a last run a
+day before the fixture's `now`), policies-off (the fixture server's own
+answer: a new vehicle's policy, nothing to move; a variant with only its
+route), policies-novehicle and policies-error (the policy not readable: the
+whole page is the message). The Run at field is drawn as Chrome on Windows
+draws a time field, on the runner's own clock (12-hour on en-US, as the
+Playwright captures).
 
 - builtin overview
 - builtin overview-off
@@ -140,6 +148,9 @@ minutes left on both sides.
 - builtin footage-paged
 - builtin footage-long
 - builtin policies
+- builtin policies-off
+- builtin policies-novehicle
+- builtin policies-error
 - builtin jobs
 - builtin jobs-error
 - builtin bin
