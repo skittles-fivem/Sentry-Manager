@@ -62,6 +62,13 @@ function CpuPower-Version([string]$Text) {
   return $null
 }
 
+# A file's SHA-256, lowercase hex.
+function CpuPower-Sha256([string]$Path) {
+  $sha = [System.Security.Cryptography.SHA256]::Create()
+  $stream = [System.IO.File]::OpenRead($Path)
+  try { return (-join ($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') })) } finally { $stream.Dispose(); $sha.Dispose() }
+}
+
 # One value of a registry key, or '' when the key or the value is not there.
 function CpuPower-RegValue([string]$Key, [string]$Name) {
   if (-not (Test-Path -LiteralPath $Key)) { return '' }
@@ -223,7 +230,8 @@ function Install-PawnIO([string]$SetupExe) {
     CpuPower-Warn 'This copy of cpupower.ps1 has no pinned SHA-256 for the PawnIO installer (it was not built by build.ps1), so PawnIO is not installed.'
     return 'unavailable'
   }
-  $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $SetupExe).Hash.ToLowerInvariant()
+  # (.NET, not Get-FileHash: that cmdlet is missing when PSModulePath points at PowerShell 7's modules)
+  $got = CpuPower-Sha256 $SetupExe
   if ($got -ne $want) {
     CpuPower-Warn "The PawnIO installer is not the one this release pins (SHA-256 $got, expected $want); it was not run."
     return 'unavailable'

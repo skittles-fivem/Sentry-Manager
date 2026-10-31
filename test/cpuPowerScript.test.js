@@ -33,16 +33,21 @@ function findPowerShell() {
 }
 // the harness needs the registry (HKCU) for the marker: Windows only
 const ps = process.platform === 'win32' ? findPowerShell() : null;
+// as Setup starts it: Windows PowerShell's own modules, not those of a
+// PowerShell 7 that started this test (its PSModulePath)
+const psEnv = { ...process.env };
+for (const k of Object.keys(psEnv)) if (k.toLowerCase() === 'psmodulepath') delete psEnv[k];
 const noPs = process.platform !== 'win32'
   ? 'Windows only: the harness keeps its marker in HKCU (runs in the Windows workflow)'
   : needsTool(Boolean(ps), 'needs Windows PowerShell');
 
 test('cpupower.ps1: the installer is checked against its pinned SHA-256 and signed CN=namazso exactly', () => {
   assert.match(cpu, /\$PawnSetupSha256 = '@PAWNIO_SETUP_SHA256@'/);
-  assert.match(cpu, /\(Get-FileHash -Algorithm SHA256 -LiteralPath \$SetupExe\)\.Hash\.ToLowerInvariant\(\)/);
+  assert.match(cpu, /\$got = CpuPower-Sha256 \$SetupExe/);
+  assert.match(cpu, /\[System\.Security\.Cryptography\.SHA256\]::Create\(\)/);
   assert.match(cpu, /\$signer -notmatch '\(\^\|, \)CN=namazso\(,\|\$\)'/);
   // the hash check comes before the installer runs
-  assert.ok(cpu.indexOf('Get-FileHash') < cpu.indexOf("CpuPower-Run $SetupExe '-install -silent'"));
+  assert.ok(cpu.indexOf('$got = CpuPower-Sha256 $SetupExe') < cpu.indexOf("CpuPower-Run $SetupExe '-install -silent'"));
   // build.ps1 writes the pinned hash into the packaged copy
   assert.match(build, /\$cpuText\.Replace\("'@PAWNIO_SETUP_SHA256@'", "'\$pawnSha'"\)/);
   assert.match(build, /\$pawnSha = \(\[string\]\(Prop \$pawnSetup 'sha256'\)\)\.ToLowerInvariant\(\)/);
@@ -74,7 +79,7 @@ test('cpupower.ps1 keeps PawnIO when another program may use it, removes only ou
   const marker = `${testRoot}\\PawnIO`;
   try {
     const r = spawnSync(ps, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', HARNESS,
-      '-Script', SCRIPT, '-MarkerKey', marker, '-Work', work], { encoding: 'utf8' });
+      '-Script', SCRIPT, '-MarkerKey', marker, '-Work', work], { encoding: 'utf8', env: psEnv });
     assert.equal(r.status, 0, `${r.stdout}${r.stderr}`);
     const got = Object.fromEntries(r.stdout.trim().split(/\r?\n/).filter((l) => / /.test(l)).map((l) => { const i = l.indexOf(' '); return [l.slice(0, i), l.slice(i + 1)]; }));
     assert.equal(got.nothingElse, 'removed', 'ours, the same copy, nothing else uses it');
@@ -98,7 +103,7 @@ test('cpupower.ps1 looks at this PC without failing', { skip: noPs }, () => {
   const r = spawnSync(ps, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command',
     `$ErrorActionPreference = 'Stop'; Set-StrictMode -Version Latest; . '${SCRIPT}'; $s = Get-PawnUserCandidates; ` +
     "[Console]::Out.WriteLine(\"candidates $(@($s.Candidates).Count) unsure $(@($s.Unsure).Count)\"); " +
-    "$null = Find-PawnIO; $null = Get-PawnFingerprint; $null = Select-PawnUsers $s.Candidates; [Console]::Out.WriteLine('ok')"], { encoding: 'utf8' });
+    "$null = Find-PawnIO; $null = Get-PawnFingerprint; $null = Select-PawnUsers $s.Candidates; [Console]::Out.WriteLine('ok')"], { encoding: 'utf8', env: psEnv });
   assert.equal(r.status, 0, `${r.stdout}${r.stderr}`);
   assert.match(r.stdout, /candidates [1-9]\d* unsure \d+/);
   assert.match(r.stdout, /^ok$/m);
