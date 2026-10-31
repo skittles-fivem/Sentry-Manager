@@ -122,7 +122,8 @@ namespace SentrySix.Ui.Horizon
             if (lead != null)
             {
                 lead.Margin = new Thickness(0, 4, 0, 0);
-                lead.MaxWidth = 75 * 7.2;
+                // max-width 75ch: the "0" of the 14px system face is about 8.8 px wide
+                lead.MaxWidth = 75 * 8.8;
                 lead.HorizontalAlignment = HorizontalAlignment.Left;
                 left.Children.Add(lead);
             }
