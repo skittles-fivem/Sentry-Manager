@@ -38,6 +38,32 @@ namespace SentrySix.Ui.Flux
         static readonly string[] Keys = { "o", "f", "v", "e", "c", "n", "p", "j", "b", "a", "s" };
         public IReadOnlyList<PageDef> Pages { get { return pages; } }
 
+        // the pages drawn here ([PackPage("flux", route)]); the others open in the browser
+        static readonly Dictionary<string, Func<IPackPage>> native = PackPageAttribute.Of("flux");
+
+        static FluxInterface()
+        {
+            foreach (string key in native.Keys)
+            {
+                int slash = key.IndexOf('/');
+                string id = slash < 0 ? key : key.Substring(0, slash);
+                foreach (PageDef p in pages)
+                {
+                    if (p.Id != id) continue;
+                    if (slash < 0) p.Native = true;
+                    else p.NativeSubs.Add(key.Substring(slash + 1));
+                }
+            }
+        }
+
+        static Func<IPackPage> NativeFor(string id, string sub)
+        {
+            Func<IPackPage> make;
+            string first = string.IsNullOrEmpty(sub) ? "" : sub.Split('/', '?')[0];
+            if (first.Length > 0 && native.TryGetValue(id + "/" + first, out make)) return make;
+            return native.TryGetValue(id, out make) ? make : null;
+        }
+
         // index.html's sprite (.ico: stroke currentColor 1.8, no fill, round)
         static readonly Dictionary<string, string> Icons = new Dictionary<string, string>
         {
@@ -344,6 +370,7 @@ namespace SentrySix.Ui.Flux
         {
             readonly ShellModel m;
             public readonly Grid Root = new Grid();
+            FxOverlay overlay;
             readonly Border side = new Border();
             readonly Grid sideGrid = new Grid();
             readonly StackPanel brandText = new StackPanel();
@@ -595,6 +622,13 @@ namespace SentrySix.Ui.Flux
                 Root.Children.Add(scrim);
                 Root.Children.Add(side);
 
+                // Flux's own dialog and toasts (core.js openDialog(), toast()), over everything
+                overlay = new FxOverlay(m);
+                Panel.SetZIndex(overlay.Root, 10);
+                Root.Children.Add(overlay.Root);
+                m.Toast = (text, bad) => overlay.Toast(text, bad ? "bad" : "ok");
+                FxKit.Still = m.Still || m.ReduceEffects;
+
                 m.PropertyChanged += Changed;
                 Root.Unloaded += delegate { m.PropertyChanged -= Changed; };
                 U.OnSize(Root, (w, h) => { width = w; Layout(); });
@@ -819,6 +853,24 @@ namespace SentrySix.Ui.Flux
         {
             PageDef p = pages[0];
             foreach (PageDef x in pages) if (x.Id == id) p = x;
+            Func<IPackPage> make = ctx != null ? NativeFor(p.Id, ctx.Sub) : null;
+            if (make != null)
+            {
+                PackPageContext pc = new PackPageContext();
+                pc.Shell = ctx.Shell;
+                pc.Api = ctx.Api;
+                pc.Def = p;
+                pc.Sub = ctx.Sub ?? "";
+                pc.Fixture = ctx.Fixture;
+                pc.Still = ctx.Shell == null || ctx.Shell.Still || ctx.Shell.ReduceEffects;
+                ShellModel sm = ctx.Shell;
+                pc.Go = hash => { if (sm != null) sm.Navigate((hash ?? "").TrimStart('#').TrimStart('/')); };
+                FxKit.Still = pc.Still;
+                PackHost host = new PackHost(make, pc, FxKit.Loading, FxKit.LoadFailed);
+                // main.js: a picked vehicle mounts these again when the page has no onVehicle
+                foreach (string r in new[] { "footage", "policies", "jobs", "bin", "overview" }) host.RemountOnCar.Add(r);
+                return host.Start().Root;
+            }
             StackPanel s = new StackPanel();
             // .phead: h1 22px 650; p muted; margin-bottom 16
             StackPanel head = new StackPanel();

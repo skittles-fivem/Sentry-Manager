@@ -65,3 +65,14 @@ test('native app: Flux\'s flux/core.js formatters match windows/app/Core.Tests/F
   assert.equal(by('dayTitle', '2026-10-31'), 'Sat, Oct 31, 2026');
   expectFixture(assert, 'expected-flux-format.json', { about: 'Written by test/windowsNativeFlux.test.js from examples/ui-packs/flux/web/flux/core.js; checked by windows/app/Core.Tests (FluxFormatTests.cs, SentrySix.Core.Flux.Fx).', now: NOW, cases }, 'Flux\'s core.js formatting changed: rewrite the file with UPDATE_NATIVE_PARITY=1 and port the change to windows/app/Core/Flux/Fx.cs');
 });
+
+test('native app: windows/app/Ui/Flux/FxIcons.cs is Flux\'s sprite, symbol for symbol', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const { readSrc, REPO } = require('./nativePackHarness');
+  const want = [...readSrc('flux', 'index.html').matchAll(/<symbol id="i-([^"]+)"[^>]*>([\s\S]*?)<\/symbol>/g)].map((m) => [m[1], m[2].trim().replace(/\s+/g, ' ')]);
+  const cs = fs.readFileSync(path.join(REPO, 'windows/app/Ui/Flux/FxIcons.cs'), 'utf8');
+  const have = [...cs.matchAll(/\{ "([a-z0-9-]+)", "((?:[^"\\]|\\.)*)" \}/g)].map((m) => [m[1], JSON.parse(`"${m[2]}"`)]);
+  assert.ok(want.length > 30, 'the sprite is read');
+  assert.deepEqual(have, want, 'regenerate FxIcons.cs from index.html\'s <symbol>s');
+});

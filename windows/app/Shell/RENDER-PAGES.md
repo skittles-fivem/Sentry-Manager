@@ -247,3 +247,15 @@ Try again).
 - horizon jobs-running-only
 - horizon jobs-long
 - horizon jobs-error
+
+### Flux: Jobs
+
+The jobs table (flux/pages/jobs.js; labelled blocks on a phone) on the
+built-in Jobs page's states: jobs, jobs-empty, jobs-running-only (Clear
+finished… disabled), jobs-long, jobs-error (the pack's ! box with Retry).
+
+- flux jobs
+- flux jobs-empty
+- flux jobs-running-only
+- flux jobs-long
+- flux jobs-error
