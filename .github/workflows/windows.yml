@@ -137,7 +137,8 @@ jobs:
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           $programs = @(
             @{ src = 'windows\helper\SentryHelper.cs'; exe = 'SentryHelper.exe'; refs = @('System.dll', 'System.Core.dll', 'System.Management.dll', 'System.Web.Extensions.dll') },
-            @{ src = 'windows\service\SentryService.cs'; exe = 'SentryService.exe'; refs = @('System.dll', 'System.Core.dll', 'System.ServiceProcess.dll') }
+            @{ src = 'windows\service\SentryService.cs'; exe = 'SentryService.exe'; refs = @('System.dll', 'System.Core.dll', 'System.ServiceProcess.dll') },
+            @{ src = 'windows\power\SentryPower.cs'; exe = 'SentryPower.exe'; refs = @('System.dll', 'System.Core.dll', 'System.ServiceProcess.dll') }
           )
           foreach ($p in $programs) {
             if (-not (Test-Path -LiteralPath $p.src)) {
@@ -262,7 +263,7 @@ jobs:
           $pins = Get-Content -Raw -LiteralPath windows/versions.json | ConvertFrom-Json
           $unset = @()
           $ProgressPreference = 'SilentlyContinue'
-          foreach ($name in 'node', 'ffmpeg', 'innosetup') {
+          foreach ($name in 'node', 'ffmpeg', 'innosetup', 'pawnio-setup', 'pawnio-modules') {
             $pin = $pins.$name
             $want = ([string]$pin.sha256).ToLowerInvariant()
             if ($want -match '^[0-9a-f]{64}$') { Write-Host "$name sha256 (pinned): $want"; continue }
@@ -380,7 +381,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Continue'
           $log = Join-Path $env:RUNNER_TEMP 'setup.log'
-          $p = Start-Process -FilePath (Join-Path $PWD "dist\$env:SETUP") -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/MODE=service', "/LOG=`"$log`"") -Wait -PassThru
+          $p = Start-Process -FilePath (Join-Path $PWD "dist\$env:SETUP") -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/MODE=service', '/CPUPOWER=1', "/LOG=`"$log`"") -Wait -PassThru
           if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log }
           if ($p.ExitCode -ne 0) { Write-Host "::error::$env:SETUP failed (exit code $($p.ExitCode)); install.ps1's lines are in the log above"; exit 1 }
 
@@ -495,6 +496,20 @@ jobs:
           if (-not $rule.Count) { throw 'install.ps1 added no firewall rule' }
           Write-Host "The service and node run as $account ($mine), which is not an administrator"
 
+      # /CPUPOWER=1: PawnIO and the CPU power service. A runner is a virtual
+      # machine, whose MSRs the hypervisor keeps, so no watts are expected;
+      # this shows what was installed and what the service says.
+      - name: CPU power (informational)
+        if: always()
+        run: |
+          $ErrorActionPreference = 'Continue'
+          Get-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue | Format-List Name, Status, StartType
+          Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO' -ErrorAction SilentlyContinue | Format-List DisplayName, DisplayVersion
+          Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\SentrySixManager\PawnIO' -ErrorAction SilentlyContinue | Format-List InstalledBySentry, Version
+          $exe = Join-Path $env:ProgramFiles 'SentrySixManager\bin\SentryPower.exe'
+          if (Test-Path -LiteralPath $exe) { & $exe --once; Write-Host "SentryPower.exe --once: exit code $LASTEXITCODE" }
+          exit 0
+
       # as Settings > Apps does, silently, with the data too (the default keeps it)
       - name: Uninstall (unins000.exe /VERYSILENT /REMOVEDATA=1)
         run: |
@@ -513,6 +528,7 @@ jobs:
           do {
             $left = @()
             if (Get-Service -Name 'SentrySixManager' -ErrorAction SilentlyContinue) { $left += 'the service' }
+            if (Get-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue) { $left += 'the CPU power service' }
             if (@(Get-NetFirewallRule -Name 'SentrySixManager-WebUI' -ErrorAction SilentlyContinue).Count) { $left += 'the firewall rule' }
             foreach ($p in $dir, "$dir.new", "$dir.old", "$dir-Uninstall", (Join-Path $env:ProgramData 'SentrySixManager')) {
               if (Test-Path -LiteralPath $p) { $left += $p }
@@ -579,7 +595,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Continue'
           $log = Join-Path $env:RUNNER_TEMP 'setup.log'
-          $p = Start-Process -FilePath (Join-Path $PWD "dist\$env:SETUP") -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/MODE=app', "/LOG=`"$log`"") -Wait -PassThru
+          $p = Start-Process -FilePath (Join-Path $PWD "dist\$env:SETUP") -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/MODE=app', '/CPUPOWER=0', "/LOG=`"$log`"") -Wait -PassThru
           if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log }
           if ($p.ExitCode -ne 0) { Write-Host "::error::$env:SETUP /MODE=app failed (exit code $($p.ExitCode)); install.ps1's lines are in the log above"; exit 1 }
 
@@ -657,6 +673,7 @@ jobs:
           do {
             $left = @()
             if (Get-Service -Name 'SentrySixManager' -ErrorAction SilentlyContinue) { $left += 'a service' }
+            if (Get-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue) { $left += 'the CPU power service' }
             if (@(Get-NetFirewallRule -Name 'SentrySixManager-WebUI' -ErrorAction SilentlyContinue).Count) { $left += 'the firewall rule' }
             foreach ($p in $dir, "$dir.new", "$dir.old", "$dir-Uninstall", (Join-Path $env:ProgramData 'SentrySixManager')) {
               if (Test-Path -LiteralPath $p) { $left += $p }

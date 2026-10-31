@@ -198,6 +198,9 @@ try {
     $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     # the service gives node up to 60 s to finish its jobs
     if ($svc -and $svc.Status -ne 'Stopped') { Stop-Service -Name $ServiceName -Force -WarningAction SilentlyContinue -ErrorAction SilentlyContinue }
+    # the CPU power service (bin\SentryPower.exe, when installed) runs from the folder too
+    $pw = Get-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue
+    if ($pw -and $pw.Status -ne 'Stopped') { Stop-Service -Name 'SentrySixPower' -Force -WarningAction SilentlyContinue -ErrorAction SilentlyContinue }
     # node, the helper and ffmpeg must be gone before the folder can move
     for ($i = 0; $i -lt 30; $i++) {
       if (-not (Get-Leftovers).Count) { return $true }
@@ -252,7 +255,7 @@ try {
       try { Move-Folder $InstallDir $Backup; $moved = $true } catch { $why = $_.Exception.Message }
     }
     if (-not $moved) {
-      Start-Service -Name $ServiceName -ErrorAction SilentlyContinue
+      Start-Service -Name $ServiceName -ErrorAction SilentlyContinue; Start-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue
       Fail "could not set the current version aside ($why); nothing was changed"
     }
   }
@@ -291,7 +294,7 @@ try {
     Write-Host "  The previous (working) version is in $Backup. Do not delete it." -ForegroundColor Red
     if (Test-Path -LiteralPath $newAt) { Write-Host "  The new (failed) version is in $newAt." -ForegroundColor Red }
     Write-Host "  Close anything using these folders, delete the new one, rename $Backup to $InstallDir, and start the $ServiceName service." -ForegroundColor Red
-    Start-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    Start-Service -Name $ServiceName -ErrorAction SilentlyContinue; Start-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue
     exit 3
   }
   # the Setup's Settings > Apps entry: the version that is installed again
@@ -302,7 +305,7 @@ try {
       if ($oldVer) { Set-ItemProperty -LiteralPath $setupAppsKey -Name 'DisplayVersion' -Value ([string]$oldVer) -Type String }
     } catch { Write-Host "Could not set the version shown in Settings > Apps back: $($_.Exception.Message)" -ForegroundColor Yellow }
   }
-  Start-Service -Name $ServiceName -ErrorAction SilentlyContinue
+  Start-Service -Name $ServiceName -ErrorAction SilentlyContinue; Start-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue
   $back = Wait-Healthy
   Write-Host ("Rolled back to $(if ($installedSha) { $installedSha.Substring(0, 7) } else { 'the previous version' })" +
     $(if ($back) { '; it answers again.' } else { ", but it does not answer on port $port either: see %ProgramData%\SentrySixManager\data\logs\service.log" })) -ForegroundColor Yellow

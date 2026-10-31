@@ -140,8 +140,8 @@ test('the payload is the stage folder build.ps1 zips, with the files the Setup r
   assert.match(files, /^Source: "\{#SourcePath\}setup-user\.ps1"; DestDir: "\{tmp\}"; Flags: dontcopy$/m);
   assert.ok(fs.existsSync(path.join(REPO, 'windows/setup/setup-user.ps1')));
   // build.ps1 stages these, and checks them before compiling
-  assert.match(BUILD, /foreach \(\$s in 'install\.ps1', 'uninstall\.ps1', 'update\.ps1', 'Install\.cmd'\)/);
-  assert.match(BUILD, /foreach \(\$f in 'install\.ps1', 'uninstall\.ps1', 'app-ui\\SentrySix\.exe', 'app-ui\\SentrySix\.ico'\)/);
+  assert.match(BUILD, /foreach \(\$s in 'install\.ps1', 'uninstall\.ps1', 'update\.ps1', 'cpupower\.ps1', 'Install\.cmd'\)/);
+  assert.match(BUILD, /foreach \(\$f in 'install\.ps1', 'uninstall\.ps1', 'cpupower\.ps1', 'app-ui\\SentrySix\.exe', 'app-ui\\SentrySix\.ico'\)/);
   assert.equal(directive('SetupIconFile'), '{#PayloadDir}\\app-ui\\SentrySix.ico');
   assert.ok(fs.existsSync(path.join(REPO, 'web/icon.png')), 'the wizard image');
   assert.match(code, /ExtractTemporaryFiles\('\{tmp\}\\payload\\\*'\)/);
@@ -216,9 +216,10 @@ test('the Inno Setup compiler is pinned like the other downloads', () => {
   assert.match(pin.version, /^6\.\d+\.\d+$/);
   assert.match(pin.sha256, /^[0-9a-f]{64}$/);
   assert.equal(pin.url, `https://github.com/jrsoftware/issrc/releases/download/is-${pin.version.replace(/\./g, '_')}/innosetup-${pin.version}.exe`);
-  assert.match(BUILD, /foreach \(\$n in 'node', 'ffmpeg', 'innosetup'\)/);
+  assert.match(BUILD, /\$PinNames = @\('node', 'ffmpeg', 'innosetup', 'pawnio-setup', 'pawnio-modules'\)/);
+  assert.match(BUILD, /foreach \(\$n in \$PinNames\)/);
   assert.match(BUILD, /Get-Pinned 'innosetup'/);
-  assert.match(WINDOWS_YML, /foreach \(\$name in 'node', 'ffmpeg', 'innosetup'\)/);
+  assert.match(WINDOWS_YML, /foreach \(\$name in 'node', 'ffmpeg', 'innosetup', 'pawnio-setup', 'pawnio-modules'\)/);
 });
 
 test('windows.yml builds, proves and ships the Setup', () => {
@@ -287,6 +288,26 @@ test('install-check still proves the zip the updater installs holds what the Set
   assert.match(job, /\[IO\.Compression\.ZipFile\]::ExtractToDirectory\(\$zip, \$pkg\)/);
   assert.match(job, /SHA256SUMS has no line for \$env:ZIP/);
   assert.match(job, /Get-FileHash -Algorithm SHA256 -LiteralPath \$there/);
+});
+
+test('Setup\'s "Measure CPU power" box: ticked by default, /CPUPOWER=0|1, passed to install.ps1', () => {
+  assert.match(code, /CpuPage\.Add\('Measure CPU power \(installs the signed PawnIO driver\)'\)/);
+  assert.match(code, /CpuPage\.Values\[0\] := PrevCpu <> '0';/, 'ticked unless an earlier install said no');
+  assert.match(code, /ExpandConstant\('\{param:CPUPOWER\|\}'\)/);
+  assert.match(code, /Params := Params \+ ' -CpuPower'/);
+  assert.match(code, /Params := Params \+ ' -NoCpuPower'/);
+  // silent without /CPUPOWER: the installed copy's choice, else on (the box's default)
+  assert.match(code, /else if PrevCpu <> '' then\s+Result := PrevCpu = '1'\s+else\s+Result := True;/);
+  const files = section('Files');
+  assert.match(files, /^Source: "\{#PayloadDir\}\\cpupower\.ps1"; DestDir: "\{commonpf64\}\\SentrySixManager-Uninstall"; Flags: ignoreversion$/m,
+    'the uninstaller can remove PawnIO when the program folder is gone');
+  const install = read('windows/install.ps1');
+  assert.match(install, /\[switch\]\$CpuPower,\s+\[switch\]\$NoCpuPower/);
+  const cpu = read('windows/cpupower.ps1');
+  assert.match(cpu, /CpuPower-Run \$SetupExe '-install -silent'/);
+  assert.doesNotMatch(cpu, /-unrestricted/);
+  assert.match(cpu, /\$code -ne 0 -and \$code -ne 3010/, '3010 (restart needed) is success');
+  assert.match(cpu, /InstalledBySentry/);
 });
 
 test('no .iss line starts with # unless it is a preprocessor directive (ISPP reads every such line as one)', () => {

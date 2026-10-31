@@ -20,6 +20,12 @@
 ;   /MODE=app       the app runs the server while its user is signed in
 ;                   (no /MODE: an installed copy keeps its mode; a first
 ;                   install is app mode, as install.ps1 does with no answer)
+;   /CPUPOWER=1     measure the CPU's power: installs the signed PawnIO driver
+;                   (pawnio.eu) if it is not installed yet, and the CPU power
+;                   service (install.ps1 -CpuPower); /CPUPOWER=0 does not (and
+;                   removes PawnIO only if this Setup installed it and no other
+;                   program uses it). No /CPUPOWER: an installed copy keeps its
+;                   choice; a first install measures it (the box is ticked).
 ;   /LOG="file"     Inno's log, with every line install.ps1 printed
 ;   Exit code 0 when installed; 7 when install.ps1 failed (its last lines
 ;   are in the log and in %TEMP%\SentrySixManager-Setup.log).
@@ -112,6 +118,8 @@ FinishedLabel=Sentry Six Manager is installed. It is in the Start menu and start
 ; A copy of uninstall.ps1 beside the uninstaller, for when the program
 ; folder is already gone; the one in the program folder is used when there.
 Source: "{#PayloadDir}\uninstall.ps1"; DestDir: "{commonpf64}\SentrySixManager-Uninstall"; Flags: ignoreversion
+; (and what it needs to remove the CPU power service and, if ours, PawnIO)
+Source: "{#PayloadDir}\cpupower.ps1"; DestDir: "{commonpf64}\SentrySixManager-Uninstall"; Flags: ignoreversion
 Source: "{#SourcePath}setup-user.ps1"; DestDir: "{tmp}"; Flags: dontcopy
 ; The payload goes nowhere by itself: PrepareToInstall unpacks it to
 ; {tmp}\payload, laid out exactly as the zip, and install.ps1 copies it from
@@ -129,6 +137,11 @@ const
 
 var
   ModePage: TInputOptionWizardPage;
+  CpuPage: TInputOptionWizardPage;
+  { the installed copy's CPU power choice: '1', '0' or '' (never asked) }
+  PrevCpu: String;
+  { /CPUPOWER= on the command line, '' without one }
+  CmdCpu: String;
   RunPage: TOutputMarqueeProgressWizardPage;
   SummaryMemo: TNewMemo;
   { the installed copy's mode: 'service', 'app' or '' (none installed) }
@@ -182,6 +195,22 @@ begin
     Result := 'app'
   else
     Result := 'service';
+end;
+
+{ whether CPU power is measured: the box, or (silent) /CPUPOWER, the
+  installed copy's choice, else yes }
+function ChosenCpuPower: Boolean;
+begin
+  if WizardSilent then begin
+    if CmdCpu <> '' then
+      Result := CmdCpu = '1'
+    else if PrevCpu <> '' then
+      Result := PrevCpu = '1'
+    else
+      Result := True;
+  end
+  else
+    Result := CpuPage.Values[0];
 end;
 
 procedure AddTail(const Line: String);
@@ -304,6 +333,19 @@ begin
   end;
   PrevMode := InstalledMode;
   Log('Installed mode: ''' + PrevMode + '''; /MODE: ''' + CmdMode + '''');
+  CmdCpu := Trim(ExpandConstant('{param:CPUPOWER|}'));
+  if (CmdCpu <> '') and (CmdCpu <> '0') and (CmdCpu <> '1') then begin
+    Log('Unknown /CPUPOWER=' + CmdCpu);
+    SuppressibleMsgBox('Unknown /CPUPOWER=' + CmdCpu + '. Use /CPUPOWER=1 or /CPUPOWER=0.', mbCriticalError, MB_OK, IDOK);
+    Result := False;
+    Exit;
+  end;
+  PrevCpu := '';
+  if RegQueryStringValue(HKLM64, ModeKey, 'CpuPower', PrevCpu) then
+    PrevCpu := Trim(PrevCpu);
+  if (PrevCpu <> '0') and (PrevCpu <> '1') then
+    PrevCpu := '';
+  Log('CPU power: installed choice ''' + PrevCpu + '''; /CPUPOWER: ''' + CmdCpu + '''');
 end;
 
 procedure InitializeWizard;
@@ -323,6 +365,19 @@ begin
   else
     ModePage.SelectedValueIndex := 0;
 
+  CpuPage := CreateInputOptionPage(ModePage.ID,
+    'Measure the CPU''s power?',
+    'The server stats can show how many watts the processor uses, as the Docker version does.',
+    'Windows does not share the CPU''s energy counters with programs, so this needs PawnIO, a small signed ' +
+    'open-source driver (pawnio.eu; FanControl and LibreHardwareMonitor use it too). It is installed only if it ' +
+    'is not on this PC yet, and removed with Sentry Six Manager only if this Setup installed it and no other ' +
+    'program uses it. Untick the box to leave it out: everything else works the same.', False, False);
+  CpuPage.Add('Measure CPU power (installs the signed PawnIO driver)');
+  if CmdCpu <> '' then
+    CpuPage.Values[0] := CmdCpu = '1'
+  else
+    CpuPage.Values[0] := PrevCpu <> '0';
+
   RunPage := CreateOutputMarqueeProgressPage('Installing Sentry Six Manager',
     'This takes a minute or two. Please wait.');
 
@@ -341,6 +396,10 @@ begin
     Result := 'Runs as:' + NewLine + Space + 'a Windows service (always on, also when nobody is signed in)'
   else
     Result := 'Runs as:' + NewLine + Space + 'an app when you sign in';
+  if ChosenCpuPower then
+    Result := Result + NewLine + NewLine + 'CPU power:' + NewLine + Space + 'measured (PawnIO driver, installed if it is not there yet)'
+  else
+    Result := Result + NewLine + NewLine + 'CPU power:' + NewLine + Space + 'not measured';
   Result := Result + NewLine + NewLine + 'Program files:' + NewLine + Space + ExpandConstant('{commonpf64}\SentrySixManager');
   Result := Result + NewLine + NewLine + 'Settings and data (kept on upgrades):' + NewLine + Space + ExpandConstant('{commonappdata}\SentrySixManager');
   if PrevMode <> '' then
@@ -378,6 +437,10 @@ begin
         Params := '-Service'
       else
         Params := '-NoService';
+      if ChosenCpuPower then
+        Params := Params + ' -CpuPower'
+      else
+        Params := Params + ' -NoCpuPower';
       { an app-mode upgrade keeps the person it was installed for }
       if (Mode = 'app') and (PrevMode <> 'app') then begin
         ForUser := SetupUser;

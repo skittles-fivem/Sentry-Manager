@@ -25,8 +25,12 @@
 //
 // Not available on Windows, so null: load average, thermal throttling,
 // temperatures (CPU, disks, GPUs other than NVIDIA's), swap and the cache
-// figure. CPU watts only where Windows has Energy Meter counters; without
-// them cpuUnavailable is 'windows', the value older mains already know.
+// figure. CPU watts from the RAPL package energy counters when the CPU
+// power service is installed (Setup's "Measure CPU power", which installs the
+// signed PawnIO driver; perf.sample's 'rapl' set), the same counters Docker
+// reads from powercap; else from Windows's Energy Meter counters where it
+// has them; without either cpuUnavailable is 'windows', the value older
+// mains already know.
 
 const os = require('os');
 const path = require('path');
@@ -36,8 +40,9 @@ const { combinePower } = require('../power');
 const { appVersion } = require('../host');
 const { round, clampPct } = require('../util');
 
-// every counter set perf.sample knows (windows-helper-protocol.md)
-const SETS = ['cpu', 'disk', 'net', 'gpu', 'gpumem', 'energy', 'proc'];
+// every counter set perf.sample knows (windows-helper-protocol.md); 'rapl'
+// is the CPU power service's reading (SentryPower.exe, through PawnIO)
+const SETS = ['cpu', 'disk', 'net', 'gpu', 'gpumem', 'energy', 'rapl', 'proc'];
 const INFO_EVERY_MS = 10 * 60 * 1000;
 // a failed sys.info / gpu.list is asked again after a minute, not ten
 const INFO_RETRY_MS = 60 * 1000;
@@ -934,6 +939,12 @@ class WinGpu {
 
 // ---- power
 
+/** Socket number of a 'rapl' set instance ("package-0", as Linux names its zones), or null. */
+function raplSocket(inst) {
+  const m = /^package-(\d{1,2})$/.exec(inst);
+  return m ? Number(m[1]) : null;
+}
+
 /** Socket number of an Energy Meter package instance ("RAPL_Package0_PKG"), or null for the other domains. */
 function packageSocket(inst) {
   const m = /package(\d*)_pkg$/i.exec(inst);
@@ -944,11 +955,14 @@ class WinPower {
   constructor({ src }) {
     this.src = src;
     this.sockets = new Map();
-    // whether this PC has Energy Meter package counters: null until a
-    // reading has come, then true for good once one had them. Only false
-    // makes cpuUnavailable say 'windows'; a passing gap (the first reading,
-    // a stalled helper, a counter reset) leaves cpuW null with no reason.
+    // whether this PC has a CPU power source (the CPU power service's RAPL
+    // readings, or Energy Meter package counters): null until a reading has
+    // come, then true for good once one had them. Only false makes
+    // cpuUnavailable say 'windows'; a passing gap (the first reading, a
+    // stalled helper, a counter reset) leaves cpuW null with no reason.
     this.meter = null;
+    // where the last figure came from: 'rapl' or 'energy-meter'
+    this.source = null;
   }
 
   probe() {}
@@ -974,7 +988,10 @@ class WinPower {
   cpu() {
     this.sockets = new Map();
     const pair = this.src.current();
-    if (pair?.cur && this.meter !== true) this.meter = Object.keys(setOf(pair.cur, 'energy')).some((inst) => packageSocket(inst) !== null);
+    const rapl = pair?.cur ? Object.keys(setOf(pair.cur, 'rapl')).some((inst) => raplSocket(inst) !== null) : false;
+    if (pair?.cur && this.meter !== true) this.meter = rapl || Object.keys(setOf(pair.cur, 'energy')).some((inst) => packageSocket(inst) !== null);
+    this.source = rapl ? 'rapl' : 'energy-meter';
+    if (rapl) return this.raplCpu(pair);
     if (!pair?.prev || !(pair.seconds > 0) || pair.seconds > 60) return null;
     const cur = setOf(pair.cur, 'energy');
     const prev = setOf(pair.prev, 'energy');
@@ -1000,8 +1017,39 @@ class WinPower {
     return total;
   }
 
+  /**
+   * CPU package W from the CPU power service's readings: the microjoules
+   * used between two readings over the time between them (the service's
+   * own clock, when it read the counters), every package together, the
+   * way power.js works out energy_uj. The service keeps a 64-bit total (it
+   * took care of the 32-bit counter's wrap), so a total that went back is a
+   * restart of the service: no reading this time.
+   */
+  raplCpu(pair) {
+    if (!pair.prev) return null;
+    const cur = setOf(pair.cur, 'rapl');
+    const prev = setOf(pair.prev, 'rapl');
+    let total = null;
+    for (const [inst, c] of Object.entries(cur)) {
+      const socket = raplSocket(inst);
+      if (socket === null || !prev[inst]) continue;
+      const uj = counterDelta(prev[inst].EnergyUj, c?.EnergyUj);
+      const t100 = counterDelta(prev[inst].Time100ns, c?.Time100ns);
+      if (uj === null || t100 === null) continue;
+      const seconds = t100 / 1e7;
+      // the same reading twice (the service reads once a second), or too far apart to trust
+      if (!(seconds > 0.2) || seconds > 60) continue;
+      const w = uj / 1e6 / seconds;
+      if (!(w >= 0) || w > 1000) return null; // not a real reading
+      total = (total || 0) + w;
+      this.sockets.set(socket, (this.sockets.get(socket) || 0) + w);
+    }
+    return total;
+  }
+
   sample(t, gpus) {
-    return combinePower(this.cpu(), gpus, 'energy-meter');
+    const cpuW = this.cpu();
+    return combinePower(cpuW, gpus, this.source || 'energy-meter');
   }
 }
 
@@ -1117,6 +1165,6 @@ function createProviders(ctx) {
 }
 
 module.exports = {
-  createProviders, PerfSource, counterDelta, luidKey, hexId, perfInstanceName, diskName, diskKind, windowsName, packageSocket,
+  createProviders, PerfSource, counterDelta, luidKey, hexId, perfInstanceName, diskName, diskKind, windowsName, packageSocket, raplSocket,
   WinCpu, WinProcs, WinMemory, WinDisks, WinNetwork, WinGpu, WinPower, WinHost, SETS
 };

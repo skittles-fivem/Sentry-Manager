@@ -2,6 +2,8 @@
 #Requires -RunAsAdministrator
 <#
   Removes Sentry Six Manager in either mode: the service (service mode), the
+  CPU power service (SentrySixPower) and PawnIO if this installer put it
+  there and no other program uses it (cpupower.ps1 has the rules), the
   app's Start menu entry and its start at sign-in, the firewall rule and the
   program files (%ProgramFiles%\SentrySixManager). The app, and in app mode
   the server it runs, must be quit first (tray icon > Quit); it waits up to 2
@@ -105,6 +107,9 @@ if (-not [Environment]::Is64BitProcess) {
 $InstallDir = Join-Path $programFiles 'SentrySixManager'
 $DataRoot = Join-Path $programData 'SentrySixManager'
 $DataDir = Join-Path $DataRoot 'data'
+# PawnIO and the CPU power service (Remove-PowerService, Remove-PawnIOIfOurs)
+$CpuPowerScript = @(@($PSScriptRoot, $InstallDir) | Where-Object { -not [string]::IsNullOrEmpty($_) } | ForEach-Object { Join-Path $_ 'cpupower.ps1' }) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+if ($null -ne $CpuPowerScript) { . $CpuPowerScript }
 $SetupUninstallDir = Join-Path $programFiles 'SentrySixManager-Uninstall'
 
 $ok = $true
@@ -157,6 +162,15 @@ try {
     }
   } else {
     Say 'No service installed; skipping.'
+  }
+
+  # --- CPU power: its service runs from the program folder; PawnIO only if ours ---
+  if ($null -ne $CpuPowerScript) {
+    Remove-PowerService
+    Remove-PawnIOIfOurs
+  } elseif ($null -ne (Get-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue)) {
+    try { Stop-Service -Name 'SentrySixPower' -Force } catch { }
+    & sc.exe delete SentrySixPower | Out-Host
   }
 
   # --- the app (and in app mode its server): quit before its files go ---

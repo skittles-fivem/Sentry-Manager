@@ -30,6 +30,13 @@
                        double-clicked it; default: the account running this)
   -Port 9443           port for the web UI, first install only (later: PORT in manager.env)
   -DefenderExclusion   tell Microsoft Defender not to scan the data folder (faster saves)
+  -CpuPower            measure the CPU's power: installs the signed PawnIO driver
+                       (https://pawnio.eu; only if it is not installed yet) and
+                       the CPU power service (bin\SentryPower.exe, SentrySixPower)
+  -NoCpuPower          do not: removes the CPU power service, and PawnIO if this
+                       installer put it there and no other program uses it
+  With neither, an installed copy keeps its choice; a first install asks
+  (no console to ask on: off). Setup's "Measure CPU power" box passes one.
 #>
 [CmdletBinding()]
 param(
@@ -38,7 +45,9 @@ param(
   [switch]$DefenderExclusion,
   [switch]$Service,
   [switch]$NoService,
-  [string]$ForUser
+  [string]$ForUser,
+  [switch]$CpuPower,
+  [switch]$NoCpuPower
 )
 
 Set-StrictMode -Version Latest
@@ -295,6 +304,12 @@ $ServiceExe = Join-Path $InstallDir 'bin\SentryService.exe'
 $NodeExe = Join-Path $InstallDir 'node\node.exe'
 $AppExe = Join-Path $InstallDir 'app-ui\SentrySix.exe'
 $ServiceSid = Get-ServiceSid $ServiceName
+$PowerExe = Join-Path $InstallDir 'bin\SentryPower.exe'
+$PawnSetupExe = Join-Path $InstallDir 'pawnio\PawnIO_setup.exe'
+# PawnIO and the CPU power service (Install-PawnIO, Install-PowerService, ...)
+$CpuPowerScript = Join-Path $PSScriptRoot 'cpupower.ps1'
+$haveCpuPower = Test-Path -LiteralPath $CpuPowerScript -PathType Leaf
+if ($haveCpuPower) { . $CpuPowerScript }
 $ShortcutFile = Join-Path ([Environment]::GetFolderPath('CommonPrograms')) $ShortcutName
 
 $stoppedByUs = $false
@@ -373,6 +388,30 @@ try {
     Say 'Mode: Windows service (runs without anyone signed in).'
   }
 
+  # --- 1c. CPU power measurement (PawnIO), in either mode ---
+  if ($CpuPower -and $NoCpuPower) { throw 'Choose -CpuPower or -NoCpuPower, not both.' }
+  $prevCpuPower = Get-RegValue $ModeKey 'CpuPower'
+  if ($CpuPower) {
+    $WantCpuPower = $true
+  } elseif ($NoCpuPower) {
+    $WantCpuPower = $false
+  } elseif ($prevCpuPower -eq '1' -or $prevCpuPower -eq '0') {
+    $WantCpuPower = $prevCpuPower -eq '1'
+  } else {
+    $answer = $null
+    try {
+      $answer = Read-Host 'Measure the CPU''s power for the server stats? This installs PawnIO, a signed open-source driver (pawnio.eu), if it is not installed yet. (Y/n)'
+    } catch {
+      Say 'No console to ask on: CPU power is not measured (pass -CpuPower for it).'
+      $answer = 'n'
+    }
+    $WantCpuPower = -not ("$answer".Trim() -match '^(?i:n|no)$')
+  }
+  if ($WantCpuPower -and -not $haveCpuPower) {
+    Warn 'This release has no cpupower.ps1, so CPU power cannot be set up.'
+    $WantCpuPower = $false
+  }
+
   # --- 2. stop the running service and the app (an upgrade keeps all data) ---
   if ($null -ne $svc) {
     if ($svc.Status -ne [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
@@ -391,6 +430,9 @@ try {
   } else {
     Say 'No service yet: this is a first install.'
   }
+
+  # the CPU power service runs from the program folder too (set up again in step 5b)
+  if ($haveCpuPower) { Stop-PowerService }
 
   # the app, and in app mode the server it runs, hold files in the program
   # folder and the port: they must close first. Quitting the app stops its
@@ -423,13 +465,15 @@ try {
     $null = New-Item -ItemType Directory -Path $Staging -Force
     # only the release's own folders and scripts: if the zip was unpacked
     # straight into Downloads, nothing else from there is copied
-    foreach ($dir in @('node', 'ffmpeg', 'bin', 'app-ui', 'app')) {
+    foreach ($dir in @('node', 'ffmpeg', 'bin', 'app-ui', 'app', 'pawnio')) {
+      # (pawnio\: PawnIO's installer and notices, in releases since the CPU power option)
+      if ($dir -eq 'pawnio' -and -not (Test-Path -LiteralPath (Join-Path $Source $dir) -PathType Container)) { continue }
       $robo = @((Join-Path $Source $dir), (Join-Path $Staging $dir), '/MIR', '/XJ', '/R:2', '/W:2', '/NP', '/NFL', '/NDL', '/NJH', '/NJS')
       & robocopy.exe @robo | Out-Host
       # robocopy: 0-7 is success (files copied, extra files removed, ...), 8+ is failure
       if ($LASTEXITCODE -ge 8) { throw "Copying the $dir folder failed (robocopy exit code $LASTEXITCODE). The installed version was not changed." }
     }
-    foreach ($file in @('install.ps1', 'uninstall.ps1', 'update.ps1', 'Install.cmd')) {
+    foreach ($file in @('install.ps1', 'uninstall.ps1', 'update.ps1', 'cpupower.ps1', 'Install.cmd')) {
       $from = Join-Path $Source $file
       if (Test-Path -LiteralPath $from -PathType Leaf) { Copy-Item -LiteralPath $from -Destination (Join-Path $Staging $file) -Force }
     }
@@ -687,6 +731,36 @@ $portLine
     Remove-ItemProperty -LiteralPath $ModeKey -Name 'AppUserSid' -ErrorAction SilentlyContinue
   }
 
+  # --- 5b. CPU power: PawnIO and the CPU power service, or neither ---
+  # A failure here never stops the install: the server works without CPU
+  # watts, as before (Energy Meter where Windows has it, else "n/a").
+  if ($haveCpuPower) {
+    try {
+      # (our record of installing PawnIO goes first if PawnIO is gone)
+      Clear-StalePawnMarker
+      if ($WantCpuPower) {
+        Say 'CPU power: setting up PawnIO and the CPU power service...'
+        $pawn = Install-PawnIO $PawnSetupExe
+        if ($pawn -ne 'unavailable') {
+          if (Install-PowerService $PowerExe) {
+            if ($pawn -eq 'restart') { Say 'The CPU power service is installed; CPU power shows once Windows has restarted.' }
+            else { Say 'The CPU power service is running: the server stats show the CPU package watts.' }
+          }
+        } else {
+          # (no service without a usable driver; the choice stays on, so a later run tries again)
+          Remove-PowerService
+        }
+        Set-ItemProperty -LiteralPath $ModeKey -Name 'CpuPower' -Value '1' -Type String
+      } else {
+        Remove-PowerService
+        Remove-PawnIOIfOurs
+        Set-ItemProperty -LiteralPath $ModeKey -Name 'CpuPower' -Value '0' -Type String
+      }
+    } catch {
+      Warn "CPU power could not be set up ($($_.Exception.Message)). Sentry Six Manager works without it."
+    }
+  }
+
   # --- 6. permissions ---
   # Program files: everyone may read and run them (inherited from Program
   # Files, so only administrators can change them); the service the same.
@@ -923,6 +997,10 @@ $portLine
       Write-Host 'Starting the service again...'
       try { Start-Service -Name $ServiceName } catch { Write-Host "It did not start: $($_.Exception.Message)" -ForegroundColor Red }
     }
+  }
+  # the CPU power service, stopped in step 2, runs again as it was
+  if ($haveCpuPower -and $null -ne (Get-Service -Name $PowerServiceName -ErrorAction SilentlyContinue)) {
+    try { Start-Service -Name $PowerServiceName } catch { }
   }
 }
 
