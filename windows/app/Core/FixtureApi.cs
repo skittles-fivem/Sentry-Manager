@@ -12,9 +12,10 @@ namespace SentrySix.Core
     /// A value { "$error": "text", "$status": 500, "$code": "X" } fails with
     /// ApiError; a GET with no entry fails with a 404 ApiError, as an unknown
     /// API would. POST, PUT and DELETE answer their own entry if there is one,
-    /// else { ok: true }. Files (GetBytes) answer "BYTES &lt;path&gt;" entries
+    /// else { ok: true }. { "$pending": true } never answers (a page still
+    /// loading: the Overview's numbers before the first sample). Files (GetBytes) answer "BYTES &lt;path&gt;" entries
     /// as base64, else fail, so thumbnails show their fallback text.
-    /// Every task is already completed, so a page's awaits finish at once.
+    /// Every other task is already completed, so a page's awaits finish at once.
     /// </summary>
     public sealed class FixtureApi : IJsonApi
     {
@@ -42,7 +43,7 @@ namespace SentrySix.Core
         /// <summary>Every request so far, as "METHOD path".</summary>
         public IList<string> Asked { get { return asked; } }
 
-        Task<JsonValue> Answer(string method, string path, bool mustExist)
+        Task<JsonValue> Answer(string method, string path, bool mustExist, CancellationToken ct)
         {
             string key = method + " " + path;
             asked.Add(key);
@@ -54,6 +55,8 @@ namespace SentrySix.Core
                 return t.Task;
             }
             JsonValue v = answers[key];
+            // (cancelling it, as a timeout does, still ends it)
+            if (v.IsObject && v["$pending"].Bool) return Pending(t, ct);
             if (v.IsObject && v.Has("$error"))
             {
                 int status = v.Has("$status") ? (int)v["$status"].Long : 500;
@@ -67,14 +70,20 @@ namespace SentrySix.Core
             return t.Task;
         }
 
-        public Task<JsonValue> Get(string path, CancellationToken ct) { return Answer("GET", path, true); }
-        public Task<JsonValue> Post(string path, JsonValue body, CancellationToken ct) { return Answer("POST", path, false); }
-        public Task<JsonValue> Put(string path, JsonValue body, CancellationToken ct) { return Answer("PUT", path, false); }
-        public Task<JsonValue> Delete(string path, JsonValue body, CancellationToken ct) { return Answer("DELETE", path, false); }
+        static Task<JsonValue> Pending(TaskCompletionSource<JsonValue> t, CancellationToken ct)
+        {
+            if (ct.CanBeCanceled) ct.Register(() => t.TrySetCanceled());
+            return t.Task;
+        }
+
+        public Task<JsonValue> Get(string path, CancellationToken ct) { return Answer("GET", path, true, ct); }
+        public Task<JsonValue> Post(string path, JsonValue body, CancellationToken ct) { return Answer("POST", path, false, ct); }
+        public Task<JsonValue> Put(string path, JsonValue body, CancellationToken ct) { return Answer("PUT", path, false, ct); }
+        public Task<JsonValue> Delete(string path, JsonValue body, CancellationToken ct) { return Answer("DELETE", path, false, ct); }
 
         public Task<JsonValue> PostBytes(string path, byte[] data, string contentType, IDictionary<string, string> headers, CancellationToken ct)
         {
-            return Answer("POST", path, false);
+            return Answer("POST", path, false, ct);
         }
 
         public Task<byte[]> GetBytes(string path, CancellationToken ct)

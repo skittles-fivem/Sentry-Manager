@@ -22,7 +22,8 @@ frame, so two runs give the same picture.
   (this PC's choices, e.g. `"daylight:theme": "dark"`, `"horizon.sky": "calm"`).
   The pages themselves ask `api`: the server's answers keyed by
   `"GET <path>"` with the path exactly as the page asks it (query included);
-  a `{ "$error": "text", "$status": 500 }` answer is a failure, a POST, PUT
+  a `{ "$error": "text", "$status": 500 }` answer is a failure,
+  `{ "$pending": true }` never answers (a page still loading), a POST, PUT
   or DELETE without an entry answers `{ ok: true }`, thumbnails have none
   (their boxes show the fallback text). The shell's own `me`, `settings`,
   `vehicles`, `notifications` and `jobs` come from the same `api` answers
@@ -102,11 +103,19 @@ built-in 760 / 374 px; Horizon 1560, 1440, 1279, 1023, 400 px; Flux 860 and
 Each at both sizes, as above; pages not drawn here yet render their
 "Opens in your browser" card. The variants are in `Shell\RenderFixture.json`
 (`variants`, from capture.js's `VARIANTS`); capture.js takes the web side
-of each under the same name (the two error states exist natively only).
+of each under the same name (jobs-error and bin-error exist natively only;
+the Overview's variants answer in the browser through Playwright routes).
+The Overview's numbers are test/fixtures/statsSample.json on both sides
+(`GET /api/stats` in the fixture), not the fixture machine's own.
 
 - builtin overview
 - builtin overview-off
 - builtin overview-logs
+- builtin overview-loading
+- builtin overview-error
+- builtin overview-novehicle
+- builtin overview-logs-empty
+- builtin overview-long
 - builtin nodes
 - builtin footage
 - builtin policies

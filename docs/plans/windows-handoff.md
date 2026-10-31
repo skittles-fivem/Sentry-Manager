@@ -324,3 +324,23 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   change to windows.yml was needed: the render step still runs without
   `--fixture` and lists the pages from RENDER-PAGES.md.
 
+
+### Phase 1: Overview (2026-10-31)
+
+- `Core/Overview.cs` (`Nd`): web/app.js's cpuTile ... processTile, steady(),
+  serverBody(), vehicleTiles(), hostLine() and alertChip() as models;
+  `Nd.Outline()` writes them as the text a browser shows.
+  `test/windowsNativeOverview.test.js` runs the web's own functions on 15
+  samples and writes `Core.Tests/Fixtures/expected-overview.json`
+  (`UPDATE_NATIVE_PARITY=1` rewrites it); `Core.Tests/OverviewTests.cs`
+  compares the C#. A change to those app.js functions fails the node test
+  until the file is rewritten and the change ported.
+- `Ui/Builtin/OverviewPage.cs`: the page (registered in BuiltinInterface's
+  native table, so its browser card is gone). Polls /api/stats every 2 s
+  only while it is shown, the window is not minimised and Nerd stats is on.
+- `FixtureApi`: `{ "$pending": true }` never answers (the loading state).
+- `tools/parity/capture.js`: the Overview's variants (loading, error,
+  novehicle, logs-empty, long) on both sides; the web side answers them
+  through Playwright routes, and `GET /api/stats` is
+  test/fixtures/statsSample.json in the fixture and in the browser.
+  `Shell/RenderFixture.json` rewritten with `--fixture-only`.

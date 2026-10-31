@@ -482,6 +482,34 @@ namespace SentrySix.Ui.Builtin
             f.Wrap = true;
             f.LineGap = 10;
             f.Margin = new Thickness(0, 0, 0, 30);
+            if (shell.Vehicles.Count == 0)
+            {
+                // .pill.add: "+ Add your first vehicle", a link to Settings (dashed, text-2, row gap 8)
+                FrameworkElement plusIcon = Svg.Icon("<path d=\"M12 5v14M5 12h14\"/>", 18, Svg.Defaults.Outline(1.8));
+                plusIcon.VerticalAlignment = VerticalAlignment.Center;
+                TextBlock first = U.Text("Add your first vehicle", 14, FontWeights.Normal, null);
+                first.TextDecorations = TextDecorations.Underline;
+                first.VerticalAlignment = VerticalAlignment.Center;
+                first.TextWrapping = TextWrapping.NoWrap;
+                Flex row = Flex.Row(8, plusIcon, first);
+                Grid g = new Grid();
+                g.SetResourceReference(TextElement.ForegroundProperty, "text-2");
+                Rectangle dash = new Rectangle();
+                dash.RadiusX = 12;
+                dash.RadiusY = 12;
+                dash.StrokeDashArray = new DoubleCollection(new double[] { 3, 3 });
+                dash.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "border-strong");
+                dash.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "panel");
+                g.Children.Add(dash);
+                Border pad = new Border();
+                pad.Padding = Css.T(12, 20, 12, 18);
+                pad.Child = row;
+                g.Children.Add(pad);
+                U.Click(g, () => shell.Navigate("settings"));
+                g.Uid = "pill-first";
+                f.Children.Add(g);
+                return f;
+            }
             VehicleInfo cur = shell.Current;
             foreach (VehicleInfo v in shell.Vehicles)
             {

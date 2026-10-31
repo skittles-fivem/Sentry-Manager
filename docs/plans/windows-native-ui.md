@@ -104,7 +104,15 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   (`Shell/RenderFixture.json`) and the builtin pages in the render list
   and in capture.js. Per page (not started / in progress / native and
   rendered / parity ticked):
-  - Overview: not started
+  - Overview: native (`Ui/Builtin/OverviewPage.cs`, its tiles worked out by
+    `Core/Overview.cs`); type-checked with mcs, not yet built or rendered
+    on Windows. The tiles' text, order, bars, sparklines and warnings are
+    compared with web/app.js's own serverBody()/vehicleTiles() on 15
+    samples (test/windowsNativeOverview.test.js writes
+    Core.Tests/Fixtures/expected-overview.json; Core.Tests OverviewTests
+    checks the C#). Render list: overview, -off, -logs, -loading, -error,
+    -novehicle, -logs-empty, -long (desktop and phone); capture.js takes the
+    web side of each (the stats from test/fixtures/statsSample.json on both).
   - Footage: not started
   - Nodes: not started
   - Policies: not started
@@ -121,7 +129,9 @@ server reads as the app's own "Can't reach Sentry Six Manager at …"
 message, not the web's "Reload the page" one; the dialog's backdrop is not
 blurred; links from native pages into the Viewer or Encoder open the
 browser without the web's preselected day or folder (phases 2 and 3);
-a recording's "Download" reads the whole file before saving it.
+a recording's "Download" reads the whole file before saving it; the
+Overview's log lines cannot be highlighted (each has "Copy line" on its
+right-click menu instead), so a live update never waits for a highlight.
 
 ## Costs the owner should know
 

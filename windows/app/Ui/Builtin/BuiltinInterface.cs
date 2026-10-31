@@ -39,6 +39,7 @@ namespace SentrySix.Ui.Builtin
         // shows it in the window instead of opening the browser.
         static readonly Dictionary<string, Func<PageContext, INativePage>> native = new Dictionary<string, Func<PageContext, INativePage>>
         {
+            { "overview", c => new OverviewPage(c) }
         };
 
         static BuiltinInterface()

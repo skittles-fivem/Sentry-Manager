@@ -51,6 +51,12 @@ const PAGES = {
   overview: { signedIn: true, path: '/#/overview', only: 'builtin' },
   'overview-off': { signedIn: true, path: '/#/overview', only: 'builtin', storage: { 'sm:nerdStats': 'false' } },
   'overview-logs': { signedIn: true, path: '/#/overview/logs', only: 'builtin' },
+  // (these take their answers from VARIANTS[name].api, on the web through Playwright's routes)
+  'overview-loading': { signedIn: true, path: '/#/overview', only: 'builtin', variant: true },
+  'overview-error': { signedIn: true, path: '/#/overview', only: 'builtin', variant: true },
+  'overview-novehicle': { signedIn: true, path: '/#/overview', only: 'builtin', variant: true },
+  'overview-logs-empty': { signedIn: true, path: '/#/overview/logs', only: 'builtin', variant: true },
+  'overview-long': { signedIn: true, path: '/#/overview', only: 'builtin', variant: true },
   nodes: { signedIn: true, path: '/#/nodes', only: 'builtin' },
   footage: { signedIn: true, path: '/#/footage', only: 'builtin' },
   policies: { signedIn: true, path: '/#/policies', only: 'builtin' },
@@ -69,10 +75,29 @@ const PAGES = {
 // native render list's page names). route/sub pick the page; api answers go
 // over the recorded ones (a { "$error", "$status" } answer is a failure);
 // prefs are this PC's choices (the web's localStorage "sm:" keys).
-// {vehicle} is the fixture vehicle's id.
+// {vehicle} is the fixture vehicle's id. A function gets the recorded answers
+// and gives the variant (the long names are the recorded vehicle renamed).
+// { "$pending": true } never answers (the page as it waits).
 const VARIANTS = {
   'overview-off': { route: 'overview', prefs: { nerdStats: 'false' } },
   'overview-logs': { route: 'overview', sub: 'logs' },
+  'overview-loading': { route: 'overview', api: { 'GET /api/stats': { $pending: true } } },
+  'overview-error': { route: 'overview', api: { 'GET /api/stats': { $error: 'The server\'s numbers could not be read.', $status: 500 } } },
+  'overview-novehicle': { route: 'overview', api: { 'GET /api/vehicles': { vehicles: [] } } },
+  'overview-logs-empty': { route: 'overview', sub: 'logs', api: { 'GET /api/logs?level=problems': { lines: [] }, 'GET /api/logs/archive': { archives: [] } } },
+  'overview-long': (api) => ({
+    route: 'overview',
+    api: {
+      'GET /api/vehicles': {
+        vehicles: (api['GET /api/vehicles'].vehicles || []).map((v, i) => (i ? v : { ...v, name: 'Model 3 Long Range with a name far too long for one pill or one tile title', timezone: 'America/Argentina/ComodRivadavia' }))
+      },
+      'GET /api/stats': {
+        ...STATS,
+        host: { ...STATS.host, hostname: 'a-really-long-host-name-for-the-overview-head.example.internal', os: 'Ubuntu 24.04.1 LTS (GNU/Linux, a long distribution name)' },
+        processes: { ...STATS.processes, top: [{ name: 'ffmpeg · hevc_vaapi with an encoder name that is far too long for its cell', cpu: 31, memB: 1610612736, gpuVideo: 40 }, ...STATS.processes.top] }
+      }
+    }
+  }),
   'settings-vehicle': { route: 'settings', sub: 'vehicle/{vehicle}' },
   'settings-vehicle-new': { route: 'settings', sub: 'vehicle-new' },
   'settings-security': { route: 'settings', sub: 'security' },
@@ -81,6 +106,9 @@ const VARIANTS = {
   'jobs-error': { route: 'jobs', api: { 'GET /api/jobs?vehicle={vehicle}': { $error: 'The job list could not be read.', $status: 500 } } },
   'bin-error': { route: 'bin', api: { 'GET /api/bin?vehicle={vehicle}': { $error: 'The Recycle Bin could not be read.', $status: 500 } } }
 };
+// The Overview's numbers on both sides: a real server's sample
+// (test/fixtures/statsSample.json) rather than what this machine reports
+const STATS = JSON.parse(fs.readFileSync(path.join(REPO, 'test', 'fixtures', 'statsSample.json'), 'utf8'));
 const SIZES = [
   { width: 1400, height: 900, mobile: false },
   { width: 390, height: 844, mobile: true }
@@ -279,6 +307,7 @@ async function writeFixture(base, file, dir) {
   const { gets, posts } = fixturePaths(vehicle, days);
   const api = {};
   for (const p of gets) api[`GET ${p}`] = answer(await c.request('GET', p));
+  api['GET /api/stats'] = STATS;
   // (a POST with no body, as vehicleEncoding.js invoke() sends one)
   for (const p of posts) api[`POST ${p}`] = answer(await c.request('POST', p));
   const fill = (x) => JSON.parse(JSON.stringify(x).replace(/\{vehicle\}/g, vehicle));
@@ -289,7 +318,7 @@ async function writeFixture(base, file, dir) {
     live: true,
     vehicle,
     api,
-    variants: fill(VARIANTS),
+    variants: fill(Object.fromEntries(Object.entries(VARIANTS).map(([k, v]) => [k, typeof v === 'function' ? v(api) : v]))),
     prefs: {}
   };
   await fsp.mkdir(path.dirname(file), { recursive: true });
@@ -373,12 +402,30 @@ async function setInterface(ctx, base, ui) {
   await api(ctx, base, 'PUT', '/api/ui-packs/active', { id: pack.id });
 }
 
-async function shoot(browser, base, ui, pageName, size, file, vehicle) {
+/**
+ * The fixture's answers in the browser too: the Overview's numbers, and a
+ * variant's own answers ({ $error } as that status, { $pending } never).
+ */
+async function answerAs(ctx, answers) {
+  for (const [key, value] of Object.entries(answers)) {
+    const [method, p] = key.split(' ');
+    const [pathname, query = ''] = p.split('?');
+    await ctx.route((url) => url.pathname === pathname && url.search.replace(/^\?/, '') === query, (route) => {
+      if (route.request().method() !== method) return route.fallback();
+      if (value && value.$pending) return undefined;
+      if (value && value.$error) return route.fulfill({ status: value.$status || 500, contentType: 'application/json', body: JSON.stringify({ error: value.$error, ...(value.$code ? { code: value.$code } : {}) }) });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
+    });
+  }
+}
+
+async function shoot(browser, base, ui, pageName, size, file, vehicle, fixture) {
   const spec = PAGES[pageName];
   const ctx = await browser.newContext(contextOptions(size, ui));
   const errors = [];
   try {
     if (spec.signedIn) await signIn(ctx, base);
+    if (spec.signedIn && ui === 'builtin') await answerAs(ctx, { 'GET /api/stats': fixture.api['GET /api/stats'], ...(spec.variant ? fixture.variants[pageName].api : {}) });
     // this browser's own choices (localStorage), before the page's script reads them
     if (spec.storage) await ctx.addInitScript((pairs) => { for (const [k, v] of Object.entries(pairs)) localStorage.setItem(k, v); }, spec.storage);
     const page = await ctx.newPage();
@@ -418,14 +465,15 @@ async function main() {
     // (consecutive RecentClips minutes are one recording)
     const count = RECORDINGS.length;
     console.log(`recordings: ${await waitForFootage(admin, server.base, count)}`);
-    const { vehicle } = await writeFixture(server.base, opts.fixture, dir);
+    const fixture = await writeFixture(server.base, opts.fixture, dir);
+    const { vehicle } = fixture;
     for (const ui of opts.only) {
       await setInterface(admin, server.base, ui);
       for (const pageName of opts.pages) {
         if (PAGES[pageName].only && PAGES[pageName].only !== ui) continue;
         for (const size of SIZES) {
           const name = `${ui}-${pageName}-${size.width}x${size.height}.png`;
-          const errors = await shoot(browser, server.base, ui, pageName, size, path.join(opts.out, name), vehicle);
+          const errors = await shoot(browser, server.base, ui, pageName, size, path.join(opts.out, name), vehicle, fixture);
           shots.push({ file: name, interface: ui, page: pageName, width: size.width, height: size.height, errors });
           console.log(`${name}${errors.length ? `  (page errors: ${errors.join(' | ')})` : ''}`);
         }
