@@ -757,3 +757,50 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   `state` is the Viewer's address extra; RenderFixture.json updated in
   place, capture.js has the same variants and waits 5 s for Studio).
 
+
+### Phase 2: Viewer part 1, empty, loading and error states (2026-10-31)
+
+- `Core/ViewerStates.cs`: `ViewerReads` (the shim's `reads` and
+  electronAPI.readDir: POST /api/studio/readDir counted while it runs, the
+  last failure's message kept, [] on failure; the message is the server's
+  words or the status text, "Signed out" on 401, "Failed to fetch" when
+  there is no answer), `MediaErrors` (describeMediaError, and
+  `FromFfmpeg`: a camera's failed ffmpeg as the MediaError code Chromium
+  gives, 4 / 2 / 1 / 3, with ffmpeg's line as the detail), `StudioText`
+  (the English words, t()'s {param} replacement with JavaScript's $
+  patterns), `StudioNotice` (notify's type and time: 5.5 s for an error,
+  3.2 s otherwise, a finite timeoutMs wins, 0 or less stays),
+  `StudioLoading` (show / update / hide, width clamped, NaN ignored),
+  `ViewerFirstLoad` (#playBtn / #progressBar disabled until a
+  collection's first segment loads or 5 s pass; "Failed to load video:
+  <why>" only when that first load fails, an event's segment retried from
+  0 first). `Format.JsNum` now prints JavaScript's exponent form past
+  1e21 and under 1e-6.
+- `Ui/Builtin/ViewerStates.cs`: `StudioLook` (flightDeck tokens,
+  `MiniButton` = .mini-btn, `ClipListPlaceholder` for the clip list),
+  `StudioLoadingOverlay` (#loadingOverlay: spinner, words, bar; no
+  backdrop blur), `StudioToasts` (.toast-container bottom left, .toast).
+- `StudioViewer` (ViewerPage.cs): the drop overlay darkens under the
+  pointer and swallows clicks and drops; Try again is a .mini-btn; it
+  starts the shim's timers itself (Watch is private now) and, 500 ms
+  after (loadDefaultFolderOnStartup), shows "Loading default folder..."
+  while `Scan` runs. For the next parts: set `Scan` (the clip library:
+  every read through `ReadDir(path)`, `ShowLoading` / `UpdateLoading` /
+  `HideLoading` as script.js calls them), `Days` / `PickedDay` /
+  `PickDay` (Play day), call `CollectionOpening(firstSegment)` from
+  selectDayCollection, read `ControlsEnabled` / `ControlsChanged` for the
+  play button and progress bar, and `Notify(...)` for Studio's toasts.
+  Setting `Player` subscribes to its SegmentOpened / SegmentFailed (pass
+  the failure through `MediaErrors.FromFfmpeg(...).Describe()` in
+  Player's why when it can; today `why` is ffmpeg's text). Until `Scan`
+  is set the start folder is read once; a fixture with no readDir answer
+  ({ ok: true }) says nothing, so viewer / -day / -recording still show
+  "Opening …".
+- test/windowsNativeViewerStates.test.js runs utils.js, i18n.js with
+  translations.js, notifications.js, loadingOverlay.js and the shim's
+  readDir and writes Core.Tests/Fixtures/expected-viewer-states.json;
+  Core.Tests ViewerStatesTests (7 tests, passing under mono).
+- Renders: viewer-scanning, viewer-noclips, viewer-readerror
+  (RenderFixture.json updated in place, capture.js has the variants).
+- Not done here: telemetry absent -> PARKED is the dashboard's part (9);
+  401 needs nothing new (the Api's SignedOut already signs in again).

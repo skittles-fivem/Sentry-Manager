@@ -190,6 +190,19 @@ hidden; under 1200 px the sidebar collapsed) and under 900 px is drawn at
 Viewer's empty screen with its words (the clip list, the cameras and the
 controls are the Viewer's next parts); capture.js waits 5 s after the
 clicks for Studio to load in its frame.
+The Viewer's empty, loading and error states (part 1): viewer-scanning
+(POST /api/studio/readDir never answers: #loadingOverlay's "Loading
+default folder..." / "Looking for dashcam clips" with its bar at 0 over
+the empty screen's "Opening Model 3's footage…"), viewer-noclips (every
+read answers []: "No dashcam clips found in <folder>. Footage appears here
+once the car has recorded some." with Try again) and viewer-readerror
+(the reads fail with 403 "That path is outside the vehicle shares.":
+"Can't open the footage: That path is outside the vehicle shares." with
+Try again). The native render reads the status line as the shim's timer
+does once the reads have been quiet 2 s; the spinner is drawn at rest.
+The web's "No video clips found…" toast after the scan is gone by the
+capture (3.2 s). On the web the clip list floats over the empty screen;
+the native side has no clip list yet.
 
 - builtin overview
 - builtin overview-off
@@ -244,3 +257,6 @@ clicks for Studio to load in its frame.
 - builtin viewer-day
 - builtin viewer-recording
 - builtin viewer-novehicle
+- builtin viewer-scanning
+- builtin viewer-noclips
+- builtin viewer-readerror

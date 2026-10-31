@@ -37,6 +37,7 @@ namespace SentrySix.Core.Tests
             VehicleEncodingTests.Register(Test);
             SettingsTests.Register(Test);
             ViewerHostTests.Register(Test);
+            ViewerStatesTests.Register(Test);
             PlaybackTests.Register(Test, Test);
             ServerTests.Register(Test);
             int failed = 0, passed = 0;

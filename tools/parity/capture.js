@@ -118,7 +118,13 @@ const PAGES = {
   viewer: { signedIn: true, path: '/#/viewer', only: 'builtin', settle: 5000 },
   'viewer-day': { signedIn: true, path: '/#/footage', only: 'builtin', variant: true, clicks: ['.day [data-play-day]'], settle: 5000 },
   'viewer-recording': { signedIn: true, path: '/#/footage', only: 'builtin', variant: true, clicks: ['.day [data-toggle]', '.rec [data-play]'], settle: 5000 },
-  'viewer-novehicle': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 }
+  'viewer-novehicle': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
+  // the Viewer's empty, loading and error states (part 1): the folder reads never answer
+  // (the loading overlay over "Opening …'s footage…"), answer nothing (no clips: the
+  // status line and Try again once the reads have gone quiet) or fail (Can't open the footage)
+  'viewer-scanning': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
+  'viewer-noclips': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
+  'viewer-readerror': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 }
 };
 
 // the Footage page's first page of days, as it asks for it
@@ -185,6 +191,9 @@ const VARIANTS = {
   'viewer-day': (api, vehicle) => ({ route: 'viewer', state: { date: footageOpen(api, vehicle).open[0] } }),
   'viewer-recording': (api, vehicle) => ({ route: 'viewer', state: { folder: viewerFolder(api, vehicle) } }),
   'viewer-novehicle': { route: 'viewer', api: { 'GET /api/vehicles': { vehicles: [] } } },
+  'viewer-scanning': { route: 'viewer', api: { 'POST /api/studio/readDir': { $pending: true } } },
+  'viewer-noclips': { route: 'viewer', api: { 'POST /api/studio/readDir': [] } },
+  'viewer-readerror': { route: 'viewer', api: { 'POST /api/studio/readDir': { $error: 'That path is outside the vehicle shares.', $status: 403 } } },
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },

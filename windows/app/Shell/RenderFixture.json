@@ -17136,6 +17136,29 @@
      "vehicles": []
     }
    }
+  },
+  "viewer-scanning": {
+   "route": "viewer",
+   "api": {
+    "POST /api/studio/readDir": {
+     "$pending": true
+    }
+   }
+  },
+  "viewer-noclips": {
+   "route": "viewer",
+   "api": {
+    "POST /api/studio/readDir": []
+   }
+  },
+  "viewer-readerror": {
+   "route": "viewer",
+   "api": {
+    "POST /api/studio/readDir": {
+     "$error": "That path is outside the vehicle shares.",
+     "$status": 403
+    }
+   }
   }
  },
  "prefs": {}

@@ -317,6 +317,24 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   page) on 9 shell sessions, 12 addresses, 14 URLSearchParams cases and 13
   shim sessions and writes Core.Tests/Fixtures/expected-viewer-host.json;
   Core.Tests ViewerHostTests replays them (3 tests, passing under mono).
+  Viewer part 1, empty, loading and error states (type-checked with mcs,
+  not yet built or rendered on Windows): `Core/ViewerStates.cs`
+  (`ViewerReads`: the shim's readDir and its recorded error;
+  `MediaErrors`: describeMediaError and ffmpeg failures as MediaError
+  codes; `StudioText`: the words and t()'s replacement; `StudioNotice`:
+  notify's type and time; `StudioLoading`: loadingOverlay.js;
+  `ViewerFirstLoad`: #playBtn / #progressBar disabled until the first
+  segment loads or 5 s pass, "Failed to load video: …" when that load
+  fails) and `Ui/Builtin/ViewerStates.cs` (the loading overlay, Studio's
+  toasts, .mini-btn, the clip list's placeholder). The Viewer starts the
+  shim's timers and, 500 ms in, shows "Loading default folder..." while
+  it reads the folders (the clip library will take over the scan); the
+  empty screen darkens under the pointer and opens nothing. Render list:
+  viewer-scanning, viewer-noclips, viewer-readerror.
+  test/windowsNativeViewerStates.test.js runs Studio's utils.js, i18n.js,
+  notifications.js, loadingOverlay.js and the shim's readDir and writes
+  Core.Tests/Fixtures/expected-viewer-states.json; Core.Tests
+  ViewerStatesTests (7 tests, passing under mono).
 - Phases 3-7 (Encoder, Horizon, Flux, Aurora, Daylight): not started.
   Their pages open in the browser.
 
@@ -324,7 +342,10 @@ Known differences so far (for the parity checklist): the Viewer's next
 segment starts loading 3 s before the boundary (the web: 12 s, a Chrome
 limit that does not apply to waiting ffmpeg processes); telemetry is
 asked without gzip (the browser accepts it), so a remote server sends a
-clip's records uncompressed; WPF puts a line's baseline
+clip's records uncompressed; the Viewer's loading overlay has no backdrop blur; a
+folder read with no answer from the server reads "Failed to fetch" as the
+browser's; a camera's failure is given the MediaError code Chromium would
+give (from ffmpeg's words) with ffmpeg's line as its detail; WPF puts a line's baseline
 lower in a CSS-tall line than the browser does (in proportion to the
 font's ascent rather than half the leading above), about 1 px at 14 px; an unreachable
 server reads as the app's own "Can't reach Sentry Six Manager at …"

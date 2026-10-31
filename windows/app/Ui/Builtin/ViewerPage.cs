@@ -271,8 +271,9 @@ namespace SentrySix.Ui.Builtin
     {
         // style.css: --video-bg, --overlay-bg, --text-muted
         static readonly Brush VideoBg = Css.Brush("#000");
-        static readonly Brush OverlayBg = Css.Brush("rgba(0, 0, 0, 0.55)");
-        static readonly Brush Muted = Css.Brush("#8a93a3");
+        static readonly Color OverlayBg = Css.C("rgba(0, 0, 0, 0.55)");
+        static readonly Color OverlayHover = Css.C("rgba(0, 0, 0, 0.7)");
+        static readonly Brush Muted = StudioLook.Muted;
         // Material Symbols Outlined "folder" (viewBox 0 -960 960 960)
         const string FolderIcon = "F0 M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h240l80 80h320q33 0 56.5 23.5T880-640v400q0 33-23.5 56.5T800-160H160Zm0-80h640v-400H447l-80-80H160v480Z";
 
@@ -286,6 +287,13 @@ namespace SentrySix.Ui.Builtin
         readonly StackPanel actions = new StackPanel();
         readonly ViewerAway away = new ViewerAway();
         readonly List<DispatcherTimer> timers = new List<DispatcherTimer>();
+        readonly ViewerReads reads = new ViewerReads();
+        readonly StudioLoading loading = new StudioLoading();
+        readonly StudioLoadingOverlay loadingView;
+        readonly StudioToasts toasts;
+        readonly ViewerFirstLoad firstLoad = new ViewerFirstLoad();
+        readonly System.Threading.CancellationTokenSource life = new System.Threading.CancellationTokenSource();
+        Player player;
         DayWish wish;
         bool disposed;
 
@@ -322,9 +330,22 @@ namespace SentrySix.Ui.Builtin
             box.Children.Add(icon);
             box.Children.Add(message);
             box.Children.Add(actions);
-            overlay.Background = OverlayBg;
+            // .drop-overlay: darker under the pointer (0.3 s); in the Viewer its clicks, drags and drops open nothing
+            SolidColorBrush overlayBg = new SolidColorBrush(OverlayBg);
+            overlay.Background = overlayBg;
+            overlay.Uid = "dropOverlay";
             overlay.Child = box;
+            overlay.AllowDrop = false;
+            Panel.SetZIndex(overlay, 10);
+            overlay.MouseEnter += delegate { Fade(overlayBg, OverlayHover); };
+            overlay.MouseLeave += delegate { Fade(overlayBg, OverlayBg); };
+            overlay.MouseLeftButtonDown += (s, e) => e.Handled = true;
+            overlay.MouseLeftButtonUp += (s, e) => e.Handled = true;
             root.Children.Add(overlay);
+            loadingView = new StudioLoadingOverlay(loading, still);
+            root.Children.Add(loadingView);
+            toasts = new StudioToasts(still);
+            root.Children.Add(toasts);
 
             if (Start.StartFolder == null)
             {
@@ -336,6 +357,164 @@ namespace SentrySix.Ui.Builtin
                 if (v["id"].IsString && v["id"].Str == Start.VehicleId) { name = v["name"].Str; break; }
             Say(ViewerStart.Opening(name), false);
             if (!string.IsNullOrEmpty(Start.Date)) wish = new DayWish(Start.Date, NowMs());
+            Begin();
+        }
+
+        void Fade(SolidColorBrush b, Color to)
+        {
+            if (still) { b.Color = to; return; }
+            b.BeginAnimation(SolidColorBrush.ColorProperty, new System.Windows.Media.Animation.ColorAnimation(to, TimeSpan.FromMilliseconds(300)));
+        }
+
+        /// <summary>
+        /// The page has loaded (the shim's DOMContentLoaded): the status line
+        /// starts watching the folder reads; half a second later
+        /// (loadDefaultFolderOnStartup) the loading overlay says "Loading
+        /// default folder..." while the folders are read. In the render test
+        /// mode all of it happens at once and the status line is drawn as it
+        /// reads once the reads have gone quiet.
+        /// </summary>
+        void Begin()
+        {
+            Watch(() => reads.Active, () => reads.At, () => reads.Error, () => Days, () => PickedDay, d => { Action<string> p = PickDay; if (p != null) p(d); });
+            if (still) { Load(); return; }
+            DispatcherTimer once = new DispatcherTimer(DispatcherPriority.Background);
+            once.Interval = TimeSpan.FromMilliseconds(500);
+            once.Tick += delegate { once.Stop(); timers.Remove(once); Load(); };
+            timers.Add(once);
+            once.Start();
+            // the play button's 5 s wait on a first load that neither plays nor fails
+            Every(250, t => { if (firstLoad.Tick(NowMs())) RaiseControls(); });
+        }
+
+        // (async void: it catches everything itself)
+        async void Load()
+        {
+            if (disposed) return;
+            ShowLoading(StudioText.LoadingDefault, StudioText.LookingForClips);
+            try
+            {
+                await ScanFolders();
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception) { }
+            if (disposed) return;
+            HideLoading();
+            if (still) Settle();
+        }
+
+        /// <summary>
+        /// Reads the folders the clips are in (the clip library's scan:
+        /// traverseDirectoryElectron, every read through <see cref="ReadDir"/>).
+        /// Set by the clip library; until it is there, the start folder is read
+        /// once, so the status line can say why nothing is shown.
+        /// </summary>
+        public Func<StudioViewer, Task> Scan { get; set; }
+
+        async Task ScanFolders()
+        {
+            Func<StudioViewer, Task> scan = Scan;
+            if (scan != null) { await scan(this); answered = true; return; }
+            JsonValue entries = await ReadDir(Start.StartFolder);
+            // (the render fixture answers a POST it has no entry for with { ok: true }: no listing, nothing to say yet)
+            answered = entries.IsArray || reads.Error != null;
+        }
+
+        bool answered;
+
+        /// <summary>The render test mode: the status line as the web's reads it 2 s after the last read (none still running).</summary>
+        void Settle()
+        {
+            if (!answered || reads.Active != 0 || reads.At == 0) return;
+            ViewerStatus status = new ViewerStatus(reads.At);
+            string text = status.Tick(reads.At + ViewerStatus.QuietMs, overlay.Visibility != Visibility.Visible, 0, reads.At, reads.Error, Start.StartFolder);
+            if (text != null) Say(text, true);
+        }
+
+        /// <summary>electronAPI.readDir: one folder's entries ([] when it failed; counted for the status line).</summary>
+        public Task<JsonValue> ReadDir(string path)
+        {
+            return reads.ReadDir(api, path, NowMs, life.Token);
+        }
+
+        /// <summary>The folder reads so far.</summary>
+        public ViewerReads Reads { get { return reads; } }
+
+        /// <summary>The day list's values for Play day (null: no list yet; the clip list sets it).</summary>
+        public IList<string> Days { get; set; }
+
+        /// <summary>The day picked in the day list.</summary>
+        public string PickedDay { get; set; }
+
+        /// <summary>Picks a day in the day list (Play day; the clip list sets it).</summary>
+        public Action<string> PickDay { get; set; }
+
+        /// <summary>showLoading(text, progress).</summary>
+        public void ShowLoading(string text, string progress)
+        {
+            loading.Show(text, progress);
+            loadingView.Sync();
+        }
+
+        /// <summary>updateLoading(text, progress, percent).</summary>
+        public void UpdateLoading(string text, string progress, double percent)
+        {
+            loading.Update(text, progress, percent);
+            loadingView.Sync();
+        }
+
+        /// <summary>hideLoading().</summary>
+        public void HideLoading()
+        {
+            loading.Hide();
+            loadingView.Sync();
+        }
+
+        /// <summary>The loading overlay's state.</summary>
+        public StudioLoading Loading { get { return loading; } }
+
+        /// <summary>notify(message, opts): a toast at the bottom left.</summary>
+        public void Notify(StudioNotice n)
+        {
+            if (disposed || n == null) return;
+            toasts.Show(n);
+        }
+
+        public void Notify(string message, string type)
+        {
+            Notify(StudioNotice.Of(message, type));
+        }
+
+        /// <summary>The toasts up now.</summary>
+        public StudioToasts Toasts { get { return toasts; } }
+
+        /// <summary>#playBtn and #progressBar can be used (disabled until a collection's first segment has loaded).</summary>
+        public bool ControlsEnabled { get { return firstLoad.Enabled; } }
+
+        /// <summary>The play button and progress bar were enabled.</summary>
+        public event Action ControlsChanged;
+
+        void RaiseControls()
+        {
+            Action h = ControlsChanged;
+            if (h != null) h();
+        }
+
+        /// <summary>A collection was picked (selectDayCollection): its first segment (the event's, else 0) is loading.</summary>
+        public void CollectionOpening(int firstSegment)
+        {
+            firstLoad.Begin(NowMs(), firstSegment);
+        }
+
+        void OnSegmentOpened(int index)
+        {
+            if (firstLoad.Opened()) RaiseControls();
+        }
+
+        void OnSegmentFailed(int index, string why)
+        {
+            string text = firstLoad.Failed(NowMs(), index, why);
+            if (text != null) Notify(text, "error");
         }
 
         /// <summary>The server's API (the render test mode's fixture answers there).</summary>
@@ -349,8 +528,18 @@ namespace SentrySix.Ui.Builtin
         /// <summary>Where the Viewer's parts draw (under the empty screen until the clips are shown).</summary>
         public Grid Stage { get { return stage; } }
 
-        /// <summary>The Viewer's player once it has clips (its other parts set it).</summary>
-        public Player Player { get; set; }
+        /// <summary>The Viewer's player once it has clips (its other parts set it): its segments' loads and failures drive the controls and the toasts.</summary>
+        public Player Player
+        {
+            get { return player; }
+            set
+            {
+                if (player == value) return;
+                if (player != null) { player.SegmentOpened -= OnSegmentOpened; player.SegmentFailed -= OnSegmentFailed; }
+                player = value;
+                if (player != null) { player.SegmentOpened += OnSegmentOpened; player.SegmentFailed += OnSegmentFailed; }
+            }
+        }
 
         /// <summary>Put away ('pause'): true while another page is shown.</summary>
         public bool Away { get { return away.Away; } }
@@ -367,7 +556,8 @@ namespace SentrySix.Ui.Builtin
             actions.Children.Clear();
             actions.Visibility = Visibility.Collapsed;
             if (!retry) return;
-            Button b = Look.Btn(ViewerStart.TryAgain, BtnKind.Small, () => Retry());
+            Button b = StudioLook.MiniButton(ViewerStart.TryAgain, () => Retry());
+            b.Uid = "sm-retry";
             actions.Children.Add(b);
             actions.Visibility = Visibility.Visible;
         }
@@ -386,11 +576,11 @@ namespace SentrySix.Ui.Builtin
         }
 
         /// <summary>
-        /// The clip library has started reading (its other part calls this):
-        /// every 500 ms, once reads have gone quiet without clips, say why
+        /// The shim's timers from the page's load (Begin): every 500 ms, once
+        /// the folder reads have gone quiet without clips, say why
         /// (ViewerStatus); with Play day's day, pick it once listed (DayWish).
         /// </summary>
-        public void Watch(Func<int> readsActive, Func<long> readsAt, Func<string> readError, Func<IList<string>> days, Func<string> pickedDay, Action<string> pickDay)
+        void Watch(Func<int> readsActive, Func<long> readsAt, Func<string> readError, Func<IList<string>> days, Func<string> pickedDay, Action<string> pickDay)
         {
             if (still || disposed || Start.StartFolder == null) return;
             if (wish != null)
@@ -426,7 +616,7 @@ namespace SentrySix.Ui.Builtin
         {
             Player p = Player;
             bool playing = p != null && p.Playing;
-            if (away.Pause(playing, p != null && p.Segments.Count > 0)) p.Pause();
+            if (away.Pause(playing, p != null && firstLoad.Enabled && p.Segments.Count > 0)) p.Pause();
             if (p != null) p.SetVisible(false);
         }
 
@@ -444,7 +634,7 @@ namespace SentrySix.Ui.Builtin
             root.Dispatcher.BeginInvoke(new Action(() =>
             {
                 Player p = Player;
-                if (p != null && p.Playing && p.Segments.Count > 0) p.Pause();
+                if (p != null && p.Playing && firstLoad.Enabled && p.Segments.Count > 0) p.Pause();
             }));
         }
 
@@ -471,6 +661,7 @@ namespace SentrySix.Ui.Builtin
         {
             if (disposed) return;
             disposed = true;
+            life.Cancel();
             foreach (DispatcherTimer t in timers) t.Stop();
             timers.Clear();
             if (Player != null) { try { Player.Dispose(); } catch (Exception) { } Player = null; }

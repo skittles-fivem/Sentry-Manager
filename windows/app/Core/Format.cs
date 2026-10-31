@@ -84,7 +84,24 @@ namespace SentrySix.Core
             if (double.IsNegativeInfinity(x)) return "-Infinity";
             if (x == 0) return "0";
             if (x == Math.Floor(x) && Math.Abs(x) < 9e18) return ((long)x).ToString(Inv);
+            // (integers from 9e18 up to 1e21 print plainly too; past that, as an exponent)
             string r = Shortest(x);
+            double ax = Math.Abs(x);
+            if (ax >= 1e21 || ax < 1e-6)
+            {
+                // JavaScript's exponent form (1e+21, -1.5e-7): the shortest mantissa that reads back
+                for (int digits = 1; digits <= 17; digits++)
+                {
+                    string t = x.ToString("E" + (digits - 1), Inv);
+                    double back;
+                    if ((!double.TryParse(t, NumberStyles.Float, Inv, out back) || back != x) && digits < 17) continue;
+                    int k = t.IndexOf('E');
+                    string mant = t.Substring(0, k);
+                    if (mant.IndexOf('.') >= 0) mant = mant.TrimEnd('0').TrimEnd('.');
+                    int n = int.Parse(t.Substring(k + 1), NumberStyles.AllowLeadingSign, Inv);
+                    return mant + "e" + (n >= 0 ? "+" : "-") + Math.Abs(n).ToString(Inv);
+                }
+            }
             if (r.IndexOf('E') < 0) return r;
             decimal d;
             if (decimal.TryParse(r, NumberStyles.Float, Inv, out d)) return d.ToString(Inv);

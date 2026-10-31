@@ -1,0 +1,665 @@
+{
+ "about": "Written by test/windowsNativeViewerStates.test.js from Studio's utils.js describeMediaError, i18n.js t(), notifications.js notify(), loadingOverlay.js and web/electronApiShim.js readDir; checked by windows/app/Core.Tests (ViewerStatesTests.cs, SentrySix.Core.MediaErrors / StudioText / StudioNotice / StudioLoading / ViewerReads).",
+ "media": [
+  {
+   "code": null,
+   "text": "the video element reported an error with no details"
+  },
+  {
+   "code": 1,
+   "message": "",
+   "text": "playback aborted"
+  },
+  {
+   "code": 2,
+   "message": "",
+   "text": "network error while loading the file"
+  },
+  {
+   "code": 3,
+   "message": "",
+   "text": "the file could not be decoded (corrupt or unsupported codec)"
+  },
+  {
+   "code": 4,
+   "message": "",
+   "text": "the file is missing or its format is not supported"
+  },
+  {
+   "code": 3,
+   "message": "PIPELINE_ERROR_DECODE: video decoder reinitialization failed",
+   "text": "the file could not be decoded (corrupt or unsupported codec) (PIPELINE_ERROR_DECODE: video decoder reinitialization failed)"
+  },
+  {
+   "code": 4,
+   "message": "DEMUXER_ERROR_COULD_NOT_OPEN: FFmpegDemuxer: open context failed",
+   "text": "the file is missing or its format is not supported (DEMUXER_ERROR_COULD_NOT_OPEN: FFmpegDemuxer: open context failed)"
+  },
+  {
+   "code": 2,
+   "message": "net::ERR_CONNECTION_RESET",
+   "text": "network error while loading the file (net::ERR_CONNECTION_RESET)"
+  },
+  {
+   "code": 0,
+   "message": "",
+   "text": "media error code 0"
+  },
+  {
+   "code": 5,
+   "message": "x",
+   "text": "media error code 5 (x)"
+  },
+  {
+   "code": -1,
+   "message": "",
+   "text": "media error code -1"
+  },
+  {
+   "code": 2.5,
+   "message": "",
+   "text": "media error code 2.5"
+  },
+  {
+   "code": 1e+21,
+   "message": "",
+   "text": "media error code 1e+21"
+  },
+  {
+   "code": 1,
+   "message": "(nested)",
+   "text": "playback aborted ((nested))"
+  }
+ ],
+ "words": {
+  "ui.clipBrowser.subtitle": "Select a dashcam folder to browse",
+  "ui.notifications.failedToLoadVideo": "Failed to load video: {error}",
+  "ui.notifications.errorSelectingDay": "Error selecting day: {error}",
+  "ui.notifications.noDashcamClipsFound": "No video clips found. Select a folder containing video files (.mp4, .avi, .mov, .mkv) or a Tesla dashcam folder with RecentClips, SentryClips, or SavedClips."
+ },
+ "replaced": [
+  {
+   "error": "plain reason",
+   "failedToLoadVideo": "Failed to load video: plain reason",
+   "errorSelectingDay": "Error selecting day: plain reason"
+  },
+  {
+   "error": "",
+   "failedToLoadVideo": "Failed to load video: ",
+   "errorSelectingDay": "Error selecting day: "
+  },
+  {
+   "error": "cost $5",
+   "failedToLoadVideo": "Failed to load video: cost $5",
+   "errorSelectingDay": "Error selecting day: cost $5"
+  },
+  {
+   "error": "$$ twice",
+   "failedToLoadVideo": "Failed to load video: $ twice",
+   "errorSelectingDay": "Error selecting day: $ twice"
+  },
+  {
+   "error": "$& itself",
+   "failedToLoadVideo": "Failed to load video: {error} itself",
+   "errorSelectingDay": "Error selecting day: {error} itself"
+  },
+  {
+   "error": "before $` after $'",
+   "failedToLoadVideo": "Failed to load video: before Failed to load video:  after ",
+   "errorSelectingDay": "Error selecting day: before Error selecting day:  after "
+  },
+  {
+   "error": "$1 group",
+   "failedToLoadVideo": "Failed to load video: $1 group",
+   "errorSelectingDay": "Error selecting day: $1 group"
+  },
+  {
+   "error": "ends with $",
+   "failedToLoadVideo": "Failed to load video: ends with $",
+   "errorSelectingDay": "Error selecting day: ends with $"
+  },
+  {
+   "error": "{error} again",
+   "failedToLoadVideo": "Failed to load video: {error} again",
+   "errorSelectingDay": "Error selecting day: {error} again"
+  },
+  {
+   "error": "the file could not be decoded (corrupt or unsupported codec) (PIPELINE_ERROR_DECODE)",
+   "failedToLoadVideo": "Failed to load video: the file could not be decoded (corrupt or unsupported codec) (PIPELINE_ERROR_DECODE)",
+   "errorSelectingDay": "Error selecting day: the file could not be decoded (corrupt or unsupported codec) (PIPELINE_ERROR_DECODE)"
+  }
+ ],
+ "notices": [
+  {
+   "opts": {},
+   "className": "toast toast--info",
+   "text": "Hello",
+   "timeoutMs": 3200,
+   "action": false,
+   "dismiss": false
+  },
+  {
+   "opts": {
+    "type": "error"
+   },
+   "className": "toast toast--error",
+   "text": "Hello",
+   "timeoutMs": 5500,
+   "action": false,
+   "dismiss": false
+  },
+  {
+   "opts": {
+    "type": "warn"
+   },
+   "className": "toast toast--warn",
+   "text": "Hello",
+   "timeoutMs": 3200,
+   "action": false,
+   "dismiss": false
+  },
+  {
+   "opts": {
+    "type": "success"
+   },
+   "className": "toast toast--success",
+   "text": "Hello",
+   "timeoutMs": 3200,
+   "action": false,
+   "dismiss": false
+  },
+  {
+   "opts": {
+    "type": ""
+   },
+   "className": "toast toast--info",
+   "text": "Hello",
+   "timeoutMs": 3200,
+   "action": false,
+   "dismiss": false
+  },
+  {
+   "opts": {
+    "timeoutMs": 0
+   },
+   "className": "toast toast--info",
+   "text": "Hello",
+   "timeoutMs": 0,
+   "action": false,
+   "dismiss": false
+  },
+  {
+   "opts": {
+    "timeoutMs": -1
+   },
+   "className": "toast toast--info",
+   "text": "Hello",
+   "timeoutMs": 0,
+   "action": false,
+   "dismiss": false
+  },
+  {
+   "opts": {
+    "timeoutMs": 1234.5
+   },
+   "className": "toast toast--info",
+   "text": "Hello",
+   "timeoutMs": 1234.5,
+   "action": false,
+   "dismiss": false
+  },
+  {
+   "opts": {
+    "timeoutMs": "NaN"
+   },
+   "className": "toast toast--info",
+   "text": "Hello",
+   "timeoutMs": 3200,
+   "action": false,
+   "dismiss": false
+  },
+  {
+   "opts": {
+    "timeoutMs": "Infinity"
+   },
+   "className": "toast toast--info",
+   "text": "Hello",
+   "timeoutMs": 3200,
+   "action": false,
+   "dismiss": false
+  },
+  {
+   "opts": {
+    "type": "error",
+    "timeoutMs": 100
+   },
+   "className": "toast toast--error",
+   "text": "Hello",
+   "timeoutMs": 100,
+   "action": false,
+   "dismiss": false
+  },
+  {
+   "opts": {
+    "type": "info",
+    "dismissible": true
+   },
+   "className": "toast toast--info",
+   "text": "Hello",
+   "timeoutMs": 3200,
+   "action": false,
+   "dismiss": true
+  },
+  {
+   "opts": {
+    "type": "warn",
+    "action": {
+     "label": "Retry"
+    }
+   },
+   "className": "toast toast--warn",
+   "text": "Hello",
+   "timeoutMs": 3200,
+   "action": true,
+   "dismiss": false
+  }
+ ],
+ "loading": [
+  {
+   "steps": [
+    [
+     "show"
+    ]
+   ],
+   "after": [
+    {
+     "visible": true,
+     "text": "Scanning folder...",
+     "progress": "",
+     "width": "0%"
+    }
+   ]
+  },
+  {
+   "steps": [
+    [
+     "show",
+     "Loading default folder...",
+     "Looking for dashcam clips"
+    ]
+   ],
+   "after": [
+    {
+     "visible": true,
+     "text": "Loading default folder...",
+     "progress": "Looking for dashcam clips",
+     "width": "0%"
+    }
+   ]
+  },
+  {
+   "steps": [
+    [
+     "show",
+     "Indexing clips...",
+     ""
+    ],
+    [
+     "update",
+     "Indexing clips...",
+     "12 media files found",
+     37.5
+    ]
+   ],
+   "after": [
+    {
+     "visible": true,
+     "text": "Indexing clips...",
+     "progress": "",
+     "width": "0%"
+    },
+    {
+     "visible": true,
+     "text": "Indexing clips...",
+     "progress": "12 media files found",
+     "width": "37.5%"
+    }
+   ]
+  },
+  {
+   "steps": [
+    [
+     "show"
+    ],
+    [
+     "update",
+     "a",
+     "b",
+     150
+    ],
+    [
+     "update",
+     "a",
+     "b",
+     -5
+    ]
+   ],
+   "after": [
+    {
+     "visible": true,
+     "text": "Scanning folder...",
+     "progress": "",
+     "width": "0%"
+    },
+    {
+     "visible": true,
+     "text": "a",
+     "progress": "b",
+     "width": "100%"
+    },
+    {
+     "visible": true,
+     "text": "a",
+     "progress": "b",
+     "width": "0%"
+    }
+   ]
+  },
+  {
+   "steps": [
+    [
+     "show"
+    ],
+    [
+     "update",
+     "a",
+     "b",
+     40
+    ],
+    [
+     "update",
+     "a",
+     "b",
+     "NaN"
+    ]
+   ],
+   "after": [
+    {
+     "visible": true,
+     "text": "Scanning folder...",
+     "progress": "",
+     "width": "0%"
+    },
+    {
+     "visible": true,
+     "text": "a",
+     "progress": "b",
+     "width": "40%"
+    },
+    {
+     "visible": true,
+     "text": "a",
+     "progress": "b",
+     "width": "40%"
+    }
+   ]
+  },
+  {
+   "steps": [
+    [
+     "show"
+    ],
+    [
+     "update",
+     "a",
+     "b",
+     0.3333333333333333
+    ]
+   ],
+   "after": [
+    {
+     "visible": true,
+     "text": "Scanning folder...",
+     "progress": "",
+     "width": "0%"
+    },
+    {
+     "visible": true,
+     "text": "a",
+     "progress": "b",
+     "width": "0.3333333333333333%"
+    }
+   ]
+  },
+  {
+   "steps": [
+    [
+     "show"
+    ],
+    [
+     "update",
+     "a",
+     "b"
+    ]
+   ],
+   "after": [
+    {
+     "visible": true,
+     "text": "Scanning folder...",
+     "progress": "",
+     "width": "0%"
+    },
+    {
+     "visible": true,
+     "text": "a",
+     "progress": "b",
+     "width": "0%"
+    }
+   ]
+  },
+  {
+   "steps": [
+    [
+     "show"
+    ],
+    [
+     "update",
+     null,
+     null,
+     10
+    ]
+   ],
+   "after": [
+    {
+     "visible": true,
+     "text": "Scanning folder...",
+     "progress": "",
+     "width": "0%"
+    },
+    {
+     "visible": true,
+     "text": "",
+     "progress": "",
+     "width": "10%"
+    }
+   ]
+  },
+  {
+   "steps": [
+    [
+     "show"
+    ],
+    [
+     "update",
+     "x",
+     "y",
+     99.99
+    ],
+    [
+     "hide"
+    ]
+   ],
+   "after": [
+    {
+     "visible": true,
+     "text": "Scanning folder...",
+     "progress": "",
+     "width": "0%"
+    },
+    {
+     "visible": true,
+     "text": "x",
+     "progress": "y",
+     "width": "99.99%"
+    },
+    {
+     "visible": false,
+     "text": "x",
+     "progress": "y",
+     "width": "99.99%"
+    }
+   ]
+  },
+  {
+   "steps": [
+    [
+     "show",
+     "one",
+     "p"
+    ],
+    [
+     "hide"
+    ],
+    [
+     "show",
+     "two",
+     "q"
+    ]
+   ],
+   "after": [
+    {
+     "visible": true,
+     "text": "one",
+     "progress": "p",
+     "width": "0%"
+    },
+    {
+     "visible": false,
+     "text": "one",
+     "progress": "p",
+     "width": "0%"
+    },
+    {
+     "visible": true,
+     "text": "two",
+     "progress": "q",
+     "width": "0%"
+    }
+   ]
+  }
+ ],
+ "reads": [
+  {
+   "answer": {
+    "status": 500,
+    "statusText": "Internal Server Error",
+    "body": {
+     "error": "EACCES: permission denied"
+    }
+   },
+   "entries": [],
+   "error": "EACCES: permission denied",
+   "active": 0,
+   "at": 1000,
+   "signIn": null
+  },
+  {
+   "answer": {
+    "status": 403,
+    "statusText": "Forbidden",
+    "body": {
+     "error": "That path is outside the vehicle shares."
+    }
+   },
+   "entries": [],
+   "error": "That path is outside the vehicle shares.",
+   "active": 0,
+   "at": 1000,
+   "signIn": null
+  },
+  {
+   "answer": {
+    "status": 502,
+    "statusText": "Bad Gateway",
+    "body": null
+   },
+   "entries": [],
+   "error": "Bad Gateway",
+   "active": 0,
+   "at": 1000,
+   "signIn": null
+  },
+  {
+   "answer": {
+    "status": 404,
+    "statusText": "Not Found",
+    "body": {}
+   },
+   "entries": [],
+   "error": "Not Found",
+   "active": 0,
+   "at": 1000,
+   "signIn": null
+  },
+  {
+   "answer": {
+    "status": 401,
+    "statusText": "Unauthorized",
+    "body": {
+     "error": "Sign in first"
+    }
+   },
+   "entries": [],
+   "error": "Signed out",
+   "active": 0,
+   "at": 1000,
+   "signIn": "/login"
+  },
+  {
+   "answer": {
+    "network": true
+   },
+   "entries": [],
+   "error": "Failed to fetch",
+   "active": 0,
+   "at": 1000,
+   "signIn": null
+  },
+  {
+   "answer": {
+    "status": 200,
+    "statusText": "OK",
+    "body": [
+     {
+      "name": "RecentClips",
+      "path": "/f/RecentClips",
+      "isDirectory": true,
+      "isFile": false
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "RecentClips",
+     "path": "/f/RecentClips",
+     "isDirectory": true,
+     "isFile": false
+    }
+   ],
+   "error": null,
+   "active": 0,
+   "at": 1000,
+   "signIn": null
+  }
+ ]
+}
