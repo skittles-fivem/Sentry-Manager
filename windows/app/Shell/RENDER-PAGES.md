@@ -247,3 +247,29 @@ Try again).
 - horizon jobs-running-only
 - horizon jobs-long
 - horizon jobs-error
+
+### Horizon: Settings
+
+The settings tabs (hz/pages/settings.js), one page per tab, on the built-in
+Settings page's answers where the pack asks the same paths: settings (the
+Vehicles tab, two vehicles), settings-vehicle (the vehicle's form, an SMB
+share), settings-vehicle-new (a new vehicle on a Windows PC with "Folder on
+this PC" picked), settings-account, settings-interface, settings-display
+(Background), settings-updates, settings-security (a host the certificate does
+not cover), settings-system, settings-power (a time of use plan),
+settings-windows (the Updates tab on the Windows service), settings-novehicles
+and settings-error (the pack's "could not load" box with Try again).
+
+- horizon settings
+- horizon settings-vehicle
+- horizon settings-vehicle-new
+- horizon settings-account
+- horizon settings-interface
+- horizon settings-display
+- horizon settings-updates
+- horizon settings-security
+- horizon settings-system
+- horizon settings-power
+- horizon settings-windows
+- horizon settings-novehicles
+- horizon settings-error

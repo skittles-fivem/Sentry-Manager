@@ -268,7 +268,8 @@ class El {
     return VOID.has(this.tag) ? `<${this.tag}${a}>` : `<${this.tag}${a}>${this.innerHTML}</${this.tag}>`;
   }
   insertAdjacentHTML(where, html) {
-    const ns = parse(html, this.doc, this);
+    // (no parent yet: append() adopts them, else they would be dropped)
+    const ns = parse(html, this.doc, null);
     if (where === 'beforeend') this.append(...ns);
     else if (where === 'afterbegin') this.prepend(...ns);
     else if (where === 'beforebegin') this.before(...ns);
