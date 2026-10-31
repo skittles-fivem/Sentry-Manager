@@ -90,6 +90,39 @@ is done when every item is ticked in both. Run on the owner's PC runner.
 4. Horizon (all pages, incl. the speed graph). 5. Flux. 6. Aurora.
 7. Daylight.
 
+## Status
+
+- Phase 0 (skeleton): done (`windows/app`, SentrySix.exe; commit 2be4d26 and before).
+- Phase 1 (built-in interface): in progress, taken over from the session
+  that wrote phase 0. Shared pieces done: Core `IJsonApi` (Api and the
+  render mode's `FixtureApi`), `Format`, `Wording`, `Rich`, `Spark`,
+  `Converter`, checked against web/app.js by
+  test/windowsNativeParity.test.js and Core.Tests; Ui/Common toasts,
+  dialogs, table, thumbnails, sparkline, files, PageHost; Ui/Builtin
+  `Look` and controls; routes with sub pages; live topics to the page;
+  the render fixture from the parity fixture server
+  (`Shell/RenderFixture.json`) and the builtin pages in the render list
+  and in capture.js. Per page (not started / in progress / native and
+  rendered / parity ticked):
+  - Overview: not started
+  - Footage: not started
+  - Nodes: not started
+  - Policies: not started
+  - Jobs: not started
+  - Recycle Bin: not started
+  - Notifications ("Alerts"): not started
+  - Encoding per vehicle ("Per car", #/encoder/vehicles): not started
+  - Settings: not started
+- Phases 2-7 (Viewer, Encoder, Horizon, Flux, Aurora, Daylight): not started.
+  Their pages open in the browser.
+
+Known differences so far (for the parity checklist): an unreachable
+server reads as the app's own "Can't reach Sentry Six Manager at …"
+message, not the web's "Reload the page" one; the dialog's backdrop is not
+blurred; links from native pages into the Viewer or Encoder open the
+browser without the web's preselected day or folder (phases 2 and 3);
+a recording's "Download" reads the whole file before saving it.
+
 ## Costs the owner should know
 
 - Size: each interface is a full app's worth of screens; five of them is

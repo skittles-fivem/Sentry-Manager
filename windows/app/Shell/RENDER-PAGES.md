@@ -20,9 +20,23 @@ frame, so two runs give the same picture.
   plus `host` (shown on Horizon's and Flux's sign-in), `now` (Aurora's clock),
   `live` (event stream connected), `insecure` (plain HTTP) and `prefs`
   (this PC's choices, e.g. `"daylight:theme": "dark"`, `"horizon.sky": "calm"`).
-  Without it a built-in fixture is used (`RenderMode.DefaultFixture`: two
-  vehicles, one unread warning, a running conversion). The web side of the
-  parity job must serve the same data.
+  The pages themselves ask `api`: the server's answers keyed by
+  `"GET <path>"` with the path exactly as the page asks it (query included);
+  a `{ "$error": "text", "$status": 500 }` answer is a failure, a POST, PUT
+  or DELETE without an entry answers `{ ok: true }`, thumbnails have none
+  (their boxes show the fallback text). The shell's own `me`, `settings`,
+  `vehicles`, `notifications` and `jobs` come from the same `api` answers
+  when the fixture does not give them separately.
+  `variants` names other states of a page: `variants["footage-empty"]` =
+  `{ route, sub, api, prefs, state }` (its `api` answers over the others);
+  its name is the page name to render (`builtin footage-empty`).
+  Without `--fixture`, `Shell\RenderFixture.json` beside the exe is used:
+  the fixture server's own answers, written by
+  `node tools/parity/capture.js --fixture-only --fixture windows/app/Shell/RenderFixture.json`
+  (capture.js writes the same file as `tools/parity/fixture.json` on every
+  run), so the native pages show what the web captures show. Without that
+  file, the small built-in fixture (`RenderMode.DefaultFixture`: two
+  vehicles, one unread warning, a running conversion).
 
 The web pages pick the phone layout from the viewport width; these sizes are
 the window's client area, so desktop is 1400 x 900 and phone 390 x 844
@@ -82,3 +96,28 @@ SentrySix.exe --render daylight shell --width 390 --height 844 --out parity\nati
 The breakpoints in between are worth a run too (each interface's CSS):
 built-in 760 / 374 px; Horizon 1560, 1440, 1279, 1023, 400 px; Flux 860 and
 420 px; Aurora 699 and 380 px; Daylight 959 px.
+
+## The built-in interface's pages (phase 1)
+
+Each at both sizes, as above; pages not drawn here yet render their
+"Opens in your browser" card. The variants are in `Shell\RenderFixture.json`
+(`variants`, from capture.js's `VARIANTS`); capture.js takes the web side
+of each under the same name (the two error states exist natively only).
+
+- builtin overview
+- builtin overview-off
+- builtin overview-logs
+- builtin nodes
+- builtin footage
+- builtin policies
+- builtin jobs
+- builtin jobs-error
+- builtin bin
+- builtin bin-error
+- builtin notifications
+- builtin settings
+- builtin settings-vehicle
+- builtin settings-vehicle-new
+- builtin settings-security
+- builtin percar
+- builtin percar-edit

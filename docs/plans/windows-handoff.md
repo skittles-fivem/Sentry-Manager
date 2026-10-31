@@ -297,3 +297,30 @@ releaseUpdates.js use the zip; SHA256SUMS gains the Setup's line).
   setup-code text in `server/auth.js` still say Install.cmd; they could say
   "download and run SentrySixManager-Setup" instead (test/deploymentWording
   pins the current text). Code signing is a commented hook in the .iss.
+
+## Native app phase 1: shared pieces (2026-10-31)
+
+The native-UI plan (windows-native-ui.md) was taken over after phase 0.
+New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
+
+- `Core/IJsonApi.cs`: what pages ask the server. `Api` implements it
+  (explicit members; its optional-argument methods are unchanged);
+  `ApiCalls.GetWithin` gives a GET the web's timeoutMs (TIMEOUT error).
+- `Api.Repin(sha256)`: Settings > Security swaps the server's leaf
+  certificate ("Save names", "Allow other devices"); the page re-pins
+  from the server's own answer over the connection still trusted, instead
+  of the web's page reload. No server change.
+- `Core/Format.cs`, `Wording.cs`, `Rich.cs`, `Spark.cs`, `Converter.cs`,
+  `FixtureApi.cs`; `Core.Tests/FormatTests.cs` and
+  `Core.Tests/Fixtures/expected-format.json` (written by
+  `test/windowsNativeParity.test.js` from web/app.js: rewrite it with
+  `UPDATE_NATIVE_PARITY=1 node --test test/windowsNativeParity.test.js`
+  when app.js's wording or rounding changes, and port the change).
+- `Ui/Common`: Toasts, Dialog (also the password dialog the Api asks
+  for), Table, Thumb, Sparkline, Files, PageHost, RichText.
+  `Ui/Builtin`: Look, Controls, Overlays.
+- `Shell/RenderFixture.json` (copied beside the exe): the default
+  fixture of `--render`, the parity fixture server's real answers. No
+  change to windows.yml was needed: the render step still runs without
+  `--fixture` and lists the pages from RENDER-PAGES.md.
+
