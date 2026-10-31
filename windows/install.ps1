@@ -612,10 +612,12 @@ $portLine
   # HOST binds the app to one address; then only that address answers.
   # Without HOST the app decides (server/listenAddress.js): this PC only
   # until Settings > Security > Allow other devices is on, and then no setup
-  # code is needed on this PC, so none is shown here.
+  # code is needed on this PC, so none is shown here. Behind a reverse proxy
+  # (TRUST_PROXY=true) every request comes from the proxy: the code stays.
   $listenHost = Read-EnvValue $EnvFile 'HOST'
-  $appDecides = [string]::IsNullOrEmpty($listenHost)
-  $anyHost = $appDecides -or $listenHost -eq '0.0.0.0' -or $listenHost -eq '::'
+  $behindProxy = (Read-EnvValue $EnvFile 'TRUST_PROXY') -eq 'true'
+  $appDecides = [string]::IsNullOrEmpty($listenHost) -and -not $behindProxy
+  $anyHost = [string]::IsNullOrEmpty($listenHost) -or $listenHost -eq '0.0.0.0' -or $listenHost -eq '::'
   if ($anyHost) {
     $probeHost = '127.0.0.1'
   } elseif ($listenHost.Contains(':') -and -not $listenHost.StartsWith('[')) {
@@ -820,9 +822,17 @@ $portLine
   if ($null -eq $code -and (Test-Path -LiteralPath $SetupCodeFile -PathType Leaf)) {
     $code = ([System.IO.File]::ReadAllText($SetupCodeFile)).Trim()
   }
+  # Without HOST: what the server said it listens on. Every address (an
+  # upgrade that already had an account, or the switch is on) lists them all;
+  # unknown (the app starts the server later) says "if it is off".
+  $othersAllowed = $null
+  if ($appDecides -and $Mode -eq 'service') {
+    if ($text -match 'Sentry Six Manager on https?://(0\.0\.0\.0|\[::\]):') { $othersAllowed = $true }
+    elseif ($text -match 'Sentry Six Manager on https?://(127\.0\.0\.1|\[::1\]):') { $othersAllowed = $false }
+  }
 
   $urls = New-Object System.Collections.Generic.List[string]
-  if ($appDecides) {
+  if ($appDecides -and $othersAllowed -ne $true) {
     $urls.Add("$scheme`://localhost:$listenPort")
   } elseif (-not $anyHost) {
     $urls.Add("$scheme`://$probeHost`:$listenPort")
@@ -849,12 +859,15 @@ $portLine
     Say 'and stays in the tray (it starts there at every sign-in). While it runs, browsers reach it at:'
   }
   foreach ($u in $urls) { Say "  $u" }
-  if ($appDecides) {
+  if ($appDecides -and $null -eq $othersAllowed) {
+    Say 'Phones, tablets and other PCs (and node pairing): if Settings > Security > Allow other devices is off, turn it on.'
+  } elseif ($appDecides -and $othersAllowed -eq $false) {
     Say 'Phones, tablets and other PCs (and node pairing): turn on Settings > Security > Allow other devices.'
   }
   Say ''
-  # (without HOST nothing but this PC reaches the page before an account exists: no code)
-  if ($appDecides) {
+  # (without HOST nothing but this PC reaches the page before an account
+  # exists: no code; one the server did log (other devices allowed) is shown)
+  if ($appDecides -and ($null -eq $code -or $othersAllowed -ne $true)) {
     Say 'If there is no account yet, create it on this PC: the first start asks for a user name and password (no setup code on this PC).'
   } elseif ($null -ne $code -and $code.Length -gt 0) {
     Say "Setup code for the first account: $code"

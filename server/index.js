@@ -261,7 +261,7 @@ async function main() {
     && listenAddress.isLoopbackHost(req.headers.host || req.headers[':authority']);
   const auth = new Auth({ db, log: logger.scope('auth'), isSecure, setupFile: path.join(DATA, 'setup-code.txt'), channel: buildInfo.channel || null });
   // (and no code is shown at all while nothing but this PC can reach the page)
-  auth.bootstrap(process.env, { quiet: platform.name === 'win32' && !TRUST_PROXY && listenAddress.loopbackOnly(listen.addresses) });
+  auth.bootstrap(process.env, { quiet: platform.name === 'win32' && !TRUST_PROXY && listenAddress.loopbackOnly(listen.addresses), localUrl: `${TLS_MODE === 'off' ? 'http' : 'https'}://localhost:${PORT}` });
   const jobs = new Jobs({ db });
   // a scan or a move to the Recycle Bin that a restart stopped: interrupted
   const stoppedJobs = jobs.interruptLeftovers();
@@ -806,7 +806,14 @@ async function main() {
         listen.otherDevices = !body.otherDevices;
         listen.addresses = listenAddress.saveOtherDevices(db, listen.otherDevices);
         coverNetwork();
-        await bindAll(before).catch((e) => log.error(`Could not listen again on ${before.join(', ')}: ${e.message}`));
+        try {
+          await bindAll(before, { retry: true });
+        } catch (e) {
+          // listening nowhere helps no one: the service starts the server
+          // again (the app offers Start again), with the setting as before
+          log.error(`Could not listen again on ${before.join(', ')}: ${e.message}. Restarting.`);
+          setTimeout(() => process.exit(1), 500).unref?.();
+        }
         throw new HttpError(500, `Could not change where the web UI listens: ${err.message}`);
       } finally {
         listen.changing = false;
@@ -1651,39 +1658,49 @@ async function main() {
   const servers = [];
   // The listening sockets, one per address (Docker: just HOST). Each hands
   // its connections to onSocket; bindAll swaps them when Settings changes
-  // where the web UI listens, and open connections carry on.
+  // where the web UI listens. Switching to this PC only also closes the
+  // connections other devices still have open.
   let onSocket = null;
   let onListening = () => {};
   let fronts = [];
+  const open = new Set();
   const shown = (a) => (a.includes(':') ? `[${a}]` : a);
-  const listenOne = (address) => new Promise((resolve, reject) => {
-    const front = net.createServer((socket) => onSocket(socket));
+  const listenOne = (address, { ipv6Only = false } = {}) => new Promise((resolve, reject) => {
+    const front = net.createServer((socket) => {
+      open.add(socket);
+      socket.once('close', () => open.delete(socket));
+      onSocket(socket);
+    });
     // more open connections than a household's devices ever need are refused
     front.maxConnections = 1024;
     const fail = (err) => reject(err);
     front.once('error', fail);
-    // (:: only takes IPv6 here: 0.0.0.0 has IPv4)
-    front.listen({ port: PORT, host: address, ...(address === '::' ? { ipv6Only: true } : {}) }, () => {
+    front.listen({ port: PORT, host: address, ...(ipv6Only ? { ipv6Only: true } : {}) }, () => {
       front.off('error', fail);
       front.on('error', (err) => log.warn(`Listening on ${shown(address)}: ${err.message}`));
       resolve(front);
     });
   });
   // The first address must work; another (IPv6 on a PC without it) may not.
-  let rebinding = false;
-  async function bindAll(addresses) {
-    rebinding = fronts.length > 0;
+  // retry: the port the old sockets held may take a moment to come free.
+  async function bindAll(addresses, { retry = fronts.length > 0 } = {}) {
     for (const f of fronts) f.close();
     fronts = [];
+    if (listenAddress.loopbackOnly(addresses)) {
+      for (const socket of open) {
+        if (!listenAddress.isLoopbackAddress(socket.remoteAddress)) socket.destroy();
+      }
+    }
+    // (:: takes IPv6 only when 0.0.0.0 has IPv4 next to it; a single HOST=:: stays dual-stack)
+    const pair = addresses.includes('0.0.0.0');
     const bound = [];
     for (const [n, address] of addresses.entries()) {
       let front = null;
       for (let attempt = 0; !front; attempt++) {
         try {
-          front = await listenOne(address);
+          front = await listenOne(address, { ipv6Only: address === '::' && pair });
         } catch (err) {
-          // (the port the old socket held may take a moment to come free)
-          if (err.code === 'EADDRINUSE' && n === 0 && rebinding && attempt < 10) {
+          if (err.code === 'EADDRINUSE' && n === 0 && retry && attempt < 10) {
             await new Promise((r) => setTimeout(r, 200));
             continue;
           }

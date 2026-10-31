@@ -168,6 +168,25 @@ function ownAddress() {
   return null;
 }
 
+/** An open TLS connection to address (closed: resolves its 'closed' promise). */
+function holdOpen(address, port) {
+  return new Promise((resolve, reject) => {
+    const socket = require('tls').connect({ host: address, port, rejectUnauthorized: false, servername: 'localhost', ALPNProtocols: ['http/1.1'] }, () => resolve({ socket, closed }));
+    const closed = new Promise((r) => socket.once('close', () => r(true)));
+    socket.once('error', reject);
+  });
+}
+const closedWithin = (held, ms) => Promise.race([held.closed, new Promise((r) => setTimeout(() => r(false), ms))]);
+
+/** Whether this machine can listen on :: at all. */
+function hasIPv6() {
+  return new Promise((resolve) => {
+    const s = net.createServer();
+    s.once('error', () => resolve(false));
+    s.listen(0, '::', () => s.close(() => resolve(true)));
+  });
+}
+
 const reaches = (address, port) => request(address, port, 'GET', '/healthz').then((r) => r.status === 200, () => false);
 
 test('Windows: this PC only, no setup code on this PC, Allow other devices switches the listener', { timeout: 90000 }, async () => {
@@ -191,6 +210,8 @@ test('Windows: this PC only, no setup code on this PC, Allow other devices switc
     assert.equal(rebound.data.setupCodeRequired, true);
     const refused = await request('127.0.0.1', port, 'POST', '/api/auth/setup', { host: `evil.example:${port}`, body: { username: 'owner', password: 'longenough1' } });
     assert.equal(refused.status, 403);
+    // (no code was logged or written: the answer says where to go instead)
+    assert.equal(refused.data.error, `Create the first account on this PC itself: open https://localhost:${port} in a browser on it (no setup code is needed there).`);
     // the switch needs an account
     assert.equal((await request('127.0.0.1', port, 'GET', '/api/settings/network')).status, 401);
 
@@ -205,6 +226,8 @@ test('Windows: this PC only, no setup code on this PC, Allow other devices switc
     assert.equal(net0.data.otherDevices, false);
     assert.equal((await request('127.0.0.1', port, 'PUT', '/api/settings/network', { cookie, body: { otherDevices: 'yes' } })).status, 400);
 
+    // (a browser's open connection to this PC stays open while the sockets change)
+    const local = await holdOpen('127.0.0.1', port);
     const on = await request('127.0.0.1', port, 'PUT', '/api/settings/network', { cookie, body: { otherDevices: true } });
     assert.equal(on.status, 200, JSON.stringify(on.data));
     assert.equal(on.data.otherDevices, true);
@@ -212,10 +235,18 @@ test('Windows: this PC only, no setup code on this PC, Allow other devices switc
     assert.equal(await reaches('127.0.0.1', port), true, 'this PC still connects');
     if (lan) assert.equal(await reaches(lan, port), true, 'other devices connect');
 
+    const away = lan ? await holdOpen(lan, port) : null;
+
     const off = await request('127.0.0.1', port, 'PUT', '/api/settings/network', { cookie, body: { otherDevices: false } });
+    assert.equal(off.status, 200, JSON.stringify(off.data));
     assert.equal(off.data.otherDevices, false);
     assert.equal(await reaches('127.0.0.1', port), true);
-    if (lan) assert.equal(await reaches(lan, port), false, 'other devices cut off again');
+    if (lan) {
+      assert.equal(await reaches(lan, port), false, 'other devices cut off again');
+      assert.equal(await closedWithin(away, 5000), true, 'a connection another device still had open is closed');
+    }
+    assert.equal(await closedWithin(local, 300), false, "this PC's own open connection carries on");
+    local.socket.destroy();
   } finally {
     await s.stop();
   }
@@ -251,6 +282,21 @@ test('Windows with HOST=0.0.0.0 before the account: other devices still need the
   } finally {
     await s.stop();
     await fsp.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('HOST=:: listens on IPv4 too, as it always did (Docker and Windows)', { timeout: 60000 }, async (t) => {
+  if (!(await hasIPv6())) return t.skip('this machine has no IPv6');
+  for (const windows of [false, true]) {
+    const dir = await realTmp('sm-host-v6-');
+    const s = await start(dir, { windows, env: { HOST: '::' } });
+    try {
+      assert.ok(s.up, `127.0.0.1 answers (${windows ? 'Windows' : 'Docker'}): ${s.out()}`);
+      assert.equal(await reaches('::1', s.port), true);
+    } finally {
+      await s.stop();
+      await fsp.rm(dir, { recursive: true, force: true });
+    }
   }
 });
 

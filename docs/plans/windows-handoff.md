@@ -228,7 +228,9 @@ usual owner; please pull before editing them:
   `server/tls.js` (`setNetworkHostnames`).
 - `windows/install.ps1`: no setup code shown and only `https://localhost:PORT`
   listed when `manager.env` has no `HOST`; a commented `HOST=` line in a new
-  `manager.env`. Nothing else in the file changed.
+  `manager.env`; with every address in the service log (an upgrade, or the switch
+  on) the old address list, and behind `TRUST_PROXY` the old code display. Nothing
+  else in the file changed.
 - `web/login.js`, `web/app.js` (Settings > Security switch, Nodes hint) and the four
   packs' `web/login.js` (no code field when `setupCodeRequired` is false).
 - `windows/app/**`: `LoginModel.CodeRequired`, `PageDef.Native`, pages not drawn

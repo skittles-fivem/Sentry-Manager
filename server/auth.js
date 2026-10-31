@@ -94,7 +94,9 @@ class Auth {
    * reach the page, and it needs no code, so the code is neither logged nor
    * written (a setup-code.txt left from before is removed).
    */
-  bootstrap(env = process.env, { quiet = false } = {}) {
+  bootstrap(env = process.env, { quiet = false, localUrl = '' } = {}) {
+    this.quiet = quiet;
+    this.localUrl = localUrl;
     if (this.db.userCount() === 0 && env.UI_PASSWORD) {
       this.setPassword(env.UI_USERNAME || 'admin', env.UI_PASSWORD);
       this.log.info(`Created account "${env.UI_USERNAME || 'admin'}" from UI_PASSWORD`);
@@ -155,6 +157,8 @@ class Auth {
     const given = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     const want = String(this.code || '').replace(/-/g, '');
     if (!want || given.length !== want.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(want))) {
+      // (quiet: the code was neither logged nor written, so there is none to look up)
+      if (this.quiet) throw Object.assign(new Error(`Create the first account on this PC itself: open ${this.localUrl || 'the web UI at localhost'} in a browser on it (no setup code is needed there).`), { status: 403 });
       const where = this.platform.deployment === 'windows'
         ? 'It was shown when Install.cmd finished, and is in %ProgramData%\\SentrySixManager\\data\\setup-code.txt and the service log (data\\logs\\service.log).'
         : this.platform.deployment === 'macos'
