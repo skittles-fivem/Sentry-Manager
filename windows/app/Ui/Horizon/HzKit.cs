@@ -189,6 +189,7 @@ namespace SentrySix.Ui.Horizon
             Flex f = Flex.Row(8, children);
             f.Wrap = true;
             f.LineGap = 8;
+            f.GrowOnLines = true;
             foreach (UIElement c in f.Children)
             {
                 FrameworkElement fe = c as FrameworkElement;

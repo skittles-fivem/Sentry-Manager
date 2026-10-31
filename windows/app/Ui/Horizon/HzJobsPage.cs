@@ -155,8 +155,8 @@ namespace SentrySix.Ui.Horizon
                     TextBlock tb = fe as TextBlock;
                     if (tb != null) tb.TextAlignment = narrow ? TextAlignment.Left : TextAlignment.Right;
                 }
+                // (the lamp stays beside the job's text: grid row 1, align-items center)
                 dot.VerticalAlignment = VerticalAlignment.Center;
-                Grid.SetRowSpan(dot, narrow ? 2 : 1);
             });
             return HzKit.ListItem(g, Css.T(10, 12));
         }

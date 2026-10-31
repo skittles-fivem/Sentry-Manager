@@ -600,8 +600,8 @@ namespace SentrySix.Ui.Horizon
                 Window win = null;
                 Root.Loaded += delegate { win = Window.GetWindow(Root); if (win != null) { win.KeyDown -= keysDown; win.KeyDown += keysDown; } };
                 Root.Unloaded += delegate { if (win != null) win.KeyDown -= keysDown; if (convTimer != null) convTimer.Stop(); };
-                Root.Loaded += delegate { PollConverter(); };
-                U.OnSize(Root, (w, h) => { width = w; height = h; Layout(); });
+                Root.Loaded += delegate { PollConverter(); CenterTune(); };
+                U.OnSize(Root, (w, h) => { width = w; height = h; Layout(); CenterTune(); });
                 Paint();
             }
 
@@ -733,8 +733,28 @@ namespace SentrySix.Ui.Horizon
                     page.Content = m.PageContent;
                     scroller.ScrollToTop();
                 }
+                if (e.PropertyName == "Route") CenterTune();
                 if (e.PropertyName == "ReduceEffects") sky.SetChoice(m.Prefs != null ? m.Prefs.Get("horizon.sky", "auto") : "auto", m.Still || m.ReduceEffects);
                 Paint();
+            }
+
+            // main.js render(): keep the active tuner button in view (centred when it can be)
+            void CenterTune()
+            {
+                Root.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    foreach (NavEntry e in entries)
+                    {
+                        if (!e.Tune || e.P.Id != m.Route || !e.Box.IsLoaded || tuner.Visibility != Visibility.Visible) continue;
+                        try
+                        {
+                            Point at = e.Box.TransformToAncestor(tunerTrack).Transform(new Point(0, 0));
+                            double left = at.X + tunerTrack.Margin.Left - (tunerScroll.ViewportWidth - e.Box.ActualWidth) / 2;
+                            tunerScroll.ScrollToHorizontalOffset(Math.Max(0, left));
+                        }
+                        catch (InvalidOperationException) { }
+                    }
+                }), DispatcherPriority.Loaded);
             }
 
             int Index()

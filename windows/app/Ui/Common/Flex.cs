@@ -31,6 +31,12 @@ namespace SentrySix.Ui
         /// a wrapping Flex takes more lines).
         /// </summary>
         public bool Shrink;
+        /// <summary>
+        /// CSS flex-grow on wrapped lines too: each line shares its spare room
+        /// among its Grow children (off by default: the built-in pages' rows
+        /// keep their arrangement).
+        /// </summary>
+        public bool GrowOnLines;
 
         public Flex() { }
 
@@ -194,12 +200,15 @@ namespace SentrySix.Ui
             double lineMain = 0, lineCross = 0, crossPos = 0;
             Action flush = delegate
             {
-                double pos = Justify == "end" ? mainAvail - lineMain : Justify == "center" ? (mainAvail - lineMain) / 2 : 0;
+                double grow = 0;
+                if (GrowOnLines) foreach (UIElement c in line) grow += Math.Max(0, GetGrow(c));
+                double spare = Math.Max(0, mainAvail - lineMain);
+                double pos = grow > 0 ? 0 : Justify == "end" ? mainAvail - lineMain : Justify == "center" ? (mainAvail - lineMain) / 2 : 0;
                 // space-between: each line spreads its own items (one alone stays at the start)
-                double gap = Justify == "between" && line.Count > 1 ? Gap + Math.Max(0, mainAvail - lineMain) / (line.Count - 1) : Gap;
+                double gap = grow <= 0 && Justify == "between" && line.Count > 1 ? Gap + spare / (line.Count - 1) : Gap;
                 foreach (UIElement c in line)
                 {
-                    double m = Main(c.DesiredSize, h);
+                    double m = Main(c.DesiredSize, h) + (grow > 0 ? spare * Math.Max(0, GetGrow(c)) / grow : 0);
                     double cs = Cross(c.DesiredSize, h);
                     double off = (lineCross - cs) / 2;
                     c.Arrange(h ? new Rect(pos, crossPos + off, m, cs) : new Rect(crossPos + off, pos, cs, m));
