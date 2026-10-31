@@ -247,3 +247,19 @@ Try again).
 - horizon jobs-running-only
 - horizon jobs-long
 - horizon jobs-error
+
+### Horizon: Nodes
+
+The node blocks, Pair a node and "Let another server use this one"
+(hz/pages/nodes.js) on the same answers as the built-in Nodes page's
+states: nodes-empty (the fixture server's own answer: no nodes), nodes
+(an online node with its GPUs, a vehicle first and a finished dyno run;
+an offline one; a pairing code; a main server), nodes-running (a dyno run
+running: Stop, the Dyno run buttons waiting), nodes-noworker (TLS_MODE=off)
+and nodes-closed (no nodes, a pairing code).
+
+- horizon nodes-empty
+- horizon nodes
+- horizon nodes-running
+- horizon nodes-noworker
+- horizon nodes-closed

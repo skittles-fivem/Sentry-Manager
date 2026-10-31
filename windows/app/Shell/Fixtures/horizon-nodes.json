@@ -1,0 +1,314 @@
+{
+ "about": "Written by tools/parity/packFixtures.js from tools/parity/packs/horizon-nodes.js and Shell/RenderFixture.json: the horizon pages' states for SentrySix.exe --render (RENDER-PAGES.md).",
+ "variants": {
+  "horizon:nodes-empty": {
+   "route": "nodes"
+  },
+  "horizon:nodes": {
+   "route": "nodes",
+   "api": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "enabled": true,
+      "slots": 2,
+      "use": "gpu",
+      "busy": 0,
+      "available": true,
+      "name": "vm",
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793462436000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793202666000,
+        "lastSeenAt": 1793461806000
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   }
+  },
+  "horizon:nodes-running": {
+   "route": "nodes",
+   "api": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n3",
+       "name": "Spare PC",
+       "address": "192.168.1.31",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_qsv"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "enabled": false,
+      "slots": 2,
+      "use": "gpu",
+      "busy": 0,
+      "available": true,
+      "name": "vm",
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "running",
+      "phase": "Converting 2 at once",
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": null,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n3/benchmark": {
+     "benchmark": null
+    }
+   }
+  },
+  "horizon:nodes-noworker": {
+   "route": "nodes",
+   "api": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      }
+     ],
+     "worker": {
+      "enabled": false,
+      "slots": 2,
+      "use": "gpu",
+      "busy": 0,
+      "available": false,
+      "name": "vm",
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "failed",
+      "error": "ffmpeg exited with code 1",
+      "codec": "av1",
+      "results": []
+     }
+    }
+   }
+  },
+  "horizon:nodes-closed": {
+   "route": "nodes",
+   "api": {
+    "GET /api/nodes": {
+     "nodes": [],
+     "worker": {
+      "enabled": true,
+      "slots": 2,
+      "use": "gpu",
+      "busy": 0,
+      "available": true,
+      "name": "vm",
+      "pairing": {
+       "code": "WXYZ-2345-6789",
+       "expiresAt": 1793462436000
+      },
+      "mains": []
+     }
+    },
+    "GET /api/settings/network": {
+     "available": true,
+     "otherDevices": false,
+     "fixedHost": null,
+     "addresses": [],
+     "port": 9000
+    }
+   }
+  }
+ }
+}
