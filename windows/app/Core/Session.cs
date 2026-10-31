@@ -97,7 +97,11 @@ namespace SentrySix.Core
         /// </summary>
         public async Task CreateFirstAccount(string setupCode, string user, string password)
         {
-            await api.Post("/api/auth/setup", JsonValue.Object("username", user, "password", password, "code", setupCode)).ConfigureAwait(false);
+            // (null or empty: no code, as on Windows on the PC itself, where /api/auth/me says setupCodeRequired false)
+            JsonValue body = string.IsNullOrEmpty(setupCode)
+                ? JsonValue.Object("username", user, "password", password)
+                : JsonValue.Object("username", user, "password", password, "code", setupCode);
+            await api.Post("/api/auth/setup", body).ConfigureAwait(false);
             await Refresh().ConfigureAwait(false);
         }
 

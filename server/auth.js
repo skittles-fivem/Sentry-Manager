@@ -89,13 +89,31 @@ class Auth {
     this.code = null;
   }
 
-  bootstrap(env = process.env) {
+  /**
+   * quiet (Windows, listening on this PC only): nothing but this PC can
+   * reach the page, and it needs no code, so the code is neither logged nor
+   * written (a setup-code.txt left from before is removed).
+   */
+  bootstrap(env = process.env, { quiet = false, localUrl = '' } = {}) {
+    this.quiet = quiet;
+    this.localUrl = localUrl;
     if (this.db.userCount() === 0 && env.UI_PASSWORD) {
       this.setPassword(env.UI_USERNAME || 'admin', env.UI_PASSWORD);
       this.log.info(`Created account "${env.UI_USERNAME || 'admin'}" from UI_PASSWORD`);
     }
     if (this.needsSetup()) {
       this.code = setupCode();
+      if (quiet) {
+        this.log.info('No account yet. Open the web UI on this PC to create it (no setup code is needed on this PC).');
+        if (this.setupFile) {
+          try {
+            fs.rmSync(this.setupFile, { force: true });
+          } catch {
+            // an old file someone has open: it holds no code that works
+          }
+        }
+        return;
+      }
       this.log.warn(`No account yet. To create it, open the web UI and enter the setup code ${this.code}`);
       if (this.setupFile) {
         try {
@@ -112,19 +130,13 @@ class Auth {
     return this.db.userCount() === 0;
   }
 
-  /** Create the first account; needs the setup code from the log. */
-  setup(username, password, code) {
+  /**
+   * Create the first account; needs the setup code from the log, unless
+   * codeFree (Windows: a request from this PC itself, index.js decides).
+   */
+  setup(username, password, code, { codeFree = false } = {}) {
     if (!this.needsSetup()) throw Object.assign(new Error('An account already exists.'), { status: 409 });
-    const given = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    const want = String(this.code || '').replace(/-/g, '');
-    if (!want || given.length !== want.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(want))) {
-      const where = this.platform.deployment === 'windows'
-        ? 'It was shown when Install.cmd finished, and is in %ProgramData%\\SentrySixManager\\data\\setup-code.txt and the service log (data\\logs\\service.log).'
-        : this.platform.deployment === 'macos'
-          ? `It was shown when the install finished. To see it again, run sudo sentry-six-manager setup-code in Terminal.${this.channel === 'macos-app' ? ' Or choose Setup code in the Sentry Six Manager menu bar.' : ''}`
-          : 'It is printed in the container log (docker logs sentry-six-manager).';
-      throw Object.assign(new Error(`That setup code is not right. ${where}`), { status: 403 });
-    }
+    if (!codeFree) this.checkCode(code);
     this.setPassword(username, password);
     this.code = null;
     if (this.setupFile) {
@@ -138,6 +150,21 @@ class Auth {
           this.log.warn(`Could not remove ${this.setupFile}: ${err.message}`);
         }
       }
+    }
+  }
+
+  checkCode(code) {
+    const given = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const want = String(this.code || '').replace(/-/g, '');
+    if (!want || given.length !== want.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(want))) {
+      // (quiet: the code was neither logged nor written, so there is none to look up)
+      if (this.quiet) throw Object.assign(new Error(`Create the first account on this PC itself: open ${this.localUrl || 'the web UI at localhost'} in a browser on it (no setup code is needed there).`), { status: 403 });
+      const where = this.platform.deployment === 'windows'
+        ? 'It was shown when Install.cmd finished, and is in %ProgramData%\\SentrySixManager\\data\\setup-code.txt and the service log (data\\logs\\service.log).'
+        : this.platform.deployment === 'macos'
+          ? `It was shown when the install finished. To see it again, run sudo sentry-six-manager setup-code in Terminal.${this.channel === 'macos-app' ? ' Or choose Setup code in the Sentry Six Manager menu bar.' : ''}`
+          : 'It is printed in the container log (docker logs sentry-six-manager).';
+      throw Object.assign(new Error(`That setup code is not right. ${where}`), { status: 403 });
     }
   }
 

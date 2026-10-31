@@ -9,9 +9,11 @@ Animated backgrounds (Horizon's grid, Aurora's sky) are drawn as one still
 frame, so two runs give the same picture.
 
 - `<interface>`: `builtin`, `horizon`, `flux`, `aurora`, `daylight`
-- `<page>`: `login`, `login-setup` (the first-start form), `shell` (the
-  interface's first page in its shell), or any route of the interface (its
-  page inside the shell; Phase 0 pages are placeholders)
+- `<page>`: `login`, `login-setup` (the first-start form with the setup
+  code), `login-local` (the first start on the Windows PC itself: no setup
+  code field), `shell` (the interface's first page in its shell), or any
+  route of the interface (its page inside the shell; a page not drawn here
+  yet says it opens in the browser, where its navigation takes it)
 - `--fixture`: JSON with the same answers the server gives:
   `me` (/api/auth/me), `settings` (/api/settings), `vehicles` (/api/vehicles),
   `notifications` (/api/notifications?open=1), `jobs` (/api/jobs?limit=50),
@@ -54,6 +56,17 @@ SentrySix.exe --render daylight login --width 1400 --height 900 --out parity\nat
 SentrySix.exe --render daylight login --width 390 --height 844 --out parity\native\daylight-login-phone.png --fixture tools\parity\fixture.json
 SentrySix.exe --render daylight shell --width 1400 --height 900 --out parity\native\daylight-shell-desktop.png --fixture tools\parity\fixture.json
 SentrySix.exe --render daylight shell --width 390 --height 844 --out parity\native\daylight-shell-phone.png --fixture tools\parity\fixture.json
+```
+
+The first-start form, with the setup code and on the Windows PC itself (no code):
+
+```bat
+SentrySix.exe --render builtin login-setup --width 1400 --height 900 --out parity\native\builtin-login-setup-desktop.png
+SentrySix.exe --render builtin login-local --width 1400 --height 900 --out parity\native\builtin-login-local-desktop.png
+SentrySix.exe --render horizon login-local --width 1400 --height 900 --out parity\native\horizon-login-local-desktop.png
+SentrySix.exe --render flux login-local --width 1400 --height 900 --out parity\native\flux-login-local-desktop.png
+SentrySix.exe --render aurora login-local --width 1400 --height 900 --out parity\native\aurora-login-local-desktop.png
+SentrySix.exe --render daylight login-local --width 1400 --height 900 --out parity\native\daylight-login-local-desktop.png
 ```
 
 Daylight's dark look (its light look is the default above), four more runs:

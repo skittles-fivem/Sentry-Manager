@@ -103,8 +103,8 @@ UninstallLogging=yes
 
 [Messages]
 WelcomeLabel2=This installs [name/ver]: the Sentry Studio viewer and converter for your Tesla dashcam footage, as a web app on this PC.%n%nIf it is installed already, it is upgraded in place and your settings, accounts and footage stay.
-FinishedLabelNoIcons=Sentry Six Manager is installed. It is in the Start menu and starts in the tray when you sign in. The addresses and the setup code below are what you need the first time.
-FinishedLabel=Sentry Six Manager is installed. It is in the Start menu and starts in the tray when you sign in. The addresses and the setup code below are what you need the first time.
+FinishedLabelNoIcons=Sentry Six Manager is installed. It is in the Start menu and starts in the tray when you sign in. The addresses below are what you need the first time (on this PC itself no setup code is needed).
+FinishedLabel=Sentry Six Manager is installed. It is in the Start menu and starts in the tray when you sign in. The addresses below are what you need the first time (on this PC itself no setup code is needed).
 
 [Files]
 ; (Small files first: solid compression unpacks in this order, so nothing

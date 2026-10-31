@@ -217,7 +217,7 @@ namespace SentrySix.Ui.Horizon
             card.Children.Add(ChromeText(m.NeedsSetup ? "Create your account" : "Sign in", 30, 800, 0.04));
             string where = LoginLogic.LogWhere(m);
             card.Children.Add(U.Text(m.NeedsSetup
-                ? "First start. Type the setup code from " + where + ", then choose the user name and password that will protect this server."
+                ? (m.CodeRequired ? "First start. Type the setup code from " + where + ", then choose the user name and password that will protect this server." : "First start. Choose the user name and password that will protect this server.")
                 : "Use the account of this Sentry Six Manager.", 15, FontWeights.Normal, "dim"));
 
             InputLook k = InK();
@@ -237,13 +237,17 @@ namespace SentrySix.Ui.Horizon
             {
                 confirm = U.Input(k, true, null, null);
                 form.Children.Add(fld("Confirm password", confirm, null));
-                InputLook km = InK();
-                km.Font = U.Consolas;
-                code = U.Input(km, false, "", "XXXXX-XXXXX-XXXXX");
-                TextBlock hint = U.Text("", 13, FontWeights.Normal, "faint");
-                hint.Inlines.Add(new Run(m.WindowsDeployment ? "Printed in the install window and in " : "Printed in the container log: "));
-                hint.Inlines.Add(Code(m.WindowsDeployment ? LoginLogic.ServiceLog : LoginLogic.DockerLogs));
-                form.Children.Add(fld("Setup code", code, hint));
+                // (Windows, on the PC itself: the server needs no setup code, so none is asked for)
+                if (m.CodeRequired)
+                {
+                    InputLook km = InK();
+                    km.Font = U.Consolas;
+                    code = U.Input(km, false, "", "XXXXX-XXXXX-XXXXX");
+                    TextBlock hint = U.Text("", 13, FontWeights.Normal, "faint");
+                    hint.Inlines.Add(new Run(m.WindowsDeployment ? "Printed in the install window and in " : "Printed in the container log: "));
+                    hint.Inlines.Add(Code(m.WindowsDeployment ? LoginLogic.ServiceLog : LoginLogic.DockerLogs));
+                    form.Children.Add(fld("Setup code", code, hint));
+                }
             }
             if (m.Insecure)
             {
@@ -865,7 +869,7 @@ namespace SentrySix.Ui.Horizon
             Flex col = Flex.Col(16);
             // .ptitle.hud: h1 clamp(22px, 2.4vw, 30px) 800, 0.06em, uppercase; p dim 14px
             SpacedText h1 = new SpacedText(p.Title.ToUpperInvariant(), 30, U.W(800), 0.06);
-            TextBlock lead = U.Text(U.PhaseLine(p), 14, FontWeights.Normal, "dim");
+            TextBlock lead = U.Text(U.BrowserLine(p), 14, FontWeights.Normal, "dim");
             lead.Margin = new Thickness(0, 4, 0, 0);
             StackPanel head = new StackPanel();
             head.Children.Add(h1);
@@ -874,14 +878,14 @@ namespace SentrySix.Ui.Horizon
             // .panel.hud with a .ph h2 (13px 800 0.2em uppercase, #ffd2ef, cyan icon)
             FrameworkElement hi = Icon("horizon", 20);
             hi.SetResourceReference(TextElement.ForegroundProperty, "cyan");
-            SpacedText h2 = U.Spaced(("Phase " + p.Phase).ToUpperInvariant(), 13, U.W(800), 0.2, "h2");
+            SpacedText h2 = U.Spaced(U.BrowserHeading.ToUpperInvariant(), 13, U.W(800), 0.2, "h2");
             h2.VerticalAlignment = VerticalAlignment.Center;
             Flex ph = Flex.Row(8, hi, h2);
             ph.MinHeight = 32;
             ph.Margin = new Thickness(0, 0, 0, 12);
             StackPanel body = new StackPanel();
             body.Children.Add(ph);
-            TextBlock t = U.Text(U.PhaseWhat(p.Phase) + " " + U.OpenInBrowserText, 15, FontWeights.Normal, "dim");
+            TextBlock t = U.Text(U.OpenInBrowserText, 15, FontWeights.Normal, "dim");
             t.Margin = new Thickness(0, 0, 0, 14);
             body.Children.Add(t);
             Button open = U.Button(U.IconLabel(Icon("external", 18), "Open in the browser", 8), Btn());

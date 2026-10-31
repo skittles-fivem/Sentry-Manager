@@ -70,11 +70,13 @@
     $('fingerprint').hidden = false;
   }
   const setup = Boolean(me.needsSetup);
+  // (Windows, on the PC itself: no setup code is needed, so none is asked for)
+  const needCode = setup && me.setupCodeRequired !== false;
   if (setup) {
     $('title').textContent = 'Create your account';
-    $('lead').textContent = `First start: enter the setup code from ${logWhere}, then choose the user name and password that protect this server.`;
+    $('lead').textContent = needCode ? `First start: enter the setup code from ${logWhere}, then choose the user name and password that protect this server.` : 'First start: choose the user name and password that protect this server.';
     $('confirm-row').hidden = false;
-    $('code-row').hidden = false;
+    $('code-row').hidden = !needCode;
     submit.textContent = 'Create account';
     form.password.autocomplete = 'new-password';
   }
@@ -119,7 +121,7 @@
     if (setup) {
       if (password.length < 8) { err.textContent = 'Choose a password of at least 8 characters.'; return; }
       if (password !== f.get('confirm')) { err.textContent = 'The passwords do not match.'; return; }
-      if (!String(f.get('code') || '').trim()) { err.textContent = `Enter the setup code from ${logWhere}.`; return; }
+      if (needCode && !String(f.get('code') || '').trim()) { err.textContent = `Enter the setup code from ${logWhere}.`; return; }
     }
     submit.disabled = true;
     const label = submit.textContent;
@@ -130,7 +132,7 @@
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'sentry-six-manager' },
-        body: JSON.stringify({ username, password, ...(setup ? { code: String(f.get('code') || '').trim() } : {}) })
+        body: JSON.stringify({ username, password, ...(needCode ? { code: String(f.get('code') || '').trim() } : {}) })
       });
     } catch {
       res = null;
