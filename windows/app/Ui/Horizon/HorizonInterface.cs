@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Threading;
+using System.Windows.Threading;
+using SentrySix.Core;
+using SentrySix.Core.Horizon;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -595,7 +599,8 @@ namespace SentrySix.Ui.Horizon
                 KeyEventHandler keysDown = OnKey;
                 Window win = null;
                 Root.Loaded += delegate { win = Window.GetWindow(Root); if (win != null) { win.KeyDown -= keysDown; win.KeyDown += keysDown; } };
-                Root.Unloaded += delegate { if (win != null) win.KeyDown -= keysDown; };
+                Root.Unloaded += delegate { if (win != null) win.KeyDown -= keysDown; if (convTimer != null) convTimer.Stop(); };
+                Root.Loaded += delegate { PollConverter(); };
                 U.OnSize(Root, (w, h) => { width = w; height = h; Layout(); });
                 Paint();
             }
@@ -772,14 +777,22 @@ namespace SentrySix.Ui.Horizon
                     if (e.P.Id == "alerts") { text = alerts; bg = m.CriticalOpen ? "red" : "org"; }
                     if (e.P.Id == "bin") text = m.BinItems > 0 ? m.BinItems.ToString() : "";
                     if (e.P.Id == "jobs") { text = m.RunningJobs > 0 ? m.RunningJobs.ToString() : ""; bg = "cyan"; fg = null; }
-                    if (e.P.Id == "encoder") { text = m.Converting ? "●" : ""; bg = "cyan"; fg = null; }
+                    if (e.P.Id == "encoder")
+                    {
+                        // main.js converterState(): ● while it runs, II while paused (the jobs' word until the converter answers)
+                        bool on = convState != null ? Running.Contains(convState) : m.Converting;
+                        bool held = convState == "paused" || convState == "paused_network";
+                        text = on ? "●" : held ? "II" : "";
+                        bg = on ? "cyan" : "org"; fg = on ? null : "go-ink";
+                    }
                     U.SetBadge(e.Badge, text, bg, fg ?? (object)Css.Brush("#06121a"));
                 }
                 U.SetBadge(bellBadge, alerts, m.CriticalOpen ? "red" : "org", "go-ink");
                 bell.ToolTip = alerts.Length > 0 ? "Notifications, " + alerts + " unread" : "Notifications";
                 // the engine: the floor speeds up, the line under the strip lights up
-                sky.Engine(m.Converting);
-                dashLine.Opacity = m.Converting ? 1 : 0.55;
+                bool engine = convState != null ? Running.Contains(convState) : m.Converting;
+                sky.Engine(engine);
+                dashLine.Opacity = engine ? 1 : 0.55;
                 fab.Visibility = width <= 1023 && m.Route != "viewer" ? Visibility.Visible : Visibility.Collapsed;
             }
 
@@ -950,28 +963,153 @@ namespace SentrySix.Ui.Horizon
                 return sec;
             }
 
-            void Quick()
+            // main.js quick(): the quick actions sheet (phones and tablets)
+            async void Quick()
             {
-                ContextMenu menu = new ContextMenu();
-                string[][] items =
+                if (overlay.IsOpen) return;
+                VehicleInfo v = m.Current;
+                string st = convState;
+                bool running = st != null && Running.Contains(st);
+                bool paused = st == "paused" || st == "paused_network";
+                List<string[]> items = new List<string[]>
                 {
-                    new[] { "Play the newest footage", "viewer" },
-                    new[] { "Start a conversion", "encoder" },
-                    new[] { "Footage track list", "footage" },
-                    new[] { "Interface and background", "settings" }
+                    new[] { "play", "Play the newest footage", "#/viewer" },
+                    new[] { "engine", "Start a conversion", "#/encoder?new=1" }
                 };
+                if (running) items.Add(new[] { "pause", "Pause the conversion", "pause" });
+                else if (paused) items.Add(new[] { "play", "Resume the conversion", "resume" });
+                items.Add(new[] { "refresh", v != null ? "Refresh " + v.Name + "'s inventory" : "Refresh the inventory", "scan" });
+                items.Add(new[] { "check", "Mark every notification read", "read" });
+                items.Add(new[] { "film", "Footage track list", "#/footage" });
+                items.Add(new[] { "gear", "Interface and background", "#/settings/interface" });
+                Flex list = Flex.Col(8);
+                string picked = null;
+                Action<string> close = null;
                 foreach (string[] it in items)
                 {
-                    MenuItem mi = new MenuItem();
-                    mi.Header = it[0];
-                    string route = it[1];
-                    mi.Click += delegate { m.Navigate(route); };
-                    menu.Items.Add(mi);
+                    string a = it[2];
+                    BtnLook k = HzKit.BtnK(HzBtn.Plain);
+                    k.MinHeight = 50;
+                    k.Align = HorizontalAlignment.Left;
+                    Button b = U.Button(U.IconLabel(HzIcons.Icon(it[0], 18), it[1], 8), k);
+                    b.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    b.HorizontalContentAlignment = HorizontalAlignment.Left;
+                    b.Click += delegate { picked = a; if (close != null) close(a); };
+                    list.Children.Add(b);
                 }
-                menu.PlacementTarget = fab;
-                menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Top;
-                menu.IsOpen = true;
+                Picker carPick = null;
+                PropertyChangedEventHandler carChanged = null;
+                if (m.Vehicles.Count > 1)
+                {
+                    InputLook ik = InK();
+                    ik.Padding = new Thickness(12, 0, 36, 0);
+                    FrameworkElement arrow = SelectArrow();
+                    arrow.Margin = new Thickness(0, 0, -26, 0);
+                    carPick = new Picker(m, ik, arrow, 0, 10000);
+                    carPick.Root.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    list.Children.Add(HzKit.Field("Vehicle", carPick.Root));
+                    carChanged = delegate(object s, PropertyChangedEventArgs e) { if (e.PropertyName == "VehicleId" && close != null) close("car"); };
+                    m.PropertyChanged += carChanged;
+                }
+                string mode = m.Prefs != null ? m.Prefs.Get("horizon.sky", "auto") : "auto";
+                HzKit.Segs sky = new HzKit.Segs("Background effect", new[] { new[] { "auto", "Auto" }, new[] { "full", "Full" }, new[] { "calm", "Calm" }, new[] { "off", "Off" } }, mode);
+                sky.Picked += c =>
+                {
+                    if (m.Prefs != null) m.Prefs.Set("horizon.sky", c);
+                    this.sky.SetChoice(c, m.Still || m.ReduceEffects);
+                };
+                list.Children.Add(HzKit.Field("Background effect", sky.Root));
+                await overlay.Sheet("Quick actions", list, false, c => close = c);
+                if (carChanged != null) m.PropertyChanged -= carChanged;
+                if (picked == null) return;
+                if (picked.StartsWith("#")) { m.Navigate(picked.TrimStart('#').TrimStart('/')); return; }
+                IJsonApi api = ApiOf(m);
+                if (api == null) return;
+                HzUi ui = overlay.UiFor(null);
+                if (picked == "scan" && v != null)
+                    await ui.Act(async () => { await api.Post("/api/vehicles/" + Hz.EncId(v.Id) + "/scan", JsonValue.Object(), CancellationToken.None); ui.Toast("Refreshing the inventory. Jobs shows the progress.", "ok"); });
+                if (picked == "read")
+                {
+                    await ui.Act(async () =>
+                    {
+                        List<JsonValue> ids = new List<JsonValue>();
+                        foreach (NoteInfo n in m.Notes) if (!n.Read) ids.Add(Num(n.Id));
+                        if (ids.Count > 0) await api.Post("/api/notifications/read", JsonValue.Object("ids", JsonValue.Array(ids)), CancellationToken.None);
+                        await m.ReloadNotes();
+                        ui.Toast(ids.Count > 0 ? "All notifications marked read." : "Nothing unread.", "ok");
+                    });
+                }
+                if (picked == "pause" || picked == "resume")
+                {
+                    JsonValue cur = null;
+                    try { cur = await Converter.Invoke(api, "getCurrent", null); } catch (Exception) { }
+                    JsonValue id = cur != null ? cur["id"] : JsonValue.Null;
+                    if (!id.Bool) return;
+                    try
+                    {
+                        JsonValue r = await Converter.Invoke(api, picked, JsonValue.Object("jobId", id));
+                        ui.Toast(picked == "pause" ? "Conversion paused." : "Conversion resumed.", "ok");
+                        ConverterState(r != null && r["state"].Str != null ? r["state"].Str : picked == "pause" ? "paused" : "encoding");
+                    }
+                    catch (Exception ex)
+                    {
+                        ConverterError ce = ex as ConverterError;
+                        ui.Toast("Converter: " + (ce != null ? ce.Code : "failed"), "bad");
+                    }
+                }
             }
+
+            /// <summary>A notification id as the web sends it back (a number when it is one).</summary>
+            static JsonValue Num(string id)
+            {
+                long n;
+                return long.TryParse(id, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out n) ? JsonValue.Number(n) : JsonValue.String(id);
+            }
+
+            // ---------- the converter: the Encoder badge and the engine (main.js converterState, pollConverter) ----------
+            static readonly HashSet<string> Running = new HashSet<string> { "discovering", "waiting", "staging", "encoding", "writing-telemetry", "verifying", "copying", "replacing" };
+            string convState;
+            DispatcherTimer convTimer;
+
+            void ConverterState(string st)
+            {
+                convState = st;
+                Paint();
+            }
+
+            async void PollConverter()
+            {
+                if (convTimer != null) convTimer.Stop();
+                IJsonApi api = ApiOf(m);
+                Window w = Window.GetWindow(Root);
+                bool visible = w == null || w.WindowState != WindowState.Minimized;
+                if (api != null && visible && m.Route != "encoder" && !m.Still)
+                {
+                    try
+                    {
+                        JsonValue r = await Converter.Invoke(api, "getCurrent", null);
+                        ConverterState(r != null && r.IsObject ? r["state"].Str : null);
+                    }
+                    catch (Exception) { }
+                }
+                if (m.Still || !Root.IsLoaded) return;
+                if (convTimer == null)
+                {
+                    convTimer = new DispatcherTimer();
+                    convTimer.Tick += delegate { PollConverter(); };
+                }
+                convTimer.Interval = TimeSpan.FromMilliseconds(convState != null && Running.Contains(convState) ? 5000 : 15000);
+                convTimer.Start();
+            }
+        }
+
+        // the server's API as the pages got it (the shell's quick actions and converter poll use the same)
+        static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ShellModel, IJsonApi> apis = new System.Runtime.CompilerServices.ConditionalWeakTable<ShellModel, IJsonApi>();
+
+        static IJsonApi ApiOf(ShellModel m)
+        {
+            IJsonApi a;
+            return m != null && apis.TryGetValue(m, out a) ? a : null;
         }
 
         // ---------- pages: drawn here (PackHost, as main.js render()), else a placeholder in Horizon's style ----------
@@ -979,6 +1117,7 @@ namespace SentrySix.Ui.Horizon
         {
             PageDef p = pages[0];
             foreach (PageDef x in pages) if (x.Id == id) p = x;
+            if (ctx != null && ctx.Shell != null && ctx.Api != null) { apis.Remove(ctx.Shell); apis.Add(ctx.Shell, ctx.Api); }
             Func<IPackPage> make = ctx != null ? NativeFor(p.Id, ctx.Sub) : null;
             if (make != null)
             {
