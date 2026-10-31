@@ -509,7 +509,7 @@ namespace SentrySix.Ui.Horizon
         /// chevron, its options opening as a menu under it; Up and Down change
         /// the choice as a select does.
         /// </summary>
-        public sealed class Select
+        public sealed class DashSelect
         {
             public readonly Border Root = new Border();
             readonly TextBlock label = new TextBlock();
@@ -517,7 +517,7 @@ namespace SentrySix.Ui.Horizon
             public string Value = "";
             public event Action<string> Picked;
 
-            public Select(string name)
+            public DashSelect(string name)
             {
                 InputLook k = InK();
                 label.FontSize = k.FontSize;
@@ -617,7 +617,7 @@ namespace SentrySix.Ui.Horizon
         }
 
         /// <summary>label.chk: a 20 px box (accent magenta when on) and its words 10 px to the right, 44 px tall.</summary>
-        public sealed class Check
+        public sealed class DashCheck
         {
             public readonly Flex Root;
             readonly Border box = new Border();
@@ -625,7 +625,7 @@ namespace SentrySix.Ui.Horizon
             public bool Value;
             public event Action<bool> Changed;
 
-            public Check(string label, bool value)
+            public DashCheck(string label, bool value)
             {
                 box.Width = 20;
                 box.Height = 20;
@@ -661,14 +661,14 @@ namespace SentrySix.Ui.Horizon
         }
 
         /// <summary>details.arch: the summary (cyan 600, 44 px) that opens and closes what is under it.</summary>
-        public sealed class Details
+        public sealed class DashDetails
         {
             public readonly StackPanel Root = new StackPanel();
             public readonly StackPanel Body = new StackPanel();
             public bool Open;
             public event Action<bool> Toggled;
 
-            public Details(string summary, bool open)
+            public DashDetails(string summary, bool open)
             {
                 TextBlock t = Text(summary, 15, "cyan", 600);
                 t.VerticalAlignment = VerticalAlignment.Center;

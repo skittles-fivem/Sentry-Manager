@@ -282,7 +282,7 @@ namespace SentrySix.Core.Horizon
         public string Name, Pid, Cpu, Memory, Gpu;
     }
 
-    public sealed class HzAlertRow
+    public sealed class HzDashAlertRow
     {
         public string Tone, Message;
     }
@@ -492,7 +492,7 @@ namespace SentrySix.Core.Horizon
         public List<string> Host = new List<string>();
         public string HostErr;
         public List<HzMeter> Meters = new List<HzMeter>();
-        public List<HzAlertRow> Alerts = new List<HzAlertRow>();
+        public List<HzDashAlertRow> Alerts = new List<HzDashAlertRow>();
         /// <summary>The docker-compose readings (null: none shown).</summary>
         public List<string[]> Unlock;
         public string UnlockSummary;
@@ -1033,8 +1033,8 @@ namespace SentrySix.Core.Horizon
             ms.Add(Meter(Hottest, Hz.Ok(t) ? Round(t) + " °C" : Hz.Dash, Hz.Ok(t) ? t : double.NaN, "temp", 100, "org", false, null, Plain(Hz.Ok(t) ? HottestSub : NoTemp)));
             Meters = ms;
             // alerts, and the readings one line of docker-compose.yml adds (none on Windows)
-            List<HzAlertRow> al = new List<HzAlertRow>();
-            foreach (JsonValue a in s["alerts"].Items) al.Add(new HzAlertRow { Tone = Is(a["level"], "error") ? "red" : "org", Message = Hz.Js(a["message"]) });
+            List<HzDashAlertRow> al = new List<HzDashAlertRow>();
+            foreach (JsonValue a in s["alerts"].Items) al.Add(new HzDashAlertRow { Tone = Is(a["level"], "error") ? "red" : "org", Message = Hz.Js(a["message"]) });
             Alerts = al;
             JsonValue un = s["unlock"];
             if (un.Count > 0 && un.IsArray && !env.Windows)
@@ -1396,7 +1396,7 @@ namespace SentrySix.Core.Horizon
                 if (m.Bar != null) o.Add(m.Bar.Mark);
                 Runs(o, m.Sub);
             }
-            foreach (HzAlertRow a in Alerts) { o.Add("[note " + a.Tone + "]"); T(o, a.Message); }
+            foreach (HzDashAlertRow a in Alerts) { o.Add("[note " + a.Tone + "]"); T(o, a.Message); }
             if (Unlock != null)
             {
                 o.Add(UnlockOpen ? "[details open]" : "[details]");

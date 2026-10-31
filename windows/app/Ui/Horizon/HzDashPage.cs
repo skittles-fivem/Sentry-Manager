@@ -47,12 +47,12 @@ namespace SentrySix.Ui.Horizon
         SpacedText logn;
         HzKit.Segs lvl;
         TextBox q;
-        HzKit.Select scope;
-        HzKit.Check follow;
+        HzKit.DashSelect scope;
+        HzKit.DashCheck follow;
         Button clearBtn;
         StackPanel logRows;
         ScrollViewer logScroll;
-        HzKit.Details arch;
+        HzKit.DashDetails arch;
         StackPanel archList;
         Flex page;
 
@@ -336,10 +336,10 @@ namespace SentrySix.Ui.Horizon
             typing.Interval = TimeSpan.FromMilliseconds(120);
             typing.Tick += delegate { typing.Stop(); if (!gone) { m.Filter(q.Text, Env()); Paint(false); } };
             q.TextChanged += delegate { typing.Stop(); typing.Start(); };
-            scope = new HzKit.Select("Scope");
+            scope = new HzKit.DashSelect("Scope");
             scope.Set(new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>("", HzDash.EveryScope) }, "");
             scope.Picked += v => { m.PickScope(v, Env()); Paint(false); };
-            follow = new HzKit.Check(HzDash.FollowLabel, m.Follow);
+            follow = new HzKit.DashCheck(HzDash.FollowLabel, m.Follow);
             follow.Changed += on => m.SetFollow(on, j => Store("log.follow", j));
             Button refresh = HzKit.Btn(HzDash.Refresh, "refresh", HzBtn.Sm, () => { Run(() => m.LoadLog(ctx.Api, Env())); });
             Flex bar = HzKit.Row(lvl.Root, q, scope.Root, follow.Root, refresh);
@@ -359,7 +359,7 @@ namespace SentrySix.Ui.Horizon
             box.BorderThickness = new Thickness(1);
             box.SetResourceReference(Border.BorderBrushProperty, "line-soft");
             archList = new StackPanel();
-            arch = new HzKit.Details(HzDash.Archives, false);
+            arch = new HzKit.DashDetails(HzDash.Archives, false);
             arch.Body.Children.Add(archList);
             arch.Toggled += open => { m.ArchOpen = open; if (open) Run(() => m.LoadArch(ctx.Api, Env())); };
             StackPanel body = new StackPanel();
@@ -594,10 +594,10 @@ namespace SentrySix.Ui.Horizon
             foreach (HzMeter x in m.Meters) meters.Children.Add(Meter(x));
             // alerts and the docker-compose readings
             alerts.Children.Clear();
-            foreach (HzAlertRow a in m.Alerts) alerts.Children.Add(HzKit.Note(new TextBlock { Text = a.Message, TextWrapping = TextWrapping.Wrap }, a.Tone));
+            foreach (HzDashAlertRow a in m.Alerts) alerts.Children.Add(HzKit.Note(new TextBlock { Text = a.Message, TextWrapping = TextWrapping.Wrap }, a.Tone));
             if (m.Unlock != null)
             {
-                HzKit.Details d = new HzKit.Details(m.UnlockSummary, m.UnlockOpen);
+                HzKit.DashDetails d = new HzKit.DashDetails(m.UnlockSummary, m.UnlockOpen);
                 d.Toggled += open => m.UnlockOpen = open;
                 foreach (string[] u in m.Unlock)
                 {

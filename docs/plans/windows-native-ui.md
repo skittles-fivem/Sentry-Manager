@@ -290,7 +290,14 @@ is done when every item is ticked in both. Run on the owner's PC runner.
       native (`HzPoliciesPage.cs`, `HzBinPage.cs`, `HzAlertsPage.cs`,
       `HzVehiclesPage.cs`, `HzKitFields.cs`; models in `Core/Horizon/`).
       19/25/15/31 sessions. Render list: 4-5 states each.
-    - Dashboard: in progress.
+    - Dashboard: native (`HzDashPage.cs`, `HzGauges.cs`: the dials and
+      fuel gauge on gauges.js's SVG coordinates, sparklines;
+      `Core/Horizon/HzDash.cs`): the cluster, meters, car cards, the server
+      log with its level, filter, scope, Follow, Clear and archives, polls
+      every 2 s and 5 s (stopped while minimised). 22 sessions, 54 steps
+      against hz/pages/dashboard.js, including every needle, arc and spark
+      path. Render list: dashboard, -novehicle, -error, -long, -idle,
+      -logs-all.
     - Viewer (with the speed graph) and Encoder: after phases 2 and 3 land;
       the browser until then.
   - Phases 5-7 (Flux, Aurora, Daylight): not started; their pages open in
