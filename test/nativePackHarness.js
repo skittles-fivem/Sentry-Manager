@@ -401,6 +401,7 @@ function compound(n, c) {
       if (p === 'not' && matches(n, x[9], null)) return false;
       if (p === 'first-child' && n.parent && n.parent.elementKids[0] !== n) return false;
       if (p === 'last-child' && n.parent && n.parent.lastElementChild !== n) return false;
+      if (p === 'nth-child' && /^\d+$/.test(String(x[9]).trim()) && n.parent && n.parent.elementKids.indexOf(n) + 1 !== Number(x[9])) return false;
       if (p === 'scope') { /* the root of the search */ }
     }
   }
