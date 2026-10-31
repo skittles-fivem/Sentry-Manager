@@ -127,7 +127,19 @@ is done when every item is ticked in both. Run on the owner's PC runner.
     side of each (the open ones by clicking the first day and its first
     recording's Show files). Play day, Play recording and Review conversion
     go to the Viewer and Encoder pages (the browser until phases 2 and 3).
-  - Nodes: not started
+  - Nodes: native (`Ui/Builtin/NodesPage.cs`; its requests, words,
+    dialogs, toasts and the Encoder's converterLanes in `Core/Nodes.cs`);
+    type-checked with mcs, not yet built or rendered on Windows. The page's
+    text and controls (the nodes table with Vehicles first, Trusted and the
+    benchmark box under each node, Add node, Encode for paired main servers,
+    Allow other devices, the pairing code, the main servers), the requests
+    and the follow interval are compared with web/app.js's own pages.nodes
+    and its handlers on 14 pages and 37 clicks (test/windowsNativeNodes.test.js
+    writes Core.Tests/Fixtures/expected-nodes.json; Core.Tests NodesTests
+    checks the C#). Render list: nodes, -empty, -running, -noworker,
+    -closed (desktop and phone; tools/parity/nodesVariants.js on both sides).
+    Allow other devices re-pins the server's new certificate
+    (GET /api/security) and redraws instead of reloading the page.
   - Policies: not started
   - Jobs: not started
   - Recycle Bin: not started
@@ -145,6 +157,10 @@ browser without the web's preselected day or folder (phases 2 and 3);
 a recording's "Download" reads the whole file before saving it; the
 Overview's log lines cannot be highlighted (each has "Copy line" on its
 right-click menu instead), so a live update never waits for a highlight.
+Nodes: Trust this node? is Windows' own OK / Cancel box (titled Sentry
+Six Manager, not the browser's "<host> says"); an empty required field's
+"Please fill out this field." is drawn under the field, not as Chrome's
+bubble.
 Footage: the Capture date field opens Windows' own calendar (light, as
 Windows draws it) under a box drawn like the web's field; a thumbnail's
 box shows its fallback text while the picture loads (the web shows it

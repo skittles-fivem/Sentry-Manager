@@ -38,6 +38,7 @@ const https = require('https');
 const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 
+const { nodesVariants } = require('./nodesVariants');
 const REPO = path.join(__dirname, '..', '..');
 const SERVER = path.join(REPO, 'server', 'index.js');
 const USER = 'admin';
@@ -57,7 +58,12 @@ const PAGES = {
   'overview-novehicle': { signedIn: true, path: '/#/overview', only: 'builtin', variant: true },
   'overview-logs-empty': { signedIn: true, path: '/#/overview/logs', only: 'builtin', variant: true },
   'overview-long': { signedIn: true, path: '/#/overview', only: 'builtin', variant: true },
-  nodes: { signedIn: true, path: '/#/nodes', only: 'builtin' },
+  // (nodes-empty is the fixture server's own answer; the others are nodesVariants.js)
+  'nodes-empty': { signedIn: true, path: '/#/nodes', only: 'builtin' },
+  nodes: { signedIn: true, path: '/#/nodes', only: 'builtin', variant: true },
+  'nodes-running': { signedIn: true, path: '/#/nodes', only: 'builtin', variant: true },
+  'nodes-noworker': { signedIn: true, path: '/#/nodes', only: 'builtin', variant: true },
+  'nodes-closed': { signedIn: true, path: '/#/nodes', only: 'builtin', variant: true },
   footage: { signedIn: true, path: '/#/footage', only: 'builtin' },
   // (clicks: what the reader clicks before the picture, in turn: the first day opened, its first recording's files shown)
   'footage-open': { signedIn: true, path: '/#/footage', only: 'builtin', clicks: ['.day [data-toggle]', '.rec [data-files]'] },
@@ -97,6 +103,7 @@ function footageOpen(api, vehicle) {
 // {vehicle} is the fixture vehicle's id. A function gets the recorded answers
 // and gives the variant (the long names are the recorded vehicle renamed).
 // { "$pending": true } never answers (the page as it waits).
+const NODES_VARIANTS = ['nodes', 'nodes-running', 'nodes-noworker', 'nodes-closed'];
 const VARIANTS = {
   'overview-off': { route: 'overview', prefs: { nerdStats: 'false' } },
   'overview-logs': { route: 'overview', sub: 'logs' },
@@ -143,6 +150,8 @@ const VARIANTS = {
       }
     };
   },
+  // the Nodes page: nodes with every box, a benchmark running, no HTTPS, Windows closed to other devices
+  ...Object.fromEntries(NODES_VARIANTS.map((k) => [k, (api, vehicle) => nodesVariants(api, vehicle, Date.now())[k]])),
   'settings-vehicle': { route: 'settings', sub: 'vehicle/{vehicle}' },
   'settings-vehicle-new': { route: 'settings', sub: 'vehicle-new' },
   'settings-security': { route: 'settings', sub: 'security' },

@@ -40,7 +40,8 @@ namespace SentrySix.Ui.Builtin
         static readonly Dictionary<string, Func<PageContext, INativePage>> native = new Dictionary<string, Func<PageContext, INativePage>>
         {
             { "overview", c => new OverviewPage(c) },
-            { "footage", c => new FootagePage(c) }
+            { "footage", c => new FootagePage(c) },
+            { "nodes", c => new NodesPage(c) }
         };
 
         static BuiltinInterface()

@@ -48,6 +48,7 @@ namespace SentrySix.Ui
             public FrameworkElement[] Cells;
             public FrameworkElement Full;
             public bool FullOnly;
+            public bool Flush;
         }
 
         readonly TableLook k;
@@ -69,6 +70,9 @@ namespace SentrySix.Ui
         public FrameworkElement Root { get { return root; } }
 
         public int Count { get { return rows.Count; } }
+
+        /// <summary>The header row (thead); off for a table without one (the Nodes page's benchmark results).</summary>
+        public bool ShowHead = true;
 
         /// <summary>One row; cells in column order (null for an empty cell).</summary>
         public void Add(params FrameworkElement[] cells)
@@ -94,6 +98,18 @@ namespace SentrySix.Ui
             r.Cells = new FrameworkElement[cols.Count];
             r.Full = cell;
             r.FullOnly = true;
+            rows.Add(r);
+            if (phone.HasValue) Build(phone.Value);
+        }
+
+        /// <summary>A row that is one cell across every column with no padding above it (the Nodes page's .node-bench-row &gt; td).</summary>
+        public void AddSpanningFlush(FrameworkElement cell)
+        {
+            Row r = new Row();
+            r.Cells = new FrameworkElement[cols.Count];
+            r.Full = cell;
+            r.FullOnly = true;
+            r.Flush = true;
             rows.Add(r);
             if (phone.HasValue) Build(phone.Value);
         }
@@ -140,19 +156,23 @@ namespace SentrySix.Ui
             holders.Add(g);
             foreach (TableColumn c in cols) g.ColumnDefinitions.Add(new ColumnDefinition { Width = c.Width });
             // the header
-            g.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            Border headLine = Line(false);
-            Grid.SetColumnSpan(headLine, Math.Max(1, cols.Count));
-            g.Children.Add(headLine);
-            for (int i = 0; i < cols.Count; i++)
+            int at = 0;
+            if (ShowHead)
             {
-                TextBlock th = U.Text(cols[i].Title, k.HeadSize, k.HeadWeight, k.Head);
-                th.Margin = k.HeadPad;
-                th.TextAlignment = TextAlignment.Left;
-                Grid.SetColumn(th, i);
-                g.Children.Add(th);
+                g.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                Border headLine = Line(false);
+                Grid.SetColumnSpan(headLine, Math.Max(1, cols.Count));
+                g.Children.Add(headLine);
+                for (int i = 0; i < cols.Count; i++)
+                {
+                    TextBlock th = U.Text(cols[i].Title, k.HeadSize, k.HeadWeight, k.Head);
+                    th.Margin = k.HeadPad;
+                    th.TextAlignment = TextAlignment.Left;
+                    Grid.SetColumn(th, i);
+                    g.Children.Add(th);
+                }
+                at = 1;
             }
-            int at = 1;
             for (int ri = 0; ri < rows.Count; ri++)
             {
                 Row r = rows[ri];
@@ -182,7 +202,7 @@ namespace SentrySix.Ui
                     Grid.SetColumnSpan(line, Math.Max(1, cols.Count));
                     g.Children.Add(line);
                     Border holder = new Border();
-                    holder.Padding = k.CellPad;
+                    holder.Padding = r.Flush ? new Thickness(k.CellPad.Left, 0, k.CellPad.Right, k.CellPad.Bottom) : k.CellPad;
                     Hold(holder, r.Full);
                     Grid.SetRow(holder, at);
                     Grid.SetColumnSpan(holder, Math.Max(1, cols.Count));
@@ -279,7 +299,7 @@ namespace SentrySix.Ui
                 if (r.Full != null)
                 {
                     Border holder = new Border();
-                    holder.Padding = new Thickness(0, k.PhoneCellPad, 0, k.PhoneCellPad);
+                    holder.Padding = new Thickness(0, r.Flush ? 0 : k.PhoneCellPad, 0, k.PhoneCellPad);
                     Hold(holder, r.Full);
                     tr.Children.Add(holder);
                 }

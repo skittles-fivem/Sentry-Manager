@@ -111,6 +111,12 @@ The Footage page's open variants (footage-open, footage-long: the first day
 open with its first recording's files shown) are the page's kept `state` on
 the native side and two clicks on the web (capture.js `clicks`); its
 thumbnails are the fixture server's own (`BYTES` answers, base64).
+The Nodes page's states (tools/parity/nodesVariants.js, in capture.js's
+`VARIANTS`): nodes (every box under a node, a pairing code, a paired main
+server), nodes-running, nodes-noworker (TLS_MODE=off) and nodes-closed
+(Windows, other devices off); nodes-empty is the fixture server's own
+answer. Its times are the fixture's `now`, so the pairing code says about 10
+minutes left on both sides.
 
 - builtin overview
 - builtin overview-off
@@ -121,6 +127,10 @@ thumbnails are the fixture server's own (`BYTES` answers, base64).
 - builtin overview-logs-empty
 - builtin overview-long
 - builtin nodes
+- builtin nodes-empty
+- builtin nodes-running
+- builtin nodes-noworker
+- builtin nodes-closed
 - builtin footage
 - builtin footage-open
 - builtin footage-empty

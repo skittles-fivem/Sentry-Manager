@@ -374,3 +374,34 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   recording's detail and its thumbnail (`BYTES` answers); `clicks` in
   PAGES for the web side of the open variants. `Shell/RenderFixture.json`
   rewritten with `--fixture-only` (ffmpeg present, so real thumbnails).
+
+### Phase 1: Nodes (2026-10-31)
+
+- `Core/Nodes.cs`: `Load` (the web's Promise.all: /api/nodes,
+  /api/vehicles and /api/settings/network asked together, the side ones
+  quiet on failure, then each node's benchmark), `View` (NodesView: the
+  rows, Clips, encoders, the Vehicles first / Trusted / benchmark boxes,
+  the closed note, the pairing code and the address a main server types
+  from `ShellModel.Host`, the mains, the follow interval), `Outline()`, and
+  the actions `Add`, `StartBench`, `CancelBench`, `UseBench` (with
+  `LanesAfterUse`: prefs key `converterLanes`, as the web's localStorage),
+  `SetTrust`, `AddCar`/`RemoveCar`/`MoveCarUp`, `Rename`, `Remove`,
+  `SetWorker`, `PairStart`/`PairCancel`, `Revoke`, `AllowOtherDevices`
+  (PUT network, then GET /api/security and `ShellModel.Repin`, then a
+  redraw). One node change at a time (`Nodes.Saving`, app.js nodeSaving).
+- `test/windowsNativeNodes.test.js` runs the web's own pages.nodes and
+  its handlers (sliced from app.js with a pretend DOM) and writes
+  `Core.Tests/Fixtures/expected-nodes.json`; `Core.Tests/NodesTests.cs`
+  compares the C# (requests with bodies, outline, poll, dialogs, the
+  system confirm, toasts, redraws, converterLanes after). Under mono with
+  a stub runner the three NodesTests pass; not run under dotnet yet.
+- `Ui/Builtin/NodesPage.cs` draws it (registered in BuiltinInterface: its
+  browser card is gone). `Ui/Common/Table.cs` gained `ShowHead` (the
+  benchmark results have no header) and `AddSpanningFlush` (the sub-rows'
+  `padding-top: 0`).
+- `tools/parity/nodesVariants.js` (required by capture.js's `VARIANTS`):
+  nodes, nodes-running, nodes-noworker, nodes-closed; `nodes-empty` is the
+  fixture server's own answer. Injected into `Shell/RenderFixture.json`
+  from that module with the fixture's own `api`, `vehicle` and `now` (not
+  a `--fixture-only` rerun, so the rest of the file is unchanged).
+

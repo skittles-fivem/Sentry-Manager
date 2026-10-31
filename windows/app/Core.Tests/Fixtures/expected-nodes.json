@@ -1,0 +1,7103 @@
+{
+ "about": "Written by test/windowsNativeNodes.test.js from web/app.js pages.nodes and its handlers; checked by windows/app/Core.Tests (NodesTests.cs, SentrySix.Core.Nodes).",
+ "now": 1793459402000,
+ "pages": [
+  {
+   "name": "empty",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": []
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    }
+   },
+   "host": "192.168.1.20",
+   "port": "9000",
+   "h24": false,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network"
+   ],
+   "error": null,
+   "poll": 0,
+   "outline": [
+    "[card]",
+    "[h2]",
+    "Nodes this server uses",
+    "Other servers running Sentry Six Manager can encode clips for this one. This server reads each clip, sends it to the node over HTTPS and checks the encoded file before it saves anything, as with its own GPUs. Nodes never get your share passwords and never touch the footage.",
+    "No nodes yet.",
+    "Node address",
+    "[input address | 192.168.1.30 or nas.local:9000 required]",
+    "Pairing code",
+    "[input code | ABCD-EFGH-JKLM required mono]",
+    "[btn solid]",
+    "Add node",
+    "On the other server, open Nodes → Let another server use this one → Show pairing code.",
+    "[card]",
+    "[h2]",
+    "Let another server use this one",
+    "Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.",
+    "[check]",
+    "Encode for paired main servers",
+    "The main server picks which of this server's GPUs (and its CPU) encode, and how many clips each converts at once, in its own Encoder.",
+    "[btn]",
+    "Show pairing code"
+   ]
+  },
+  {
+   "name": "full",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "host": "nas.local",
+   "port": "9443",
+   "h24": false,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network",
+    "GET /api/nodes/n1/benchmark",
+    "GET /api/nodes/n2/benchmark"
+   ],
+   "error": null,
+   "poll": 5000,
+   "outline": [
+    "[card]",
+    "[h2]",
+    "Nodes this server uses",
+    "Other servers running Sentry Six Manager can encode clips for this one. This server reads each clip, sends it to the node over HTTPS and checks the encoded file before it saves anything, as with its own GPUs. Nodes never get your share passwords and never touch the footage.",
+    "[table]",
+    "[tr]",
+    "Node",
+    "Status",
+    "Encoders",
+    "Clips",
+    "[tr]",
+    "Garage PC",
+    "[mono]",
+    "192.168.1.30:9000",
+    "[chip green]",
+    "[dot ok]",
+    "Online",
+    "NVIDIA GeForce RTX 4070",
+    "H.265: hevc_nvenc · AV1: av1_nvenc",
+    "CPU",
+    "H.265: libx265 · AV1: libsvtav1",
+    "1 of 2 converting · 2 waiting",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "Vehicles first",
+    "Automatic conversion sends this node these vehicles' new clips first, in this order; with none waiting, it helps the others.",
+    "[ol]",
+    "[li]",
+    "1",
+    "Model 3",
+    "[btn sm ghost]",
+    "[aria Remove Model 3]",
+    "✕",
+    "[select Add a vehicle for Garage PC]",
+    "[option ]",
+    "Add a vehicle…",
+    "[option model-y]",
+    "Model Y",
+    "[tr sub]",
+    "[check]",
+    "Trusted",
+    "Its encodes get the picture check here: a few random stretches of each clip compared with the original. Trust only a computer of your own: it skips that check.",
+    "[tr sub]",
+    "Benchmark, H.265 on NVIDIA GeForce RTX 4070",
+    "done · 3 sample clips from your footage, only read (already converted ones: no originals are left)",
+    "[table]",
+    "[tr]",
+    "1 at once",
+    "4.2 clips/min",
+    "6 clips in 86 s",
+    "[tr best]",
+    "2 at once",
+    "7.9 clips/min",
+    "6 clips in 46 s",
+    "[tr]",
+    "3 at once",
+    "2 failed",
+    "6 clips in 60 s",
+    "[btn sm solid]",
+    "Use 2 at once on NVIDIA GeForce RTX 4070",
+    "[btn sm]",
+    "Run again",
+    "[tr]",
+    "Office NAS",
+    "[mono]",
+    "nas.local:9000",
+    "[chip red]",
+    "[dot bad]",
+    "Offline",
+    "connect ECONNREFUSED 192.168.1.40:9000",
+    "H.265: libx265",
+    "—",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "Vehicles first",
+    "None: it helps whichever vehicle is converting.",
+    "[select Add a vehicle for Office NAS]",
+    "[option ]",
+    "Add a vehicle…",
+    "[option model-3]",
+    "Model 3",
+    "[option model-y]",
+    "Model Y",
+    "[tr sub]",
+    "[check on]",
+    "Trusted",
+    "Its encodes replace originals without the picture check (streams, length, frames and telemetry are still verified). Turn off if anyone else could change this computer.",
+    "Each node is a group under",
+    "[link #/encoder]",
+    "Encoder",
+    "→ Parallel conversions: open it to pick which of its GPUs (and its CPU) convert, and how many clips each converts at once.",
+    "Node address",
+    "[input address | 192.168.1.30 or nas.local:9000 required]",
+    "Pairing code",
+    "[input code | ABCD-EFGH-JKLM required mono]",
+    "[btn solid]",
+    "Add node",
+    "On the other server, open Nodes → Let another server use this one → Show pairing code.",
+    "[card]",
+    "[h2]",
+    "Let another server use this one",
+    "Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.",
+    "[check on]",
+    "Encode for paired main servers",
+    "The main server picks which of this server's GPUs (and its CPU) encode, and how many clips each converts at once, in its own Encoder.",
+    "[note green]",
+    "Pairing code (one use, 10 minutes left)",
+    "[mono]",
+    "ABCD-EFGH-JKLM",
+    "On the main server: Nodes → Add node, with this server's address",
+    "[mono]",
+    "nas.local:9443",
+    "and the code.",
+    "[btn sm]",
+    "Cancel",
+    "[table]",
+    "[tr]",
+    "Main server",
+    "Paired",
+    "[tr]",
+    "Main server",
+    "[mono]",
+    "192.168.1.20",
+    "Paired 10/28/2026, 3:10:02 PM",
+    "last seen 10/31/2026, 3:09:02 PM",
+    "[btn sm]",
+    "Revoke",
+    "[tr]",
+    "Old main",
+    "[mono]",
+    "Paired 9/21/2026, 3:10:02 PM",
+    "[btn sm]",
+    "Revoke"
+   ]
+  },
+  {
+   "name": "full-24h",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "host": "localhost",
+   "port": "9000",
+   "h24": true,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network",
+    "GET /api/nodes/n1/benchmark",
+    "GET /api/nodes/n2/benchmark"
+   ],
+   "error": null,
+   "poll": 5000,
+   "outline": [
+    "[card]",
+    "[h2]",
+    "Nodes this server uses",
+    "Other servers running Sentry Six Manager can encode clips for this one. This server reads each clip, sends it to the node over HTTPS and checks the encoded file before it saves anything, as with its own GPUs. Nodes never get your share passwords and never touch the footage.",
+    "[table]",
+    "[tr]",
+    "Node",
+    "Status",
+    "Encoders",
+    "Clips",
+    "[tr]",
+    "Garage PC",
+    "[mono]",
+    "192.168.1.30:9000",
+    "[chip green]",
+    "[dot ok]",
+    "Online",
+    "NVIDIA GeForce RTX 4070",
+    "H.265: hevc_nvenc · AV1: av1_nvenc",
+    "CPU",
+    "H.265: libx265 · AV1: libsvtav1",
+    "1 of 2 converting · 2 waiting",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "Vehicles first",
+    "Automatic conversion sends this node these vehicles' new clips first, in this order; with none waiting, it helps the others.",
+    "[ol]",
+    "[li]",
+    "1",
+    "Model 3",
+    "[btn sm ghost]",
+    "[aria Remove Model 3]",
+    "✕",
+    "[select Add a vehicle for Garage PC]",
+    "[option ]",
+    "Add a vehicle…",
+    "[option model-y]",
+    "Model Y",
+    "[tr sub]",
+    "[check]",
+    "Trusted",
+    "Its encodes get the picture check here: a few random stretches of each clip compared with the original. Trust only a computer of your own: it skips that check.",
+    "[tr sub]",
+    "Benchmark, H.265 on NVIDIA GeForce RTX 4070",
+    "done · 3 sample clips from your footage, only read (already converted ones: no originals are left)",
+    "[table]",
+    "[tr]",
+    "1 at once",
+    "4.2 clips/min",
+    "6 clips in 86 s",
+    "[tr best]",
+    "2 at once",
+    "7.9 clips/min",
+    "6 clips in 46 s",
+    "[tr]",
+    "3 at once",
+    "2 failed",
+    "6 clips in 60 s",
+    "[btn sm solid]",
+    "Use 2 at once on NVIDIA GeForce RTX 4070",
+    "[btn sm]",
+    "Run again",
+    "[tr]",
+    "Office NAS",
+    "[mono]",
+    "nas.local:9000",
+    "[chip red]",
+    "[dot bad]",
+    "Offline",
+    "connect ECONNREFUSED 192.168.1.40:9000",
+    "H.265: libx265",
+    "—",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "Vehicles first",
+    "None: it helps whichever vehicle is converting.",
+    "[select Add a vehicle for Office NAS]",
+    "[option ]",
+    "Add a vehicle…",
+    "[option model-3]",
+    "Model 3",
+    "[option model-y]",
+    "Model Y",
+    "[tr sub]",
+    "[check on]",
+    "Trusted",
+    "Its encodes replace originals without the picture check (streams, length, frames and telemetry are still verified). Turn off if anyone else could change this computer.",
+    "Each node is a group under",
+    "[link #/encoder]",
+    "Encoder",
+    "→ Parallel conversions: open it to pick which of its GPUs (and its CPU) convert, and how many clips each converts at once.",
+    "Node address",
+    "[input address | 192.168.1.30 or nas.local:9000 required]",
+    "Pairing code",
+    "[input code | ABCD-EFGH-JKLM required mono]",
+    "[btn solid]",
+    "Add node",
+    "On the other server, open Nodes → Let another server use this one → Show pairing code.",
+    "[card]",
+    "[h2]",
+    "Let another server use this one",
+    "Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.",
+    "[check on]",
+    "Encode for paired main servers",
+    "The main server picks which of this server's GPUs (and its CPU) encode, and how many clips each converts at once, in its own Encoder.",
+    "[note green]",
+    "Pairing code (one use, 10 minutes left)",
+    "[mono]",
+    "ABCD-EFGH-JKLM",
+    "On the main server: Nodes → Add node, with this server's address",
+    "[mono]",
+    "localhost",
+    "and the code.",
+    "[btn sm]",
+    "Cancel",
+    "[table]",
+    "[tr]",
+    "Main server",
+    "Paired",
+    "[tr]",
+    "Main server",
+    "[mono]",
+    "192.168.1.20",
+    "Paired 10/28/2026, 15:10:02",
+    "last seen 10/31/2026, 15:09:02",
+    "[btn sm]",
+    "Revoke",
+    "[tr]",
+    "Old main",
+    "[mono]",
+    "Paired 9/21/2026, 15:10:02",
+    "[btn sm]",
+    "Revoke"
+   ]
+  },
+  {
+   "name": "running",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      },
+      {
+       "id": "n4",
+       "name": "Spare",
+       "address": "10.0.0.9",
+       "online": true,
+       "encoders": {},
+       "slots": 0,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": false
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "running",
+      "phase": "Converting 2 at once",
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": null,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    },
+    "GET /api/nodes/n4/benchmark": {
+     "benchmark": null
+    }
+   },
+   "host": "192.168.1.20",
+   "port": "9000",
+   "h24": false,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network",
+    "GET /api/nodes/n1/benchmark",
+    "GET /api/nodes/n2/benchmark",
+    "GET /api/nodes/n4/benchmark"
+   ],
+   "error": null,
+   "poll": 2500,
+   "outline": [
+    "[card]",
+    "[h2]",
+    "Nodes this server uses",
+    "Other servers running Sentry Six Manager can encode clips for this one. This server reads each clip, sends it to the node over HTTPS and checks the encoded file before it saves anything, as with its own GPUs. Nodes never get your share passwords and never touch the footage.",
+    "[table]",
+    "[tr]",
+    "Node",
+    "Status",
+    "Encoders",
+    "Clips",
+    "[tr]",
+    "Garage PC",
+    "[mono]",
+    "192.168.1.30:9000",
+    "[chip green]",
+    "[dot ok]",
+    "Online",
+    "NVIDIA GeForce RTX 4070",
+    "H.265: hevc_nvenc · AV1: av1_nvenc",
+    "CPU",
+    "H.265: libx265 · AV1: libsvtav1",
+    "1 of 2 converting · 2 waiting",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "Vehicles first",
+    "Automatic conversion sends this node these vehicles' new clips first, in this order; with none waiting, it helps the others.",
+    "[ol]",
+    "[li]",
+    "1",
+    "Model 3",
+    "[btn sm ghost]",
+    "[aria Remove Model 3]",
+    "✕",
+    "[select Add a vehicle for Garage PC]",
+    "[option ]",
+    "Add a vehicle…",
+    "[option model-y]",
+    "Model Y",
+    "[tr sub]",
+    "[check]",
+    "Trusted",
+    "Its encodes get the picture check here: a few random stretches of each clip compared with the original. Trust only a computer of your own: it skips that check.",
+    "[tr sub]",
+    "Benchmark, H.265 on NVIDIA GeForce RTX 4070",
+    "Converting 2 at once…",
+    "[table]",
+    "[tr]",
+    "1 at once",
+    "4.2 clips/min",
+    "6 clips in 86 s",
+    "[btn sm]",
+    "Cancel",
+    "[tr]",
+    "Office NAS",
+    "[mono]",
+    "nas.local:9000",
+    "[chip red]",
+    "[dot bad]",
+    "Offline",
+    "connect ECONNREFUSED 192.168.1.40:9000",
+    "H.265: libx265",
+    "—",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "Vehicles first",
+    "None: it helps whichever vehicle is converting.",
+    "[select Add a vehicle for Office NAS]",
+    "[option ]",
+    "Add a vehicle…",
+    "[option model-3]",
+    "Model 3",
+    "[option model-y]",
+    "Model Y",
+    "[tr sub]",
+    "[check on]",
+    "Trusted",
+    "Its encodes replace originals without the picture check (streams, length, frames and telemetry are still verified). Turn off if anyone else could change this computer.",
+    "[tr]",
+    "Spare",
+    "[mono]",
+    "10.0.0.9",
+    "[chip green]",
+    "[dot ok]",
+    "Online",
+    "—",
+    "—",
+    "[btn sm disabled]",
+    "Benchmark",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "Vehicles first",
+    "None: it helps whichever vehicle is converting.",
+    "[select Add a vehicle for Spare]",
+    "[option ]",
+    "Add a vehicle…",
+    "[option model-3]",
+    "Model 3",
+    "[option model-y]",
+    "Model Y",
+    "[tr sub]",
+    "[check]",
+    "Trusted",
+    "Its encodes get the picture check here: a few random stretches of each clip compared with the original. Trust only a computer of your own: it skips that check.",
+    "Each node is a group under",
+    "[link #/encoder]",
+    "Encoder",
+    "→ Parallel conversions: open it to pick which of its GPUs (and its CPU) convert, and how many clips each converts at once.",
+    "Node address",
+    "[input address | 192.168.1.30 or nas.local:9000 required]",
+    "Pairing code",
+    "[input code | ABCD-EFGH-JKLM required mono]",
+    "[btn solid]",
+    "Add node",
+    "On the other server, open Nodes → Let another server use this one → Show pairing code.",
+    "[card]",
+    "[h2]",
+    "Let another server use this one",
+    "Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.",
+    "[check]",
+    "Encode for paired main servers",
+    "The main server picks which of this server's GPUs (and its CPU) encode, and how many clips each converts at once, in its own Encoder.",
+    "[btn]",
+    "Show pairing code"
+   ]
+  },
+  {
+   "name": "running-nophase",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "running",
+      "codec": "av1",
+      "results": []
+     }
+    }
+   },
+   "host": "192.168.1.20",
+   "port": "9000",
+   "h24": false,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network",
+    "GET /api/nodes/n1/benchmark"
+   ],
+   "error": null,
+   "poll": 2500,
+   "outline": [
+    "[card]",
+    "[h2]",
+    "Nodes this server uses",
+    "Other servers running Sentry Six Manager can encode clips for this one. This server reads each clip, sends it to the node over HTTPS and checks the encoded file before it saves anything, as with its own GPUs. Nodes never get your share passwords and never touch the footage.",
+    "[table]",
+    "[tr]",
+    "Node",
+    "Status",
+    "Encoders",
+    "Clips",
+    "[tr]",
+    "Garage PC",
+    "[mono]",
+    "192.168.1.30:9000",
+    "[chip green]",
+    "[dot ok]",
+    "Online",
+    "NVIDIA GeForce RTX 4070",
+    "H.265: hevc_nvenc · AV1: av1_nvenc",
+    "CPU",
+    "H.265: libx265 · AV1: libsvtav1",
+    "1 of 2 converting · 2 waiting",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "Vehicles first",
+    "Automatic conversion sends this node these vehicles' new clips first, in this order; with none waiting, it helps the others.",
+    "[ol]",
+    "[li]",
+    "1",
+    "Model 3",
+    "[btn sm ghost]",
+    "[aria Remove Model 3]",
+    "✕",
+    "[select Add a vehicle for Garage PC]",
+    "[option ]",
+    "Add a vehicle…",
+    "[option model-y]",
+    "Model Y",
+    "[tr sub]",
+    "[check]",
+    "Trusted",
+    "Its encodes get the picture check here: a few random stretches of each clip compared with the original. Trust only a computer of your own: it skips that check.",
+    "[tr sub]",
+    "Benchmark, AV1 on NVIDIA GeForce RTX 4070",
+    "Running…",
+    "[btn sm]",
+    "Cancel",
+    "Each node is a group under",
+    "[link #/encoder]",
+    "Encoder",
+    "→ Parallel conversions: open it to pick which of its GPUs (and its CPU) convert, and how many clips each converts at once.",
+    "Node address",
+    "[input address | 192.168.1.30 or nas.local:9000 required]",
+    "Pairing code",
+    "[input code | ABCD-EFGH-JKLM required mono]",
+    "[btn solid]",
+    "Add node",
+    "On the other server, open Nodes → Let another server use this one → Show pairing code.",
+    "[card]",
+    "[h2]",
+    "Let another server use this one",
+    "Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.",
+    "[check]",
+    "Encode for paired main servers",
+    "The main server picks which of this server's GPUs (and its CPU) encode, and how many clips each converts at once, in its own Encoder.",
+    "[btn]",
+    "Show pairing code"
+   ]
+  },
+  {
+   "name": "noworker",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n 3/x",
+       "name": "Basement server with a name that is far too long to fit in the column",
+       "address": "basement-server-with-a-long-name.example.internal:9443",
+       "online": true,
+       "error": "",
+       "encoders": {
+        "h265": "hevc_qsv"
+       },
+       "slots": 4,
+       "busy": 0,
+       "encoding": null,
+       "cars": [
+        "gone",
+        "model-y",
+        "model-3"
+       ],
+       "trusted": false
+      },
+      {
+       "id": "n4",
+       "name": "Spare",
+       "address": "10.0.0.9",
+       "online": true,
+       "encoders": {},
+       "slots": 0,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": false
+      },
+      {
+       "id": "n5",
+       "name": "Busy one",
+       "address": "10.0.0.10",
+       "online": true,
+       "encoders": null,
+       "slots": 3,
+       "busy": 2,
+       "encoding": 2,
+       "trusted": false
+      }
+     ],
+     "worker": {
+      "available": false,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": []
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n%203%2Fx/benchmark": {
+     "benchmark": null
+    },
+    "GET /api/nodes/n4/benchmark": {
+     "benchmark": {
+      "state": "failed",
+      "error": "ffmpeg exited with code 1",
+      "codec": "h265",
+      "results": []
+     }
+    },
+    "GET /api/nodes/n5/benchmark": {
+     "benchmark": {
+      "state": "cancelled",
+      "codec": "av1",
+      "results": [],
+      "suggested": null
+     }
+    }
+   },
+   "host": "192.168.1.20",
+   "port": "9000",
+   "h24": false,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network",
+    "GET /api/nodes/n%203%2Fx/benchmark",
+    "GET /api/nodes/n4/benchmark",
+    "GET /api/nodes/n5/benchmark"
+   ],
+   "error": null,
+   "poll": 5000,
+   "outline": [
+    "[card]",
+    "[h2]",
+    "Nodes this server uses",
+    "Other servers running Sentry Six Manager can encode clips for this one. This server reads each clip, sends it to the node over HTTPS and checks the encoded file before it saves anything, as with its own GPUs. Nodes never get your share passwords and never touch the footage.",
+    "[table]",
+    "[tr]",
+    "Node",
+    "Status",
+    "Encoders",
+    "Clips",
+    "[tr]",
+    "Basement server with a name that is far too long to fit in the column",
+    "[mono]",
+    "basement-server-with-a-long-name.example.internal:9443",
+    "[chip green]",
+    "[dot ok]",
+    "Online",
+    "H.265: hevc_qsv",
+    "0 of 4 busy",
+    "[btn sm]",
+    "Benchmark",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "[check]",
+    "Trusted",
+    "Its encodes get the picture check here: a few random stretches of each clip compared with the original. Trust only a computer of your own: it skips that check.",
+    "[tr]",
+    "Spare",
+    "[mono]",
+    "10.0.0.9",
+    "[chip green]",
+    "[dot ok]",
+    "Online",
+    "—",
+    "—",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "[check]",
+    "Trusted",
+    "Its encodes get the picture check here: a few random stretches of each clip compared with the original. Trust only a computer of your own: it skips that check.",
+    "[tr sub]",
+    "Benchmark, H.265",
+    "failed: ffmpeg exited with code 1",
+    "[btn sm]",
+    "Run again",
+    "[tr]",
+    "Busy one",
+    "[mono]",
+    "10.0.0.10",
+    "[chip green]",
+    "[dot ok]",
+    "Online",
+    "—",
+    "2 of 3 converting",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "[check]",
+    "Trusted",
+    "Its encodes get the picture check here: a few random stretches of each clip compared with the original. Trust only a computer of your own: it skips that check.",
+    "[tr sub]",
+    "Benchmark, AV1",
+    "cancelled",
+    "[btn sm]",
+    "Run again",
+    "Each node is a group under",
+    "[link #/encoder]",
+    "Encoder",
+    "→ Parallel conversions: open it to pick which of its GPUs (and its CPU) convert, and how many clips each converts at once.",
+    "Node address",
+    "[input address | 192.168.1.30 or nas.local:9000 required]",
+    "Pairing code",
+    "[input code | ABCD-EFGH-JKLM required mono]",
+    "[btn solid]",
+    "Add node",
+    "On the other server, open Nodes → Let another server use this one → Show pairing code.",
+    "[card]",
+    "[h2]",
+    "Let another server use this one",
+    "This server runs without its own HTTPS (TLS_MODE=off), so it cannot be a node: a main server must be able to check its certificate."
+   ]
+  },
+  {
+   "name": "long",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n 3/x",
+       "name": "Basement server with a name that is far too long to fit in the column",
+       "address": "basement-server-with-a-long-name.example.internal:9443",
+       "online": true,
+       "error": "",
+       "encoders": {
+        "h265": "hevc_qsv"
+       },
+       "slots": 4,
+       "busy": 0,
+       "encoding": null,
+       "cars": [
+        "gone",
+        "model-y",
+        "model-3"
+       ],
+       "trusted": false
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n%203%2Fx/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "codec": "h265",
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 3,
+        "failed": 0,
+        "clips": 3,
+        "seconds": 60
+       }
+      ],
+      "suggested": 1,
+      "samples": 1,
+      "converted": false
+     }
+    }
+   },
+   "host": "192.168.1.20",
+   "port": "9000",
+   "h24": false,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network",
+    "GET /api/nodes/n%203%2Fx/benchmark"
+   ],
+   "error": null,
+   "poll": 5000,
+   "outline": [
+    "[card]",
+    "[h2]",
+    "Nodes this server uses",
+    "Other servers running Sentry Six Manager can encode clips for this one. This server reads each clip, sends it to the node over HTTPS and checks the encoded file before it saves anything, as with its own GPUs. Nodes never get your share passwords and never touch the footage.",
+    "[table]",
+    "[tr]",
+    "Node",
+    "Status",
+    "Encoders",
+    "Clips",
+    "[tr]",
+    "Basement server with a name that is far too long to fit in the column",
+    "[mono]",
+    "basement-server-with-a-long-name.example.internal:9443",
+    "[chip green]",
+    "[dot ok]",
+    "Online",
+    "H.265: hevc_qsv",
+    "0 of 4 busy",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "Vehicles first",
+    "Automatic conversion sends this node these vehicles' new clips first, in this order; with none waiting, it helps the others.",
+    "[ol]",
+    "[li]",
+    "1",
+    "gone",
+    "[btn sm ghost]",
+    "[aria Remove gone]",
+    "✕",
+    "[li]",
+    "2",
+    "Model Y",
+    "[btn sm ghost]",
+    "[aria Move Model Y up]",
+    "↑",
+    "[btn sm ghost]",
+    "[aria Remove Model Y]",
+    "✕",
+    "[li]",
+    "3",
+    "Model 3",
+    "[btn sm ghost]",
+    "[aria Move Model 3 up]",
+    "↑",
+    "[btn sm ghost]",
+    "[aria Remove Model 3]",
+    "✕",
+    "[tr sub]",
+    "[check]",
+    "Trusted",
+    "Its encodes get the picture check here: a few random stretches of each clip compared with the original. Trust only a computer of your own: it skips that check.",
+    "[tr sub]",
+    "Benchmark, H.265",
+    "done · 1 sample clip from your footage, only read",
+    "[table]",
+    "[tr best]",
+    "1 at once",
+    "3 clips/min",
+    "3 clips in 60 s",
+    "[btn sm solid]",
+    "Use 1 at once",
+    "[btn sm]",
+    "Run again",
+    "Each node is a group under",
+    "[link #/encoder]",
+    "Encoder",
+    "→ Parallel conversions: open it to pick which of its GPUs (and its CPU) convert, and how many clips each converts at once.",
+    "Node address",
+    "[input address | 192.168.1.30 or nas.local:9000 required]",
+    "Pairing code",
+    "[input code | ABCD-EFGH-JKLM required mono]",
+    "[btn solid]",
+    "Add node",
+    "On the other server, open Nodes → Let another server use this one → Show pairing code.",
+    "[card]",
+    "[h2]",
+    "Let another server use this one",
+    "Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.",
+    "[check]",
+    "Encode for paired main servers",
+    "The main server picks which of this server's GPUs (and its CPU) encode, and how many clips each converts at once, in its own Encoder.",
+    "[btn]",
+    "Show pairing code"
+   ]
+  },
+  {
+   "name": "done-plain",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n5",
+       "name": "Busy one",
+       "address": "10.0.0.10",
+       "online": true,
+       "encoders": null,
+       "slots": 3,
+       "busy": 2,
+       "encoding": 2,
+       "trusted": false
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n5/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "codec": "av1",
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 0,
+        "failed": 1,
+        "clips": 1,
+        "seconds": 9
+       }
+      ],
+      "suggested": null,
+      "samples": 0
+     }
+    }
+   },
+   "host": "192.168.1.20",
+   "port": "9000",
+   "h24": false,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network",
+    "GET /api/nodes/n5/benchmark"
+   ],
+   "error": null,
+   "poll": 5000,
+   "outline": [
+    "[card]",
+    "[h2]",
+    "Nodes this server uses",
+    "Other servers running Sentry Six Manager can encode clips for this one. This server reads each clip, sends it to the node over HTTPS and checks the encoded file before it saves anything, as with its own GPUs. Nodes never get your share passwords and never touch the footage.",
+    "[table]",
+    "[tr]",
+    "Node",
+    "Status",
+    "Encoders",
+    "Clips",
+    "[tr]",
+    "Busy one",
+    "[mono]",
+    "10.0.0.10",
+    "[chip green]",
+    "[dot ok]",
+    "Online",
+    "—",
+    "2 of 3 converting",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "Vehicles first",
+    "None: it helps whichever vehicle is converting.",
+    "[select Add a vehicle for Busy one]",
+    "[option ]",
+    "Add a vehicle…",
+    "[option model-3]",
+    "Model 3",
+    "[option model-y]",
+    "Model Y",
+    "[tr sub]",
+    "[check]",
+    "Trusted",
+    "Its encodes get the picture check here: a few random stretches of each clip compared with the original. Trust only a computer of your own: it skips that check.",
+    "[tr sub]",
+    "Benchmark, AV1",
+    "done",
+    "[table]",
+    "[tr]",
+    "1 at once",
+    "1 failed",
+    "1 clips in 9 s",
+    "[btn sm]",
+    "Run again",
+    "Each node is a group under",
+    "[link #/encoder]",
+    "Encoder",
+    "→ Parallel conversions: open it to pick which of its GPUs (and its CPU) convert, and how many clips each converts at once.",
+    "Node address",
+    "[input address | 192.168.1.30 or nas.local:9000 required]",
+    "Pairing code",
+    "[input code | ABCD-EFGH-JKLM required mono]",
+    "[btn solid]",
+    "Add node",
+    "On the other server, open Nodes → Let another server use this one → Show pairing code.",
+    "[card]",
+    "[h2]",
+    "Let another server use this one",
+    "Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.",
+    "[check]",
+    "Encode for paired main servers",
+    "The main server picks which of this server's GPUs (and its CPU) encode, and how many clips each converts at once, in its own Encoder.",
+    "[btn]",
+    "Show pairing code"
+   ]
+  },
+  {
+   "name": "closed",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": {
+       "code": "WXYZ-1234-5678",
+       "expiresAt": 1793459422000
+      },
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": true,
+     "otherDevices": false
+    }
+   },
+   "host": "localhost",
+   "port": "",
+   "h24": false,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network"
+   ],
+   "error": null,
+   "poll": 0,
+   "outline": [
+    "[card]",
+    "[h2]",
+    "Nodes this server uses",
+    "Other servers running Sentry Six Manager can encode clips for this one. This server reads each clip, sends it to the node over HTTPS and checks the encoded file before it saves anything, as with its own GPUs. Nodes never get your share passwords and never touch the footage.",
+    "No nodes yet.",
+    "Node address",
+    "[input address | 192.168.1.30 or nas.local:9000 required]",
+    "Pairing code",
+    "[input code | ABCD-EFGH-JKLM required mono]",
+    "[btn solid]",
+    "Add node",
+    "On the other server, open Nodes → Let another server use this one → Show pairing code.",
+    "[card]",
+    "[h2]",
+    "Let another server use this one",
+    "Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.",
+    "[check]",
+    "Encode for paired main servers",
+    "The main server picks which of this server's GPUs (and its CPU) encode, and how many clips each converts at once, in its own Encoder.",
+    "[note amber]",
+    "Only this PC can reach Sentry Six Manager, so a main server cannot pair with it or send it clips.",
+    "[btn sm]",
+    "Allow other devices",
+    "[note green]",
+    "Pairing code (one use, 1 minute left)",
+    "[mono]",
+    "WXYZ-1234-5678",
+    "On the main server: Nodes → Add node, with this server's address",
+    "[mono]",
+    "localhost",
+    "and the code.",
+    "[btn sm]",
+    "Cancel"
+   ]
+  },
+  {
+   "name": "closed-enabled",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": true,
+     "otherDevices": false
+    }
+   },
+   "host": "192.168.1.20",
+   "port": "9000",
+   "h24": false,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network"
+   ],
+   "error": null,
+   "poll": 0,
+   "outline": [
+    "[card]",
+    "[h2]",
+    "Nodes this server uses",
+    "Other servers running Sentry Six Manager can encode clips for this one. This server reads each clip, sends it to the node over HTTPS and checks the encoded file before it saves anything, as with its own GPUs. Nodes never get your share passwords and never touch the footage.",
+    "No nodes yet.",
+    "Node address",
+    "[input address | 192.168.1.30 or nas.local:9000 required]",
+    "Pairing code",
+    "[input code | ABCD-EFGH-JKLM required mono]",
+    "[btn solid]",
+    "Add node",
+    "On the other server, open Nodes → Let another server use this one → Show pairing code.",
+    "[card]",
+    "[h2]",
+    "Let another server use this one",
+    "Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.",
+    "[check on]",
+    "Encode for paired main servers",
+    "The main server picks which of this server's GPUs (and its CPU) encode, and how many clips each converts at once, in its own Encoder.",
+    "[note amber]",
+    "Only this PC can reach Sentry Six Manager, so a main server cannot pair with it or send it clips.",
+    "[btn sm]",
+    "Allow other devices",
+    "[btn]",
+    "Show pairing code"
+   ]
+  },
+  {
+   "name": "closed-idle",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": true,
+     "otherDevices": false
+    }
+   },
+   "host": "192.168.1.20",
+   "port": "9000",
+   "h24": false,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network"
+   ],
+   "error": null,
+   "poll": 0,
+   "outline": [
+    "[card]",
+    "[h2]",
+    "Nodes this server uses",
+    "Other servers running Sentry Six Manager can encode clips for this one. This server reads each clip, sends it to the node over HTTPS and checks the encoded file before it saves anything, as with its own GPUs. Nodes never get your share passwords and never touch the footage.",
+    "No nodes yet.",
+    "Node address",
+    "[input address | 192.168.1.30 or nas.local:9000 required]",
+    "Pairing code",
+    "[input code | ABCD-EFGH-JKLM required mono]",
+    "[btn solid]",
+    "Add node",
+    "On the other server, open Nodes → Let another server use this one → Show pairing code.",
+    "[card]",
+    "[h2]",
+    "Let another server use this one",
+    "Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.",
+    "[check]",
+    "Encode for paired main servers",
+    "The main server picks which of this server's GPUs (and its CPU) encode, and how many clips each converts at once, in its own Encoder.",
+    "[btn]",
+    "Show pairing code"
+   ]
+  },
+  {
+   "name": "open-network",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": true,
+     "otherDevices": true
+    }
+   },
+   "host": "192.168.1.20",
+   "port": "9000",
+   "h24": false,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network"
+   ],
+   "error": null,
+   "poll": 0,
+   "outline": [
+    "[card]",
+    "[h2]",
+    "Nodes this server uses",
+    "Other servers running Sentry Six Manager can encode clips for this one. This server reads each clip, sends it to the node over HTTPS and checks the encoded file before it saves anything, as with its own GPUs. Nodes never get your share passwords and never touch the footage.",
+    "No nodes yet.",
+    "Node address",
+    "[input address | 192.168.1.30 or nas.local:9000 required]",
+    "Pairing code",
+    "[input code | ABCD-EFGH-JKLM required mono]",
+    "[btn solid]",
+    "Add node",
+    "On the other server, open Nodes → Let another server use this one → Show pairing code.",
+    "[card]",
+    "[h2]",
+    "Let another server use this one",
+    "Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.",
+    "[check on]",
+    "Encode for paired main servers",
+    "The main server picks which of this server's GPUs (and its CPU) encode, and how many clips each converts at once, in its own Encoder.",
+    "[btn]",
+    "Show pairing code"
+   ]
+  },
+  {
+   "name": "side-failed",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": [
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "$error": "no"
+    },
+    "GET /api/settings/network": {
+     "$error": "no"
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "$error": "Node not found"
+    }
+   },
+   "host": "192.168.1.20",
+   "port": "9000",
+   "h24": false,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network",
+    "GET /api/nodes/n2/benchmark"
+   ],
+   "error": null,
+   "poll": 5000,
+   "outline": [
+    "[card]",
+    "[h2]",
+    "Nodes this server uses",
+    "Other servers running Sentry Six Manager can encode clips for this one. This server reads each clip, sends it to the node over HTTPS and checks the encoded file before it saves anything, as with its own GPUs. Nodes never get your share passwords and never touch the footage.",
+    "[table]",
+    "[tr]",
+    "Node",
+    "Status",
+    "Encoders",
+    "Clips",
+    "[tr]",
+    "Office NAS",
+    "[mono]",
+    "nas.local:9000",
+    "[chip red]",
+    "[dot bad]",
+    "Offline",
+    "connect ECONNREFUSED 192.168.1.40:9000",
+    "H.265: libx265",
+    "—",
+    "[btn sm]",
+    "Rename",
+    "[btn sm]",
+    "Remove",
+    "[tr sub]",
+    "[check on]",
+    "Trusted",
+    "Its encodes replace originals without the picture check (streams, length, frames and telemetry are still verified). Turn off if anyone else could change this computer.",
+    "Each node is a group under",
+    "[link #/encoder]",
+    "Encoder",
+    "→ Parallel conversions: open it to pick which of its GPUs (and its CPU) convert, and how many clips each converts at once.",
+    "Node address",
+    "[input address | 192.168.1.30 or nas.local:9000 required]",
+    "Pairing code",
+    "[input code | ABCD-EFGH-JKLM required mono]",
+    "[btn solid]",
+    "Add node",
+    "On the other server, open Nodes → Let another server use this one → Show pairing code.",
+    "[card]",
+    "[h2]",
+    "Let another server use this one",
+    "Pair a main server here and it sends this server clips to encode, then takes the encoded files back. It can’t do anything else here: no footage, settings or passwords.",
+    "[check]",
+    "Encode for paired main servers",
+    "The main server picks which of this server's GPUs (and its CPU) encode, and how many clips each converts at once, in its own Encoder.",
+    "[btn]",
+    "Show pairing code",
+    "[table]",
+    "[tr]",
+    "Main server",
+    "Paired",
+    "[tr]",
+    "Old main",
+    "[mono]",
+    "Paired 9/21/2026, 3:10:02 PM",
+    "[btn sm]",
+    "Revoke"
+   ]
+  },
+  {
+   "name": "failed",
+   "answers": {
+    "GET /api/nodes": {
+     "$error": "Nodes are not available."
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": null
+   },
+   "host": "192.168.1.20",
+   "port": "9000",
+   "h24": false,
+   "asked": [
+    "GET /api/nodes",
+    "GET /api/vehicles",
+    "GET /api/settings/network"
+   ],
+   "error": "Nodes are not available.",
+   "poll": 0,
+   "outline": []
+  }
+ ],
+ "actions": [
+  {
+   "name": "add",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    },
+    "POST /api/nodes": {
+     "node": {
+      "id": "n9"
+     }
+    }
+   },
+   "form": {
+    "address": "192.168.1.50",
+    "code": "QQQQ-WWWW-EEEE"
+   },
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "submit": true
+   },
+   "asked": [
+    "POST /api/nodes {\"address\":\"192.168.1.50\",\"code\":\"QQQQ-WWWW-EEEE\"}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "Node paired. Set its clips under Encoder → Parallel conversions.",
+     "bad": false
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": true
+  },
+  {
+   "name": "add-failed",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    },
+    "POST /api/nodes": {
+     "$error": "That pairing code is not valid (or it expired)."
+    }
+   },
+   "form": {
+    "address": "nas",
+    "code": "x"
+   },
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "submit": true
+   },
+   "asked": [
+    "POST /api/nodes {\"address\":\"nas\",\"code\":\"x\"}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "That pairing code is not valid (or it expired).",
+     "bad": true
+    }
+   ],
+   "renders": 0,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": false
+  },
+  {
+   "name": "bench-start",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "benchStart",
+    "id": "n1",
+    "codec": "h265"
+   },
+   "asked": [
+    "POST /api/nodes/n1/benchmark {\"codec\":\"h265\"}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "bench-start-av1-failed",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": null
+    },
+    "POST /api/nodes/n1/benchmark": {
+     "$error": "A benchmark is already running."
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "benchStart",
+    "id": "n1",
+    "codec": "av1"
+   },
+   "asked": [
+    "POST /api/nodes/n1/benchmark {\"codec\":\"av1\"}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "A benchmark is already running.",
+     "bad": true
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "bench-again",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "benchStart",
+    "id": "n1"
+   },
+   "asked": [
+    "POST /api/nodes/n1/benchmark {\"codec\":\"h265\"}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "bench-cancel",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "running",
+      "codec": "h265",
+      "results": []
+     }
+    },
+    "DELETE /api/nodes/n1/benchmark": {
+     "$error": "gone"
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "benchCancel",
+    "id": "n1"
+   },
+   "asked": [
+    "DELETE /api/nodes/n1/benchmark"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "bench-use",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": "{\"x\":1,\"node:n1\":4}",
+   "target": {
+    "sel": "benchUse",
+    "id": "n1"
+   },
+   "asked": [
+    "POST /api/nodes/n1/slots {\"slots\":2}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "NVIDIA GeForce RTX 4070 on Garage PC now converts 2 at once; its row under Encoder is set to 2 too.",
+     "bad": false
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": "{\"x\":1,\"node:n1:gpu:0\":2}",
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "bench-use-plain",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n 3/x",
+       "name": "Basement server with a name that is far too long to fit in the column",
+       "address": "basement-server-with-a-long-name.example.internal:9443",
+       "online": true,
+       "error": "",
+       "encoders": {
+        "h265": "hevc_qsv"
+       },
+       "slots": 4,
+       "busy": 0,
+       "encoding": null,
+       "cars": [
+        "gone",
+        "model-y",
+        "model-3"
+       ],
+       "trusted": false
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n%203%2Fx/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "codec": "h265",
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 3,
+        "failed": 0,
+        "clips": 3,
+        "seconds": 60
+       }
+      ],
+      "suggested": 1
+     }
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "benchUse",
+    "id": "n 3/x"
+   },
+   "asked": [
+    "POST /api/nodes/n%203%2Fx/slots {\"slots\":1}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "The node now converts 1 at once; its Encoder row is set to 1 too.",
+     "bad": false
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": "{\"node:n 3/x\":1}",
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "bench-use-bad-lanes",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n 3/x",
+       "name": "Basement server with a name that is far too long to fit in the column",
+       "address": "basement-server-with-a-long-name.example.internal:9443",
+       "online": true,
+       "error": "",
+       "encoders": {
+        "h265": "hevc_qsv"
+       },
+       "slots": 4,
+       "busy": 0,
+       "encoding": null,
+       "cars": [
+        "gone",
+        "model-y",
+        "model-3"
+       ],
+       "trusted": false
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n%203%2Fx/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "codec": "h265",
+      "results": [],
+      "suggested": 3
+     }
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": "null",
+   "target": {
+    "sel": "benchUse",
+    "id": "n 3/x"
+   },
+   "asked": [
+    "POST /api/nodes/n%203%2Fx/slots {\"slots\":3}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "The node now converts 3 at once; its Encoder row is set to 3 too.",
+     "bad": false
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": "{\"node:n 3/x\":3}",
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "bench-use-failed",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    },
+    "POST /api/nodes/n1/slots": {
+     "$error": "The node did not answer."
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": "{}",
+   "target": {
+    "sel": "benchUse",
+    "id": "n1"
+   },
+   "asked": [
+    "POST /api/nodes/n1/slots {\"slots\":2}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "The node did not answer.",
+     "bad": true
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": "{}",
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "trust-on",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": true,
+   "lanes": null,
+   "target": {
+    "sel": "nodeTrust",
+    "id": "n1",
+    "check": true
+   },
+   "asked": [
+    "PUT /api/nodes/n1 {\"trusted\":true}"
+   ],
+   "dialogs": [],
+   "systems": [
+    "Trust this node? Its encodes will replace your originals without the picture check. Only for a computer of your own that nobody else can change."
+   ],
+   "toasts": [
+    {
+     "text": "Trusted: its encodes skip the picture check.",
+     "bad": false
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": true,
+   "buttonDisabled": null
+  },
+  {
+   "name": "trust-on-cancelled",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "nodeTrust",
+    "id": "n1",
+    "check": true
+   },
+   "asked": [],
+   "dialogs": [],
+   "systems": [
+    "Trust this node? Its encodes will replace your originals without the picture check. Only for a computer of your own that nobody else can change."
+   ],
+   "toasts": [],
+   "renders": 0,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "trust-off",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "nodeTrust",
+    "id": "n2",
+    "check": false
+   },
+   "asked": [
+    "PUT /api/nodes/n2 {\"trusted\":false}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "Not trusted: its encodes get the picture check.",
+     "bad": false
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "trust-failed",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    },
+    "PUT /api/nodes/n2": {
+     "$error": "Node not found"
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "nodeTrust",
+    "id": "n2",
+    "check": false
+   },
+   "asked": [
+    "PUT /api/nodes/n2 {\"trusted\":false}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "Node not found",
+     "bad": true
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "car-add",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "carAdd",
+    "id": "n1",
+    "value": "model-y"
+   },
+   "asked": [
+    "PUT /api/nodes/n1 {\"cars\":[\"model-3\",\"model-y\"]}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "car-add-none",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "carAdd",
+    "id": "n2",
+    "value": ""
+   },
+   "asked": [],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [],
+   "renders": 0,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "car-remove",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n 3/x",
+       "name": "Basement server with a name that is far too long to fit in the column",
+       "address": "basement-server-with-a-long-name.example.internal:9443",
+       "online": true,
+       "error": "",
+       "encoders": {
+        "h265": "hevc_qsv"
+       },
+       "slots": 4,
+       "busy": 0,
+       "encoding": null,
+       "cars": [
+        "gone",
+        "model-y",
+        "model-3"
+       ],
+       "trusted": false
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n%203%2Fx/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "carRemove",
+    "id": "n 3/x",
+    "car": "model-y"
+   },
+   "asked": [
+    "PUT /api/nodes/n%203%2Fx {\"cars\":[\"gone\",\"model-3\"]}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "car-up",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n 3/x",
+       "name": "Basement server with a name that is far too long to fit in the column",
+       "address": "basement-server-with-a-long-name.example.internal:9443",
+       "online": true,
+       "error": "",
+       "encoders": {
+        "h265": "hevc_qsv"
+       },
+       "slots": 4,
+       "busy": 0,
+       "encoding": null,
+       "cars": [
+        "gone",
+        "model-y",
+        "model-3"
+       ],
+       "trusted": false
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n%203%2Fx/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "carUp",
+    "id": "n 3/x",
+    "car": "model-3"
+   },
+   "asked": [
+    "PUT /api/nodes/n%203%2Fx {\"cars\":[\"gone\",\"model-3\",\"model-y\"]}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "car-failed",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    },
+    "PUT /api/nodes/n2": {
+     "$error": "Unknown vehicle"
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "carAdd",
+    "id": "n2",
+    "value": "model-3"
+   },
+   "asked": [
+    "PUT /api/nodes/n2 {\"cars\":[\"model-3\"]}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "Unknown vehicle",
+     "bad": true
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "rename",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": "  Garage  ",
+   "confirm": true,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "renameNode",
+    "id": "n1"
+   },
+   "asked": [
+    "PUT /api/nodes/n1 {\"name\":\"Garage\"}"
+   ],
+   "dialogs": [
+    {
+     "title": "Rename node",
+     "body": [
+      "Name",
+      "Shown here and under Encoder → Parallel conversions. The node itself keeps its own name."
+     ],
+     "ok": "Save",
+     "danger": false
+    }
+   ],
+   "systems": [],
+   "toasts": [],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "rename-same",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": "Garage PC",
+   "confirm": true,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "renameNode",
+    "id": "n1"
+   },
+   "asked": [],
+   "dialogs": [
+    {
+     "title": "Rename node",
+     "body": [
+      "Name",
+      "Shown here and under Encoder → Parallel conversions. The node itself keeps its own name."
+     ],
+     "ok": "Save",
+     "danger": false
+    }
+   ],
+   "systems": [],
+   "toasts": [],
+   "renders": 0,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "rename-empty",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": "   ",
+   "confirm": true,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "renameNode",
+    "id": "n1"
+   },
+   "asked": [],
+   "dialogs": [
+    {
+     "title": "Rename node",
+     "body": [
+      "Name",
+      "Shown here and under Encoder → Parallel conversions. The node itself keeps its own name."
+     ],
+     "ok": "Save",
+     "danger": false
+    }
+   ],
+   "systems": [],
+   "toasts": [],
+   "renders": 0,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "rename-cancelled",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": "New",
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "renameNode",
+    "id": "n1"
+   },
+   "asked": [],
+   "dialogs": [
+    {
+     "title": "Rename node",
+     "body": [
+      "Name",
+      "Shown here and under Encoder → Parallel conversions. The node itself keeps its own name."
+     ],
+     "ok": "Save",
+     "danger": false
+    }
+   ],
+   "systems": [],
+   "toasts": [],
+   "renders": 0,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "rename-failed",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    },
+    "PUT /api/nodes/n2": {
+     "$error": "Name is too long."
+    }
+   },
+   "form": null,
+   "prompt": "NAS",
+   "confirm": true,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "renameNode",
+    "id": "n2"
+   },
+   "asked": [
+    "PUT /api/nodes/n2 {\"name\":\"NAS\"}"
+   ],
+   "dialogs": [
+    {
+     "title": "Rename node",
+     "body": [
+      "Name",
+      "Shown here and under Encoder → Parallel conversions. The node itself keeps its own name."
+     ],
+     "ok": "Save",
+     "danger": false
+    }
+   ],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "Name is too long.",
+     "bad": true
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "remove",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": true,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "removeNode",
+    "id": "n2"
+   },
+   "asked": [
+    "DELETE /api/nodes/n2"
+   ],
+   "dialogs": [
+    {
+     "title": "Remove this node?",
+     "body": [
+      "Office NAS",
+      "gets no more clips from this server. To use it again, pair it again with a new code."
+     ],
+     "ok": "Remove",
+     "danger": false
+    }
+   ],
+   "systems": [],
+   "toasts": [],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "remove-cancelled",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "removeNode",
+    "id": "n2"
+   },
+   "asked": [],
+   "dialogs": [
+    {
+     "title": "Remove this node?",
+     "body": [
+      "Office NAS",
+      "gets no more clips from this server. To use it again, pair it again with a new code."
+     ],
+     "ok": "Remove",
+     "danger": false
+    }
+   ],
+   "systems": [],
+   "toasts": [],
+   "renders": 0,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "remove-failed",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    },
+    "DELETE /api/nodes/n1": {
+     "$error": "Busy"
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": true,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "removeNode",
+    "id": "n1"
+   },
+   "asked": [
+    "DELETE /api/nodes/n1"
+   ],
+   "dialogs": [
+    {
+     "title": "Remove this node?",
+     "body": [
+      "Garage PC",
+      "gets no more clips from this server. To use it again, pair it again with a new code."
+     ],
+     "ok": "Remove",
+     "danger": false
+    }
+   ],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "Busy",
+     "bad": true
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "worker-off",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "el": "worker-on",
+    "check": false
+   },
+   "asked": [
+    "POST /api/nodes/worker {\"enabled\":false}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "worker-on-failed",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "POST /api/nodes/worker": {
+     "$error": "No HTTPS"
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "el": "worker-on",
+    "check": true
+   },
+   "asked": [
+    "POST /api/nodes/worker {\"enabled\":true}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "No HTTPS",
+     "bad": true
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": true,
+   "buttonDisabled": null
+  },
+  {
+   "name": "pair-start",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "el": "pair-start"
+   },
+   "asked": [
+    "POST /api/nodes/worker/pair {}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "pair-start-failed",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [],
+     "worker": {
+      "available": true,
+      "enabled": false,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "POST /api/nodes/worker/pair": {
+     "$error": "Turn on Encode for paired main servers first."
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "el": "pair-start"
+   },
+   "asked": [
+    "POST /api/nodes/worker/pair {}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "Turn on Encode for paired main servers first.",
+     "bad": true
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "pair-cancel",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    },
+    "DELETE /api/nodes/worker/pair": {
+     "$error": "gone"
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "el": "pair-cancel"
+   },
+   "asked": [
+    "DELETE /api/nodes/worker/pair"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "revoke",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": true,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "revokeMain",
+    "id": "m 2"
+   },
+   "asked": [
+    "DELETE /api/nodes/worker/mains/m%202"
+   ],
+   "dialogs": [
+    {
+     "title": "Revoke this main server?",
+     "body": [
+      "Old main",
+      "can no longer send clips here. Clips it is converting now stop."
+     ],
+     "ok": "Revoke",
+     "danger": true
+    }
+   ],
+   "systems": [],
+   "toasts": [],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "revoke-cancelled",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "revokeMain",
+    "id": "m1"
+   },
+   "asked": [],
+   "dialogs": [
+    {
+     "title": "Revoke this main server?",
+     "body": [
+      "Main server",
+      "can no longer send clips here. Clips it is converting now stop."
+     ],
+     "ok": "Revoke",
+     "danger": true
+    }
+   ],
+   "systems": [],
+   "toasts": [],
+   "renders": 0,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "revoke-failed",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [
+      {
+       "id": "n1",
+       "name": "Garage PC",
+       "address": "192.168.1.30:9000",
+       "online": true,
+       "error": null,
+       "encoders": {
+        "h265": "hevc_nvenc",
+        "av1": "av1_nvenc"
+       },
+       "devices": [
+        {
+         "name": "NVIDIA GeForce RTX 4070",
+         "encoders": {
+          "h265": "hevc_nvenc",
+          "av1": "av1_nvenc"
+         }
+        },
+        {
+         "name": "CPU",
+         "encoders": {
+          "h265": "libx265",
+          "av1": "libsvtav1"
+         }
+        }
+       ],
+       "slots": 2,
+       "busy": 3,
+       "encoding": 1,
+       "cars": [
+        "model-3"
+       ],
+       "trusted": false,
+       "defaultDeviceName": "NVIDIA GeForce RTX 4070",
+       "defaultLane": "node:n1:gpu:0"
+      },
+      {
+       "id": "n2",
+       "name": "Office NAS",
+       "address": "nas.local:9000",
+       "online": false,
+       "error": "connect ECONNREFUSED 192.168.1.40:9000",
+       "encoders": {
+        "h265": "libx265"
+       },
+       "devices": [],
+       "slots": 1,
+       "busy": 0,
+       "encoding": 0,
+       "cars": [],
+       "trusted": true,
+       "defaultDeviceName": null,
+       "defaultLane": null
+      }
+     ],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": {
+       "code": "ABCD-EFGH-JKLM",
+       "expiresAt": 1793459972000
+      },
+      "mains": [
+       {
+        "id": "m1",
+        "name": "Main server",
+        "address": "192.168.1.20",
+        "pairedAt": 1793200202000,
+        "lastSeenAt": 1793459342000
+       },
+       {
+        "id": "m 2",
+        "name": "Old main",
+        "address": null,
+        "pairedAt": 1790003402000,
+        "lastSeenAt": null
+       }
+      ]
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": false,
+     "otherDevices": true
+    },
+    "GET /api/nodes/n1/benchmark": {
+     "benchmark": {
+      "state": "done",
+      "phase": null,
+      "error": null,
+      "codec": "h265",
+      "samples": 3,
+      "converted": true,
+      "suggested": 2,
+      "results": [
+       {
+        "level": 1,
+        "clipsPerMinute": 4.2,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 86
+       },
+       {
+        "level": 2,
+        "clipsPerMinute": 7.9,
+        "failed": 0,
+        "clips": 6,
+        "seconds": 46
+       },
+       {
+        "level": 3,
+        "clipsPerMinute": 0,
+        "failed": 2,
+        "clips": 6,
+        "seconds": 60
+       }
+      ]
+     }
+    },
+    "GET /api/nodes/n2/benchmark": {
+     "benchmark": null
+    },
+    "DELETE /api/nodes/worker/mains/m1": {
+     "$error": "Not paired"
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": true,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "sel": "revokeMain",
+    "id": "m1"
+   },
+   "asked": [
+    "DELETE /api/nodes/worker/mains/m1"
+   ],
+   "dialogs": [
+    {
+     "title": "Revoke this main server?",
+     "body": [
+      "Main server",
+      "can no longer send clips here. Clips it is converting now stop."
+     ],
+     "ok": "Revoke",
+     "danger": true
+    }
+   ],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "Not paired",
+     "bad": true
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "open",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": true,
+     "otherDevices": false
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "el": "nodes-open"
+   },
+   "asked": [
+    "PUT /api/settings/network {\"otherDevices\":true}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "Other devices can open Sentry Six Manager now. Reloading the page for the new certificate…",
+     "bad": false
+    }
+   ],
+   "renders": 1,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  },
+  {
+   "name": "open-failed",
+   "answers": {
+    "GET /api/nodes": {
+     "nodes": [],
+     "worker": {
+      "available": true,
+      "enabled": true,
+      "pairing": null,
+      "mains": []
+     }
+    },
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3"
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y"
+      }
+     ]
+    },
+    "GET /api/settings/network": {
+     "available": true,
+     "otherDevices": false
+    },
+    "PUT /api/settings/network": {
+     "$error": "Could not change where the web UI listens: EADDRINUSE"
+    }
+   },
+   "form": null,
+   "prompt": null,
+   "confirm": false,
+   "system": false,
+   "lanes": null,
+   "target": {
+    "el": "nodes-open"
+   },
+   "asked": [
+    "PUT /api/settings/network {\"otherDevices\":true}"
+   ],
+   "dialogs": [],
+   "systems": [],
+   "toasts": [
+    {
+     "text": "Could not change where the web UI listens: EADDRINUSE",
+     "bad": true
+    }
+   ],
+   "renders": 0,
+   "lanesAfter": null,
+   "checked": false,
+   "buttonDisabled": null
+  }
+ ]
+}
