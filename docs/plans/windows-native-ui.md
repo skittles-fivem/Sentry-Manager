@@ -153,7 +153,19 @@ is done when every item is ticked in both. Run on the owner's PC runner.
     checks the C#, and Chrome's number and time field rules). Render list:
     policies, -off, -novehicle, -error (desktop and phone; capture.js
     `VARIANTS` on both sides). Redrawn on "inventory".
-  - Jobs: not started
+  - Jobs: native (`Ui/Builtin/JobsPage.cs`; its request, words, dialog
+    and toasts in `Core/Jobs.cs`); type-checked with mcs, not yet built or
+    rendered on Windows. The page (Clear jobs, disabled with "No finished
+    jobs to clear" while every job runs; the table with its chips, Took and
+    the Energy column when a job has a measurement; "No jobs yet. …"), the
+    Jobs badge from its own list, and Clear jobs (preview, "Nothing to
+    clear: …" or "Clear finished jobs?", the clear, the toasts and the
+    redraw) are compared with web/app.js's own pages.jobs and clearJobs on
+    11 pages and 10 clicks (test/windowsNativeJobs.test.js writes
+    Core.Tests/Fixtures/expected-jobs.json; Core.Tests JobsTests checks the
+    C#). Render list: jobs, -empty, -running-only, -long, -error (desktop
+    and phone; tools/parity/jobsVariants.js on both sides). Redrawn on
+    "jobs".
   - Recycle Bin: not started
   - Notifications ("Alerts"): not started
   - Encoding per vehicle ("Per car", #/encoder/vehicles): not started
@@ -184,6 +196,10 @@ its list of hours and minutes is a small native list, not Chrome's); the
 browser's messages when Save policy cannot send a field ("Value must be
 greater than or equal to 1.", "Please enter a number.", the time field's
 "incomplete") are drawn under the field, not as Chrome's bubble.
+Jobs: the disabled Clear jobs button's tooltip is WPF's, not the
+browser's; the vehicle id in ?vehicle= is encoded with .NET's
+Uri.EscapeDataString, which also encodes ! ' ( ) * (encodeURIComponent
+leaves them), so an id with those characters would ask a different path.
 
 ## Costs the owner should know
 

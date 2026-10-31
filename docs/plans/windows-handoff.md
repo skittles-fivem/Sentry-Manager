@@ -437,3 +437,33 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
 - Note for the Nodes stage: `nodes-empty` is in RENDER-PAGES.md but has no
   entry in `variants`, so `--render builtin nodes-empty` looks for a route
   named "nodes-empty" and fails; a `{ "route": "nodes" }` variant fixes it.
+
+### Phase 1: Jobs (2026-10-31)
+
+- `Core/Jobs.cs`: `Path`/`Load` (GET /api/jobs, `?vehicle=<id>` encoded for
+  the vehicle shown, none without one), `View` (JobsView: the rows with
+  title, type, raw status and its chip colour, details, Started as
+  when(), Took as "—" / took(finishedAt - startedAt) / "…" with
+  JavaScript's subtraction (a missing start gives "NaN h NaN m" as the
+  web), Energy as `energyText · avg W · ≈ cost` in settings.power.currency;
+  WithEnergy, CanClear, Running), `Outline()`, `ClearBody`,
+  `ClearConfirm` and `Clear` (POST /api/jobs/clear {vehicle, preview},
+  "Nothing to clear: …" or "Clear finished jobs?" (" of <vehicle>" with
+  two or more vehicles), {vehicle, confirm}, "Cleared N finished jobs.",
+  redraw also after a failed clear; a failed preview is only a red toast).
+- `test/windowsNativeJobs.test.js` runs the web's own pages.jobs and
+  clearJobs (sliced from app.js, a pretend DOM, setBadge recorded) and
+  writes `Core.Tests/Fixtures/expected-jobs.json` (11 pages with the badge,
+  10 clicks); it also checks every wording constant and the column titles
+  against the web's. `Core.Tests/JobsTests.cs` compares the C#. Under mono
+  with a stub runner the three JobsTests pass; not run under dotnet yet.
+- `Ui/Builtin/JobsPage.cs` (registered in BuiltinInterface: its browser
+  card is gone). It sets `ShellModel.RunningJobs` from its own list (the
+  app controller already skips its own jobs reload on a native Jobs page);
+  the Energy column uses `TableColumn.HideEmptyOnPhone`. Clear jobs has
+  `ToolTipService.ShowOnDisabled` so its tooltip shows while disabled.
+- `tools/parity/jobsVariants.js` (required by capture.js's `VARIANTS`):
+  jobs, jobs-running-only, jobs-long; `jobs-empty` is the fixture server's
+  own answer (a `{ "route": "jobs" }` variant); jobs-error is now captured
+  on the web too. Injected into `Shell/RenderFixture.json` with the
+  fixture's own `vehicle` and `now`; the rest of the file is unchanged.

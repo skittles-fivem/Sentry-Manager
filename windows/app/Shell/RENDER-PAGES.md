@@ -103,7 +103,7 @@ built-in 760 / 374 px; Horizon 1560, 1440, 1279, 1023, 400 px; Flux 860 and
 Each at both sizes, as above; pages not drawn here yet render their
 "Opens in your browser" card. The variants are in `Shell\RenderFixture.json`
 (`variants`, from capture.js's `VARIANTS`); capture.js takes the web side
-of each under the same name (jobs-error and bin-error exist natively only;
+of each under the same name (bin-error exists natively only;
 the Overview's variants answer in the browser through Playwright routes).
 The Overview's numbers are test/fixtures/statsSample.json on both sides
 (`GET /api/stats` in the fixture), not the fixture machine's own.
@@ -125,6 +125,15 @@ route), policies-novehicle and policies-error (the policy not readable: the
 whole page is the message). The Run at field is drawn as Chrome on Windows
 draws a time field, on the runner's own clock (12-hour on en-US, as the
 Playwright captures).
+The Jobs page's states (tools/parity/jobsVariants.js, in capture.js's
+`VARIANTS`): jobs (a conversion running with its energy so far, a finished
+scan with energy, average power and cost, a failed, an interrupted and a
+cancelled job), jobs-running-only (every job running: Clear jobs disabled,
+its "No finished jobs to clear" tooltip is not in a still picture), jobs-long (a long title, type
+and details), jobs-empty (the fixture server's own answer: "No jobs yet.";
+a variant with only its route) and jobs-error (the list not readable: the
+whole page is the message). Times are from the fixture's `now`; the page
+sets the Jobs badge from its own list (1 in jobs, 2 in jobs-running-only).
 
 - builtin overview
 - builtin overview-off
@@ -152,6 +161,9 @@ Playwright captures).
 - builtin policies-novehicle
 - builtin policies-error
 - builtin jobs
+- builtin jobs-empty
+- builtin jobs-running-only
+- builtin jobs-long
 - builtin jobs-error
 - builtin bin
 - builtin bin-error

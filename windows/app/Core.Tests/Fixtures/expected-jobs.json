@@ -1,0 +1,1362 @@
+{
+ "about": "Written by test/windowsNativeJobs.test.js from web/app.js pages.jobs and clearJobs; checked by windows/app/Core.Tests (JobsTests.cs, SentrySix.Core.Jobs).",
+ "now": 1793459402000,
+ "pages": [
+  {
+   "name": "jobs",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "h24": false,
+   "currency": "$",
+   "asked": [
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "error": null,
+   "badge": "1",
+   "outline": [
+    "[head Your archive workspace | Jobs]",
+    "[btn]",
+    "Clear jobs",
+    "[pills]",
+    "[card]",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Job",
+    "[th]",
+    "Status",
+    "[th]",
+    "Details",
+    "[th]",
+    "Started",
+    "[th]",
+    "Took",
+    "[th]",
+    "Energy",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Convert 2026-10-30 (12 clips)",
+    "[muted small]",
+    "conversion",
+    "[td]",
+    "[chip amber]",
+    "running",
+    "[td small]",
+    "5 of 12 clips · H.265",
+    "[td small]",
+    "10/31/2026, 2:57:28 PM",
+    "[td small mono]",
+    "…",
+    "[td small mono energy]",
+    "12.4 Wh · avg 61 W",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Scan Model 3",
+    "[muted small]",
+    "scan",
+    "[td]",
+    "[chip green]",
+    "done",
+    "[td small]",
+    "1,204 recordings",
+    "[td small]",
+    "10/31/2026, 1:10:02 PM",
+    "[td small mono]",
+    "42 s",
+    "[td small mono energy]",
+    "413 Wh · avg 8 W · ≈ $0.14",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Empty Recycle Bin",
+    "[muted small]",
+    "bin",
+    "[td]",
+    "[chip red]",
+    "failed",
+    "[td small]",
+    "EACCES: permission denied <share> & more",
+    "[td small]",
+    "10/30/2026, 1:10:02 PM",
+    "[td small mono]",
+    "1 h 2 m",
+    "[td small mono energy]",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Convert 2026-10-28",
+    "[muted small]",
+    "conversion",
+    "[td]",
+    "[chip]",
+    "interrupted",
+    "[td small]",
+    "[td small]",
+    "10/29/2026, 1:10:02 PM",
+    "[td small mono]",
+    "—",
+    "[td small mono energy]"
+   ]
+  },
+  {
+   "name": "jobs-24h",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "h24": true,
+   "currency": "$",
+   "asked": [
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "error": null,
+   "badge": "1",
+   "outline": [
+    "[head Your archive workspace | Jobs]",
+    "[btn]",
+    "Clear jobs",
+    "[pills]",
+    "[card]",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Job",
+    "[th]",
+    "Status",
+    "[th]",
+    "Details",
+    "[th]",
+    "Started",
+    "[th]",
+    "Took",
+    "[th]",
+    "Energy",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Convert 2026-10-30 (12 clips)",
+    "[muted small]",
+    "conversion",
+    "[td]",
+    "[chip amber]",
+    "running",
+    "[td small]",
+    "5 of 12 clips · H.265",
+    "[td small]",
+    "10/31/2026, 14:57:28",
+    "[td small mono]",
+    "…",
+    "[td small mono energy]",
+    "12.4 Wh · avg 61 W",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Scan Model 3",
+    "[muted small]",
+    "scan",
+    "[td]",
+    "[chip green]",
+    "done",
+    "[td small]",
+    "1,204 recordings",
+    "[td small]",
+    "10/31/2026, 13:10:02",
+    "[td small mono]",
+    "42 s",
+    "[td small mono energy]",
+    "413 Wh · avg 8 W · ≈ $0.14",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Empty Recycle Bin",
+    "[muted small]",
+    "bin",
+    "[td]",
+    "[chip red]",
+    "failed",
+    "[td small]",
+    "EACCES: permission denied <share> & more",
+    "[td small]",
+    "10/30/2026, 13:10:02",
+    "[td small mono]",
+    "1 h 2 m",
+    "[td small mono energy]",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Convert 2026-10-28",
+    "[muted small]",
+    "conversion",
+    "[td]",
+    "[chip]",
+    "interrupted",
+    "[td small]",
+    "[td small]",
+    "10/29/2026, 13:10:02",
+    "[td small mono]",
+    "—",
+    "[td small mono energy]"
+   ]
+  },
+  {
+   "name": "jobs-kr",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "h24": false,
+   "currency": "kr",
+   "asked": [
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "error": null,
+   "badge": "",
+   "outline": [
+    "[head Your archive workspace | Jobs]",
+    "[btn]",
+    "Clear jobs",
+    "[pills]",
+    "[card]",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Job",
+    "[th]",
+    "Status",
+    "[th]",
+    "Details",
+    "[th]",
+    "Started",
+    "[th]",
+    "Took",
+    "[th]",
+    "Energy",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Scan Model 3",
+    "[muted small]",
+    "scan",
+    "[td]",
+    "[chip green]",
+    "done",
+    "[td small]",
+    "1,204 recordings",
+    "[td small]",
+    "10/31/2026, 1:10:02 PM",
+    "[td small mono]",
+    "42 s",
+    "[td small mono energy]",
+    "413 Wh · avg 8 W · ≈ 0.14 kr",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Policy run",
+    "[muted small]",
+    "policy",
+    "[td]",
+    "[chip]",
+    "cancelled",
+    "[td small]",
+    "[td small]",
+    "10/29/2026, 12:10:02 PM",
+    "[td small mono]",
+    "9 h 1 m",
+    "[td small mono energy]",
+    "5.2 kWh · ≈ 154 kr"
+   ]
+  },
+  {
+   "name": "jobs-noenergy",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "h24": false,
+   "currency": "$",
+   "asked": [
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "error": null,
+   "badge": "",
+   "outline": [
+    "[head Your archive workspace | Jobs]",
+    "[btn]",
+    "Clear jobs",
+    "[pills]",
+    "[card]",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Job",
+    "[th]",
+    "Status",
+    "[th]",
+    "Details",
+    "[th]",
+    "Started",
+    "[th]",
+    "Took",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Empty Recycle Bin",
+    "[muted small]",
+    "bin",
+    "[td]",
+    "[chip red]",
+    "failed",
+    "[td small]",
+    "EACCES: permission denied <share> & more",
+    "[td small]",
+    "10/30/2026, 1:10:02 PM",
+    "[td small mono]",
+    "1 h 2 m",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Convert 2026-10-28",
+    "[muted small]",
+    "conversion",
+    "[td]",
+    "[chip]",
+    "interrupted",
+    "[td small]",
+    "[td small]",
+    "10/29/2026, 1:10:02 PM",
+    "[td small mono]",
+    "—"
+   ]
+  },
+  {
+   "name": "jobs-empty",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": []
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "h24": false,
+   "currency": "$",
+   "asked": [
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "error": null,
+   "badge": "",
+   "outline": [
+    "[head Your archive workspace | Jobs]",
+    "[btn disabled | No finished jobs to clear]",
+    "Clear jobs",
+    "[pills]",
+    "[card]",
+    "[p]",
+    "No jobs yet. Scans, conversions, Recycle Bin actions and policy runs show up here."
+   ]
+  },
+  {
+   "name": "jobs-running-only",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 32,
+       "type": "scan",
+       "status": "running",
+       "title": "Scan Model 3",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": null
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "h24": false,
+   "currency": "$",
+   "asked": [
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "error": null,
+   "badge": "2",
+   "outline": [
+    "[head Your archive workspace | Jobs]",
+    "[btn disabled | No finished jobs to clear]",
+    "Clear jobs",
+    "[pills]",
+    "[card]",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Job",
+    "[th]",
+    "Status",
+    "[th]",
+    "Details",
+    "[th]",
+    "Started",
+    "[th]",
+    "Took",
+    "[th]",
+    "Energy",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Convert 2026-10-30 (12 clips)",
+    "[muted small]",
+    "conversion",
+    "[td]",
+    "[chip amber]",
+    "running",
+    "[td small]",
+    "5 of 12 clips · H.265",
+    "[td small]",
+    "10/31/2026, 2:57:28 PM",
+    "[td small mono]",
+    "…",
+    "[td small mono energy]",
+    "12.4 Wh · avg 61 W",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Scan Model 3",
+    "[muted small]",
+    "scan",
+    "[td]",
+    "[chip amber]",
+    "running",
+    "[td small]",
+    "5 of 12 clips · H.265",
+    "[td small]",
+    "10/31/2026, 2:57:28 PM",
+    "[td small mono]",
+    "…",
+    "[td small mono energy]"
+   ]
+  },
+  {
+   "name": "jobs-long",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 26,
+       "type": "conversion-with-a-long-type-name",
+       "status": "done",
+       "title": "Convert 2026-10-27 Model 3 Long Range with a name far too long for one table cell at all",
+       "detail": "TeslaCam/SavedClips/2026-10-27_18-04-11/a-folder-name-that-is-far-too-long-to-fit-on-one-line · 48 of 48 clips",
+       "startedAt": 1793171402000,
+       "finishedAt": 1793171403500,
+       "energy": {
+        "wh": 123456.7,
+        "avgW": 245.5,
+        "cost": 12.5
+       }
+      },
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "h24": false,
+   "currency": "$",
+   "asked": [
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "error": null,
+   "badge": "1",
+   "outline": [
+    "[head Your archive workspace | Jobs]",
+    "[btn]",
+    "Clear jobs",
+    "[pills]",
+    "[card]",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Job",
+    "[th]",
+    "Status",
+    "[th]",
+    "Details",
+    "[th]",
+    "Started",
+    "[th]",
+    "Took",
+    "[th]",
+    "Energy",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Convert 2026-10-27 Model 3 Long Range with a name far too long for one table cell at all",
+    "[muted small]",
+    "conversion-with-a-long-type-name",
+    "[td]",
+    "[chip green]",
+    "done",
+    "[td small]",
+    "TeslaCam/SavedClips/2026-10-27_18-04-11/a-folder-name-that-is-far-too-long-to-fit-on-one-line · 48 of 48 clips",
+    "[td small]",
+    "10/28/2026, 7:10:02 AM",
+    "[td small mono]",
+    "2 s",
+    "[td small mono energy]",
+    "123 kWh · avg 246 W · ≈ $12.50",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Convert 2026-10-30 (12 clips)",
+    "[muted small]",
+    "conversion",
+    "[td]",
+    "[chip amber]",
+    "running",
+    "[td small]",
+    "5 of 12 clips · H.265",
+    "[td small]",
+    "10/31/2026, 2:57:28 PM",
+    "[td small mono]",
+    "…",
+    "[td small mono energy]",
+    "12.4 Wh · avg 61 W"
+   ]
+  },
+  {
+   "name": "jobs-odd",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 1,
+       "type": "scan",
+       "status": "done",
+       "title": "No start",
+       "finishedAt": 1793459402000
+      },
+      {
+       "id": 2,
+       "status": "waiting",
+       "title": 42,
+       "finishedAt": 1793459402000,
+       "startedAt": 1793459397000,
+       "energy": {
+        "wh": "3"
+       }
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "h24": false,
+   "currency": "$",
+   "asked": [
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "error": null,
+   "badge": "",
+   "outline": [
+    "[head Your archive workspace | Jobs]",
+    "[btn]",
+    "Clear jobs",
+    "[pills]",
+    "[card]",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Job",
+    "[th]",
+    "Status",
+    "[th]",
+    "Details",
+    "[th]",
+    "Started",
+    "[th]",
+    "Took",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "No start",
+    "[muted small]",
+    "scan",
+    "[td]",
+    "[chip green]",
+    "done",
+    "[td small]",
+    "[td small]",
+    "—",
+    "[td small mono]",
+    "NaN h NaN m",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "42",
+    "[muted small]",
+    "[td]",
+    "[chip]",
+    "waiting",
+    "[td small]",
+    "[td small]",
+    "10/31/2026, 3:09:57 PM",
+    "[td small mono]",
+    "5 s"
+   ]
+  },
+  {
+   "name": "jobs-novehicle",
+   "answers": {
+    "GET /api/jobs": {
+     "jobs": [
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      }
+     ]
+    }
+   },
+   "vehicle": null,
+   "vehicles": 0,
+   "h24": false,
+   "currency": "$",
+   "asked": [
+    "GET /api/jobs"
+   ],
+   "error": null,
+   "badge": "",
+   "outline": [
+    "[head Your archive workspace | Jobs]",
+    "[btn]",
+    "Clear jobs",
+    "[pills]",
+    "[card]",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Job",
+    "[th]",
+    "Status",
+    "[th]",
+    "Details",
+    "[th]",
+    "Started",
+    "[th]",
+    "Took",
+    "[th]",
+    "Energy",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Scan Model 3",
+    "[muted small]",
+    "scan",
+    "[td]",
+    "[chip green]",
+    "done",
+    "[td small]",
+    "1,204 recordings",
+    "[td small]",
+    "10/31/2026, 1:10:02 PM",
+    "[td small mono]",
+    "42 s",
+    "[td small mono energy]",
+    "413 Wh · avg 8 W · ≈ $0.14"
+   ]
+  },
+  {
+   "name": "jobs-encoded",
+   "answers": {
+    "GET /api/jobs?vehicle=a%20b%26c": {
+     "jobs": [
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "a b&c",
+    "name": "A <car>"
+   },
+   "vehicles": 2,
+   "h24": false,
+   "currency": "$",
+   "asked": [
+    "GET /api/jobs?vehicle=a%20b%26c"
+   ],
+   "error": null,
+   "badge": "",
+   "outline": [
+    "[head Your archive workspace | Jobs]",
+    "[btn]",
+    "Clear jobs",
+    "[pills]",
+    "[card]",
+    "[table]",
+    "[tr]",
+    "[th]",
+    "Job",
+    "[th]",
+    "Status",
+    "[th]",
+    "Details",
+    "[th]",
+    "Started",
+    "[th]",
+    "Took",
+    "[th]",
+    "Energy",
+    "[tr]",
+    "[td]",
+    "[b]",
+    "Scan Model 3",
+    "[muted small]",
+    "scan",
+    "[td]",
+    "[chip green]",
+    "done",
+    "[td small]",
+    "1,204 recordings",
+    "[td small]",
+    "10/31/2026, 1:10:02 PM",
+    "[td small mono]",
+    "42 s",
+    "[td small mono energy]",
+    "413 Wh · avg 8 W · ≈ $0.14"
+   ]
+  },
+  {
+   "name": "jobs-error",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "$error": "The job list could not be read."
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "h24": false,
+   "currency": "$",
+   "asked": [
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "error": "The job list could not be read.",
+   "badge": null,
+   "outline": []
+  }
+ ],
+ "actions": [
+  {
+   "name": "clear",
+   "answers": {
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 3
+      },
+      {
+       "cleared": 3
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "confirm": true,
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"confirm\":true}"
+   ],
+   "dialogs": [
+    {
+     "title": "Clear finished jobs?",
+     "body": [
+      "3 finished jobs (done, failed, cancelled or interrupted) leave the list. Running, waiting and paused jobs stay.",
+      "Only the list is cleared: footage, converted files and what the Encoder needs to resume a conversion are not touched. New jobs show up as before."
+     ],
+     "ok": "Clear jobs",
+     "danger": false
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Cleared 3 finished jobs.",
+     "bad": false
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "clear-one",
+   "answers": {
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 1
+      },
+      {
+       "cleared": 1
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "confirm": true,
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"confirm\":true}"
+   ],
+   "dialogs": [
+    {
+     "title": "Clear finished jobs?",
+     "body": [
+      "1 finished job (done, failed, cancelled or interrupted) leaves the list. Running, waiting and paused jobs stay.",
+      "Only the list is cleared: footage, converted files and what the Encoder needs to resume a conversion are not touched. New jobs show up as before."
+     ],
+     "ok": "Clear jobs",
+     "danger": false
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Cleared 1 finished job.",
+     "bad": false
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "clear-named",
+   "answers": {
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 1204
+      },
+      {
+       "cleared": 1204
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-y",
+    "name": "Model Y"
+   },
+   "vehicles": 2,
+   "confirm": true,
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-y\",\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":\"model-y\",\"confirm\":true}"
+   ],
+   "dialogs": [
+    {
+     "title": "Clear finished jobs?",
+     "body": [
+      "1,204 finished jobs (done, failed, cancelled or interrupted) of Model Y leave the list. Running, waiting and paused jobs stay.",
+      "Only the list is cleared: footage, converted files and what the Encoder needs to resume a conversion are not touched. New jobs show up as before."
+     ],
+     "ok": "Clear jobs",
+     "danger": false
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Cleared 1,204 finished jobs.",
+     "bad": false
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "clear-named-html",
+   "answers": {
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 2
+      },
+      {
+       "cleared": 2
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "a b&c",
+    "name": "A <car> & co"
+   },
+   "vehicles": 3,
+   "confirm": true,
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"a b&c\",\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":\"a b&c\",\"confirm\":true}"
+   ],
+   "dialogs": [
+    {
+     "title": "Clear finished jobs?",
+     "body": [
+      "2 finished jobs (done, failed, cancelled or interrupted) of A <car> & co leave the list. Running, waiting and paused jobs stay.",
+      "Only the list is cleared: footage, converted files and what the Encoder needs to resume a conversion are not touched. New jobs show up as before."
+     ],
+     "ok": "Clear jobs",
+     "danger": false
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Cleared 2 finished jobs.",
+     "bad": false
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "clear-novehicle",
+   "answers": {
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 2
+      },
+      {
+       "cleared": 2
+      }
+     ]
+    }
+   },
+   "vehicle": null,
+   "vehicles": 0,
+   "confirm": true,
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":null,\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":null,\"confirm\":true}"
+   ],
+   "dialogs": [
+    {
+     "title": "Clear finished jobs?",
+     "body": [
+      "2 finished jobs (done, failed, cancelled or interrupted) leave the list. Running, waiting and paused jobs stay.",
+      "Only the list is cleared: footage, converted files and what the Encoder needs to resume a conversion are not touched. New jobs show up as before."
+     ],
+     "ok": "Clear jobs",
+     "danger": false
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Cleared 2 finished jobs.",
+     "bad": false
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "clear-nothing",
+   "answers": {
+    "POST /api/jobs/clear": {
+     "jobs": 0
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "confirm": true,
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}"
+   ],
+   "dialogs": [],
+   "toasts": [
+    {
+     "text": "Nothing to clear: running, waiting and paused jobs stay on the list.",
+     "bad": false
+    }
+   ],
+   "renders": 0
+  },
+  {
+   "name": "clear-cancelled",
+   "answers": {
+    "POST /api/jobs/clear": {
+     "jobs": 4
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 2,
+   "confirm": false,
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}"
+   ],
+   "dialogs": [
+    {
+     "title": "Clear finished jobs?",
+     "body": [
+      "4 finished jobs (done, failed, cancelled or interrupted) of Model 3 leave the list. Running, waiting and paused jobs stay.",
+      "Only the list is cleared: footage, converted files and what the Encoder needs to resume a conversion are not touched. New jobs show up as before."
+     ],
+     "ok": "Clear jobs",
+     "danger": false
+    }
+   ],
+   "toasts": [],
+   "renders": 0
+  },
+  {
+   "name": "clear-preview-failed",
+   "answers": {
+    "POST /api/jobs/clear": {
+     "$error": "The server stopped."
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "confirm": true,
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}"
+   ],
+   "dialogs": [],
+   "toasts": [
+    {
+     "text": "The server stopped.",
+     "bad": true
+    }
+   ],
+   "renders": 0
+  },
+  {
+   "name": "clear-failed",
+   "answers": {
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 2
+      },
+      {
+       "$error": "Jobs are being written."
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "confirm": true,
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"confirm\":true}"
+   ],
+   "dialogs": [
+    {
+     "title": "Clear finished jobs?",
+     "body": [
+      "2 finished jobs (done, failed, cancelled or interrupted) leave the list. Running, waiting and paused jobs stay.",
+      "Only the list is cleared: footage, converted files and what the Encoder needs to resume a conversion are not touched. New jobs show up as before."
+     ],
+     "ok": "Clear jobs",
+     "danger": false
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Jobs are being written.",
+     "bad": true
+    }
+   ],
+   "renders": 1
+  },
+  {
+   "name": "clear-none-cleared",
+   "answers": {
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 2
+      },
+      {}
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "vehicles": 1,
+   "confirm": true,
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"confirm\":true}"
+   ],
+   "dialogs": [
+    {
+     "title": "Clear finished jobs?",
+     "body": [
+      "2 finished jobs (done, failed, cancelled or interrupted) leave the list. Running, waiting and paused jobs stay.",
+      "Only the list is cleared: footage, converted files and what the Encoder needs to resume a conversion are not touched. New jobs show up as before."
+     ],
+     "ok": "Clear jobs",
+     "danger": false
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Cleared 0 finished jobs.",
+     "bad": false
+    }
+   ],
+   "renders": 1
+  }
+ ]
+}

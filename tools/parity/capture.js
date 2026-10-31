@@ -39,6 +39,7 @@ const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 
 const { nodesVariants } = require('./nodesVariants');
+const { jobsVariants, JOBS_VARIANTS } = require('./jobsVariants');
 const REPO = path.join(__dirname, '..', '..');
 const SERVER = path.join(REPO, 'server', 'index.js');
 const USER = 'admin';
@@ -78,7 +79,12 @@ const PAGES = {
   policies: { signedIn: true, path: '/#/policies', only: 'builtin', variant: true },
   'policies-novehicle': { signedIn: true, path: '/#/policies', only: 'builtin', variant: true },
   'policies-error': { signedIn: true, path: '/#/policies', only: 'builtin', variant: true },
-  jobs: { signedIn: true, path: '/#/jobs', only: 'builtin' },
+  // (jobs-empty is the fixture server's own answer; the others are jobsVariants.js)
+  'jobs-empty': { signedIn: true, path: '/#/jobs', only: 'builtin' },
+  jobs: { signedIn: true, path: '/#/jobs', only: 'builtin', variant: true },
+  'jobs-running-only': { signedIn: true, path: '/#/jobs', only: 'builtin', variant: true },
+  'jobs-long': { signedIn: true, path: '/#/jobs', only: 'builtin', variant: true },
+  'jobs-error': { signedIn: true, path: '/#/jobs', only: 'builtin', variant: true },
   bin: { signedIn: true, path: '/#/bin', only: 'builtin' },
   notifications: { signedIn: true, path: '/#/notifications', only: 'builtin' },
   settings: { signedIn: true, path: '/#/settings', only: 'builtin' },
@@ -168,6 +174,11 @@ const VARIANTS = {
   'settings-security': { route: 'settings', sub: 'security' },
   percar: { route: 'encoder', sub: 'vehicles' },
   'percar-edit': { route: 'encoder', sub: 'vehicles?edit=1' },
+  // the Jobs page: every kind of job, every job running (Clear jobs disabled), long names;
+  // the list not readable (the whole page is the message)
+  // (jobs-empty: the fixture server's own answer; named here so the native render list finds the page)
+  'jobs-empty': { route: 'jobs' },
+  ...Object.fromEntries(JOBS_VARIANTS.map((k) => [k, (api, vehicle) => jobsVariants(vehicle, Date.now())[k]])),
   'jobs-error': { route: 'jobs', api: { 'GET /api/jobs?vehicle={vehicle}': { $error: 'The job list could not be read.', $status: 500 } } },
   'bin-error': { route: 'bin', api: { 'GET /api/bin?vehicle={vehicle}': { $error: 'The Recycle Bin could not be read.', $status: 500 } } }
 };

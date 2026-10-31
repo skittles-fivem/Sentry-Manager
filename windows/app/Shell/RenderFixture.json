@@ -14300,6 +14300,145 @@
    "route": "encoder",
    "sub": "vehicles?edit=1"
   },
+  "jobs-empty": {
+   "route": "jobs"
+  },
+  "jobs": {
+   "route": "jobs",
+   "api": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793461112000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793454666000,
+       "finishedAt": 1793454708400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied, unlink '/footage/TeslaCam/RecentClips/2026-10-29_08-11-02-front.mp4'",
+       "startedAt": 1793368266000,
+       "finishedAt": 1793371991000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "The server stopped during the conversion.",
+       "startedAt": 1793281866000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": "",
+       "startedAt": 1793278266000,
+       "finishedAt": 1793278327000,
+       "energy": null
+      }
+     ]
+    }
+   }
+  },
+  "jobs-running-only": {
+   "route": "jobs",
+   "api": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793461112000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 32,
+       "type": "scan",
+       "status": "running",
+       "title": "Scan Model 3",
+       "detail": "",
+       "startedAt": 1793461858000,
+       "finishedAt": null,
+       "energy": null
+      }
+     ]
+    }
+   }
+  },
+  "jobs-long": {
+   "route": "jobs",
+   "api": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 26,
+       "type": "conversion-with-a-long-type-name",
+       "status": "done",
+       "title": "Convert 2026-10-27 Model 3 Long Range with a name far too long for one table cell at all",
+       "detail": "TeslaCam/SavedClips/2026-10-27_18-04-11/a-folder-name-that-is-far-too-long-to-fit-on-one-line · 48 of 48 clips",
+       "startedAt": 1793173866000,
+       "finishedAt": 1793206327000,
+       "energy": {
+        "wh": 5210,
+        "avgW": 245.5,
+        "cost": 1.5636
+       }
+      },
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793461112000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      }
+     ]
+    }
+   }
+  },
   "jobs-error": {
    "route": "jobs",
    "api": {
