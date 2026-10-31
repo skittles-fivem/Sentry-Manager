@@ -59,6 +59,14 @@ const PAGES = {
   'overview-long': { signedIn: true, path: '/#/overview', only: 'builtin', variant: true },
   nodes: { signedIn: true, path: '/#/nodes', only: 'builtin' },
   footage: { signedIn: true, path: '/#/footage', only: 'builtin' },
+  // (clicks: what the reader clicks before the picture, in turn: the first day opened, its first recording's files shown)
+  'footage-open': { signedIn: true, path: '/#/footage', only: 'builtin', clicks: ['.day [data-toggle]', '.rec [data-files]'] },
+  'footage-empty': { signedIn: true, path: '/#/footage', only: 'builtin', variant: true },
+  'footage-scanning': { signedIn: true, path: '/#/footage', only: 'builtin', variant: true },
+  'footage-error': { signedIn: true, path: '/#/footage', only: 'builtin', variant: true },
+  'footage-novehicle': { signedIn: true, path: '/#/footage', only: 'builtin', variant: true },
+  'footage-paged': { signedIn: true, path: '/#/footage', only: 'builtin', variant: true },
+  'footage-long': { signedIn: true, path: '/#/footage', only: 'builtin', variant: true, clicks: ['.day [data-toggle]', '.rec [data-files]'] },
   policies: { signedIn: true, path: '/#/policies', only: 'builtin' },
   jobs: { signedIn: true, path: '/#/jobs', only: 'builtin' },
   bin: { signedIn: true, path: '/#/bin', only: 'builtin' },
@@ -70,6 +78,17 @@ const PAGES = {
   percar: { signedIn: true, path: '/#/encoder/vehicles', only: 'builtin' },
   'percar-edit': { signedIn: true, path: '/#/encoder/vehicles?edit=1', only: 'builtin' }
 };
+
+// the Footage page's first page of days, as it asks for it
+const DAYS_PATH = `/api/vehicles/{vehicle}/days?${new URLSearchParams({ category: 'all', offset: '0', limit: '30' })}`;
+const recordingsPath = (vehicle, day) => `/api/vehicles/${encodeURIComponent(vehicle)}/recordings?${new URLSearchParams({ category: 'all', date: day, limit: '500' })}`;
+/** The Footage page's kept state with the first day open and its first recording's files shown. */
+function footageOpen(api, vehicle) {
+  const days = api[`GET ${DAYS_PATH.replace('{vehicle}', vehicle)}`].days || [];
+  const day = days.length ? days[0].day : '';
+  const recs = (api[`GET ${recordingsPath(vehicle, day)}`] || {}).recordings || [];
+  return { vehicleId: vehicle, open: day ? [day] : [], expanded: recs.length ? [recs[0].id] : [] };
+}
 
 // The fixture's variants: the same pages in another state, by name (the
 // native render list's page names). route/sub pick the page; api answers go
@@ -98,6 +117,32 @@ const VARIANTS = {
       }
     }
   }),
+  // the Footage page: its first day open with the first recording's files (native: the page's
+  // kept state; web: the clicks of PAGES), no footage, a scan running, a failed list, no vehicle,
+  // more than one page of days, and long names
+  'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle) }),
+  'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
+  'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },
+  'footage-error': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { $error: 'The footage list could not be read.', $status: 500 } } },
+  'footage-novehicle': { route: 'footage', api: { 'GET /api/vehicles': { vehicles: [] } } },
+  'footage-paged': (api) => ({ route: 'footage', api: { [`GET ${DAYS_PATH}`]: { ...api[`GET ${DAYS_PATH}`], total: 75, recordings: 210 } } }),
+  'footage-long': (api, vehicle) => {
+    const state = footageOpen(api, vehicle);
+    const day = state.open[0];
+    const rec = state.expanded[0];
+    const recs = api[`GET ${recordingsPath(vehicle, day)}`];
+    const detail = api[`GET /api/vehicles/${vehicle}/recordings/${rec}`];
+    const long = 'a folder name that is far too long to fit on one line of the recording card at all';
+    return {
+      route: 'footage',
+      state,
+      api: {
+        'GET /api/vehicles': { vehicles: (api['GET /api/vehicles'].vehicles || []).map((v, i) => (i ? v : { ...v, name: 'Model 3 Long Range with a name far too long for one pill or one tile title' })) },
+        [`GET ${recordingsPath(vehicle, day)}`]: { ...recs, recordings: recs.recordings.map((r, i) => (i ? r : { ...r, folder: `${r.folder}/${long}` })) },
+        [`GET /api/vehicles/${vehicle}/recordings/${rec}`]: { ...detail, files: detail.files.map((f) => ({ ...f, rel: f.rel.replace(/([^/]*)$/, `${long}/$1`) })) }
+      }
+    };
+  },
   'settings-vehicle': { route: 'settings', sub: 'vehicle/{vehicle}' },
   'settings-vehicle-new': { route: 'settings', sub: 'vehicle-new' },
   'settings-security': { route: 'settings', sub: 'security' },
@@ -275,7 +320,18 @@ function client(base) {
     if (body) req.write(body);
     req.end();
   });
-  return { request };
+  // a file's bytes (the thumbnails), or null when it is not there
+  const bytes = (p) => new Promise((resolve, reject) => {
+    const req = https.request(base + p, { method: 'GET', rejectUnauthorized: false, timeout: 30000, headers: { ...HEADERS, Origin: base, ...(cookie ? { Cookie: cookie } : {}) } }, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => resolve(res.statusCode === 200 ? Buffer.concat(chunks) : null));
+    });
+    req.on('error', reject);
+    req.on('timeout', () => req.destroy(new Error(`GET ${p}: timed out`)));
+    req.end();
+  });
+  return { request, bytes };
 }
 
 /** The GETs (and Encoder calls) the built-in pages make, for the fixture's vehicle. */
@@ -307,6 +363,17 @@ async function writeFixture(base, file, dir) {
   const { gets, posts } = fixturePaths(vehicle, days);
   const api = {};
   for (const p of gets) api[`GET ${p}`] = answer(await c.request('GET', p));
+  // the Footage page's recordings: their files (Show files, Play recording) and thumbnails (as base64)
+  const v = encodeURIComponent(vehicle);
+  for (const d of days) {
+    for (const r of api[`GET ${recordingsPath(vehicle, d)}`]?.recordings || []) {
+      const detail = `/api/vehicles/${v}/recordings/${encodeURIComponent(r.id)}`;
+      api[`GET ${detail}`] = answer(await c.request('GET', detail));
+      const thumb = `${detail}/thumbnail`;
+      const png = await c.bytes(thumb);
+      if (png) api[`BYTES ${thumb}`] = png.toString('base64');
+    }
+  }
   api['GET /api/stats'] = STATS;
   // (a POST with no body, as vehicleEncoding.js invoke() sends one)
   for (const p of posts) api[`POST ${p}`] = answer(await c.request('POST', p));
@@ -318,7 +385,7 @@ async function writeFixture(base, file, dir) {
     live: true,
     vehicle,
     api,
-    variants: fill(Object.fromEntries(Object.entries(VARIANTS).map(([k, v]) => [k, typeof v === 'function' ? v(api) : v]))),
+    variants: fill(Object.fromEntries(Object.entries(VARIANTS).map(([k, v]) => [k, typeof v === 'function' ? v(api, vehicle) : v]))),
     prefs: {}
   };
   await fsp.mkdir(path.dirname(file), { recursive: true });
@@ -435,6 +502,10 @@ async function shoot(browser, base, ui, pageName, size, file, vehicle, fixture) 
     await page.goto(base + where, { waitUntil: 'load' });
     await page.evaluate(() => document.fonts && document.fonts.ready).catch(() => {});
     await page.waitForTimeout(spec.signedIn ? 3000 : 1200);
+    for (const sel of spec.clicks || []) {
+      await page.click(sel);
+      await page.waitForTimeout(1200);
+    }
     await page.screenshot({ path: file, animations: 'disabled', caret: 'hide' });
   } finally {
     await ctx.close();

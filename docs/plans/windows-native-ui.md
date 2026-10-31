@@ -113,7 +113,20 @@ is done when every item is ticked in both. Run on the owner's PC runner.
     checks the C#). Render list: overview, -off, -logs, -loading, -error,
     -novehicle, -logs-empty, -long (desktop and phone); capture.js takes the
     web side of each (the stats from test/fixtures/statsSample.json on both).
-  - Footage: not started
+  - Footage: native (`Ui/Builtin/FootagePage.cs`; its requests, state,
+    words, dialogs and toasts in `Core/Footage.cs`); type-checked with mcs,
+    not yet built or rendered on Windows. The page's text and controls
+    (filters, hint, selection panel, day cards, recording cards, files,
+    pager), the requests it makes, Move to trash / Delete this day /
+    Delete through this date / Protect and Index speeds are compared with
+    web/app.js's own pages.footage and helpers on 18 pages, 6 file lists
+    and 26 actions (test/windowsNativeFootage.test.js writes
+    Core.Tests/Fixtures/expected-footage.json; Core.Tests FootageTests
+    checks the C#). Render list: footage, -open, -empty, -scanning, -error,
+    -novehicle, -paged, -long (desktop and phone); capture.js takes the web
+    side of each (the open ones by clicking the first day and its first
+    recording's Show files). Play day, Play recording and Review conversion
+    go to the Viewer and Encoder pages (the browser until phases 2 and 3).
   - Nodes: not started
   - Policies: not started
   - Jobs: not started
@@ -132,6 +145,11 @@ browser without the web's preselected day or folder (phases 2 and 3);
 a recording's "Download" reads the whole file before saving it; the
 Overview's log lines cannot be highlighted (each has "Copy line" on its
 right-click menu instead), so a live update never waits for a highlight.
+Footage: the Capture date field opens Windows' own calendar (light, as
+Windows draws it) under a box drawn like the web's field; a thumbnail's
+box shows its fallback text while the picture loads (the web shows it
+only when the picture fails); a live update is not held back while a
+check box has the focus (the web holds it for any focused input).
 
 ## Costs the owner should know
 

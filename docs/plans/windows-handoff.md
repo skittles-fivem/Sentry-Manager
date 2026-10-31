@@ -344,3 +344,33 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   through Playwright routes, and `GET /api/stats` is
   test/fixtures/statsSample.json in the fixture and in the browser.
   `Shell/RenderFixture.json` rewritten with `--fixture-only`.
+
+### Phase 1: Footage (2026-10-31)
+
+- `Core/Footage.cs`: `FootageState` (web state.footage: category, date,
+  offset, selected/expanded/open as insertion-ordered sets, dayRecs; the
+  render mode's JSON `state`), the paths (`DaysPath`, `RecordingsPath`,
+  `ThumbPath`, `MediaPath` with an exact encodeURIComponent), `Load`
+  (days, then the open days' recordings), `View`/`Day`/`Rec`/`Files`
+  (what pages.footage, dayCard, recCard, codecTag and loadFiles draw), and
+  the actions `Trash`, `DeleteDays`, `Protect`, `SelectDay`, `FollowIndex`
+  with their dialogs and toasts. `Footage.Outline()` writes a page as the
+  text and markers a browser shows.
+- `test/windowsNativeFootage.test.js` runs the web's own pages.footage and
+  helpers (sliced out of app.js with a pretend DOM: the HTML, the requests,
+  the dialogs, the toasts) and writes `Core.Tests/Fixtures/expected-footage.json`
+  (`UPDATE_NATIVE_PARITY=1` rewrites it); `Core.Tests/FootageTests.cs`
+  compares the C# (requests with their bodies, state after, outline,
+  dialogs, toasts, the Index speeds labels).
+- `Ui/Builtin/FootagePage.cs` draws it (registered in BuiltinInterface;
+  its browser card is gone), with shell.css's 1100 px and 760 px rules,
+  the file paths cut at their start, and `Ui/Builtin/DateBox.cs` for the
+  date field. `PageHost` gained `IRedrawnPage` (a page asks for its own
+  redraw after a click, keeping scroll and focus). Picking a vehicle now
+  calls `FootageState.VehiclePicked()` (first page, nothing selected; the
+  web keeps the filter) instead of dropping the page's state.
+- `tools/parity/capture.js`: footage-open/-empty/-scanning/-error/
+  -novehicle/-paged/-long variants; the fixture now records each
+  recording's detail and its thumbnail (`BYTES` answers); `clicks` in
+  PAGES for the web side of the open variants. `Shell/RenderFixture.json`
+  rewritten with `--fixture-only` (ffmpeg present, so real thumbnails).

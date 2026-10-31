@@ -1,7 +1,7 @@
 {
  "about": "Written by tools/parity/capture.js from its fixture server: the answers the native pages get in SentrySix.exe --render (windows/app/Shell/RENDER-PAGES.md).",
- "host": "127.0.0.1:45901",
- "now": "2026-10-31T15:24:50",
+ "host": "127.0.0.1:45119",
+ "now": "2026-10-31T15:51:06",
  "live": true,
  "vehicle": "model-3",
  "api": {
@@ -10,7 +10,7 @@
    "needsSetup": false,
    "setupCodeRequired": true,
    "secure": true,
-   "fingerprint": "05:18:65:ED:FA:21:D4:00:A4:E4:6C:19:74:2A:98:9D:09:C5:58:3A:C4:2D:DA:0D:AE:2E:B5:9E:A2:8C:BF:3D",
+   "fingerprint": "2E:BF:D0:55:D7:9B:8A:12:09:BF:B5:6D:17:A9:AD:6F:A3:1D:FE:0B:BF:28:0A:FB:E2:C4:2B:53:00:8F:24:BB",
    "deployment": "linux"
   },
   "GET /api/info": {
@@ -53,12 +53,12 @@
       "writable": true,
       "renameOverwrite": true,
       "totalBytes": 270553174016,
-      "freeBytes": 29725200384,
+      "freeBytes": 29717712896,
       "lastError": null,
       "hint": null,
       "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
-      "checkedAt": 1793460289490,
-      "writeCheckedAt": 1793460289500,
+      "checkedAt": 1793461865165,
+      "writeCheckedAt": 1793461865174,
       "mountedAt": null,
       "network": false
      },
@@ -66,22 +66,22 @@
      "inventory": {
       "recordings": 3,
       "files": 26,
-      "bytes": 10138030,
+      "bytes": 10159769,
       "byCategory": {
        "Recent": {
         "recordings": 1,
-        "bytes": 5064606
+        "bytes": 5060210
        },
        "Sentry": {
         "recordings": 1,
-        "bytes": 2532233
+        "bytes": 2548791
        },
        "Saved": {
         "recordings": 1,
-        "bytes": 2541191
+        "bytes": 2550768
        }
       },
-      "scannedAt": 1793460289515
+      "scannedAt": 1793461865190
      },
      "scanning": false,
      "binBytes": 0,
@@ -168,7 +168,7 @@
    "recordings": 3,
    "offset": 0,
    "limit": 30,
-   "scannedAt": 1793460289515,
+   "scannedAt": 1793461865190,
    "scanning": false,
    "error": null,
    "dates": [
@@ -183,7 +183,7 @@
      "byCategory": {
       "Recent": 1
      },
-     "bytes": 5064606,
+     "bytes": 5060210,
      "minutes": 2,
      "clips": 12,
      "encoded": 0,
@@ -204,7 +204,7 @@
      "byCategory": {
       "Sentry": 1
      },
-     "bytes": 2532233,
+     "bytes": 2548791,
      "minutes": 1,
      "clips": 6,
      "encoded": 0,
@@ -225,7 +225,7 @@
      "byCategory": {
       "Saved": 1
      },
-     "bytes": 2541191,
+     "bytes": 2550768,
      "minutes": 1,
      "clips": 6,
      "encoded": 0,
@@ -246,7 +246,7 @@
    "total": 1,
    "offset": 0,
    "limit": 500,
-   "scannedAt": 1793460289515,
+   "scannedAt": 1793461865190,
    "scanning": false,
    "error": null,
    "dates": [
@@ -271,7 +271,7 @@
      "fileCount": 12,
      "clipCount": 12,
      "minutes": 2,
-     "bytes": 5064606,
+     "bytes": 5060210,
      "cameras": [
       "back",
       "front",
@@ -283,7 +283,7 @@
      "thumbRel": null,
      "frontRel": "TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
      "protected": false,
-     "mtimeMs": 1793460287989.2805,
+     "mtimeMs": 1793461863681.2446,
      "encoded": {
       "clips": 12,
       "encoded": 0,
@@ -297,7 +297,7 @@
    "total": 1,
    "offset": 0,
    "limit": 500,
-   "scannedAt": 1793460289515,
+   "scannedAt": 1793461865190,
    "scanning": false,
    "error": null,
    "dates": [
@@ -322,7 +322,7 @@
      "fileCount": 7,
      "clipCount": 6,
      "minutes": 1,
-     "bytes": 2532233,
+     "bytes": 2548791,
      "cameras": [
       "back",
       "front",
@@ -334,7 +334,7 @@
      "thumbRel": null,
      "frontRel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-front.mp4",
      "protected": false,
-     "mtimeMs": 1793460288637.2805,
+     "mtimeMs": 1793461864309.2446,
      "encoded": {
       "clips": 6,
       "encoded": 0,
@@ -348,7 +348,7 @@
    "total": 1,
    "offset": 0,
    "limit": 500,
-   "scannedAt": 1793460289515,
+   "scannedAt": 1793461865190,
    "scanning": false,
    "error": null,
    "dates": [
@@ -373,7 +373,7 @@
      "fileCount": 7,
      "clipCount": 6,
      "minutes": 1,
-     "bytes": 2541191,
+     "bytes": 2550768,
      "cameras": [
       "back",
       "front",
@@ -385,7 +385,7 @@
      "thumbRel": null,
      "frontRel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-front.mp4",
      "protected": false,
-     "mtimeMs": 1793460289269.2805,
+     "mtimeMs": 1793461864925.2446,
      "encoded": {
       "clips": 6,
       "encoded": 0,
@@ -1065,7 +1065,7 @@
   },
   "GET /api/stats/history?range=24h": {
    "step": 60000,
-   "start": 1793373900000,
+   "start": 1793375520000,
    "series": {
     "cpu": [
      null,
@@ -3949,7 +3949,7 @@
      null,
      null,
      null,
-     4.9
+     4.8
     ],
     "gpuBusy": [
      null,
@@ -12608,7 +12608,7 @@
   "GET /api/logs?level=problems": {
    "lines": [
     {
-     "at": 1793460289523,
+     "at": 1793461865315,
      "level": "warn",
      "scope": "tls",
      "message": "Created a new HTTPS certificate authority. Install /data/tls/ca.crt on your devices (Settings > Security) to trust the page."
@@ -12618,7 +12618,7 @@
   "GET /api/logs?level=all": {
    "lines": [
     {
-     "at": 1793460289523,
+     "at": 1793461865315,
      "level": "warn",
      "scope": "tls",
      "message": "Created a new HTTPS certificate authority. Install /data/tls/ca.crt on your devices (Settings > Security) to trust the page."
@@ -12635,21 +12635,21 @@
    "tls": {
     "mode": "local-ca",
     "ca": {
-     "fingerprint": "9A:13:95:1A:1A:27:4A:E0:81:A1:77:B0:BE:AB:C4:72:07:E7:77:4C:AE:F8:DF:EF:36:D2:77:1E:32:76:52:6A",
-     "validFrom": "Oct 31 15:24:49 2026 GMT",
-     "validTo": "Oct 28 15:24:49 2036 GMT",
-     "expiresAt": 2108820289000,
-     "subject": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 7e7260fe",
-     "issuer": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 7e7260fe",
+     "fingerprint": "04:46:1E:53:B2:C8:53:3B:6A:B9:8B:B6:14:5C:48:C5:95:E4:2E:43:FF:0F:0C:33:C3:13:25:C8:52:BB:0F:B5",
+     "validFrom": "Oct 31 15:51:05 2026 GMT",
+     "validTo": "Oct 28 15:51:05 2036 GMT",
+     "expiresAt": 2108821865000,
+     "subject": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 1aee959b",
+     "issuer": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 1aee959b",
      "names": []
     },
     "certificate": {
-     "fingerprint": "05:18:65:ED:FA:21:D4:00:A4:E4:6C:19:74:2A:98:9D:09:C5:58:3A:C4:2D:DA:0D:AE:2E:B5:9E:A2:8C:BF:3D",
-     "validFrom": "Oct 31 15:24:49 2026 GMT",
-     "validTo": "Feb  2 15:24:49 2029 GMT",
-     "expiresAt": 1864740289000,
+     "fingerprint": "2E:BF:D0:55:D7:9B:8A:12:09:BF:B5:6D:17:A9:AD:6F:A3:1D:FE:0B:BF:28:0A:FB:E2:C4:2B:53:00:8F:24:BB",
+     "validFrom": "Oct 31 15:51:05 2026 GMT",
+     "validTo": "Feb  2 15:51:05 2029 GMT",
+     "expiresAt": 1864741865000,
      "subject": "O=Sentry Six Manager\nCN=localhost",
-     "issuer": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 7e7260fe",
+     "issuer": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 1aee959b",
      "names": [
       "localhost",
       "127.0.0.1",
@@ -12667,7 +12667,7 @@
    },
    "supervised": false,
    "runningAsRoot": true,
-   "currentHost": "127.0.0.1:45901",
+   "currentHost": "127.0.0.1:45119",
    "confirmed": true
   },
   "GET /api/system": {
@@ -12691,7 +12691,7 @@
     "hints": []
    },
    "replacementRoots": [],
-   "dataFree": 29725122560,
+   "dataFree": 29717635072,
    "timezone": "UTC",
    "security": {
     "https": true,
@@ -12786,7 +12786,7 @@
    "done": 4,
    "total": 4,
    "day": "2026-10-18",
-   "finishedAt": 1793460289960,
+   "finishedAt": 1793461865746,
    "last": 4
   },
   "GET /api/settings/network": {
@@ -12796,8 +12796,302 @@
    "addresses": [
     "vm.local"
    ],
-   "port": 45901
+   "port": 45119
   },
+  "GET /api/vehicles/model-3/recordings/6e1a922385655c63": {
+   "id": "6e1a922385655c63",
+   "key": "session:TeslaCam/RecentClips:2026-10-20_08-00-00",
+   "vehicleId": "model-3",
+   "type": "RecentClips",
+   "category": "Recent",
+   "folder": "TeslaCam/RecentClips",
+   "eventId": null,
+   "startKey": "2026-10-20_08-00-00",
+   "start": "2026-10-20 08:00:00",
+   "end": "2026-10-20 08:01:00",
+   "eventAt": null,
+   "day": "2026-10-20",
+   "fileCount": 12,
+   "clipCount": 12,
+   "minutes": 2,
+   "bytes": 5060210,
+   "cameras": [
+    "back",
+    "front",
+    "left_pillar",
+    "left_repeater",
+    "right_pillar",
+    "right_repeater"
+   ],
+   "thumbRel": null,
+   "frontRel": "TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
+   "protected": false,
+   "mtimeMs": 1793461863681.2446,
+   "encoded": {
+    "clips": 12,
+    "encoded": 0,
+    "unknown": 0,
+    "codecs": []
+   },
+   "root": "/srv/sentry-parity/footage",
+   "folderPath": "/srv/sentry-parity/footage/TeslaCam/RecentClips",
+   "files": [
+    {
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-00-00-back.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-back.mp4",
+     "size": 423829,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
+     "size": 424073,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-00-00-left_pillar.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-left_pillar.mp4",
+     "size": 420718,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-00-00-left_repeater.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-left_repeater.mp4",
+     "size": 422778,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-00-00-right_pillar.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-right_pillar.mp4",
+     "size": 420700,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-00-00-right_repeater.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-right_repeater.mp4",
+     "size": 421439,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-01-00-back.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-back.mp4",
+     "size": 420828,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-01-00-front.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-front.mp4",
+     "size": 420506,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-01-00-left_pillar.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-left_pillar.mp4",
+     "size": 421643,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-01-00-left_repeater.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-left_repeater.mp4",
+     "size": 420805,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-01-00-right_pillar.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-right_pillar.mp4",
+     "size": 422238,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-01-00-right_repeater.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-right_repeater.mp4",
+     "size": 420653,
+     "codec": "h264"
+    }
+   ],
+   "event": null
+  },
+  "BYTES /api/vehicles/model-3/recordings/6e1a922385655c63/thumbnail": "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",
+  "GET /api/vehicles/model-3/recordings/41094f56e0579280": {
+   "id": "41094f56e0579280",
+   "key": "event:TeslaCam/SentryClips/2026-10-19_22-14-03",
+   "vehicleId": "model-3",
+   "type": "SentryClips",
+   "category": "Sentry",
+   "folder": "TeslaCam/SentryClips/2026-10-19_22-14-03",
+   "eventId": "2026-10-19_22-14-03",
+   "startKey": "2026-10-19_22-13-02",
+   "start": "2026-10-19 22:13:02",
+   "end": "2026-10-19 22:13:02",
+   "eventAt": "2026-10-19 22:14:03",
+   "day": "2026-10-19",
+   "fileCount": 7,
+   "clipCount": 6,
+   "minutes": 1,
+   "bytes": 2548791,
+   "cameras": [
+    "back",
+    "front",
+    "left_pillar",
+    "left_repeater",
+    "right_pillar",
+    "right_repeater"
+   ],
+   "thumbRel": null,
+   "frontRel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-front.mp4",
+   "protected": false,
+   "mtimeMs": 1793461864309.2446,
+   "encoded": {
+    "clips": 6,
+    "encoded": 0,
+    "unknown": 0,
+    "codecs": []
+   },
+   "root": "/srv/sentry-parity/footage",
+   "folderPath": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03",
+   "files": [
+    {
+     "rel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-back.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-back.mp4",
+     "size": 426803,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-front.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-front.mp4",
+     "size": 422386,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-left_pillar.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-left_pillar.mp4",
+     "size": 424734,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-left_repeater.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-left_repeater.mp4",
+     "size": 420703,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-right_pillar.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-right_pillar.mp4",
+     "size": 426245,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-right_repeater.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-right_repeater.mp4",
+     "size": 427774,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/SentryClips/2026-10-19_22-14-03/event.json",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/event.json",
+     "size": 146
+    }
+   ],
+   "event": {
+    "timestamp": "2026-10-19T22:14:03",
+    "city": "Austin",
+    "est_lat": "30.2672",
+    "est_lon": "-97.7431",
+    "reason": "sentry_aware_object_detection",
+    "camera": "0"
+   }
+  },
+  "BYTES /api/vehicles/model-3/recordings/41094f56e0579280/thumbnail": "/9j/4AAQSkZJRgABAgAAAQABAAD//gAQTGF2YzYwLjMxLjEwMgD/2wBDAAgKCgsKCw0NDQ0NDRAPEBAQEBAQEBAQEBASEhIVFRUSEhIQEBISFBQVFRcXFxUVFRUXFxkZGR4eHBwjIyQrKzP/xADEAAADAQADAQEAAAAAAAAAAAAABgEFBwQDCAIBAAEFAQEBAAAAAAAAAAAAAAAFBgcEAQgDAhAAAQMCAwILBAcHAwUBAQAAAAIBERIDBSEEEzE0QbJRgsKDMkMiFGEVcUIzobGB0gYjo1JTosFUkeHTsyTwFmI10fERAAEDAgMCBwsICAYBBQEAAAEAAhEEAxIxIQUTMiIzUUEUBoFhcXRys7GyUhU1NJEjggc2YoO00dKhhEJTJNNzwRaSovDhVPFDk2P/wAARCADwAUADASIAAhEAAxEA/9oADAMBAAIRAxEAPwDjJatbc1Vy1p86U1v9GyUJZLOpSlrhkpbnU7NxH5pxXbbH5tntp/R2eyidptPo6I+aqmct5q6dSF+8tPTtl3PSLTYl0qvIsqZdxCXbjo4m83Mzwa1dn3X6DY/r/T+hrfabL1O12Ve+vZZ0/SxnSNl14sgC0w6sbq0TBYCbh4w4oJg6ASOEpBqL1/rF+Km+0C5dgC48AQ9wDAB3svQkzUXtfplsi6ql3SlaYa2pKkqaWUlSWdKmfnZ3YNPe1+pW6bT1OyVLVlbSlKUtLqUpTMlKW51OzGtrVbNOF2EU6W9auXblC1S2ma7eZdraKUz91MO7Kapm7zZhol7ROKWV0aq9duWblCFQ2pazedd3ZqSzd5MulktU7ZpSWN4N1j3VuZ5hlvMGOMsMcbhxHTGqpdYqceHrVR/+j/ZmM5mdOCujTim12PzbPbT+js9lE7TafR0R81UTlMnXv3tfplsm6ql3SlaYa2pKkqaWUlSWdKmfnZ3biHOuz7r9Bsf1/p/Q1q2my9TtdlXvr2Xy/SxnSYetXs04VZRTpb1q5euULVLaZr15l2tqpTPEJh1MpqmbvMeNq/jdBtWwMTm8EagNJFzQk4SRGgI14RX2+/UtE9aqMgeUfoSQMOY1GeYPeWfoNViNzUNsFypCVrd6bTJSlk5qUpbUpaONTwbr4hjm2RYrd7lxkuhmRYUy0qaWUlSUul0x8zPDQ8vkdXD11+9LNx0am9duWrlCFQ2pa1eUu7s1JZt7ZpZLVO2aWNdKribuGWbKblpaF3F3rKHUpVqzdvoUlN124qYqZWe6pmPO+5m8INmyYGktB/8Arx4pzw4uLwc+mdE1tp0VqvvMu1OK88MY0OeBcdG+Ld2MbTrDi/hnp4vSsm5jOK2lrQu/CkKdKm2dl4dnh2lkRvPSziuMahTpt3qnZLqeUWEpSlObqUpSGSlm53dmOjr9PefEbyNmplXb69mymprruOyXaqGh33PuO9oE0WtfpVo2l11WX2FUKuNYuu91CVNxxPdl33pZzXMsC0HC1ZJIaYwN0BIBd4BM5gd9NtmyqV1Q626xbDQbgndNklrSQ3gHjOgAaE66Ar39djm12W081G1mnT0bOJ2m0p2dH/tVE5bw9dju12W081G1mnT0bOJ2m0p2dH/tVE5bzWrt+7vRbL9b6b0dT17L1G12dW+vZ/L9JGdIV2vd3otl+t9N6Op69n6ja7OrfXsvl+kjOkpY2f8AtrPDw8BvB/q58H/r+NKnuHZ3sW+S3nAbw/6HJcp/2/8A5rr6DXYm+IWLGpuSlaXVFNqFp2alJUldtMO0tvSqMoOXsE8fs+ucS6Z0p1WF2adktHrFqsy6lWk3WUq2lTvx08T+bnZjlrA/H7PriHtiN3IY1ksGjQADF0jFpzgA5nwps9WtUvaOlt2g1rdyXQABBdauEgwG6tPFMgHTIJmACjQT8UApDEKkKQEL46KQp38msoAACEAc2flr/wCPpe1/5lnHH5l/+xquy/4UDR2b2h94bWrNndW3fVt99LvcWPdXm2+Bu24ZmeEYyXu+1hY18zMaRziVnYZw210+QoeBKwnh9np/8ah/X3XLG0qjd1Vu3hnExusxEucMoT77NVW6pzawTjqM5iJawZR/quqAFPJP5QAA1CBlwTx+z6wtDNgnj9n1ipVcg/6vrBMTt592Nofw36VZTKQoCCuT1CnR1Xy/f/QNL8/3f1PHefSYI7vclKPU/wC06zj+rh/Hhznu5LugAHqk5fNuv4Tc6PJY6J3tfwq50eSx0RjW+TZ5LfQuq635XUf5131ygAA9FTQAAC1elrvt9/2HeOla77ff9h3Txfmm1tPl2/5Y9ZyAKQ80lL2tWbl+4m3bS61qeGS3H/o3G75M28906PUKXdTSzbF4uupaEIQ9VMOtSmRLvk2efEdnCtv62zstp30bSir6OtNVVPybpnI01Yeu5rddeu2bq0WrirjWUpU1y/tLimRTl3Hh3UtpeGyKdy/geWy0AMBHSZLojMZ9CUbFLvbTXhtxxNxzT/K0NDMUzhcdIJOmWgErywmxd0+K6ZNxNLulamzZSVJVaXCkqS7pUz87O7HOeCeP2fXOF9E2r986V9SjZqUhToRkyUW9mtkpShnehmh2pfPnzOaME8fs+sNXbpLmgnCSbTODq3lDkkDCGdo6ZoDwBbuQHiHRgvZhM4AQZSfioEKahAAALF8dEKB36mughSAhBp4boveOstaavZ7Srz01RShSt1SZmI3mYaeG633drLWpo2uzr8lVM1IUnfSqImdxUresdUqOrcvubm54PK4Dg4fF4UcLTnX02MQnKRPgTs35Y93/APU+r2mz+TY0zV5d+1VETO490pqniPBvzP7x/wCm9Ls9p822qinzd3ZJmYjeeyVUyMek999Vf7y+U4/o/k/JcWOR4mePPX9ykzYM+7b3V+FvzHhw254emSFJp4z8HopVUcR5inZx4G7zhazlz6ZaZJ1WN7um73h6zlzmODpkgAA9VYQMuCeP2fXFoZcE8fs+sVarkH9z1gmJ28+7G0P4b9KtJiuLoS6t8Hhbv1qZNMT7fZ8D3WmtLtuk8EaehTKqmPZ/qNt28xCODpOXOuYLPVOr3N7yvGwcP2Rhy4ufOu2QAPVJypAAEL541ekv3L61IRLPEPKW3JZuN2Op6HU/w/5kfiGsCNBUvaAIboIyP612/d2HS3bj7jn3pe5zjBZEuM6cRKnodT/D/mR+IPQar+H/ADI/ENYG9buczfmP615f7fpP6l//AJM/w0qeg1X8P+ZH4g9Dqv4f8yPxDWBvW7nM35j+tb/t+k/qX/8Akz/DS5p8N1l26lKbUu8w1SG3M78amY2fcWJ/2/7S1/uG7hnDLXT5Ch3Eyq2jetvADbfBB1B5z+JQt24uu2PtSzYsQ5rqVl0m5q7Ebt1sDDgEQ0dC4r9xYn/b/tLX+4HuLE/7f9pa/GcqgVPe1R7Nr5nftpge+6r2LP8Axf8Atrir3Fif9v8AtLX+4HuLE/7f9pa/GcqkD3tf9m18zv20e+6n2LPzP/bSBhWE67Ta6zdu2aUJrl67bxNtTNklbvvfmOZsD8fs+sLAzYJ4/Z9YRtp1D6m257w0EBreKCBwp6SedXdk1T6vbNK94aCG3G8UECBbuHpJ50zABRqqVFAKBqFAADEL47IUDv5NZBAAEKgQoIWlhnDbXT5Cjm33dpP4f8y/xHCWGcNtdPkKOSveOr/i/wAiPwjB7UUO0a27TdSqer4Gv3n0t23ixEYeTaZiDnlKe+xqasqaD+2vbrDUXcXHeyZt2Y4AMxBz511UJS7S7HmpmZ3g7FizqL87JqqYnNLRPxduY8KVu/8A/D6tvDai6HVFs4c7e8lzMWrcTTwZbknpbdu6m7vKi3GvENzVuIy2WnLReYAe1uzcuzQ0xE5s32uKDnNYCXENA6SYH71fu3rVhhuXbjLTGxL3uDWiTAkuIAk6LxGTQfpWak5OvvPvmHeN8/UYNyzctRW0TuzZ93wc38I/VTdSrNkU0tuiap3CbXTdp5tPEYgSQ7QjUZjPWPmTD7aXbd7s8+ot3GXbDLtp1zA4PbdZj3eEQSx8XXMdBMAtnMJhtKdSGd83z+09CJSyWhsmKJDdAJXLdxzXXHuaIaXEtEAQCdBA0VAhT6XkgCFBauFwACKF36gAAEIIUAQtPDOGWunyFDuJGGcMtdPkKHcRq3lR5I9JXNv2nfG6bxC35++gpAE9ROgAAEKjNgnj9n1xZGXBPH7PrlWr5B/c9YJwdn/itN+b5p6ZwIA3lMCCkA1CoAQxC+OgKB38msoUABCgAUELSwzhlrp8hQ8iNhnDLXT5Ch5ESu5UeQPSVKHZT5Bd8Yd5u2trDNTZ0+12iqaqIyd91XMzmfWnnOqUbXuyx1m/UYrmO/u8QluEbtuEYRhnLOSUuXNm2bl65eLrmK5hkAtjiiBHFn96hpaK9btV1vE0xk77p5mczQL9602/bNtxIBjLPQg9M8y9NoUNraVLcpbpe1lzDJYQHcVwcILmuGY5slpay9bu0UPMVTk7c3Oxp4J4/Z9YWxkwTx+z6xVuWm2KQ22zAjPPV89ACYvayhtbN7G1lLaL3Mt7mC8gu41ZbcZLWtGZ00yTMQpBHXLyAApi1QAA1YuGAACKF38gpABCAAAQtPDOGWunyFDuJGGcMtdPkKHgRq7lR5I9JXNv2nfHKbxG15++oAFE9ROoUCAtQM2CeP2fWFoZsE8fs+sVKvkH/V9YJf7PfFab83zT0zAQo31MCCABqFQADEL45ACnfyayCAAIVIAAhaeGcNtdPkKHkR8M4ba6fIUPAi13Kt8gekqUOyvyC74w7zdtAAAnJ4IAABCBlwTx+z6wtDLgnj9n1irVcg/uesExO3n3Y2h/DfpVpMoAAgLk9UAAEKAUDULhcAAihd/IAABCAADULTwzhlrp8hQ8CPhnDLXT5Ch3EWu5UeSPSVzb9p3xym8RtefvqgAg4rw690OQkVOz+xfftW+n3/V8Fl13Fu95MPY3DGNntTM9GSYmxtl+96l9je7nDaNzFgxzDmtiMTfaznoT6UysK4DZ6fLUagj1tP1OrqabFj3F67axRhxbt5biiTExMSYSZVWerVN+xixbq7ct4ojFgcWzEmJjKSqMuCeP2fXFoZcE8fs+sJNXyD+56wSt2f8AitN+b5p6ZgAo31MCgABiEAUAQvjkpAO/k1lSFAEIAhQQtPDOG2unyFDwI2GcMtdPkKHkRK7lR5A9JUodlPkFzxh3m7aAABPTwQAAahAy4J4/Z9YWhlwTx+z6xUquQf3PWCYnbz7sbQ/hv0qymYAAQVygghQBYoUgAhcMAAEULv5AAAIQAFBC0sM4Za6fIUPAj4Zwy10+QoeBGruVHkj0lc2/ad8cpvEbXn76CAUT1E6CAUFqgz4H4/Z9YWRlwPx+z65Vq+Qf9X1gl/s98VpvzfNPTOBAG8pgQBSAhBQICF8dgQDv5NZAAUEIACAhaeGcNtdPkKHkRsM4ba6fIUPIi13KjyB6SpQ7KfILvjD/ADdtAAAnJ4IAANWIGXBPH7PrC0MuCeP2fWKlVyD+56wTF7efdjaH8N+lWkylABBXKCCFIYhAAUFiW3w7SahbruW6lPvepbbmjiUzcRhX/wAv6lFGwf1EzVki3TER3rmc57t0DdaNa0QB1y9YOjpHsu1H6x3IXZXXqinPFfiHsv4ze93x3CFw5qNPd0t1Vq6mhaYlMs8SzO2aXdtz851z6BtC1rfylo77W/TK9JFVeS71cxHfutTTD7t8lq1tm0ThvNNvLjCXNmNZEYh3uErlntBZnDUMNrQcdsvbMayAMQ7wGLPVcRgNmp/LGI2bykWUbe20U3KrVuqUs7+VV13aHlvbApizav2rwm29rxpkdROUjMeAwl+nqqeqE2btu5ABOFwJbiyxDNpPM4ArTwzhlrp8hQ7iRhnDLXT5Ch4Eyu5Vvkj0lc7fad8cpvELXn76gAUT1E6CAUEKDNgnj9n1xZGbA/H7PrFSr5B/1fWCcHZ/4rTfm+aemcCAICmBAAUxChQICF8dgQp38msoBQBCAIAIWphnDbXT5Ch4EbDOG2unyFDyItdyo8gekqUOyvyC74w/zdtAAAnp4IAABYgZcE8fs+sLQy4J4/Z9YqVXIP8Aq+sExe3n3Y2h/DfpVlMpSAIC5PQBSAhAFIahcU2cR1enQyLdylLTDUofe7vxpd97jnovzBpl1bdvTxFPfuVTM923lGXxk47Ahy9SWb4OJsH2m6H0Qe6Cu8Kihp6gHE3CfabxXa59EHugrnnR6i1qrSbtpVaFTDw7TDuz5KZn3tzGzxHzaO+i/NussbT1KfV1U0Zos0RM9y09Uy2/dA3qrY10cay4XNeCeK7PSDwT35wpp1vZ+9BdTvF3PiOhronSCThOmc4ctFymsxNdh+l11HqLe0omnzLTFUT3FNzNvM+x+Z8Ou2UrvL2Fx5qtU3blObs3mTah5aHy54GBQlbu/TPGJr7TtQDqMtDhcM+4UwKu1W7Ouhzm36Z4Lgx4xMOmjsDxEjXUtJEFJf8A4/as6vb2rmzQ3dtUuqJRS/nVcd98vu9h6Ltrt95on2s/2DIs6iy+Km6+MZxwABOcDv8A+plMrbbr21blu7U3nPuWrTbLHmJ3bSSA7QFxlzuMTiJOpKwSneWhLvLtmdN0wWA6Uy7ll1vmI7y/JAKfS8EDNgfj9n1xZGbBPH7PrFWr5B/1fWCX+z/xWm/N809MoAA31MCoABiEEApqF8cgAHfqayCkKCFAAoIWlhnDbXT5Ch5EbDOGWunyFD0IldyrfJHpKlDsr8gu+MO83bUAAKCeCAAAQgZcE8fs+sLQzYJ4/Z9Yq1fIP7nrBMTt592Nofw36VZTIBSDfXKCAAAQgpANWLhgAAihd/KkKQEINDSYhqtDX6e5s9pTV5UKmmY7yVRvfcZ4Hy5rXjC4Bw6QRI+Yrzu2rd9ht3WMuMMS17Q5pgyJBBBg6p8w/wDMF289uxdt7Rb1TdqZM71N5E243Q2/2jRtEXJpeY+LfacXYZwy10+QoeBvVlPaZc4jcEidMpk9HR4Auce3jbOytsW7VNZYy3dpW3nMExjddvAlupDRDWjCBhEaALRUdRR5stTNEldUlUNIUa3L7bnODzFfk/USfk9GFKy1rxDhKTyvzQ/EMWCeP2fWMNju2dRdsTs1U1ROTPunnZ+cs39k9ZtObZeGuMaP4OYOYBI07xSlsuut0Ndav3WucxmOQwAu1Y5ugJAzPOE6lF63iamSzKRW/Gqpmn7mSbVq/bvTQqY35O2/4sw06vZNdRNL7tk7sEjeNh7MwASW8EGRhxhpKlei2xQV5DbN4YyAd26WP1BJADuEWgHFgLgOdewAUSUsoIUDUL46IUDv1NZQCkBCAAAQtPDOG2unyFD/ALG5+67fGG+t/g4gYZw210+Qo5ZmUO61O78b5Olnh58sM7eXdvl8nGptqpfTXLWENOJsGZ59IA/+U7Nn7Uv7N2e02mW7guVN0OxYyRDLMQ1mcyQdZmIBWNsLv7vO29uL7/a3xPA3mTTCYZoyUyvlyjvMuYbjdsoycwShSVLqjHOHi4YjpmfxHmCeOx9qXNpb/EGRb3eEsBE4i/ne/oaCI0IMgmUHY9PdhnpfPdu4ml+M65vK8rvX5ksyktDxKc2h2d0tk+TM338RlXUvsYMIacWLQ5mAIjUCZOUrNs7TvbPNgWm23G7vdHzJwBsBnHY0mXDQmSMh0jK9NdiYaOdlJdP3uzwzm5gnj9n1jqvuZ1M7cbSzLZ3Z3l/b5fgzvOTSx2sE8fs+sVhfuX7F7Hh4paBhBjha6yQe4mP2j2hUV/Zja++Fr6N1KGm21waZqmTxi97XRES05zomYgAJ65xQBSAsQUhTVq4XAAIoXfqAAAQgAAELSwzhlrp8hQ8iPhnDbXT5Ch3EWt5Vvkj0lc2/ad8cpvELXn76pAKUFE6D9Mo/JD7a9zDIMIzXYZbHux0DfwnT2r+22iaqaIzdomrmdhUtbW6sMV5hc0RqyMXNkSAdY6QrFJRPrqhli0Wtc/FBfOHitLtYBOQ5iumx6Mbq8MS6ndC6G4k0u8Zc7qMm5YuWY2iaZmM2fd8HceGy9rUNaQy1eG8IB3buI/IkgB3CIAOLAXAc6+q/Y9fQAuvWTgBI3jIezQgSS3ghxIw4w0nmXsjU3raWSlUM25oS/H7WNG3idl6tp+lERvVPPuTlBinRuivV9nNl7Tb9JYFp5JdvrOG3clxBcXQC15MZ3GuiTEFeuztubQonAMvOuMAA3V0m4wAAgBoJlgE5MLchMp7tXUXkNcQ9SX3PDtueOPM9Diq6adj8xaixVtk+omKc026d89228zlv5hk7Q+z+stgvoLzaoSfobkWroaXDCA8u3byASXE7rLQawpAoe0tm9Dai2bJgcdpL2EwZMRiaJyAx56lfPhTUvYZqLa3ZLVpaIVKUzlzOqctxlHVDXteJaQfAvRlxlwSxwdlkcp5//VUCFPteih3W0WoUzu1uWZkvLKS7Qp2Zn387x8Z5nOmcgOu3+mhDu7bJdVu2yLdXnS+zUzqTC4S1bpSh3ZLw29hKr6u5S7rA0Ox4pJmAGgHogCctSqNVUPsYMIBxTMzoBr0f6pew7R6hOptXHR5ZuM6pS7M7JU2eeUvLJnvOzxJyCi9ZSt/Nvbyrpd6fuyz+GWbtuMjSIV6hLppa2nvJTU25riaqELuItW3d1PmyWmWhvLP6G7ef7ye7eHCGtA4mnCJMHFi1EeA9IT37M2W7Zoqmzec+223cMG0Wid61khwe1+rd2PwmSCDktZr9mqqqHfjZniePidTpU/3x8YOg9i6nen62d358md93HzcZ4DEpEM7Us1LJhD/HKqFwpnfKqMozKF542c5mDjbzQ49dGQBEYY4WvR3c1ysus7N3LAsk3OsjC/fEOMWS1rS0tNsjleNILfATri+nuu0smfa0Pzcc+1jvq1Flkw1K3ffUlTtzS7vEu+98vsOwit/3sqn5/M8qfJoUzvMM7S7ZtvzMA21/fuO903UEbswDinhZ+yDpELaU/wC4bjxVHB1QtLRTvwh4ul3KSXk6W2uEFpEwthOotMrNTb3zavjydmaMmjNva3+NHCEKtbatomiM2f8Ae5vi3xFYcdC0PeySzS25od+9vZvqfLmPCsZ1K2d2Z3g1x68AgiIw+0Sf3Jr9s6S3srY1Tasuc4VbbQub0gu+gqLTm7vDgAl1xxcMLp6IWxUxTwf7D3E6zddcLsUaRET0zz+Bc8FBSFLSxQAKCFwuAARQu/UAAAhAAAIWnhnDLXT5Ch3EjDOGWunyFDwI1dyo8kekrm37TvjlN4ha8/fUMk1yHrQV/Ud59HvMeH+bDGGfwnnTC2ZtP3dvfot7vMH8+GMOL8LpmVkmuABX1/Xt39HgwYv5sU4o/CIyRtPafvHdfRbvd4/58U4sP4WxkgZcE8fs+uLIz4J4/Z9YQKvkH/V9YL17PfFab83zT0zEABvqYF1l6azcU6lJl33vKm+xzA1OF3WjZ/qzv7qY3RvVnI0kHHs3tHtTZhG7vm6wAN3V6bluGghoaCQ5gE5Mc2YEyAkOs2Hs+tkvsttvJLt5aAtvJJBJdAh5PO8OzMQuLtVaXZW6FtSpolpZ97M/E8bjEuHNgrav8u6a/TsVeniaslXKpiO9caIh92+SUNk/aBR3HBlfZdSmG/TW5u2i4NOIlgbvGAkANA3uep0lNu92au2eNT3BeEniOhjwJ0GKcLjGZODLQLiW6YuotIuRU0xu38ccznq2J6e4hnU9CnmUwpUZ87Jgl0nC219s6gtP/mRVO0y5aPGDmH5vmPT3FgXLDM8s8Nzf9udM1bhm8YqsJIS7ZcXRJX4HZWI6BboUq5W9MrUpFx7ilJp8jKVVQlTuvuvMMzO/GKTJS+9iPYVlT5vq/qU6qktVZZjc9uDFGEgTijOQcoBGWq+7+z+sYTx+LPAOusZiCfmTzaxHTXNaybd5T0vcoVS6akrRUpmahLpdlszeZodqpl4d9LYXXZ3pyZpd5aI+Mx/gQcOS6ddaZ97VchRykiWV3nZKks9TNxJberOOZ853w7ZuNivY3ZZYLPGxWwTj1Jwu1jABqQXHw5BObY952xNn3HWA0vfdeHC61xJFkWiQN2GnEWvuGDOuQ6FlPYuM8OmHbilva/P7Dv7ZD77rRLtDpVud+9knfztuf6j0TCUN5WhnfJ3TzNLvD5uzxLKdoqgxSqz++Jx6bvIsw6zM544y6Mucp02B7/Lt+cHVtGPsi3xi8uDjL99hPEGjTxdRictbb2kblOre0+eqMofN2Zn3xzcx0Gs3HTVDRz1J/wD36zwGBS2Up38vnzZ1O0tDSqac8m9vytL5nzdmgLd2C/eSXOeehnQAMIycT3gMl5VZd2eczqrTfNRideffdJDbRBDWhgttHFuPPeazRpWM9i429mbpJ5p5/aNGgWm5XRD0slnhoZt+7yp9rxLnQd2dt05M7cafLnk0y8d1+J4zg9cE8fs+sVLh94WXG6MJtYYw6TiImZxcyZnaWqftjs/XVFQwW7lH1fdhmjXb6/ba7ECXmRhgCQR05pgh+Y9QKVbdoWpgkzzx3+YBQDKgFA9liAAAWrhcAAihd+oAABCAAAQtPDOGWunyFDuJGGcMtdPkKHcRa3lR5I9JXNv2nfHKbxC15++qQoFBROoUCAhUZcE8fs+sLQzYH4/Z9Yq1fIP+r6wTg7P/ABWm/N809MwAQb6mBBQICEAAAhfHZ6IurtzS8Tvyb+p5FO/SJz1TVInQ6+Fdjbu7ZtL8/wD2x5TmeZTIAyQ0Bp0XcSdtJlMtTbnO5bvp+bL6/wCh5PaUr019kgE4fDl8/wCtaiBxTiVvdLK3Q6kd1nlnZmZO5miG3d7PcJlpTKZnZ5Y7qBEq6S1U4d5PFmI78d7vJf6parN2Xkw2YwkQcUZyDIgeCCm/1mnuOnzM2/elaqebLc/1s7b9xnGak7iChapGUwIY5xEDRxBiCctAelOnZNJboWlrHXHNcGiHEHDhLjpDQdcXPGggZr2NZ9Radebu6WjdVnlmzVcTu8+Z84hzIKeV6xbvkBznAgOAgxnEnwwOjoJV2u2bZ2hgN111uBtxowOw8phk5Eh0NgERAc7nWqnUIh/OpD5N5eNopZu5xb83eOLM0ME8fs+sLQy4J4/Z9YrXKe3Ys3SyeNgmY6D4J+eUxe12zaeg7NbVNnF9L1OQ7DoGVNoAAhocRqeEXZpmIBRKXMihSFBYgAIYhcMAAEVLv5AABiEAAAhaeGcMtdPkKHgR8M4Za6fIUO4jV3KjyR6SubftO+N03iFrz99AABQUTqkKQEIGbBPH7Pri0MuCeP2fWKdXyD+56wTg7P8AxWn/ADfNPTOQCjfUwKFIUEKFIBqF8dFAh36msqBANQgAAxC08M4ba6fIUN76ZGVPl/y8/wCXFDDOG2unyFDyI1a4tuiD/KPSVJfZi1bu7PuB7QYqHxzjiW8jmum1pTPz+3d/U9kHsBRxynY2w1h4vzKHmeh5uJtSDExorYX4qduM38K12n0+22yqKqIyUqYqnupcXnPJxv3qm6wFocS0xodRplHN3ISbtbZVPtqgvUNQ64y3ewYnWi1twYLjbggua9ubRMtOi5Us3rd+21y29SVTDw7bnjc7M+9j1OIhh0+Pai1Vtm28xTmm3TEz3bbzOX+CgNoW2mLgLPxDUfMNfSoN2v8AZdXWGuubMqG1oxOixdw2bwaXAMDXl26uENJL3O3I4vFBmE+gL9nHNEu2lVxeyW8yiLi4zy8zIh5bMYC9av2rwm29r4gmCCROUjMeAqKtobK2hsq5u62kv0xLntabjHNa82zDt2+MFwCRxmFzYIIOqgGRcxO01Oy/VmZ7yI/ynOTy9ZdWp3Z6W4myePvgR6rb2z6XTGbxkAi0MWYmcRIYR4HEz0JzUPYfb1a0PdTikYWuIdVONskh2HCbYD7zSdSMVtoIEzqJ40ApBjrsRAAAIQAACFpYZwy10+QoeBIwzhlrp8hQ8CNXcqPJHpK5t+0743TeIWvP30AQBPUToAABCBmwTx+z6wsjNgfj9n1irV8g/uesE4Oz/wAVpvzfNPTMUAG8pfQBANWqgQpiF8dEAp38msoBSAhUAAELTwzhtrp8hQ8CNhnDbXT5Ch5EWu5VvkD0lSh2U+QXfGHepbQAAJyd6AKQEL8ulnP1a0Oo1E7JNdMTmlMTu7ym5nAZcE8fs+sJtbT2X2nOLQHCOMNDq4T4e6m72k2rUbF2PVV1O22+5Z3WFt0Ocw47zLZkNex2TjEOGqTb1m5YuKt3GpUmJaWfezPvZ3bcdVzmEW9TgOnu07F9hE1ZKuVbo71zKM/8jJqtnXHAm2Q78J0Pe1yP7kyNj/ajQ1Dm29p07qI4WzftF16yXBpLy5gbvbYLgAxrd8eNxiIlcfHftGjewPWouOm2jaoaIXNtE5Z+V1y0PkZ1oZtXYu2TFxjmZgSIBjODke5KlSj2rs7atrHRVVipAaxzhbe1zrYuCW7xk47ZMHivDXSCI0WtaNe0Gmwy887X9KIjcud/MrKDct6O0hLM7VPz5tP3VHzb2DtCq13YsggkG6cORiMIDng80tAjpUebV7b7BonFjag1bw4AtpW7wAFuLELpcyy4DQHDccQTEaGP/9k=",
+  "GET /api/vehicles/model-3/recordings/122e344917df9279": {
+   "id": "122e344917df9279",
+   "key": "event:TeslaCam/SavedClips/2026-10-18_17-30-12",
+   "vehicleId": "model-3",
+   "type": "SavedClips",
+   "category": "Saved",
+   "folder": "TeslaCam/SavedClips/2026-10-18_17-30-12",
+   "eventId": "2026-10-18_17-30-12",
+   "startKey": "2026-10-18_17-29-11",
+   "start": "2026-10-18 17:29:11",
+   "end": "2026-10-18 17:29:11",
+   "eventAt": "2026-10-18 17:30:12",
+   "day": "2026-10-18",
+   "fileCount": 7,
+   "clipCount": 6,
+   "minutes": 1,
+   "bytes": 2550768,
+   "cameras": [
+    "back",
+    "front",
+    "left_pillar",
+    "left_repeater",
+    "right_pillar",
+    "right_repeater"
+   ],
+   "thumbRel": null,
+   "frontRel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-front.mp4",
+   "protected": false,
+   "mtimeMs": 1793461864925.2446,
+   "encoded": {
+    "clips": 6,
+    "encoded": 0,
+    "unknown": 0,
+    "codecs": []
+   },
+   "root": "/srv/sentry-parity/footage",
+   "folderPath": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12",
+   "files": [
+    {
+     "rel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-back.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-back.mp4",
+     "size": 423630,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-front.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-front.mp4",
+     "size": 427923,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-left_pillar.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-left_pillar.mp4",
+     "size": 420014,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-left_repeater.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-left_repeater.mp4",
+     "size": 430605,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-right_pillar.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-right_pillar.mp4",
+     "size": 427736,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-right_repeater.mp4",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-right_repeater.mp4",
+     "size": 420718,
+     "codec": "h264"
+    },
+    {
+     "rel": "TeslaCam/SavedClips/2026-10-18_17-30-12/event.json",
+     "path": "/srv/sentry-parity/footage/TeslaCam/SavedClips/2026-10-18_17-30-12/event.json",
+     "size": 142
+    }
+   ],
+   "event": {
+    "timestamp": "2026-10-18T17:30:12",
+    "city": "Round Rock",
+    "est_lat": "30.5083",
+    "est_lon": "-97.6789",
+    "reason": "user_interaction_honk",
+    "camera": "0"
+   }
+  },
+  "BYTES /api/vehicles/model-3/recordings/122e344917df9279/thumbnail": "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",
   "POST /api/converter/invoke/getAuto": {
    "ok": true,
    "value": {
@@ -12934,12 +13228,12 @@
         "writable": true,
         "renameOverwrite": true,
         "totalBytes": 270553174016,
-        "freeBytes": 29725200384,
+        "freeBytes": 29717712896,
         "lastError": null,
         "hint": null,
         "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
-        "checkedAt": 1793460289490,
-        "writeCheckedAt": 1793460289500,
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
         "mountedAt": null,
         "network": false
        },
@@ -12947,22 +13241,22 @@
        "inventory": {
         "recordings": 3,
         "files": 26,
-        "bytes": 10138030,
+        "bytes": 10159769,
         "byCategory": {
          "Recent": {
           "recordings": 1,
-          "bytes": 5064606
+          "bytes": 5060210
          },
          "Sentry": {
           "recordings": 1,
-          "bytes": 2532233
+          "bytes": 2548791
          },
          "Saved": {
           "recordings": 1,
-          "bytes": 2541191
+          "bytes": 2550768
          }
         },
-        "scannedAt": 1793460289515
+        "scannedAt": 1793461865190
        },
        "scanning": false,
        "binBytes": 0,
@@ -13659,6 +13953,330 @@
        "cost": 0.047
       }
      }
+    }
+   }
+  },
+  "footage-open": {
+   "route": "footage",
+   "state": {
+    "vehicleId": "model-3",
+    "open": [
+     "2026-10-20"
+    ],
+    "expanded": [
+     "6e1a922385655c63"
+    ]
+   }
+  },
+  "footage-empty": {
+   "route": "footage",
+   "api": {
+    "GET /api/vehicles/model-3/days?category=all&offset=0&limit=30": {
+     "total": 0,
+     "recordings": 0,
+     "offset": 0,
+     "limit": 30,
+     "scannedAt": null,
+     "scanning": false,
+     "error": null,
+     "dates": [],
+     "days": []
+    }
+   }
+  },
+  "footage-scanning": {
+   "route": "footage",
+   "api": {
+    "GET /api/vehicles/model-3/days?category=all&offset=0&limit=30": {
+     "total": 0,
+     "recordings": 0,
+     "offset": 0,
+     "limit": 30,
+     "scannedAt": null,
+     "scanning": true,
+     "error": null,
+     "dates": [],
+     "days": []
+    }
+   }
+  },
+  "footage-error": {
+   "route": "footage",
+   "api": {
+    "GET /api/vehicles/model-3/days?category=all&offset=0&limit=30": {
+     "$error": "The footage list could not be read.",
+     "$status": 500
+    }
+   }
+  },
+  "footage-novehicle": {
+   "route": "footage",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": []
+    }
+   }
+  },
+  "footage-paged": {
+   "route": "footage",
+   "api": {
+    "GET /api/vehicles/model-3/days?category=all&offset=0&limit=30": {
+     "total": 75,
+     "recordings": 210
+    }
+   }
+  },
+  "footage-long": {
+   "route": "footage",
+   "state": {
+    "vehicleId": "model-3",
+    "open": [
+     "2026-10-20"
+    ],
+    "expanded": [
+     "6e1a922385655c63"
+    ]
+   },
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3 Long Range with a name far too long for one pill or one tile title",
+       "timezone": "UTC",
+       "source": {
+        "type": "path",
+        "path": "/srv/sentry-parity/footage"
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&date=2026-10-20&limit=500": {
+     "total": 1,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461865190,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "recordings": [
+      {
+       "id": "6e1a922385655c63",
+       "key": "session:TeslaCam/RecentClips:2026-10-20_08-00-00",
+       "vehicleId": "model-3",
+       "type": "RecentClips",
+       "category": "Recent",
+       "folder": "TeslaCam/RecentClips/a folder name that is far too long to fit on one line of the recording card at all",
+       "eventId": null,
+       "startKey": "2026-10-20_08-00-00",
+       "start": "2026-10-20 08:00:00",
+       "end": "2026-10-20 08:01:00",
+       "eventAt": null,
+       "day": "2026-10-20",
+       "fileCount": 12,
+       "clipCount": 12,
+       "minutes": 2,
+       "bytes": 5060210,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461863681.2446,
+       "encoded": {
+        "clips": 12,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings/6e1a922385655c63": {
+     "id": "6e1a922385655c63",
+     "key": "session:TeslaCam/RecentClips:2026-10-20_08-00-00",
+     "vehicleId": "model-3",
+     "type": "RecentClips",
+     "category": "Recent",
+     "folder": "TeslaCam/RecentClips",
+     "eventId": null,
+     "startKey": "2026-10-20_08-00-00",
+     "start": "2026-10-20 08:00:00",
+     "end": "2026-10-20 08:01:00",
+     "eventAt": null,
+     "day": "2026-10-20",
+     "fileCount": 12,
+     "clipCount": 12,
+     "minutes": 2,
+     "bytes": 5060210,
+     "cameras": [
+      "back",
+      "front",
+      "left_pillar",
+      "left_repeater",
+      "right_pillar",
+      "right_repeater"
+     ],
+     "thumbRel": null,
+     "frontRel": "TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
+     "protected": false,
+     "mtimeMs": 1793461863681.2446,
+     "encoded": {
+      "clips": 12,
+      "encoded": 0,
+      "unknown": 0,
+      "codecs": []
+     },
+     "root": "/srv/sentry-parity/footage",
+     "folderPath": "/srv/sentry-parity/footage/TeslaCam/RecentClips",
+     "files": [
+      {
+       "rel": "TeslaCam/RecentClips/a folder name that is far too long to fit on one line of the recording card at all/2026-10-20_08-00-00-back.mp4",
+       "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-back.mp4",
+       "size": 423829,
+       "codec": "h264"
+      },
+      {
+       "rel": "TeslaCam/RecentClips/a folder name that is far too long to fit on one line of the recording card at all/2026-10-20_08-00-00-front.mp4",
+       "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
+       "size": 424073,
+       "codec": "h264"
+      },
+      {
+       "rel": "TeslaCam/RecentClips/a folder name that is far too long to fit on one line of the recording card at all/2026-10-20_08-00-00-left_pillar.mp4",
+       "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-left_pillar.mp4",
+       "size": 420718,
+       "codec": "h264"
+      },
+      {
+       "rel": "TeslaCam/RecentClips/a folder name that is far too long to fit on one line of the recording card at all/2026-10-20_08-00-00-left_repeater.mp4",
+       "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-left_repeater.mp4",
+       "size": 422778,
+       "codec": "h264"
+      },
+      {
+       "rel": "TeslaCam/RecentClips/a folder name that is far too long to fit on one line of the recording card at all/2026-10-20_08-00-00-right_pillar.mp4",
+       "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-right_pillar.mp4",
+       "size": 420700,
+       "codec": "h264"
+      },
+      {
+       "rel": "TeslaCam/RecentClips/a folder name that is far too long to fit on one line of the recording card at all/2026-10-20_08-00-00-right_repeater.mp4",
+       "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-right_repeater.mp4",
+       "size": 421439,
+       "codec": "h264"
+      },
+      {
+       "rel": "TeslaCam/RecentClips/a folder name that is far too long to fit on one line of the recording card at all/2026-10-20_08-01-00-back.mp4",
+       "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-back.mp4",
+       "size": 420828,
+       "codec": "h264"
+      },
+      {
+       "rel": "TeslaCam/RecentClips/a folder name that is far too long to fit on one line of the recording card at all/2026-10-20_08-01-00-front.mp4",
+       "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-front.mp4",
+       "size": 420506,
+       "codec": "h264"
+      },
+      {
+       "rel": "TeslaCam/RecentClips/a folder name that is far too long to fit on one line of the recording card at all/2026-10-20_08-01-00-left_pillar.mp4",
+       "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-left_pillar.mp4",
+       "size": 421643,
+       "codec": "h264"
+      },
+      {
+       "rel": "TeslaCam/RecentClips/a folder name that is far too long to fit on one line of the recording card at all/2026-10-20_08-01-00-left_repeater.mp4",
+       "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-left_repeater.mp4",
+       "size": 420805,
+       "codec": "h264"
+      },
+      {
+       "rel": "TeslaCam/RecentClips/a folder name that is far too long to fit on one line of the recording card at all/2026-10-20_08-01-00-right_pillar.mp4",
+       "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-right_pillar.mp4",
+       "size": 422238,
+       "codec": "h264"
+      },
+      {
+       "rel": "TeslaCam/RecentClips/a folder name that is far too long to fit on one line of the recording card at all/2026-10-20_08-01-00-right_repeater.mp4",
+       "path": "/srv/sentry-parity/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-right_repeater.mp4",
+       "size": 420653,
+       "codec": "h264"
+      }
+     ],
+     "event": null
     }
    }
   },

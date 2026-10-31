@@ -107,6 +107,10 @@ of each under the same name (jobs-error and bin-error exist natively only;
 the Overview's variants answer in the browser through Playwright routes).
 The Overview's numbers are test/fixtures/statsSample.json on both sides
 (`GET /api/stats` in the fixture), not the fixture machine's own.
+The Footage page's open variants (footage-open, footage-long: the first day
+open with its first recording's files shown) are the page's kept `state` on
+the native side and two clicks on the web (capture.js `clicks`); its
+thumbnails are the fixture server's own (`BYTES` answers, base64).
 
 - builtin overview
 - builtin overview-off
@@ -118,6 +122,13 @@ The Overview's numbers are test/fixtures/statsSample.json on both sides
 - builtin overview-long
 - builtin nodes
 - builtin footage
+- builtin footage-open
+- builtin footage-empty
+- builtin footage-scanning
+- builtin footage-error
+- builtin footage-novehicle
+- builtin footage-paged
+- builtin footage-long
 - builtin policies
 - builtin jobs
 - builtin jobs-error

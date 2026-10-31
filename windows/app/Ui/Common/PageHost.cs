@@ -25,6 +25,17 @@ namespace SentrySix.Ui
     }
 
     /// <summary>
+    /// A page that draws itself again after a click changed what it shows
+    /// (web/app.js render() from a page's handlers): the host hands it its
+    /// Refresh, so the redraw keeps the scroll position and focus as a live
+    /// update does.
+    /// </summary>
+    public interface IRedrawnPage
+    {
+        Action Redraw { set; }
+    }
+
+    /// <summary>
     /// Shows one <see cref="INativePage"/> and redraws it as web/app.js's
     /// render() and its live updates do: a newer draw drops an older one's
     /// result (renderSeq), a failed draw shows the message in the interface's
@@ -75,6 +86,8 @@ namespace SentrySix.Ui
                 };
                 shell.PropertyChanged += gone;
             }
+            IRedrawnPage redrawn = page as IRedrawnPage;
+            if (redrawn != null) redrawn.Redraw = Refresh;
             Refresh();
         }
 

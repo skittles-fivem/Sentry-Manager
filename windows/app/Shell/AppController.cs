@@ -264,7 +264,15 @@ namespace SentrySix.Shell
             // (a click: a page this app does not draw yet opens in the browser)
             model.Navigate = r => Navigate(r, true);
             // as the web's pills: the Footage page starts again at its first page, nothing selected
-            model.PickVehicle = id => { model.PageState.Remove("footage"); prefs.Set("vehicle", id); model.VehicleId = id; };
+            // (its filter and shown files stay; another vehicle closes its open days)
+            model.PickVehicle = id =>
+            {
+                object footage;
+                if (model.PageState.TryGetValue("footage", out footage) && footage is FootageState) ((FootageState)footage).VehiclePicked();
+                else model.PageState.Remove("footage");
+                prefs.Set("vehicle", id);
+                model.VehicleId = id;
+            };
             model.SignOut = () => SignOut();
             model.OpenInBrowser = r => OpenInBrowser(r);
             model.SetReduceEffects = v => { model.ReduceEffects = v; PutAppearance("reduceEffects", v); };

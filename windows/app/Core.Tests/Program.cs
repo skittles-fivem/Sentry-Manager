@@ -28,6 +28,7 @@ namespace SentrySix.Core.Tests
             UnitTests.Register(Test);
             FormatTests.Register(Test, Test);
             OverviewTests.Register(Test);
+            FootageTests.Register(Test);
             ServerTests.Register(Test);
             int failed = 0, passed = 0;
             var sw = Stopwatch.StartNew();
