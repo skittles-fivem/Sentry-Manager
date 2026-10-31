@@ -343,3 +343,23 @@ Encoder still starting: the view is the message).
 - horizon vehicles-edit
 - horizon vehicles-empty
 - horizon vehicles-error
+### Horizon: Footage
+
+The track list (hz/pages/footage.js) on the recorded library, asked by the
+pack's own paths (tools/parity/packs/horizon-footage.js): footage (the
+first day open with its tracks, the thumbnails from the fixture's BYTES
+answers; the web clicks the day's album, the native side gets
+`?day=`), footage-empty, footage-scanning (an inventory scan running),
+footage-error (neither list readable), footage-novehicle (the blank with
+Add a vehicle), footage-long (a long vehicle name and track type,
+converted and protected tracks), footage-selected (every day, the two
+newest tracks ticked: the selection bar; the web clicks their boxes, the
+native side gets the variant's state `{ sel: [ids] }`).
+
+- horizon footage
+- horizon footage-empty
+- horizon footage-scanning
+- horizon footage-error
+- horizon footage-novehicle
+- horizon footage-long
+- horizon footage-selected

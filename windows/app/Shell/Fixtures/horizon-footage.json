@@ -1,0 +1,1259 @@
+{
+ "about": "Written by tools/parity/packFixtures.js from tools/parity/packs/horizon-footage.js and Shell/RenderFixture.json: the horizon pages' states for SentrySix.exe --render (RENDER-PAGES.md).",
+ "variants": {
+  "horizon:footage": {
+   "route": "footage",
+   "sub": "?day=2026-10-20",
+   "api": {
+    "GET /api/vehicles/model-3/days?category=all&limit=100": {
+     "total": 3,
+     "recordings": 3,
+     "offset": 0,
+     "limit": 100,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "days": [
+      {
+       "day": "2026-10-20",
+       "recordings": 1,
+       "byCategory": {
+        "Recent": 1
+       },
+       "bytes": 5060210,
+       "minutes": 2,
+       "clips": 12,
+       "encoded": 0,
+       "encodedRecordings": 0,
+       "unknown": 0,
+       "cameras": 6,
+       "protected": 0,
+       "codecs": [],
+       "thumbId": "6e1a922385655c63",
+       "speedIndex": {
+        "clips": 2,
+        "indexed": 2
+       }
+      },
+      {
+       "day": "2026-10-19",
+       "recordings": 1,
+       "byCategory": {
+        "Sentry": 1
+       },
+       "bytes": 2548791,
+       "minutes": 1,
+       "clips": 6,
+       "encoded": 0,
+       "encodedRecordings": 0,
+       "unknown": 0,
+       "cameras": 6,
+       "protected": 0,
+       "codecs": [],
+       "thumbId": "41094f56e0579280",
+       "speedIndex": {
+        "clips": 1,
+        "indexed": 1
+       }
+      },
+      {
+       "day": "2026-10-18",
+       "recordings": 1,
+       "byCategory": {
+        "Saved": 1
+       },
+       "bytes": 2550768,
+       "minutes": 1,
+       "clips": 6,
+       "encoded": 0,
+       "encodedRecordings": 0,
+       "unknown": 0,
+       "cameras": 6,
+       "protected": 0,
+       "codecs": [],
+       "thumbId": "122e344917df9279",
+       "speedIndex": {
+        "clips": 1,
+        "indexed": 1
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500": {
+     "total": 3,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "recordings": [
+      {
+       "id": "6e1a922385655c63",
+       "key": "session:TeslaCam/RecentClips:2026-10-20_08-00-00",
+       "vehicleId": "model-3",
+       "type": "RecentClips",
+       "category": "Recent",
+       "folder": "TeslaCam/RecentClips",
+       "eventId": null,
+       "startKey": "2026-10-20_08-00-00",
+       "start": "2026-10-20 08:00:00",
+       "end": "2026-10-20 08:01:00",
+       "eventAt": null,
+       "day": "2026-10-20",
+       "fileCount": 12,
+       "clipCount": 12,
+       "minutes": 2,
+       "bytes": 5060210,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461863681.2446,
+       "encoded": {
+        "clips": 12,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+       }
+      },
+      {
+       "id": "41094f56e0579280",
+       "key": "event:TeslaCam/SentryClips/2026-10-19_22-14-03",
+       "vehicleId": "model-3",
+       "type": "SentryClips",
+       "category": "Sentry",
+       "folder": "TeslaCam/SentryClips/2026-10-19_22-14-03",
+       "eventId": "2026-10-19_22-14-03",
+       "startKey": "2026-10-19_22-13-02",
+       "start": "2026-10-19 22:13:02",
+       "end": "2026-10-19 22:13:02",
+       "eventAt": "2026-10-19 22:14:03",
+       "day": "2026-10-19",
+       "fileCount": 7,
+       "clipCount": 6,
+       "minutes": 1,
+       "bytes": 2548791,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461864309.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+       }
+      },
+      {
+       "id": "122e344917df9279",
+       "key": "event:TeslaCam/SavedClips/2026-10-18_17-30-12",
+       "vehicleId": "model-3",
+       "type": "SavedClips",
+       "category": "Saved",
+       "folder": "TeslaCam/SavedClips/2026-10-18_17-30-12",
+       "eventId": "2026-10-18_17-30-12",
+       "startKey": "2026-10-18_17-29-11",
+       "start": "2026-10-18 17:29:11",
+       "end": "2026-10-18 17:29:11",
+       "eventAt": "2026-10-18 17:30:12",
+       "day": "2026-10-18",
+       "fileCount": 7,
+       "clipCount": 6,
+       "minutes": 1,
+       "bytes": 2550768,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461864925.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500&date=2026-10-20": {
+     "total": 1,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "recordings": [
+      {
+       "id": "6e1a922385655c63",
+       "key": "session:TeslaCam/RecentClips:2026-10-20_08-00-00",
+       "vehicleId": "model-3",
+       "type": "RecentClips",
+       "category": "Recent",
+       "folder": "TeslaCam/RecentClips",
+       "eventId": null,
+       "startKey": "2026-10-20_08-00-00",
+       "start": "2026-10-20 08:00:00",
+       "end": "2026-10-20 08:01:00",
+       "eventAt": null,
+       "day": "2026-10-20",
+       "fileCount": 12,
+       "clipCount": 12,
+       "minutes": 2,
+       "bytes": 5060210,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461863681.2446,
+       "encoded": {
+        "clips": 12,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500&date=2026-10-19": {
+     "total": 1,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "recordings": [
+      {
+       "id": "41094f56e0579280",
+       "key": "event:TeslaCam/SentryClips/2026-10-19_22-14-03",
+       "vehicleId": "model-3",
+       "type": "SentryClips",
+       "category": "Sentry",
+       "folder": "TeslaCam/SentryClips/2026-10-19_22-14-03",
+       "eventId": "2026-10-19_22-14-03",
+       "startKey": "2026-10-19_22-13-02",
+       "start": "2026-10-19 22:13:02",
+       "end": "2026-10-19 22:13:02",
+       "eventAt": "2026-10-19 22:14:03",
+       "day": "2026-10-19",
+       "fileCount": 7,
+       "clipCount": 6,
+       "minutes": 1,
+       "bytes": 2548791,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461864309.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500&date=2026-10-18": {
+     "total": 1,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "recordings": [
+      {
+       "id": "122e344917df9279",
+       "key": "event:TeslaCam/SavedClips/2026-10-18_17-30-12",
+       "vehicleId": "model-3",
+       "type": "SavedClips",
+       "category": "Saved",
+       "folder": "TeslaCam/SavedClips/2026-10-18_17-30-12",
+       "eventId": "2026-10-18_17-30-12",
+       "startKey": "2026-10-18_17-29-11",
+       "start": "2026-10-18 17:29:11",
+       "end": "2026-10-18 17:29:11",
+       "eventAt": "2026-10-18 17:30:12",
+       "day": "2026-10-18",
+       "fileCount": 7,
+       "clipCount": 6,
+       "minutes": 1,
+       "bytes": 2550768,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461864925.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+       }
+      }
+     ]
+    }
+   }
+  },
+  "horizon:footage-empty": {
+   "route": "footage",
+   "api": {
+    "GET /api/vehicles/model-3/days?category=all&limit=100": {
+     "total": 0,
+     "recordings": 0,
+     "offset": 0,
+     "limit": 100,
+     "scannedAt": null,
+     "scanning": false,
+     "error": null,
+     "dates": [],
+     "days": []
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500": {
+     "total": 0,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": null,
+     "scanning": false,
+     "error": null,
+     "dates": [],
+     "recordings": []
+    }
+   }
+  },
+  "horizon:footage-scanning": {
+   "route": "footage",
+   "api": {
+    "GET /api/vehicles/model-3/days?category=all&limit=100": {
+     "total": 0,
+     "recordings": 0,
+     "offset": 0,
+     "limit": 100,
+     "scannedAt": null,
+     "scanning": true,
+     "error": null,
+     "dates": [],
+     "days": []
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500": {
+     "total": 0,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461806000,
+     "scanning": true,
+     "error": null,
+     "dates": [],
+     "recordings": []
+    }
+   }
+  },
+  "horizon:footage-error": {
+   "route": "footage",
+   "api": {
+    "GET /api/vehicles/model-3/days?category=all&limit=100": {
+     "$error": "The footage list could not be read.",
+     "$status": 500
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500": {
+     "$error": "The recordings could not be read.",
+     "$status": 500
+    }
+   }
+  },
+  "horizon:footage-novehicle": {
+   "route": "footage",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": []
+    }
+   }
+  },
+  "horizon:footage-long": {
+   "route": "footage",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3 Long Range with a name far too long for one pill or one tile title",
+       "timezone": "America/Argentina/ComodRivadavia",
+       "source": {
+        "type": "path",
+        "path": "/srv/sentry-parity/footage"
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/days?category=all&limit=100": {
+     "total": 3,
+     "recordings": 3,
+     "offset": 0,
+     "limit": 100,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "days": [
+      {
+       "day": "2026-10-20",
+       "recordings": 1,
+       "byCategory": {
+        "Recent": 1
+       },
+       "bytes": 5060210,
+       "minutes": 2,
+       "clips": 12,
+       "encoded": 0,
+       "encodedRecordings": 0,
+       "unknown": 0,
+       "cameras": 6,
+       "protected": 0,
+       "codecs": [],
+       "thumbId": "6e1a922385655c63",
+       "speedIndex": {
+        "clips": 2,
+        "indexed": 2
+       }
+      },
+      {
+       "day": "2026-10-19",
+       "recordings": 1,
+       "byCategory": {
+        "Sentry": 1
+       },
+       "bytes": 2548791,
+       "minutes": 1,
+       "clips": 6,
+       "encoded": 0,
+       "encodedRecordings": 0,
+       "unknown": 0,
+       "cameras": 6,
+       "protected": 0,
+       "codecs": [],
+       "thumbId": "41094f56e0579280",
+       "speedIndex": {
+        "clips": 1,
+        "indexed": 1
+       }
+      },
+      {
+       "day": "2026-10-18",
+       "recordings": 1,
+       "byCategory": {
+        "Saved": 1
+       },
+       "bytes": 2550768,
+       "minutes": 1,
+       "clips": 6,
+       "encoded": 0,
+       "encodedRecordings": 0,
+       "unknown": 0,
+       "cameras": 6,
+       "protected": 0,
+       "codecs": [],
+       "thumbId": "122e344917df9279",
+       "speedIndex": {
+        "clips": 1,
+        "indexed": 1
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500": {
+     "total": 3,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "recordings": [
+      {
+       "id": "6e1a922385655c63",
+       "key": "session:TeslaCam/RecentClips:2026-10-20_08-00-00",
+       "vehicleId": "model-3",
+       "type": "SentryClips_from_a_category_of_events_with_a_name_far_too_long_for_one_line",
+       "category": "Recent",
+       "folder": "TeslaCam/RecentClips",
+       "eventId": null,
+       "startKey": "2026-10-20_08-00-00",
+       "start": "2026-10-20 08:00:00",
+       "end": "2026-10-20 08:01:00",
+       "eventAt": null,
+       "day": "2026-10-20",
+       "fileCount": 12,
+       "clipCount": 12,
+       "minutes": 2,
+       "bytes": 5060210,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
+       "protected": true,
+       "mtimeMs": 1793461863681.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 3,
+        "unknown": 0,
+        "codecs": [
+         "hevc",
+         "av1"
+        ]
+       }
+      },
+      {
+       "id": "41094f56e0579280",
+       "key": "event:TeslaCam/SentryClips/2026-10-19_22-14-03",
+       "vehicleId": "model-3",
+       "type": "SentryClips_from_a_category_of_events_with_a_name_far_too_long_for_one_line",
+       "category": "Sentry",
+       "folder": "TeslaCam/SentryClips/2026-10-19_22-14-03",
+       "eventId": "2026-10-19_22-14-03",
+       "startKey": "2026-10-19_22-13-02",
+       "start": "2026-10-19 22:13:02",
+       "end": "2026-10-19 22:13:02",
+       "eventAt": "2026-10-19 22:14:03",
+       "day": "2026-10-19",
+       "fileCount": 7,
+       "clipCount": 6,
+       "minutes": 1,
+       "bytes": 2548791,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461864309.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 3,
+        "unknown": 0,
+        "codecs": [
+         "hevc",
+         "av1"
+        ]
+       }
+      },
+      {
+       "id": "122e344917df9279",
+       "key": "event:TeslaCam/SavedClips/2026-10-18_17-30-12",
+       "vehicleId": "model-3",
+       "type": "SentryClips_from_a_category_of_events_with_a_name_far_too_long_for_one_line",
+       "category": "Saved",
+       "folder": "TeslaCam/SavedClips/2026-10-18_17-30-12",
+       "eventId": "2026-10-18_17-30-12",
+       "startKey": "2026-10-18_17-29-11",
+       "start": "2026-10-18 17:29:11",
+       "end": "2026-10-18 17:29:11",
+       "eventAt": "2026-10-18 17:30:12",
+       "day": "2026-10-18",
+       "fileCount": 7,
+       "clipCount": 6,
+       "minutes": 1,
+       "bytes": 2550768,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461864925.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 3,
+        "unknown": 0,
+        "codecs": [
+         "hevc",
+         "av1"
+        ]
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500&date=2026-10-20": {
+     "total": 1,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "recordings": [
+      {
+       "id": "6e1a922385655c63",
+       "key": "session:TeslaCam/RecentClips:2026-10-20_08-00-00",
+       "vehicleId": "model-3",
+       "type": "SentryClips_from_a_category_of_events_with_a_name_far_too_long_for_one_line",
+       "category": "Recent",
+       "folder": "TeslaCam/RecentClips",
+       "eventId": null,
+       "startKey": "2026-10-20_08-00-00",
+       "start": "2026-10-20 08:00:00",
+       "end": "2026-10-20 08:01:00",
+       "eventAt": null,
+       "day": "2026-10-20",
+       "fileCount": 12,
+       "clipCount": 12,
+       "minutes": 2,
+       "bytes": 5060210,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
+       "protected": true,
+       "mtimeMs": 1793461863681.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 3,
+        "unknown": 0,
+        "codecs": [
+         "hevc",
+         "av1"
+        ]
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500&date=2026-10-19": {
+     "total": 1,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "recordings": [
+      {
+       "id": "41094f56e0579280",
+       "key": "event:TeslaCam/SentryClips/2026-10-19_22-14-03",
+       "vehicleId": "model-3",
+       "type": "SentryClips_from_a_category_of_events_with_a_name_far_too_long_for_one_line",
+       "category": "Sentry",
+       "folder": "TeslaCam/SentryClips/2026-10-19_22-14-03",
+       "eventId": "2026-10-19_22-14-03",
+       "startKey": "2026-10-19_22-13-02",
+       "start": "2026-10-19 22:13:02",
+       "end": "2026-10-19 22:13:02",
+       "eventAt": "2026-10-19 22:14:03",
+       "day": "2026-10-19",
+       "fileCount": 7,
+       "clipCount": 6,
+       "minutes": 1,
+       "bytes": 2548791,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-front.mp4",
+       "protected": true,
+       "mtimeMs": 1793461864309.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 3,
+        "unknown": 0,
+        "codecs": [
+         "hevc",
+         "av1"
+        ]
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500&date=2026-10-18": {
+     "total": 1,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "recordings": [
+      {
+       "id": "122e344917df9279",
+       "key": "event:TeslaCam/SavedClips/2026-10-18_17-30-12",
+       "vehicleId": "model-3",
+       "type": "SentryClips_from_a_category_of_events_with_a_name_far_too_long_for_one_line",
+       "category": "Saved",
+       "folder": "TeslaCam/SavedClips/2026-10-18_17-30-12",
+       "eventId": "2026-10-18_17-30-12",
+       "startKey": "2026-10-18_17-29-11",
+       "start": "2026-10-18 17:29:11",
+       "end": "2026-10-18 17:29:11",
+       "eventAt": "2026-10-18 17:30:12",
+       "day": "2026-10-18",
+       "fileCount": 7,
+       "clipCount": 6,
+       "minutes": 1,
+       "bytes": 2550768,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-front.mp4",
+       "protected": true,
+       "mtimeMs": 1793461864925.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 3,
+        "unknown": 0,
+        "codecs": [
+         "hevc",
+         "av1"
+        ]
+       }
+      }
+     ]
+    }
+   }
+  },
+  "horizon:footage-selected": {
+   "route": "footage",
+   "state": {
+    "sel": [
+     "6e1a922385655c63",
+     "41094f56e0579280"
+    ]
+   },
+   "api": {
+    "GET /api/vehicles/model-3/days?category=all&limit=100": {
+     "total": 3,
+     "recordings": 3,
+     "offset": 0,
+     "limit": 100,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "days": [
+      {
+       "day": "2026-10-20",
+       "recordings": 1,
+       "byCategory": {
+        "Recent": 1
+       },
+       "bytes": 5060210,
+       "minutes": 2,
+       "clips": 12,
+       "encoded": 0,
+       "encodedRecordings": 0,
+       "unknown": 0,
+       "cameras": 6,
+       "protected": 0,
+       "codecs": [],
+       "thumbId": "6e1a922385655c63",
+       "speedIndex": {
+        "clips": 2,
+        "indexed": 2
+       }
+      },
+      {
+       "day": "2026-10-19",
+       "recordings": 1,
+       "byCategory": {
+        "Sentry": 1
+       },
+       "bytes": 2548791,
+       "minutes": 1,
+       "clips": 6,
+       "encoded": 0,
+       "encodedRecordings": 0,
+       "unknown": 0,
+       "cameras": 6,
+       "protected": 0,
+       "codecs": [],
+       "thumbId": "41094f56e0579280",
+       "speedIndex": {
+        "clips": 1,
+        "indexed": 1
+       }
+      },
+      {
+       "day": "2026-10-18",
+       "recordings": 1,
+       "byCategory": {
+        "Saved": 1
+       },
+       "bytes": 2550768,
+       "minutes": 1,
+       "clips": 6,
+       "encoded": 0,
+       "encodedRecordings": 0,
+       "unknown": 0,
+       "cameras": 6,
+       "protected": 0,
+       "codecs": [],
+       "thumbId": "122e344917df9279",
+       "speedIndex": {
+        "clips": 1,
+        "indexed": 1
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500": {
+     "total": 3,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "recordings": [
+      {
+       "id": "6e1a922385655c63",
+       "key": "session:TeslaCam/RecentClips:2026-10-20_08-00-00",
+       "vehicleId": "model-3",
+       "type": "RecentClips",
+       "category": "Recent",
+       "folder": "TeslaCam/RecentClips",
+       "eventId": null,
+       "startKey": "2026-10-20_08-00-00",
+       "start": "2026-10-20 08:00:00",
+       "end": "2026-10-20 08:01:00",
+       "eventAt": null,
+       "day": "2026-10-20",
+       "fileCount": 12,
+       "clipCount": 12,
+       "minutes": 2,
+       "bytes": 5060210,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461863681.2446,
+       "encoded": {
+        "clips": 12,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+       }
+      },
+      {
+       "id": "41094f56e0579280",
+       "key": "event:TeslaCam/SentryClips/2026-10-19_22-14-03",
+       "vehicleId": "model-3",
+       "type": "SentryClips",
+       "category": "Sentry",
+       "folder": "TeslaCam/SentryClips/2026-10-19_22-14-03",
+       "eventId": "2026-10-19_22-14-03",
+       "startKey": "2026-10-19_22-13-02",
+       "start": "2026-10-19 22:13:02",
+       "end": "2026-10-19 22:13:02",
+       "eventAt": "2026-10-19 22:14:03",
+       "day": "2026-10-19",
+       "fileCount": 7,
+       "clipCount": 6,
+       "minutes": 1,
+       "bytes": 2548791,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461864309.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+       }
+      },
+      {
+       "id": "122e344917df9279",
+       "key": "event:TeslaCam/SavedClips/2026-10-18_17-30-12",
+       "vehicleId": "model-3",
+       "type": "SavedClips",
+       "category": "Saved",
+       "folder": "TeslaCam/SavedClips/2026-10-18_17-30-12",
+       "eventId": "2026-10-18_17-30-12",
+       "startKey": "2026-10-18_17-29-11",
+       "start": "2026-10-18 17:29:11",
+       "end": "2026-10-18 17:29:11",
+       "eventAt": "2026-10-18 17:30:12",
+       "day": "2026-10-18",
+       "fileCount": 7,
+       "clipCount": 6,
+       "minutes": 1,
+       "bytes": 2550768,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461864925.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500&date=2026-10-20": {
+     "total": 1,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "recordings": [
+      {
+       "id": "6e1a922385655c63",
+       "key": "session:TeslaCam/RecentClips:2026-10-20_08-00-00",
+       "vehicleId": "model-3",
+       "type": "RecentClips",
+       "category": "Recent",
+       "folder": "TeslaCam/RecentClips",
+       "eventId": null,
+       "startKey": "2026-10-20_08-00-00",
+       "start": "2026-10-20 08:00:00",
+       "end": "2026-10-20 08:01:00",
+       "eventAt": null,
+       "day": "2026-10-20",
+       "fileCount": 12,
+       "clipCount": 12,
+       "minutes": 2,
+       "bytes": 5060210,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461863681.2446,
+       "encoded": {
+        "clips": 12,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500&date=2026-10-19": {
+     "total": 1,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "recordings": [
+      {
+       "id": "41094f56e0579280",
+       "key": "event:TeslaCam/SentryClips/2026-10-19_22-14-03",
+       "vehicleId": "model-3",
+       "type": "SentryClips",
+       "category": "Sentry",
+       "folder": "TeslaCam/SentryClips/2026-10-19_22-14-03",
+       "eventId": "2026-10-19_22-14-03",
+       "startKey": "2026-10-19_22-13-02",
+       "start": "2026-10-19 22:13:02",
+       "end": "2026-10-19 22:13:02",
+       "eventAt": "2026-10-19 22:14:03",
+       "day": "2026-10-19",
+       "fileCount": 7,
+       "clipCount": 6,
+       "minutes": 1,
+       "bytes": 2548791,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/SentryClips/2026-10-19_22-14-03/2026-10-19_22-13-02-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461864309.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/recordings?category=all&limit=500&date=2026-10-18": {
+     "total": 1,
+     "offset": 0,
+     "limit": 500,
+     "scannedAt": 1793461566000,
+     "scanning": false,
+     "error": null,
+     "dates": [
+      "2026-10-20",
+      "2026-10-19",
+      "2026-10-18"
+     ],
+     "recordings": [
+      {
+       "id": "122e344917df9279",
+       "key": "event:TeslaCam/SavedClips/2026-10-18_17-30-12",
+       "vehicleId": "model-3",
+       "type": "SavedClips",
+       "category": "Saved",
+       "folder": "TeslaCam/SavedClips/2026-10-18_17-30-12",
+       "eventId": "2026-10-18_17-30-12",
+       "startKey": "2026-10-18_17-29-11",
+       "start": "2026-10-18 17:29:11",
+       "end": "2026-10-18 17:29:11",
+       "eventAt": "2026-10-18 17:30:12",
+       "day": "2026-10-18",
+       "fileCount": 7,
+       "clipCount": 6,
+       "minutes": 1,
+       "bytes": 2550768,
+       "cameras": [
+        "back",
+        "front",
+        "left_pillar",
+        "left_repeater",
+        "right_pillar",
+        "right_repeater"
+       ],
+       "thumbRel": null,
+       "frontRel": "TeslaCam/SavedClips/2026-10-18_17-30-12/2026-10-18_17-29-11-front.mp4",
+       "protected": false,
+       "mtimeMs": 1793461864925.2446,
+       "encoded": {
+        "clips": 6,
+        "encoded": 0,
+        "unknown": 0,
+        "codecs": []
+       }
+      }
+     ]
+    }
+   }
+  }
+ }
+}
