@@ -1,0 +1,17824 @@
+{
+ "about": "Written by test/windowsNativeClipBrowser.test.js from Studio's clipBrowser.js, clipListHelpers.js, panelMode.js, script.js formatEventReason and the shim's deleteFolder; checked by windows/app/Core.Tests (ClipBrowserTests.cs, SentrySix.Core.ClipBrowser / ClipsPanelMode / JsText).",
+ "zone": "America/Chicago",
+ "cases": [
+  {
+   "name": "tesla-day",
+   "rootName": "TeslaCam",
+   "files": [
+    {
+     "name": "2026-10-20_08-00-00-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4",
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4"
+    },
+    {
+     "name": "2026-10-20_08-00-00-back.mp4",
+     "path": "/srv/v/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-back.mp4",
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-00-00-back.mp4"
+    },
+    {
+     "name": "2026-10-20_08-00-00-left_repeater.mp4",
+     "path": "/srv/v/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-left_repeater.mp4",
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-00-00-left_repeater.mp4"
+    },
+    {
+     "name": "2026-10-20_08-00-00-right_repeater.mp4",
+     "path": "/srv/v/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-right_repeater.mp4",
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-00-00-right_repeater.mp4"
+    },
+    {
+     "name": "2026-10-20_08-00-00-left_pillar.mp4",
+     "path": "/srv/v/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-left_pillar.mp4",
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-00-00-left_pillar.mp4"
+    },
+    {
+     "name": "2026-10-20_08-00-00-right_pillar.mp4",
+     "path": "/srv/v/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-right_pillar.mp4",
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-00-00-right_pillar.mp4"
+    },
+    {
+     "name": "2026-10-20_08-01-00-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-front.mp4",
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-01-00-front.mp4"
+    },
+    {
+     "name": "2026-10-20_08-01-00-back.mp4",
+     "path": "/srv/v/footage/TeslaCam/RecentClips/2026-10-20_08-01-00-back.mp4",
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-01-00-back.mp4"
+    },
+    {
+     "name": "2026-10-20_22-13-02-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-front.mp4",
+     "rel": "TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-front.mp4"
+    },
+    {
+     "name": "2026-10-20_22-13-02-back.mp4",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-back.mp4",
+     "rel": "TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-back.mp4"
+    },
+    {
+     "name": "2026-10-20_22-13-02-left_repeater.mp4",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-left_repeater.mp4",
+     "rel": "TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-left_repeater.mp4"
+    },
+    {
+     "name": "2026-10-20_22-13-02-right_repeater.mp4",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-right_repeater.mp4",
+     "rel": "TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-right_repeater.mp4"
+    },
+    {
+     "name": "2026-10-20_22-13-02-left_pillar.mp4",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-left_pillar.mp4",
+     "rel": "TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-left_pillar.mp4"
+    },
+    {
+     "name": "2026-10-20_22-13-02-right_pillar.mp4",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-right_pillar.mp4",
+     "rel": "TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-right_pillar.mp4"
+    },
+    {
+     "name": "2026-10-20_22-14-02-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-14-02-front.mp4",
+     "rel": "TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-14-02-front.mp4"
+    },
+    {
+     "name": "event.json",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03/event.json",
+     "rel": "TeslaCam/SentryClips/2026-10-20_22-14-03/event.json"
+    },
+    {
+     "name": "2026-10-20_08-59-00-back.mp4",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00/2026-10-20_08-59-00-back.mp4",
+     "rel": "TeslaCam/SentryClips/2026-10-20_09-00-00/2026-10-20_08-59-00-back.mp4"
+    },
+    {
+     "name": "2026-10-20_08-59-00-left_repeater.mp4",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00/2026-10-20_08-59-00-left_repeater.mp4",
+     "rel": "TeslaCam/SentryClips/2026-10-20_09-00-00/2026-10-20_08-59-00-left_repeater.mp4"
+    },
+    {
+     "name": "2026-10-20_10-00-00-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/not-an-event/2026-10-20_10-00-00-front.mp4",
+     "rel": "TeslaCam/SentryClips/not-an-event/2026-10-20_10-00-00-front.mp4"
+    },
+    {
+     "name": "2026-10-20_08-58-00-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00b/2026-10-20_08-58-00-front.mp4",
+     "rel": "TeslaCam/SentryClips/2026-10-20_09-00-00b/2026-10-20_08-58-00-front.mp4"
+    },
+    {
+     "name": "2026-10-20_17-29-11-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-front.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-front.mp4"
+    },
+    {
+     "name": "2026-10-20_17-29-11-back.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-back.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-back.mp4"
+    },
+    {
+     "name": "2026-10-20_17-29-11-left_repeater.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-left_repeater.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-left_repeater.mp4"
+    },
+    {
+     "name": "2026-10-20_17-29-11-right_repeater.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-right_repeater.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-right_repeater.mp4"
+    },
+    {
+     "name": "2026-10-20_17-29-11-left_pillar.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-left_pillar.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-left_pillar.mp4"
+    },
+    {
+     "name": "2026-10-20_17-29-11-right_pillar.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-right_pillar.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-right_pillar.mp4"
+    },
+    {
+     "name": "2026-10-20_17-59-00-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_18-00-00/2026-10-20_17-59-00-front.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_18-00-00/2026-10-20_17-59-00-front.mp4"
+    },
+    {
+     "name": "2026-10-20_18-59-00-back.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-00-00/2026-10-20_18-59-00-back.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_19-00-00/2026-10-20_18-59-00-back.mp4"
+    },
+    {
+     "name": "2026-10-20_19-59-00-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_20-00-00/2026-10-20_19-59-00-front.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_20-00-00/2026-10-20_19-59-00-front.mp4"
+    },
+    {
+     "name": "2026-10-20_20-59-00-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-00-00/2026-10-20_20-59-00-front.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_21-00-00/2026-10-20_20-59-00-front.mp4"
+    },
+    {
+     "name": "2026-10-20_21-29-00-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-30-00/2026-10-20_21-29-00-front.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_21-30-00/2026-10-20_21-29-00-front.mp4"
+    },
+    {
+     "name": "2026-10-20_21-44-00-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-45-00/2026-10-20_21-44-00-front.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_21-45-00/2026-10-20_21-44-00-front.mp4"
+    },
+    {
+     "name": "2026-10-20_21-49-00-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-50-00/2026-10-20_21-49-00-front.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_21-50-00/2026-10-20_21-49-00-front.mp4"
+    },
+    {
+     "name": "2026-10-19_07-59-00-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/RecentClips/2026-10-19_07-59-00-front.mp4",
+     "rel": "TeslaCam/RecentClips/2026-10-19_07-59-00-front.mp4"
+    }
+   ],
+   "metas": {
+    "SentryClips/2026-10-20_22-14-03": {
+     "timestamp": "2026-10-20T22:14:03",
+     "reason": "sentry_aware_object_detection"
+    },
+    "SavedClips/2026-10-20_17-30-12": {
+     "timestamp": "2026-10-20T17:30:12",
+     "reason": "user_interaction_honk"
+    },
+    "SavedClips/2026-10-20_18-00-00": {
+     "reason": "vehicle_auto_emergency_braking"
+    },
+    "SavedClips/2026-10-20_19-00-00": {
+     "reason": "some_new_reason_2x élan_x"
+    },
+    "SavedClips/2026-10-20_20-00-00": {
+     "reason": "collision"
+    },
+    "SavedClips/2026-10-20_21-00-00": {
+     "reason": ""
+    },
+    "SavedClips/2026-10-20_21-30-00": {
+     "reason": [
+      "collision"
+     ]
+    },
+    "SavedClips/2026-10-20_21-45-00": {
+     "reason": "emergencyish"
+    }
+   },
+   "deletion": {},
+   "profileId": "tesla",
+   "sourceKind": "tesla",
+   "exists": [
+    "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03/thumb.png"
+   ],
+   "strips": {
+    "/srv/v/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4": "/srv/cache/strip a#1.jpg"
+   },
+   "renders": [
+    {
+     "day": "2026-10-20",
+     "active": "saved:2026-10-20:2026-10-20_17-30-12",
+     "thrown": null,
+     "placeholder": null,
+     "items": [
+      {
+       "id": "recent:2026-10-20",
+       "className": "clip-item event-item recent-item",
+       "folderpath": "/srv/v/footage/TeslaCam/RecentClips",
+       "title": "Recent Clips",
+       "badges": [
+        {
+         "cls": "recent",
+         "title": null,
+         "text": "Recent"
+        }
+       ],
+       "sub": "2 segments · 6 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/RecentClips"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "recent:2026-10-20",
+       "preview": {
+        "exists": [],
+        "strips": [
+         "/srv/v/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4"
+        ],
+        "imgs": [
+         {
+          "src": "/api/media?path=%2Fsrv%2Fcache%2Fstrip%20a%231.jpg",
+          "cls": "clip-filmstrip"
+         }
+        ]
+       }
+      },
+      {
+       "id": "sentry:2026-10-20:not-an-event",
+       "className": "clip-item event-item sentry-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SentryClips/not-an-event",
+       "title": "Sentry · not-an-event",
+       "badges": [
+        {
+         "cls": "sentry",
+         "title": null,
+         "text": "Sentry"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SentryClips/not-an-event"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "sentry:2026-10-20:not-an-event",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SentryClips/not-an-event/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SentryClips/not-an-event/2026-10-20_10-00-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "sentry:2026-10-20:2026-10-20_22-14-03",
+       "className": "clip-item event-item sentry-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+       "title": "Sentry · 22:14:03",
+       "badges": [
+        {
+         "cls": "sentry",
+         "title": null,
+         "text": "Sentry"
+        }
+       ],
+       "sub": "2 segments · 6 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "sentry:2026-10-20:2026-10-20_22-14-03",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-front.mp4"
+        ],
+        "imgs": [
+         {
+          "src": "/api/media?path=%2Fsrv%2Fv%2Ffootage%2FTeslaCam%2FSentryClips%2F2026-10-20_22-14-03%2Fthumb.png",
+          "cls": null
+         }
+        ]
+       }
+      },
+      {
+       "id": "sentry:2026-10-20:2026-10-20_09-00-00b",
+       "className": "clip-item event-item sentry-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00b",
+       "title": "Sentry · 09:00:00b",
+       "badges": [
+        {
+         "cls": "sentry",
+         "title": null,
+         "text": "Sentry"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00b"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "sentry:2026-10-20:2026-10-20_09-00-00b",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00b/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00b/2026-10-20_08-58-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "sentry:2026-10-20:2026-10-20_09-00-00",
+       "className": "clip-item event-item sentry-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00",
+       "title": "Sentry · 09:00:00",
+       "badges": [
+        {
+         "cls": "sentry",
+         "title": null,
+         "text": "Sentry"
+        }
+       ],
+       "sub": "1 segment · 2 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "sentry:2026-10-20:2026-10-20_09-00-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00/2026-10-20_08-59-00-back.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_21-50-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-50-00",
+       "title": "Saved · 21:50:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-50-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_21-50-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-50-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-50-00/2026-10-20_21-49-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_21-45-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-45-00",
+       "title": "Saved · 21:45:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        },
+        {
+         "cls": "reason-icon alert",
+         "title": "emergencyish",
+         "text": "Emergencyish"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-45-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_21-45-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-45-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-45-00/2026-10-20_21-44-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_21-30-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-30-00",
+       "title": "Saved · 21:30:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        },
+        {
+         "cls": "reason-icon alert",
+         "title": "collision",
+         "text": "Collision Detected"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-30-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_21-30-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-30-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-30-00/2026-10-20_21-29-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_21-00-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-00-00",
+       "title": "Saved · 21:00:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-00-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_21-00-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-00-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-00-00/2026-10-20_20-59-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_20-00-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_20-00-00",
+       "title": "Saved · 20:00:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        },
+        {
+         "cls": "reason-icon alert",
+         "title": "collision",
+         "text": "Collision Detected"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_20-00-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_20-00-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_20-00-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_20-00-00/2026-10-20_19-59-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_19-00-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-00-00",
+       "title": "Saved · 19:00:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        },
+        {
+         "cls": "reason-icon warning",
+         "title": "some_new_reason_2x élan_x",
+         "text": "Some New Reason 2x éLan X"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-00-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_19-00-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-00-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-00-00/2026-10-20_18-59-00-back.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_18-00-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_18-00-00",
+       "title": "Saved · 18:00:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        },
+        {
+         "cls": "reason-icon alert",
+         "title": "vehicle_auto_emergency_braking",
+         "text": "Emergency Braking"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_18-00-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_18-00-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_18-00-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_18-00-00/2026-10-20_17-59-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_17-30-12",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12",
+       "title": "Saved · 17:30:12",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        },
+        {
+         "cls": "reason-icon warning",
+         "title": "user_interaction_honk",
+         "text": "Honk"
+        }
+       ],
+       "sub": "1 segment · 6 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12"
+       },
+       "selected": true,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_17-30-12",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-front.mp4"
+        ],
+        "imgs": []
+       }
+      }
+     ]
+    },
+    {
+     "day": "2026-10-20",
+     "active": null,
+     "thrown": null,
+     "placeholder": null,
+     "items": [
+      {
+       "id": "recent:2026-10-20",
+       "className": "clip-item event-item recent-item",
+       "folderpath": "/srv/v/footage/TeslaCam/RecentClips",
+       "title": "Recent Clips",
+       "badges": [
+        {
+         "cls": "recent",
+         "title": null,
+         "text": "Recent"
+        }
+       ],
+       "sub": "2 segments · 6 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/RecentClips"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "recent:2026-10-20",
+       "preview": {
+        "exists": [],
+        "strips": [
+         "/srv/v/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-front.mp4"
+        ],
+        "imgs": [
+         {
+          "src": "/api/media?path=%2Fsrv%2Fcache%2Fstrip%20a%231.jpg",
+          "cls": "clip-filmstrip"
+         }
+        ]
+       }
+      },
+      {
+       "id": "sentry:2026-10-20:not-an-event",
+       "className": "clip-item event-item sentry-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SentryClips/not-an-event",
+       "title": "Sentry · not-an-event",
+       "badges": [
+        {
+         "cls": "sentry",
+         "title": null,
+         "text": "Sentry"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SentryClips/not-an-event"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "sentry:2026-10-20:not-an-event",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SentryClips/not-an-event/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SentryClips/not-an-event/2026-10-20_10-00-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "sentry:2026-10-20:2026-10-20_22-14-03",
+       "className": "clip-item event-item sentry-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+       "title": "Sentry · 22:14:03",
+       "badges": [
+        {
+         "cls": "sentry",
+         "title": null,
+         "text": "Sentry"
+        }
+       ],
+       "sub": "2 segments · 6 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "sentry:2026-10-20:2026-10-20_22-14-03",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03/2026-10-20_22-13-02-front.mp4"
+        ],
+        "imgs": [
+         {
+          "src": "/api/media?path=%2Fsrv%2Fv%2Ffootage%2FTeslaCam%2FSentryClips%2F2026-10-20_22-14-03%2Fthumb.png",
+          "cls": null
+         }
+        ]
+       }
+      },
+      {
+       "id": "sentry:2026-10-20:2026-10-20_09-00-00b",
+       "className": "clip-item event-item sentry-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00b",
+       "title": "Sentry · 09:00:00b",
+       "badges": [
+        {
+         "cls": "sentry",
+         "title": null,
+         "text": "Sentry"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00b"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "sentry:2026-10-20:2026-10-20_09-00-00b",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00b/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00b/2026-10-20_08-58-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "sentry:2026-10-20:2026-10-20_09-00-00",
+       "className": "clip-item event-item sentry-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00",
+       "title": "Sentry · 09:00:00",
+       "badges": [
+        {
+         "cls": "sentry",
+         "title": null,
+         "text": "Sentry"
+        }
+       ],
+       "sub": "1 segment · 2 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "sentry:2026-10-20:2026-10-20_09-00-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00/2026-10-20_08-59-00-back.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_21-50-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-50-00",
+       "title": "Saved · 21:50:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-50-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_21-50-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-50-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-50-00/2026-10-20_21-49-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_21-45-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-45-00",
+       "title": "Saved · 21:45:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        },
+        {
+         "cls": "reason-icon alert",
+         "title": "emergencyish",
+         "text": "Emergencyish"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-45-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_21-45-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-45-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-45-00/2026-10-20_21-44-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_21-30-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-30-00",
+       "title": "Saved · 21:30:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        },
+        {
+         "cls": "reason-icon alert",
+         "title": "collision",
+         "text": "Collision Detected"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-30-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_21-30-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-30-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-30-00/2026-10-20_21-29-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_21-00-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-00-00",
+       "title": "Saved · 21:00:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-00-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_21-00-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-00-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_21-00-00/2026-10-20_20-59-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_20-00-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_20-00-00",
+       "title": "Saved · 20:00:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        },
+        {
+         "cls": "reason-icon alert",
+         "title": "collision",
+         "text": "Collision Detected"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_20-00-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_20-00-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_20-00-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_20-00-00/2026-10-20_19-59-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_19-00-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-00-00",
+       "title": "Saved · 19:00:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        },
+        {
+         "cls": "reason-icon warning",
+         "title": "some_new_reason_2x élan_x",
+         "text": "Some New Reason 2x éLan X"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-00-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_19-00-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-00-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-00-00/2026-10-20_18-59-00-back.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_18-00-00",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_18-00-00",
+       "title": "Saved · 18:00:00",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        },
+        {
+         "cls": "reason-icon alert",
+         "title": "vehicle_auto_emergency_braking",
+         "text": "Emergency Braking"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_18-00-00"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_18-00-00",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_18-00-00/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_18-00-00/2026-10-20_17-59-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "saved:2026-10-20:2026-10-20_17-30-12",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12",
+       "title": "Saved · 17:30:12",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        },
+        {
+         "cls": "reason-icon warning",
+         "title": "user_interaction_honk",
+         "text": "Honk"
+        }
+       ],
+       "sub": "1 segment · 6 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_17-30-12",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-front.mp4"
+        ],
+        "imgs": []
+       }
+      }
+     ]
+    },
+    {
+     "day": "2026-10-19",
+     "active": "recent:2026-10-19",
+     "thrown": null,
+     "placeholder": null,
+     "items": [
+      {
+       "id": "recent:2026-10-19",
+       "className": "clip-item event-item recent-item",
+       "folderpath": "/srv/v/footage/TeslaCam/RecentClips",
+       "title": "Recent Clips",
+       "badges": [
+        {
+         "cls": "recent",
+         "title": null,
+         "text": "Recent"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/RecentClips"
+       },
+       "selected": true,
+       "hover": true,
+       "opens": "recent:2026-10-19",
+       "preview": {
+        "exists": [],
+        "strips": [
+         "/srv/v/footage/TeslaCam/RecentClips/2026-10-19_07-59-00-front.mp4"
+        ],
+        "imgs": []
+       }
+      }
+     ]
+    },
+    {
+     "day": "2026-10-18",
+     "active": null,
+     "thrown": null,
+     "placeholder": null,
+     "items": []
+    },
+    {
+     "day": "",
+     "active": null,
+     "thrown": null,
+     "placeholder": "Select a dashcam folder to browse",
+     "items": []
+    }
+   ]
+  },
+  {
+   "name": "throwing-reason",
+   "rootName": "TeslaCam",
+   "files": [
+    {
+     "name": "2026-10-20_17-29-11-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-front.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_17-30-12/2026-10-20_17-29-11-front.mp4"
+    },
+    {
+     "name": "2026-10-20_18-29-11-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_18-30-12/2026-10-20_18-29-11-front.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_18-30-12/2026-10-20_18-29-11-front.mp4"
+    },
+    {
+     "name": "2026-10-20_19-29-11-front.mp4",
+     "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-30-12/2026-10-20_19-29-11-front.mp4",
+     "rel": "TeslaCam/SavedClips/2026-10-20_19-30-12/2026-10-20_19-29-11-front.mp4"
+    }
+   ],
+   "metas": {
+    "SavedClips/2026-10-20_18-30-12": {
+     "reason": 7
+    }
+   },
+   "deletion": {},
+   "profileId": "tesla",
+   "sourceKind": "tesla",
+   "exists": [],
+   "strips": {},
+   "renders": [
+    {
+     "day": "2026-10-20",
+     "active": "saved:2026-10-20:2026-10-20_19-30-12",
+     "thrown": "reason.replace is not a function",
+     "placeholder": null,
+     "items": [
+      {
+       "id": "saved:2026-10-20:2026-10-20_19-30-12",
+       "className": "clip-item event-item saved-item",
+       "folderpath": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-30-12",
+       "title": "Saved · 19:30:12",
+       "badges": [
+        {
+         "cls": "saved",
+         "title": null,
+         "text": "Saved"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-30-12"
+       },
+       "selected": false,
+       "hover": true,
+       "opens": "saved:2026-10-20:2026-10-20_19-30-12",
+       "preview": {
+        "exists": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-30-12/thumb.png"
+        ],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SavedClips/2026-10-20_19-30-12/2026-10-20_19-29-11-front.mp4"
+        ],
+        "imgs": []
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "deletion-and-custom",
+   "rootName": "Dashcam",
+   "files": [
+    {
+     "name": "2026-10-20_08-00-00-front.mp4",
+     "path": "C:\\Users\\me\\Dashcam\\MyFolder\\2026-10-20_08-00-00-front.mp4",
+     "rel": "Dashcam/MyFolder/2026-10-20_08-00-00-front.mp4"
+    },
+    {
+     "name": "2026-10-20_08-01-00-back.mp4",
+     "path": "C:\\Users\\me\\Dashcam\\MyFolder\\2026-10-20_08-01-00-back.mp4",
+     "rel": "Dashcam/MyFolder/2026-10-20_08-01-00-back.mp4"
+    },
+    {
+     "name": "2026-10-20_07-00-00-front.MOV",
+     "path": "C:\\Users\\me\\Dashcam\\Other\\2026-10-20_07-00-00-front.MOV",
+     "rel": "Dashcam/Other/2026-10-20_07-00-00-front.MOV"
+    },
+    {
+     "name": "2026-10-20_06-00-00-left_repeater.mp4",
+     "path": "C:\\Users\\me\\Dashcam\\Other\\2026-10-20_06-00-00-left_repeater.mp4",
+     "rel": "Dashcam/Other/2026-10-20_06-00-00-left_repeater.mp4"
+    }
+   ],
+   "metas": {},
+   "deletion": {
+    "2026-10-20": {
+     "allowed": true,
+     "path": "C:\\Users\\me\\Dashcam\\MyFolder"
+    }
+   },
+   "profileId": "tesla",
+   "sourceKind": "tesla",
+   "exists": [],
+   "strips": {},
+   "renders": [
+    {
+     "day": "2026-10-20",
+     "active": "custom:2026-10-20",
+     "thrown": null,
+     "placeholder": null,
+     "items": [
+      {
+       "id": "custom:2026-10-20",
+       "className": "clip-item event-item custom-item",
+       "folderpath": "C:\\Users\\me\\Dashcam\\MyFolder",
+       "title": "Dashcam Clips",
+       "badges": [
+        {
+         "cls": "custom",
+         "title": null,
+         "text": "Custom"
+        }
+       ],
+       "sub": "3 segments · 1 cam",
+       "del": {
+        "title": "Delete Clip",
+        "path": "C:\\Users\\me\\Dashcam\\MyFolder"
+       },
+       "selected": true,
+       "hover": true,
+       "opens": "custom:2026-10-20",
+       "preview": {
+        "exists": [],
+        "strips": [
+         "C:\\Users\\me\\Dashcam\\Other\\2026-10-20_06-00-00-left_repeater.mp4"
+        ],
+        "imgs": []
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "deletion-refused",
+   "rootName": "TeslaCam",
+   "files": [
+    {
+     "name": "2026-10-20_08-00-00-back.mp4",
+     "path": "/srv/v/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-back.mp4",
+     "rel": "TeslaCam/RecentClips/2026-10-20_08-00-00-back.mp4"
+    },
+    {
+     "name": "2026-10-20_08-59-00-back.mp4",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00/2026-10-20_08-59-00-back.mp4",
+     "rel": "TeslaCam/SentryClips/2026-10-20_09-00-00/2026-10-20_08-59-00-back.mp4"
+    }
+   ],
+   "metas": {},
+   "deletion": {
+    "2026-10-20": {
+     "allowed": false,
+     "path": "/x"
+    }
+   },
+   "profileId": "tesla",
+   "sourceKind": "tesla",
+   "exists": [],
+   "strips": {},
+   "renders": [
+    {
+     "day": "2026-10-20",
+     "active": "nothing",
+     "thrown": null,
+     "placeholder": null,
+     "items": [
+      {
+       "id": "recent:2026-10-20",
+       "className": "clip-item event-item recent-item",
+       "folderpath": null,
+       "title": "Recent Clips",
+       "badges": [
+        {
+         "cls": "recent",
+         "title": null,
+         "text": "Recent"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": null,
+       "selected": false,
+       "hover": true,
+       "opens": "recent:2026-10-20",
+       "preview": {
+        "exists": [],
+        "strips": [
+         "/srv/v/footage/TeslaCam/RecentClips/2026-10-20_08-00-00-back.mp4"
+        ],
+        "imgs": []
+       }
+      },
+      {
+       "id": "sentry:2026-10-20:2026-10-20_09-00-00",
+       "className": "clip-item event-item sentry-item",
+       "folderpath": null,
+       "title": "Sentry · 09:00:00",
+       "badges": [
+        {
+         "cls": "sentry",
+         "title": null,
+         "text": "Sentry"
+        }
+       ],
+       "sub": "1 segment · 1 cam",
+       "del": null,
+       "selected": false,
+       "hover": true,
+       "opens": "sentry:2026-10-20:2026-10-20_09-00-00",
+       "preview": {
+        "exists": [],
+        "strips": [
+         "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_09-00-00/2026-10-20_08-59-00-back.mp4"
+        ],
+        "imgs": []
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "gm",
+   "rootName": "Continuous",
+   "files": [
+    {
+     "name": "FRONT_2026_10_10_T_08_00_00.mp4",
+     "path": "/srv/g/Continuous/2026-10-10/FRONT_2026_10_10_T_08_00_00.mp4",
+     "rel": "Continuous/2026-10-10/FRONT_2026_10_10_T_08_00_00.mp4"
+    },
+    {
+     "name": "REAR_2026_10_10_T_08_00_00.mp4",
+     "path": "/srv/g/Continuous/2026-10-10/REAR_2026_10_10_T_08_00_00.mp4",
+     "rel": "Continuous/2026-10-10/REAR_2026_10_10_T_08_00_00.mp4"
+    },
+    {
+     "name": "FRONT_2026_10_10_T_08_01_00.mp4",
+     "path": "/srv/g/Continuous/2026-10-10/FRONT_2026_10_10_T_08_01_00.mp4",
+     "rel": "Continuous/2026-10-10/FRONT_2026_10_10_T_08_01_00.mp4"
+    }
+   ],
+   "metas": {},
+   "deletion": {},
+   "profileId": "gm_surroundvision",
+   "sourceKind": "gmc-raw-flat",
+   "exists": [],
+   "strips": {},
+   "renders": [
+    {
+     "day": "2026-10-10",
+     "active": null,
+     "thrown": null,
+     "placeholder": null,
+     "items": [
+      {
+       "id": "custom:2026-10-10",
+       "className": "clip-item event-item custom-item",
+       "folderpath": null,
+       "title": "Continuous Clips",
+       "badges": [
+        {
+         "cls": "custom",
+         "title": null,
+         "text": "Continuous"
+        }
+       ],
+       "sub": "2 segments · 2 cam",
+       "del": null,
+       "selected": false,
+       "hover": true,
+       "opens": "custom:2026-10-10",
+       "preview": {
+        "exists": [],
+        "strips": [
+         "/srv/g/Continuous/2026-10-10/FRONT_2026_10_10_T_08_00_00.mp4"
+        ],
+        "imgs": []
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "deletes": [
+  {
+   "name": "moved",
+   "playing": false,
+   "answer": {
+    "success": true
+   },
+   "status": null,
+   "error": null,
+   "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+   "dialogs": [
+    {
+     "icon": "delete",
+     "title": "Delete Clip?",
+     "message": "Are you sure you want to permanently delete this clip folder?",
+     "pathLabel": "Folder path:",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": "This action cannot be undone.",
+     "confirm": "Delete",
+     "cancel": "Cancel"
+    },
+    {
+     "icon": "error",
+     "title": "Are You Sure?",
+     "message": "This will permanently delete all files in this folder. This cannot be undone!",
+     "pathLabel": null,
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": null,
+     "confirm": "Yes, Delete Permanently",
+     "cancel": "Cancel"
+    }
+   ],
+   "during": {
+    "disabled": true,
+    "text": "Deleting..."
+   },
+   "calls": [
+    [
+     "POST",
+     "/api/studio/trashFolder",
+     "{\"path\":\"/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03\"}"
+    ]
+   ],
+   "notes": [
+    [
+     "Clip deleted successfully",
+     "success"
+    ]
+   ],
+   "deleted": [
+    [
+     "sentry:2026-10-20:2026-10-20_22-14-03",
+     "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     false
+    ]
+   ],
+   "open": false,
+   "after": null
+  },
+  {
+   "name": "refused",
+   "playing": false,
+   "answer": {
+    "success": false,
+    "error": "This recording is protected."
+   },
+   "status": null,
+   "error": null,
+   "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+   "dialogs": [
+    {
+     "icon": "delete",
+     "title": "Delete Clip?",
+     "message": "Are you sure you want to permanently delete this clip folder?",
+     "pathLabel": "Folder path:",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": "This action cannot be undone.",
+     "confirm": "Delete",
+     "cancel": "Cancel"
+    },
+    {
+     "icon": "error",
+     "title": "Are You Sure?",
+     "message": "This will permanently delete all files in this folder. This cannot be undone!",
+     "pathLabel": null,
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": null,
+     "confirm": "Yes, Delete Permanently",
+     "cancel": "Cancel"
+    }
+   ],
+   "during": {
+    "disabled": true,
+    "text": "Deleting..."
+   },
+   "calls": [
+    [
+     "POST",
+     "/api/studio/trashFolder",
+     "{\"path\":\"/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03\"}"
+    ]
+   ],
+   "notes": [
+    [
+     "Failed to delete clip: This recording is protected.",
+     "error"
+    ]
+   ],
+   "deleted": [],
+   "open": true,
+   "after": {
+    "disabled": false,
+    "text": "Yes, Delete Permanently"
+   }
+  },
+  {
+   "name": "nothing",
+   "playing": false,
+   "answer": {
+    "success": false
+   },
+   "status": null,
+   "error": null,
+   "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+   "dialogs": [
+    {
+     "icon": "delete",
+     "title": "Delete Clip?",
+     "message": "Are you sure you want to permanently delete this clip folder?",
+     "pathLabel": "Folder path:",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": "This action cannot be undone.",
+     "confirm": "Delete",
+     "cancel": "Cancel"
+    },
+    {
+     "icon": "error",
+     "title": "Are You Sure?",
+     "message": "This will permanently delete all files in this folder. This cannot be undone!",
+     "pathLabel": null,
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": null,
+     "confirm": "Yes, Delete Permanently",
+     "cancel": "Cancel"
+    }
+   ],
+   "during": {
+    "disabled": true,
+    "text": "Deleting..."
+   },
+   "calls": [
+    [
+     "POST",
+     "/api/studio/trashFolder",
+     "{\"path\":\"/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03\"}"
+    ]
+   ],
+   "notes": [
+    [
+     "Failed to delete clip: Unknown error",
+     "error"
+    ]
+   ],
+   "deleted": [],
+   "open": true,
+   "after": {
+    "disabled": false,
+    "text": "Yes, Delete Permanently"
+   }
+  },
+  {
+   "name": "error-object",
+   "playing": false,
+   "answer": {
+    "success": false,
+    "error": {
+     "code": 1
+    }
+   },
+   "status": null,
+   "error": null,
+   "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+   "dialogs": [
+    {
+     "icon": "delete",
+     "title": "Delete Clip?",
+     "message": "Are you sure you want to permanently delete this clip folder?",
+     "pathLabel": "Folder path:",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": "This action cannot be undone.",
+     "confirm": "Delete",
+     "cancel": "Cancel"
+    },
+    {
+     "icon": "error",
+     "title": "Are You Sure?",
+     "message": "This will permanently delete all files in this folder. This cannot be undone!",
+     "pathLabel": null,
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": null,
+     "confirm": "Yes, Delete Permanently",
+     "cancel": "Cancel"
+    }
+   ],
+   "during": {
+    "disabled": true,
+    "text": "Deleting..."
+   },
+   "calls": [
+    [
+     "POST",
+     "/api/studio/trashFolder",
+     "{\"path\":\"/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03\"}"
+    ]
+   ],
+   "notes": [
+    [
+     "Failed to delete clip: [object Object]",
+     "error"
+    ]
+   ],
+   "deleted": [],
+   "open": true,
+   "after": {
+    "disabled": false,
+    "text": "Yes, Delete Permanently"
+   }
+  },
+  {
+   "name": "ok-only",
+   "playing": false,
+   "answer": {
+    "ok": true
+   },
+   "status": null,
+   "error": null,
+   "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+   "dialogs": [
+    {
+     "icon": "delete",
+     "title": "Delete Clip?",
+     "message": "Are you sure you want to permanently delete this clip folder?",
+     "pathLabel": "Folder path:",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": "This action cannot be undone.",
+     "confirm": "Delete",
+     "cancel": "Cancel"
+    },
+    {
+     "icon": "error",
+     "title": "Are You Sure?",
+     "message": "This will permanently delete all files in this folder. This cannot be undone!",
+     "pathLabel": null,
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": null,
+     "confirm": "Yes, Delete Permanently",
+     "cancel": "Cancel"
+    }
+   ],
+   "during": {
+    "disabled": true,
+    "text": "Deleting..."
+   },
+   "calls": [
+    [
+     "POST",
+     "/api/studio/trashFolder",
+     "{\"path\":\"/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03\"}"
+    ]
+   ],
+   "notes": [
+    [
+     "Failed to delete clip: Unknown error",
+     "error"
+    ]
+   ],
+   "deleted": [],
+   "open": true,
+   "after": {
+    "disabled": false,
+    "text": "Yes, Delete Permanently"
+   }
+  },
+  {
+   "name": "null",
+   "playing": false,
+   "answer": null,
+   "status": null,
+   "error": null,
+   "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+   "dialogs": [
+    {
+     "icon": "delete",
+     "title": "Delete Clip?",
+     "message": "Are you sure you want to permanently delete this clip folder?",
+     "pathLabel": "Folder path:",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": "This action cannot be undone.",
+     "confirm": "Delete",
+     "cancel": "Cancel"
+    },
+    {
+     "icon": "error",
+     "title": "Are You Sure?",
+     "message": "This will permanently delete all files in this folder. This cannot be undone!",
+     "pathLabel": null,
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": null,
+     "confirm": "Yes, Delete Permanently",
+     "cancel": "Cancel"
+    }
+   ],
+   "during": {
+    "disabled": true,
+    "text": "Deleting..."
+   },
+   "calls": [
+    [
+     "POST",
+     "/api/studio/trashFolder",
+     "{\"path\":\"/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03\"}"
+    ]
+   ],
+   "notes": [
+    [
+     "Failed to delete clip: Cannot read properties of null (reading 'success')",
+     "error"
+    ]
+   ],
+   "deleted": [],
+   "open": true,
+   "after": {
+    "disabled": false,
+    "text": "Yes, Delete Permanently"
+   }
+  },
+  {
+   "name": "http-403",
+   "playing": false,
+   "answer": null,
+   "status": 403,
+   "error": "Not inside a vehicle share.",
+   "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+   "dialogs": [
+    {
+     "icon": "delete",
+     "title": "Delete Clip?",
+     "message": "Are you sure you want to permanently delete this clip folder?",
+     "pathLabel": "Folder path:",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": "This action cannot be undone.",
+     "confirm": "Delete",
+     "cancel": "Cancel"
+    },
+    {
+     "icon": "error",
+     "title": "Are You Sure?",
+     "message": "This will permanently delete all files in this folder. This cannot be undone!",
+     "pathLabel": null,
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": null,
+     "confirm": "Yes, Delete Permanently",
+     "cancel": "Cancel"
+    }
+   ],
+   "during": {
+    "disabled": true,
+    "text": "Deleting..."
+   },
+   "calls": [
+    [
+     "POST",
+     "/api/studio/trashFolder",
+     "{\"path\":\"/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03\"}"
+    ]
+   ],
+   "notes": [
+    [
+     "Failed to delete clip: Not inside a vehicle share.",
+     "error"
+    ]
+   ],
+   "deleted": [],
+   "open": true,
+   "after": {
+    "disabled": false,
+    "text": "Yes, Delete Permanently"
+   }
+  },
+  {
+   "name": "http-500-no-words",
+   "playing": false,
+   "answer": null,
+   "status": 500,
+   "error": "Internal Server Error",
+   "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+   "dialogs": [
+    {
+     "icon": "delete",
+     "title": "Delete Clip?",
+     "message": "Are you sure you want to permanently delete this clip folder?",
+     "pathLabel": "Folder path:",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": "This action cannot be undone.",
+     "confirm": "Delete",
+     "cancel": "Cancel"
+    },
+    {
+     "icon": "error",
+     "title": "Are You Sure?",
+     "message": "This will permanently delete all files in this folder. This cannot be undone!",
+     "pathLabel": null,
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": null,
+     "confirm": "Yes, Delete Permanently",
+     "cancel": "Cancel"
+    }
+   ],
+   "during": {
+    "disabled": true,
+    "text": "Deleting..."
+   },
+   "calls": [
+    [
+     "POST",
+     "/api/studio/trashFolder",
+     "{\"path\":\"/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03\"}"
+    ]
+   ],
+   "notes": [
+    [
+     "Failed to delete clip: Internal Server Error",
+     "error"
+    ]
+   ],
+   "deleted": [],
+   "open": true,
+   "after": {
+    "disabled": false,
+    "text": "Yes, Delete Permanently"
+   }
+  },
+  {
+   "name": "playing-moved",
+   "playing": true,
+   "answer": {
+    "success": true
+   },
+   "status": null,
+   "error": null,
+   "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+   "dialogs": [
+    {
+     "icon": "delete",
+     "title": "Delete Clip?",
+     "message": "Are you sure you want to permanently delete this clip folder?",
+     "pathLabel": "Folder path:",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": "This action cannot be undone.",
+     "confirm": "Delete",
+     "cancel": "Cancel"
+    },
+    {
+     "icon": "error",
+     "title": "Are You Sure?",
+     "message": "This will permanently delete all files in this folder. This cannot be undone!",
+     "pathLabel": null,
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": null,
+     "confirm": "Yes, Delete Permanently",
+     "cancel": "Cancel"
+    }
+   ],
+   "during": {
+    "disabled": true,
+    "text": "Deleting..."
+   },
+   "calls": [
+    [
+     "POST",
+     "/api/studio/trashFolder",
+     "{\"path\":\"/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03\"}"
+    ],
+    [
+     "reload"
+    ],
+    [
+     "POST",
+     "/api/studio/trashFolder",
+     "{\"path\":\"/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03\"}"
+    ]
+   ],
+   "notes": [
+    [
+     "Clip deleted successfully",
+     "success"
+    ]
+   ],
+   "deleted": [
+    [
+     "sentry:2026-10-20:2026-10-20_22-14-03",
+     "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     false
+    ]
+   ],
+   "open": false,
+   "after": null
+  },
+  {
+   "name": "playing-refused",
+   "playing": true,
+   "answer": {
+    "success": false,
+    "error": "x"
+   },
+   "status": null,
+   "error": null,
+   "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+   "dialogs": [
+    {
+     "icon": "delete",
+     "title": "Delete Clip?",
+     "message": "Are you sure you want to permanently delete this clip folder?",
+     "pathLabel": "Folder path:",
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": "This action cannot be undone.",
+     "confirm": "Delete",
+     "cancel": "Cancel"
+    },
+    {
+     "icon": "error",
+     "title": "Are You Sure?",
+     "message": "This will permanently delete all files in this folder. This cannot be undone!",
+     "pathLabel": null,
+     "path": "/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03",
+     "warning": null,
+     "confirm": "Yes, Delete Permanently",
+     "cancel": "Cancel"
+    }
+   ],
+   "during": {
+    "disabled": true,
+    "text": "Deleting..."
+   },
+   "calls": [
+    [
+     "POST",
+     "/api/studio/trashFolder",
+     "{\"path\":\"/srv/v/footage/TeslaCam/SentryClips/2026-10-20_22-14-03\"}"
+    ],
+    [
+     "reload"
+    ]
+   ],
+   "notes": [
+    [
+     "Failed to delete clip: x",
+     "error"
+    ]
+   ],
+   "deleted": [],
+   "open": false,
+   "after": null
+  }
+ ],
+ "panels": [
+  {
+   "name": "modern-first",
+   "settings": {},
+   "saved": null,
+   "steps": [
+    {
+     "step": [
+      "init"
+     ],
+     "mode": "clips-mode-floating",
+     "saved": "floating",
+     "title": "Collapse panel",
+     "width": "360px",
+     "handle": false,
+     "saves": []
+    },
+    {
+     "step": [
+      "toggle"
+     ],
+     "mode": "clips-mode-collapsed",
+     "saved": "collapsed",
+     "title": "Expand panel",
+     "width": "360px",
+     "handle": false,
+     "saves": []
+    },
+    {
+     "step": [
+      "toggle"
+     ],
+     "mode": "clips-mode-floating",
+     "saved": "floating",
+     "title": "Collapse panel",
+     "width": "360px",
+     "handle": false,
+     "saves": []
+    },
+    {
+     "step": [
+      "layout",
+      "classic"
+     ],
+     "mode": "clips-mode-docked",
+     "saved": "docked",
+     "title": "Hide sidebar",
+     "width": "360px",
+     "handle": true,
+     "saves": [
+      [
+       "layoutStyle",
+       "classic"
+      ]
+     ]
+    },
+    {
+     "step": [
+      "toggle"
+     ],
+     "mode": "clips-mode-hidden",
+     "saved": "hidden",
+     "title": "Show sidebar",
+     "width": "360px",
+     "handle": true,
+     "saves": []
+    },
+    {
+     "step": [
+      "layout",
+      "modern"
+     ],
+     "mode": "clips-mode-floating",
+     "saved": "floating",
+     "title": "Collapse panel",
+     "width": "360px",
+     "handle": true,
+     "saves": [
+      [
+       "layoutStyle",
+       "modern"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "name": "modern-collapsed",
+   "settings": {
+    "layoutStyle": "modern"
+   },
+   "saved": "collapsed",
+   "steps": [
+    {
+     "step": [
+      "init"
+     ],
+     "mode": "clips-mode-collapsed",
+     "saved": "collapsed",
+     "title": "Expand panel",
+     "width": "360px",
+     "handle": false,
+     "saves": []
+    },
+    {
+     "step": [
+      "toggle"
+     ],
+     "mode": "clips-mode-floating",
+     "saved": "floating",
+     "title": "Collapse panel",
+     "width": "360px",
+     "handle": false,
+     "saves": []
+    }
+   ]
+  },
+  {
+   "name": "modern-saved-hidden",
+   "settings": {},
+   "saved": "hidden",
+   "steps": [
+    {
+     "step": [
+      "init"
+     ],
+     "mode": "clips-mode-floating",
+     "saved": "floating",
+     "title": "Collapse panel",
+     "width": "360px",
+     "handle": false,
+     "saves": []
+    },
+    {
+     "step": [
+      "toggle"
+     ],
+     "mode": "clips-mode-collapsed",
+     "saved": "collapsed",
+     "title": "Expand panel",
+     "width": "360px",
+     "handle": false,
+     "saves": []
+    }
+   ]
+  },
+  {
+   "name": "classic",
+   "settings": {
+    "layoutStyle": "classic",
+    "sidebarWidth": 420
+   },
+   "saved": "floating",
+   "steps": [
+    {
+     "step": [
+      "init"
+     ],
+     "mode": "clips-mode-docked",
+     "saved": "docked",
+     "title": "Hide sidebar",
+     "width": "420px",
+     "handle": true,
+     "saves": []
+    },
+    {
+     "step": [
+      "drag",
+      400,
+      [
+       430,
+       900,
+       900
+      ]
+     ],
+     "mode": "clips-mode-docked",
+     "saved": "docked",
+     "title": "Hide sidebar",
+     "width": "600px",
+     "handle": true,
+     "saves": [
+      [
+       "sidebarWidth",
+       600
+      ]
+     ]
+    },
+    {
+     "step": [
+      "drag",
+      400,
+      [
+       100
+      ]
+     ],
+     "mode": "clips-mode-docked",
+     "saved": "docked",
+     "title": "Hide sidebar",
+     "width": "300px",
+     "handle": true,
+     "saves": [
+      [
+       "sidebarWidth",
+       300
+      ]
+     ]
+    },
+    {
+     "step": [
+      "drag",
+      400,
+      []
+     ],
+     "mode": "clips-mode-docked",
+     "saved": "docked",
+     "title": "Hide sidebar",
+     "width": "300px",
+     "handle": true,
+     "saves": [
+      [
+       "sidebarWidth",
+       300
+      ]
+     ]
+    },
+    {
+     "step": [
+      "toggle"
+     ],
+     "mode": "clips-mode-hidden",
+     "saved": "hidden",
+     "title": "Show sidebar",
+     "width": "300px",
+     "handle": true,
+     "saves": []
+    },
+    {
+     "step": [
+      "toggle"
+     ],
+     "mode": "clips-mode-docked",
+     "saved": "docked",
+     "title": "Hide sidebar",
+     "width": "300px",
+     "handle": true,
+     "saves": []
+    },
+    {
+     "step": [
+      "drag",
+      100,
+      [
+       101.6
+      ]
+     ],
+     "mode": "clips-mode-docked",
+     "saved": "docked",
+     "title": "Hide sidebar",
+     "width": "301px",
+     "handle": true,
+     "saves": [
+      [
+       "sidebarWidth",
+       301
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "name": "classic-hidden",
+   "settings": {
+    "layoutStyle": "classic",
+    "sidebarWidth": 1000
+   },
+   "saved": "hidden",
+   "steps": [
+    {
+     "step": [
+      "init"
+     ],
+     "mode": "clips-mode-hidden",
+     "saved": "hidden",
+     "title": "Show sidebar",
+     "width": "1000px",
+     "handle": true,
+     "saves": []
+    },
+    {
+     "step": [
+      "toggle"
+     ],
+     "mode": "clips-mode-docked",
+     "saved": "docked",
+     "title": "Hide sidebar",
+     "width": "1000px",
+     "handle": true,
+     "saves": []
+    },
+    {
+     "step": [
+      "layout",
+      "modern"
+     ],
+     "mode": "clips-mode-floating",
+     "saved": "floating",
+     "title": "Collapse panel",
+     "width": "1000px",
+     "handle": true,
+     "saves": [
+      [
+       "layoutStyle",
+       "modern"
+      ]
+     ]
+    },
+    {
+     "step": [
+      "drag",
+      0,
+      [
+       50
+      ]
+     ],
+     "mode": "clips-mode-floating",
+     "saved": "floating",
+     "title": "Collapse panel",
+     "width": "1000px",
+     "handle": true,
+     "saves": []
+    },
+    {
+     "step": [
+      "toggle"
+     ],
+     "mode": "clips-mode-collapsed",
+     "saved": "collapsed",
+     "title": "Expand panel",
+     "width": "1000px",
+     "handle": true,
+     "saves": []
+    }
+   ]
+  },
+  {
+   "name": "classic-zero-width",
+   "settings": {
+    "layoutStyle": "classic",
+    "sidebarWidth": 0
+   },
+   "saved": "collapsed",
+   "steps": [
+    {
+     "step": [
+      "init"
+     ],
+     "mode": "clips-mode-docked",
+     "saved": "docked",
+     "title": "Hide sidebar",
+     "width": "360px",
+     "handle": true,
+     "saves": []
+    },
+    {
+     "step": [
+      "layout",
+      "modern"
+     ],
+     "mode": "clips-mode-floating",
+     "saved": "floating",
+     "title": "Collapse panel",
+     "width": "360px",
+     "handle": true,
+     "saves": [
+      [
+       "layoutStyle",
+       "modern"
+      ]
+     ]
+    }
+   ]
+  }
+ ],
+ "reasons": [
+  {
+   "reason": "sentry_aware_object_detection",
+   "text": "Object Detected"
+  },
+  {
+   "reason": "user_interaction_honk",
+   "text": "Honk"
+  },
+  {
+   "reason": "collision",
+   "text": "Collision Detected"
+  },
+  {
+   "reason": "some_new_reason",
+   "text": "Some New Reason"
+  },
+  {
+   "reason": "already Spaced words",
+   "text": "Already Spaced Words"
+  },
+  {
+   "reason": "x2y_3z",
+   "text": "X2y 3z"
+  },
+  {
+   "reason": "élan_vital",
+   "text": "éLan Vital"
+  },
+  {
+   "reason": "a.b-c",
+   "text": "A.B-C"
+  },
+  {
+   "reason": "__",
+   "text": "  "
+  },
+  {
+   "reason": "abc_DEF",
+   "text": "Abc DEF"
+  },
+  {
+   "reason": "naïve_x",
+   "text": "NaïVe X"
+  },
+  {
+   "reason": "1st_try",
+   "text": "1st Try"
+  },
+  {
+   "reason": "Ωmega_x",
+   "text": "ΩMega X"
+  }
+ ],
+ "times": [
+  {
+   "id": "2025-12-11_17-58-00",
+   "time": "17:58:00"
+  },
+  {
+   "id": "2025-12-11",
+   "time": "2025-12-11"
+  },
+  {
+   "id": "a_b_c",
+   "time": "b"
+  },
+  {
+   "id": "_x",
+   "time": "x"
+  },
+  {
+   "id": "x_",
+   "time": ""
+  },
+  {
+   "id": "",
+   "time": ""
+  },
+  {
+   "id": "a_-b-",
+   "time": ":b:"
+  }
+ ],
+ "order": [
+  [
+   "\u0000",
+   31
+  ],
+  [
+   "\u0001",
+   31
+  ],
+  [
+   "\u0002",
+   31
+  ],
+  [
+   "\u0003",
+   31
+  ],
+  [
+   "\u0004",
+   31
+  ],
+  [
+   "\u0005",
+   31
+  ],
+  [
+   "\u0006",
+   31
+  ],
+  [
+   "\u0007",
+   31
+  ],
+  [
+   "\b",
+   31
+  ],
+  [
+   "\u000e",
+   31
+  ],
+  [
+   "\u000f",
+   31
+  ],
+  [
+   "\u0010",
+   31
+  ],
+  [
+   "\u0011",
+   31
+  ],
+  [
+   "\u0012",
+   31
+  ],
+  [
+   "\u0013",
+   31
+  ],
+  [
+   "\u0014",
+   31
+  ],
+  [
+   "\u0015",
+   31
+  ],
+  [
+   "\u0016",
+   31
+  ],
+  [
+   "\u0017",
+   31
+  ],
+  [
+   "\u0018",
+   31
+  ],
+  [
+   "\u0019",
+   31
+  ],
+  [
+   "\u001a",
+   31
+  ],
+  [
+   "\u001b",
+   31
+  ],
+  [
+   "\u001c",
+   31
+  ],
+  [
+   "\u001d",
+   31
+  ],
+  [
+   "\u001e",
+   31
+  ],
+  [
+   "\u001f",
+   31
+  ],
+  [
+   "",
+   31
+  ],
+  [
+   "\u0001\u0007",
+   31
+  ],
+  [
+   "\u0007\u0001",
+   31
+  ],
+  [
+   "",
+   31
+  ],
+  [
+   "\t",
+   1
+  ],
+  [
+   "\n",
+   1
+  ],
+  [
+   "\u000b",
+   1
+  ],
+  [
+   "\f",
+   1
+  ],
+  [
+   "\r",
+   1
+  ],
+  [
+   " ",
+   3
+  ],
+  [
+   " \u0007",
+   3
+  ],
+  [
+   "\u0007 ",
+   3
+  ],
+  [
+   " _",
+   1
+  ],
+  [
+   " -",
+   1
+  ],
+  [
+   " .",
+   1
+  ],
+  [
+   " 1",
+   1
+  ],
+  [
+   " b",
+   1
+  ],
+  [
+   " B",
+   1
+  ],
+  [
+   "_",
+   5
+  ],
+  [
+   "_\u0007",
+   5
+  ],
+  [
+   "\u0007_",
+   5
+  ],
+  [
+   "\u0001_",
+   5
+  ],
+  [
+   "_\u0001",
+   5
+  ],
+  [
+   "_ ",
+   1
+  ],
+  [
+   "__",
+   2
+  ],
+  [
+   "__",
+   2
+  ],
+  [
+   "_-",
+   2
+  ],
+  [
+   "_-",
+   2
+  ],
+  [
+   "_.",
+   1
+  ],
+  [
+   "_0",
+   1
+  ],
+  [
+   "_1",
+   1
+  ],
+  [
+   "_a",
+   1
+  ],
+  [
+   "_A",
+   1
+  ],
+  [
+   "_b",
+   1
+  ],
+  [
+   "_B",
+   1
+  ],
+  [
+   "-",
+   5
+  ],
+  [
+   "-\u0007",
+   5
+  ],
+  [
+   "\u0007-",
+   5
+  ],
+  [
+   "\u0001-",
+   5
+  ],
+  [
+   "-\u0001",
+   5
+  ],
+  [
+   "- ",
+   1
+  ],
+  [
+   "-_",
+   2
+  ],
+  [
+   "-_",
+   2
+  ],
+  [
+   "--",
+   2
+  ],
+  [
+   "--",
+   2
+  ],
+  [
+   "-.",
+   1
+  ],
+  [
+   "-0",
+   1
+  ],
+  [
+   "-1",
+   1
+  ],
+  [
+   "-a",
+   1
+  ],
+  [
+   "-A",
+   1
+  ],
+  [
+   "-b",
+   1
+  ],
+  [
+   "-B",
+   1
+  ],
+  [
+   ",",
+   1
+  ],
+  [
+   ";",
+   1
+  ],
+  [
+   ":",
+   1
+  ],
+  [
+   "!",
+   1
+  ],
+  [
+   "?",
+   1
+  ],
+  [
+   ".",
+   3
+  ],
+  [
+   "\u0001.",
+   3
+  ],
+  [
+   ".\u0001",
+   3
+  ],
+  [
+   ". ",
+   1
+  ],
+  [
+   "._",
+   1
+  ],
+  [
+   ".-",
+   1
+  ],
+  [
+   ".0",
+   1
+  ],
+  [
+   ".a",
+   1
+  ],
+  [
+   ".A",
+   1
+  ],
+  [
+   "'",
+   1
+  ],
+  [
+   "\"",
+   1
+  ],
+  [
+   "(",
+   1
+  ],
+  [
+   ")",
+   1
+  ],
+  [
+   "[",
+   1
+  ],
+  [
+   "]",
+   1
+  ],
+  [
+   "{",
+   1
+  ],
+  [
+   "}",
+   1
+  ],
+  [
+   "@",
+   1
+  ],
+  [
+   "*",
+   1
+  ],
+  [
+   "/",
+   1
+  ],
+  [
+   "\\",
+   1
+  ],
+  [
+   "&",
+   1
+  ],
+  [
+   "#",
+   1
+  ],
+  [
+   "%",
+   1
+  ],
+  [
+   "`",
+   1
+  ],
+  [
+   "^",
+   1
+  ],
+  [
+   "+",
+   1
+  ],
+  [
+   "<",
+   1
+  ],
+  [
+   "=",
+   1
+  ],
+  [
+   ">",
+   1
+  ],
+  [
+   "|",
+   1
+  ],
+  [
+   "~",
+   1
+  ],
+  [
+   "$",
+   1
+  ],
+  [
+   "0",
+   3
+  ],
+  [
+   "0\u0007",
+   3
+  ],
+  [
+   "\u00070",
+   3
+  ],
+  [
+   "0_",
+   1
+  ],
+  [
+   "0-",
+   1
+  ],
+  [
+   "0.",
+   1
+  ],
+  [
+   "01",
+   1
+  ],
+  [
+   "0b",
+   1
+  ],
+  [
+   "0B",
+   1
+  ],
+  [
+   "1",
+   3
+  ],
+  [
+   "\u00011",
+   3
+  ],
+  [
+   "1\u0001",
+   3
+  ],
+  [
+   "1 ",
+   1
+  ],
+  [
+   "1_",
+   1
+  ],
+  [
+   "1-",
+   1
+  ],
+  [
+   "10",
+   1
+  ],
+  [
+   "1a",
+   1
+  ],
+  [
+   "1A",
+   1
+  ],
+  [
+   "2",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   1
+  ],
+  [
+   "2026-10-20 22-14-03",
+   1
+  ],
+  [
+   "2026-10-20_22-14-03",
+   1
+  ],
+  [
+   "2026-10-20_22-14-03b",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   1
+  ],
+  [
+   "3",
+   1
+  ],
+  [
+   "4",
+   1
+  ],
+  [
+   "5",
+   1
+  ],
+  [
+   "6",
+   1
+  ],
+  [
+   "7",
+   1
+  ],
+  [
+   "8",
+   1
+  ],
+  [
+   "9",
+   1
+  ],
+  [
+   "a",
+   4
+  ],
+  [
+   "a\u0007",
+   4
+  ],
+  [
+   "\u0007a",
+   4
+  ],
+  [
+   "a",
+   4
+  ],
+  [
+   "A",
+   4
+  ],
+  [
+   "A\u0007",
+   4
+  ],
+  [
+   "\u0007A",
+   4
+  ],
+  [
+   "A",
+   4
+  ],
+  [
+   "a_",
+   1
+  ],
+  [
+   "A_",
+   1
+  ],
+  [
+   "a-",
+   1
+  ],
+  [
+   "A-",
+   1
+  ],
+  [
+   "a.",
+   1
+  ],
+  [
+   "A.",
+   1
+  ],
+  [
+   "a1",
+   1
+  ],
+  [
+   "A1",
+   1
+  ],
+  [
+   "ab",
+   4
+  ],
+  [
+   "ab",
+   4
+  ],
+  [
+   "a\u0001b",
+   4
+  ],
+  [
+   "ab\u0001",
+   4
+  ],
+  [
+   "aB",
+   2
+  ],
+  [
+   "aB",
+   2
+  ],
+  [
+   "Ab",
+   2
+  ],
+  [
+   "Ab",
+   2
+  ],
+  [
+   "AB",
+   2
+  ],
+  [
+   "AB",
+   2
+  ],
+  [
+   "b",
+   3
+  ],
+  [
+   "\u0001b",
+   3
+  ],
+  [
+   "b\u0001",
+   3
+  ],
+  [
+   "B",
+   3
+  ],
+  [
+   "\u0001B",
+   3
+  ],
+  [
+   "B\u0001",
+   3
+  ],
+  [
+   "b ",
+   1
+  ],
+  [
+   "B ",
+   1
+  ],
+  [
+   "b_",
+   1
+  ],
+  [
+   "B_",
+   1
+  ],
+  [
+   "b-",
+   1
+  ],
+  [
+   "B-",
+   1
+  ],
+  [
+   "b0",
+   1
+  ],
+  [
+   "B0",
+   1
+  ],
+  [
+   "ba",
+   1
+  ],
+  [
+   "bA",
+   1
+  ],
+  [
+   "Ba",
+   1
+  ],
+  [
+   "BA",
+   1
+  ],
+  [
+   "c",
+   1
+  ],
+  [
+   "C",
+   1
+  ],
+  [
+   "d",
+   1
+  ],
+  [
+   "D",
+   1
+  ],
+  [
+   "e",
+   1
+  ],
+  [
+   "E",
+   1
+  ],
+  [
+   "f",
+   1
+  ],
+  [
+   "F",
+   1
+  ],
+  [
+   "g",
+   1
+  ],
+  [
+   "G",
+   1
+  ],
+  [
+   "h",
+   1
+  ],
+  [
+   "H",
+   1
+  ],
+  [
+   "i",
+   1
+  ],
+  [
+   "I",
+   1
+  ],
+  [
+   "j",
+   1
+  ],
+  [
+   "J",
+   1
+  ],
+  [
+   "k",
+   1
+  ],
+  [
+   "K",
+   1
+  ],
+  [
+   "l",
+   1
+  ],
+  [
+   "L",
+   1
+  ],
+  [
+   "m",
+   1
+  ],
+  [
+   "M",
+   1
+  ],
+  [
+   "n",
+   1
+  ],
+  [
+   "N",
+   1
+  ],
+  [
+   "not_an_event",
+   1
+  ],
+  [
+   "not-an-event",
+   1
+  ],
+  [
+   "Not-an-event",
+   1
+  ],
+  [
+   "notanevent",
+   1
+  ],
+  [
+   "o",
+   1
+  ],
+  [
+   "O",
+   1
+  ],
+  [
+   "p",
+   1
+  ],
+  [
+   "P",
+   1
+  ],
+  [
+   "q",
+   1
+  ],
+  [
+   "Q",
+   1
+  ],
+  [
+   "r",
+   1
+  ],
+  [
+   "R",
+   1
+  ],
+  [
+   "s",
+   1
+  ],
+  [
+   "S",
+   1
+  ],
+  [
+   "t",
+   1
+  ],
+  [
+   "T",
+   1
+  ],
+  [
+   "u",
+   1
+  ],
+  [
+   "U",
+   1
+  ],
+  [
+   "v",
+   1
+  ],
+  [
+   "V",
+   1
+  ],
+  [
+   "w",
+   1
+  ],
+  [
+   "W",
+   1
+  ],
+  [
+   "x",
+   1
+  ],
+  [
+   "X",
+   1
+  ],
+  [
+   "y",
+   1
+  ],
+  [
+   "Y",
+   1
+  ],
+  [
+   "z",
+   1
+  ],
+  [
+   "Z",
+   1
+  ]
+ ],
+ "pairs": [
+  [
+   "\u0000",
+   "\u0000",
+   0
+  ],
+  [
+   "\u0000",
+   "\u0007",
+   0
+  ],
+  [
+   "\u0000",
+   "\u000e",
+   0
+  ],
+  [
+   "\u0000",
+   "\u0015",
+   0
+  ],
+  [
+   "\u0000",
+   "\u001c",
+   0
+  ],
+  [
+   "\u0000",
+   "#",
+   -1
+  ],
+  [
+   "\u0000",
+   "*",
+   -1
+  ],
+  [
+   "\u0000",
+   "1",
+   -1
+  ],
+  [
+   "\u0000",
+   "8",
+   -1
+  ],
+  [
+   "\u0000",
+   "?",
+   -1
+  ],
+  [
+   "\u0000",
+   "F",
+   -1
+  ],
+  [
+   "\u0000",
+   "M",
+   -1
+  ],
+  [
+   "\u0000",
+   "T",
+   -1
+  ],
+  [
+   "\u0000",
+   "[",
+   -1
+  ],
+  [
+   "\u0000",
+   "b",
+   -1
+  ],
+  [
+   "\u0000",
+   "i",
+   -1
+  ],
+  [
+   "\u0000",
+   "p",
+   -1
+  ],
+  [
+   "\u0000",
+   "w",
+   -1
+  ],
+  [
+   "\u0000",
+   "~",
+   -1
+  ],
+  [
+   "\u0000",
+   "1a",
+   -1
+  ],
+  [
+   "\u0000",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\u0000",
+   "1A",
+   -1
+  ],
+  [
+   "\u0000",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u0000",
+   "10",
+   -1
+  ],
+  [
+   "\u0000",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\u0000",
+   "1-",
+   -1
+  ],
+  [
+   "\u0000",
+   "-\u0007",
+   -1
+  ],
+  [
+   "\u0000",
+   "1_",
+   -1
+  ],
+  [
+   "\u0000",
+   "_\u0007",
+   -1
+  ],
+  [
+   "\u0000",
+   "1 ",
+   -1
+  ],
+  [
+   "\u0000",
+   " \u0007",
+   -1
+  ],
+  [
+   "\u0000",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\u0000",
+   "\u0001\u0007",
+   0
+  ],
+  [
+   "\u0000",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u0000",
+   "AB",
+   -1
+  ],
+  [
+   "\u0003",
+   "\u0000",
+   0
+  ],
+  [
+   "\u0003",
+   "\u0007",
+   0
+  ],
+  [
+   "\u0003",
+   "\u000e",
+   0
+  ],
+  [
+   "\u0003",
+   "\u0015",
+   0
+  ],
+  [
+   "\u0003",
+   "\u001c",
+   0
+  ],
+  [
+   "\u0003",
+   "#",
+   -1
+  ],
+  [
+   "\u0003",
+   "*",
+   -1
+  ],
+  [
+   "\u0003",
+   "1",
+   -1
+  ],
+  [
+   "\u0003",
+   "8",
+   -1
+  ],
+  [
+   "\u0003",
+   "?",
+   -1
+  ],
+  [
+   "\u0003",
+   "F",
+   -1
+  ],
+  [
+   "\u0003",
+   "M",
+   -1
+  ],
+  [
+   "\u0003",
+   "T",
+   -1
+  ],
+  [
+   "\u0003",
+   "[",
+   -1
+  ],
+  [
+   "\u0003",
+   "b",
+   -1
+  ],
+  [
+   "\u0003",
+   "i",
+   -1
+  ],
+  [
+   "\u0003",
+   "p",
+   -1
+  ],
+  [
+   "\u0003",
+   "w",
+   -1
+  ],
+  [
+   "\u0003",
+   "~",
+   -1
+  ],
+  [
+   "\u0003",
+   "1a",
+   -1
+  ],
+  [
+   "\u0003",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\u0003",
+   "1A",
+   -1
+  ],
+  [
+   "\u0003",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u0003",
+   "10",
+   -1
+  ],
+  [
+   "\u0003",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\u0003",
+   "1-",
+   -1
+  ],
+  [
+   "\u0003",
+   "-\u0007",
+   -1
+  ],
+  [
+   "\u0003",
+   "1_",
+   -1
+  ],
+  [
+   "\u0003",
+   "_\u0007",
+   -1
+  ],
+  [
+   "\u0003",
+   "1 ",
+   -1
+  ],
+  [
+   "\u0003",
+   " \u0007",
+   -1
+  ],
+  [
+   "\u0003",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\u0003",
+   "\u0001\u0007",
+   0
+  ],
+  [
+   "\u0003",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u0003",
+   "AB",
+   -1
+  ],
+  [
+   "\u0006",
+   "\u0000",
+   0
+  ],
+  [
+   "\u0006",
+   "\u0007",
+   0
+  ],
+  [
+   "\u0006",
+   "\u000e",
+   0
+  ],
+  [
+   "\u0006",
+   "\u0015",
+   0
+  ],
+  [
+   "\u0006",
+   "\u001c",
+   0
+  ],
+  [
+   "\u0006",
+   "#",
+   -1
+  ],
+  [
+   "\u0006",
+   "*",
+   -1
+  ],
+  [
+   "\u0006",
+   "1",
+   -1
+  ],
+  [
+   "\u0006",
+   "8",
+   -1
+  ],
+  [
+   "\u0006",
+   "?",
+   -1
+  ],
+  [
+   "\u0006",
+   "F",
+   -1
+  ],
+  [
+   "\u0006",
+   "M",
+   -1
+  ],
+  [
+   "\u0006",
+   "T",
+   -1
+  ],
+  [
+   "\u0006",
+   "[",
+   -1
+  ],
+  [
+   "\u0006",
+   "b",
+   -1
+  ],
+  [
+   "\u0006",
+   "i",
+   -1
+  ],
+  [
+   "\u0006",
+   "p",
+   -1
+  ],
+  [
+   "\u0006",
+   "w",
+   -1
+  ],
+  [
+   "\u0006",
+   "~",
+   -1
+  ],
+  [
+   "\u0006",
+   "1a",
+   -1
+  ],
+  [
+   "\u0006",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\u0006",
+   "1A",
+   -1
+  ],
+  [
+   "\u0006",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u0006",
+   "10",
+   -1
+  ],
+  [
+   "\u0006",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\u0006",
+   "1-",
+   -1
+  ],
+  [
+   "\u0006",
+   "-\u0007",
+   -1
+  ],
+  [
+   "\u0006",
+   "1_",
+   -1
+  ],
+  [
+   "\u0006",
+   "_\u0007",
+   -1
+  ],
+  [
+   "\u0006",
+   "1 ",
+   -1
+  ],
+  [
+   "\u0006",
+   " \u0007",
+   -1
+  ],
+  [
+   "\u0006",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\u0006",
+   "\u0001\u0007",
+   0
+  ],
+  [
+   "\u0006",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u0006",
+   "AB",
+   -1
+  ],
+  [
+   "\t",
+   "\u0000",
+   1
+  ],
+  [
+   "\t",
+   "\u0007",
+   1
+  ],
+  [
+   "\t",
+   "\u000e",
+   1
+  ],
+  [
+   "\t",
+   "\u0015",
+   1
+  ],
+  [
+   "\t",
+   "\u001c",
+   1
+  ],
+  [
+   "\t",
+   "#",
+   -1
+  ],
+  [
+   "\t",
+   "*",
+   -1
+  ],
+  [
+   "\t",
+   "1",
+   -1
+  ],
+  [
+   "\t",
+   "8",
+   -1
+  ],
+  [
+   "\t",
+   "?",
+   -1
+  ],
+  [
+   "\t",
+   "F",
+   -1
+  ],
+  [
+   "\t",
+   "M",
+   -1
+  ],
+  [
+   "\t",
+   "T",
+   -1
+  ],
+  [
+   "\t",
+   "[",
+   -1
+  ],
+  [
+   "\t",
+   "b",
+   -1
+  ],
+  [
+   "\t",
+   "i",
+   -1
+  ],
+  [
+   "\t",
+   "p",
+   -1
+  ],
+  [
+   "\t",
+   "w",
+   -1
+  ],
+  [
+   "\t",
+   "~",
+   -1
+  ],
+  [
+   "\t",
+   "1a",
+   -1
+  ],
+  [
+   "\t",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\t",
+   "1A",
+   -1
+  ],
+  [
+   "\t",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\t",
+   "10",
+   -1
+  ],
+  [
+   "\t",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\t",
+   "1-",
+   -1
+  ],
+  [
+   "\t",
+   "-\u0007",
+   -1
+  ],
+  [
+   "\t",
+   "1_",
+   -1
+  ],
+  [
+   "\t",
+   "_\u0007",
+   -1
+  ],
+  [
+   "\t",
+   "1 ",
+   -1
+  ],
+  [
+   "\t",
+   " \u0007",
+   -1
+  ],
+  [
+   "\t",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\t",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "\t",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\t",
+   "AB",
+   -1
+  ],
+  [
+   "\f",
+   "\u0000",
+   1
+  ],
+  [
+   "\f",
+   "\u0007",
+   1
+  ],
+  [
+   "\f",
+   "\u000e",
+   1
+  ],
+  [
+   "\f",
+   "\u0015",
+   1
+  ],
+  [
+   "\f",
+   "\u001c",
+   1
+  ],
+  [
+   "\f",
+   "#",
+   -1
+  ],
+  [
+   "\f",
+   "*",
+   -1
+  ],
+  [
+   "\f",
+   "1",
+   -1
+  ],
+  [
+   "\f",
+   "8",
+   -1
+  ],
+  [
+   "\f",
+   "?",
+   -1
+  ],
+  [
+   "\f",
+   "F",
+   -1
+  ],
+  [
+   "\f",
+   "M",
+   -1
+  ],
+  [
+   "\f",
+   "T",
+   -1
+  ],
+  [
+   "\f",
+   "[",
+   -1
+  ],
+  [
+   "\f",
+   "b",
+   -1
+  ],
+  [
+   "\f",
+   "i",
+   -1
+  ],
+  [
+   "\f",
+   "p",
+   -1
+  ],
+  [
+   "\f",
+   "w",
+   -1
+  ],
+  [
+   "\f",
+   "~",
+   -1
+  ],
+  [
+   "\f",
+   "1a",
+   -1
+  ],
+  [
+   "\f",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\f",
+   "1A",
+   -1
+  ],
+  [
+   "\f",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\f",
+   "10",
+   -1
+  ],
+  [
+   "\f",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\f",
+   "1-",
+   -1
+  ],
+  [
+   "\f",
+   "-\u0007",
+   -1
+  ],
+  [
+   "\f",
+   "1_",
+   -1
+  ],
+  [
+   "\f",
+   "_\u0007",
+   -1
+  ],
+  [
+   "\f",
+   "1 ",
+   -1
+  ],
+  [
+   "\f",
+   " \u0007",
+   -1
+  ],
+  [
+   "\f",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\f",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "\f",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\f",
+   "AB",
+   -1
+  ],
+  [
+   "\u000f",
+   "\u0000",
+   0
+  ],
+  [
+   "\u000f",
+   "\u0007",
+   0
+  ],
+  [
+   "\u000f",
+   "\u000e",
+   0
+  ],
+  [
+   "\u000f",
+   "\u0015",
+   0
+  ],
+  [
+   "\u000f",
+   "\u001c",
+   0
+  ],
+  [
+   "\u000f",
+   "#",
+   -1
+  ],
+  [
+   "\u000f",
+   "*",
+   -1
+  ],
+  [
+   "\u000f",
+   "1",
+   -1
+  ],
+  [
+   "\u000f",
+   "8",
+   -1
+  ],
+  [
+   "\u000f",
+   "?",
+   -1
+  ],
+  [
+   "\u000f",
+   "F",
+   -1
+  ],
+  [
+   "\u000f",
+   "M",
+   -1
+  ],
+  [
+   "\u000f",
+   "T",
+   -1
+  ],
+  [
+   "\u000f",
+   "[",
+   -1
+  ],
+  [
+   "\u000f",
+   "b",
+   -1
+  ],
+  [
+   "\u000f",
+   "i",
+   -1
+  ],
+  [
+   "\u000f",
+   "p",
+   -1
+  ],
+  [
+   "\u000f",
+   "w",
+   -1
+  ],
+  [
+   "\u000f",
+   "~",
+   -1
+  ],
+  [
+   "\u000f",
+   "1a",
+   -1
+  ],
+  [
+   "\u000f",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\u000f",
+   "1A",
+   -1
+  ],
+  [
+   "\u000f",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u000f",
+   "10",
+   -1
+  ],
+  [
+   "\u000f",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\u000f",
+   "1-",
+   -1
+  ],
+  [
+   "\u000f",
+   "-\u0007",
+   -1
+  ],
+  [
+   "\u000f",
+   "1_",
+   -1
+  ],
+  [
+   "\u000f",
+   "_\u0007",
+   -1
+  ],
+  [
+   "\u000f",
+   "1 ",
+   -1
+  ],
+  [
+   "\u000f",
+   " \u0007",
+   -1
+  ],
+  [
+   "\u000f",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\u000f",
+   "\u0001\u0007",
+   0
+  ],
+  [
+   "\u000f",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u000f",
+   "AB",
+   -1
+  ],
+  [
+   "\u0012",
+   "\u0000",
+   0
+  ],
+  [
+   "\u0012",
+   "\u0007",
+   0
+  ],
+  [
+   "\u0012",
+   "\u000e",
+   0
+  ],
+  [
+   "\u0012",
+   "\u0015",
+   0
+  ],
+  [
+   "\u0012",
+   "\u001c",
+   0
+  ],
+  [
+   "\u0012",
+   "#",
+   -1
+  ],
+  [
+   "\u0012",
+   "*",
+   -1
+  ],
+  [
+   "\u0012",
+   "1",
+   -1
+  ],
+  [
+   "\u0012",
+   "8",
+   -1
+  ],
+  [
+   "\u0012",
+   "?",
+   -1
+  ],
+  [
+   "\u0012",
+   "F",
+   -1
+  ],
+  [
+   "\u0012",
+   "M",
+   -1
+  ],
+  [
+   "\u0012",
+   "T",
+   -1
+  ],
+  [
+   "\u0012",
+   "[",
+   -1
+  ],
+  [
+   "\u0012",
+   "b",
+   -1
+  ],
+  [
+   "\u0012",
+   "i",
+   -1
+  ],
+  [
+   "\u0012",
+   "p",
+   -1
+  ],
+  [
+   "\u0012",
+   "w",
+   -1
+  ],
+  [
+   "\u0012",
+   "~",
+   -1
+  ],
+  [
+   "\u0012",
+   "1a",
+   -1
+  ],
+  [
+   "\u0012",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\u0012",
+   "1A",
+   -1
+  ],
+  [
+   "\u0012",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u0012",
+   "10",
+   -1
+  ],
+  [
+   "\u0012",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\u0012",
+   "1-",
+   -1
+  ],
+  [
+   "\u0012",
+   "-\u0007",
+   -1
+  ],
+  [
+   "\u0012",
+   "1_",
+   -1
+  ],
+  [
+   "\u0012",
+   "_\u0007",
+   -1
+  ],
+  [
+   "\u0012",
+   "1 ",
+   -1
+  ],
+  [
+   "\u0012",
+   " \u0007",
+   -1
+  ],
+  [
+   "\u0012",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\u0012",
+   "\u0001\u0007",
+   0
+  ],
+  [
+   "\u0012",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u0012",
+   "AB",
+   -1
+  ],
+  [
+   "\u0015",
+   "\u0000",
+   0
+  ],
+  [
+   "\u0015",
+   "\u0007",
+   0
+  ],
+  [
+   "\u0015",
+   "\u000e",
+   0
+  ],
+  [
+   "\u0015",
+   "\u0015",
+   0
+  ],
+  [
+   "\u0015",
+   "\u001c",
+   0
+  ],
+  [
+   "\u0015",
+   "#",
+   -1
+  ],
+  [
+   "\u0015",
+   "*",
+   -1
+  ],
+  [
+   "\u0015",
+   "1",
+   -1
+  ],
+  [
+   "\u0015",
+   "8",
+   -1
+  ],
+  [
+   "\u0015",
+   "?",
+   -1
+  ],
+  [
+   "\u0015",
+   "F",
+   -1
+  ],
+  [
+   "\u0015",
+   "M",
+   -1
+  ],
+  [
+   "\u0015",
+   "T",
+   -1
+  ],
+  [
+   "\u0015",
+   "[",
+   -1
+  ],
+  [
+   "\u0015",
+   "b",
+   -1
+  ],
+  [
+   "\u0015",
+   "i",
+   -1
+  ],
+  [
+   "\u0015",
+   "p",
+   -1
+  ],
+  [
+   "\u0015",
+   "w",
+   -1
+  ],
+  [
+   "\u0015",
+   "~",
+   -1
+  ],
+  [
+   "\u0015",
+   "1a",
+   -1
+  ],
+  [
+   "\u0015",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\u0015",
+   "1A",
+   -1
+  ],
+  [
+   "\u0015",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u0015",
+   "10",
+   -1
+  ],
+  [
+   "\u0015",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\u0015",
+   "1-",
+   -1
+  ],
+  [
+   "\u0015",
+   "-\u0007",
+   -1
+  ],
+  [
+   "\u0015",
+   "1_",
+   -1
+  ],
+  [
+   "\u0015",
+   "_\u0007",
+   -1
+  ],
+  [
+   "\u0015",
+   "1 ",
+   -1
+  ],
+  [
+   "\u0015",
+   " \u0007",
+   -1
+  ],
+  [
+   "\u0015",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\u0015",
+   "\u0001\u0007",
+   0
+  ],
+  [
+   "\u0015",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u0015",
+   "AB",
+   -1
+  ],
+  [
+   "\u0018",
+   "\u0000",
+   0
+  ],
+  [
+   "\u0018",
+   "\u0007",
+   0
+  ],
+  [
+   "\u0018",
+   "\u000e",
+   0
+  ],
+  [
+   "\u0018",
+   "\u0015",
+   0
+  ],
+  [
+   "\u0018",
+   "\u001c",
+   0
+  ],
+  [
+   "\u0018",
+   "#",
+   -1
+  ],
+  [
+   "\u0018",
+   "*",
+   -1
+  ],
+  [
+   "\u0018",
+   "1",
+   -1
+  ],
+  [
+   "\u0018",
+   "8",
+   -1
+  ],
+  [
+   "\u0018",
+   "?",
+   -1
+  ],
+  [
+   "\u0018",
+   "F",
+   -1
+  ],
+  [
+   "\u0018",
+   "M",
+   -1
+  ],
+  [
+   "\u0018",
+   "T",
+   -1
+  ],
+  [
+   "\u0018",
+   "[",
+   -1
+  ],
+  [
+   "\u0018",
+   "b",
+   -1
+  ],
+  [
+   "\u0018",
+   "i",
+   -1
+  ],
+  [
+   "\u0018",
+   "p",
+   -1
+  ],
+  [
+   "\u0018",
+   "w",
+   -1
+  ],
+  [
+   "\u0018",
+   "~",
+   -1
+  ],
+  [
+   "\u0018",
+   "1a",
+   -1
+  ],
+  [
+   "\u0018",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\u0018",
+   "1A",
+   -1
+  ],
+  [
+   "\u0018",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u0018",
+   "10",
+   -1
+  ],
+  [
+   "\u0018",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\u0018",
+   "1-",
+   -1
+  ],
+  [
+   "\u0018",
+   "-\u0007",
+   -1
+  ],
+  [
+   "\u0018",
+   "1_",
+   -1
+  ],
+  [
+   "\u0018",
+   "_\u0007",
+   -1
+  ],
+  [
+   "\u0018",
+   "1 ",
+   -1
+  ],
+  [
+   "\u0018",
+   " \u0007",
+   -1
+  ],
+  [
+   "\u0018",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\u0018",
+   "\u0001\u0007",
+   0
+  ],
+  [
+   "\u0018",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u0018",
+   "AB",
+   -1
+  ],
+  [
+   "\u001b",
+   "\u0000",
+   0
+  ],
+  [
+   "\u001b",
+   "\u0007",
+   0
+  ],
+  [
+   "\u001b",
+   "\u000e",
+   0
+  ],
+  [
+   "\u001b",
+   "\u0015",
+   0
+  ],
+  [
+   "\u001b",
+   "\u001c",
+   0
+  ],
+  [
+   "\u001b",
+   "#",
+   -1
+  ],
+  [
+   "\u001b",
+   "*",
+   -1
+  ],
+  [
+   "\u001b",
+   "1",
+   -1
+  ],
+  [
+   "\u001b",
+   "8",
+   -1
+  ],
+  [
+   "\u001b",
+   "?",
+   -1
+  ],
+  [
+   "\u001b",
+   "F",
+   -1
+  ],
+  [
+   "\u001b",
+   "M",
+   -1
+  ],
+  [
+   "\u001b",
+   "T",
+   -1
+  ],
+  [
+   "\u001b",
+   "[",
+   -1
+  ],
+  [
+   "\u001b",
+   "b",
+   -1
+  ],
+  [
+   "\u001b",
+   "i",
+   -1
+  ],
+  [
+   "\u001b",
+   "p",
+   -1
+  ],
+  [
+   "\u001b",
+   "w",
+   -1
+  ],
+  [
+   "\u001b",
+   "~",
+   -1
+  ],
+  [
+   "\u001b",
+   "1a",
+   -1
+  ],
+  [
+   "\u001b",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\u001b",
+   "1A",
+   -1
+  ],
+  [
+   "\u001b",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u001b",
+   "10",
+   -1
+  ],
+  [
+   "\u001b",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\u001b",
+   "1-",
+   -1
+  ],
+  [
+   "\u001b",
+   "-\u0007",
+   -1
+  ],
+  [
+   "\u001b",
+   "1_",
+   -1
+  ],
+  [
+   "\u001b",
+   "_\u0007",
+   -1
+  ],
+  [
+   "\u001b",
+   "1 ",
+   -1
+  ],
+  [
+   "\u001b",
+   " \u0007",
+   -1
+  ],
+  [
+   "\u001b",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\u001b",
+   "\u0001\u0007",
+   0
+  ],
+  [
+   "\u001b",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u001b",
+   "AB",
+   -1
+  ],
+  [
+   "\u001e",
+   "\u0000",
+   0
+  ],
+  [
+   "\u001e",
+   "\u0007",
+   0
+  ],
+  [
+   "\u001e",
+   "\u000e",
+   0
+  ],
+  [
+   "\u001e",
+   "\u0015",
+   0
+  ],
+  [
+   "\u001e",
+   "\u001c",
+   0
+  ],
+  [
+   "\u001e",
+   "#",
+   -1
+  ],
+  [
+   "\u001e",
+   "*",
+   -1
+  ],
+  [
+   "\u001e",
+   "1",
+   -1
+  ],
+  [
+   "\u001e",
+   "8",
+   -1
+  ],
+  [
+   "\u001e",
+   "?",
+   -1
+  ],
+  [
+   "\u001e",
+   "F",
+   -1
+  ],
+  [
+   "\u001e",
+   "M",
+   -1
+  ],
+  [
+   "\u001e",
+   "T",
+   -1
+  ],
+  [
+   "\u001e",
+   "[",
+   -1
+  ],
+  [
+   "\u001e",
+   "b",
+   -1
+  ],
+  [
+   "\u001e",
+   "i",
+   -1
+  ],
+  [
+   "\u001e",
+   "p",
+   -1
+  ],
+  [
+   "\u001e",
+   "w",
+   -1
+  ],
+  [
+   "\u001e",
+   "~",
+   -1
+  ],
+  [
+   "\u001e",
+   "1a",
+   -1
+  ],
+  [
+   "\u001e",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\u001e",
+   "1A",
+   -1
+  ],
+  [
+   "\u001e",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u001e",
+   "10",
+   -1
+  ],
+  [
+   "\u001e",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\u001e",
+   "1-",
+   -1
+  ],
+  [
+   "\u001e",
+   "-\u0007",
+   -1
+  ],
+  [
+   "\u001e",
+   "1_",
+   -1
+  ],
+  [
+   "\u001e",
+   "_\u0007",
+   -1
+  ],
+  [
+   "\u001e",
+   "1 ",
+   -1
+  ],
+  [
+   "\u001e",
+   " \u0007",
+   -1
+  ],
+  [
+   "\u001e",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\u001e",
+   "\u0001\u0007",
+   0
+  ],
+  [
+   "\u001e",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u001e",
+   "AB",
+   -1
+  ],
+  [
+   "!",
+   "\u0000",
+   1
+  ],
+  [
+   "!",
+   "\u0007",
+   1
+  ],
+  [
+   "!",
+   "\u000e",
+   1
+  ],
+  [
+   "!",
+   "\u0015",
+   1
+  ],
+  [
+   "!",
+   "\u001c",
+   1
+  ],
+  [
+   "!",
+   "#",
+   -1
+  ],
+  [
+   "!",
+   "*",
+   -1
+  ],
+  [
+   "!",
+   "1",
+   -1
+  ],
+  [
+   "!",
+   "8",
+   -1
+  ],
+  [
+   "!",
+   "?",
+   -1
+  ],
+  [
+   "!",
+   "F",
+   -1
+  ],
+  [
+   "!",
+   "M",
+   -1
+  ],
+  [
+   "!",
+   "T",
+   -1
+  ],
+  [
+   "!",
+   "[",
+   -1
+  ],
+  [
+   "!",
+   "b",
+   -1
+  ],
+  [
+   "!",
+   "i",
+   -1
+  ],
+  [
+   "!",
+   "p",
+   -1
+  ],
+  [
+   "!",
+   "w",
+   -1
+  ],
+  [
+   "!",
+   "~",
+   -1
+  ],
+  [
+   "!",
+   "1a",
+   -1
+  ],
+  [
+   "!",
+   "a\u0007",
+   -1
+  ],
+  [
+   "!",
+   "1A",
+   -1
+  ],
+  [
+   "!",
+   "A\u0007",
+   -1
+  ],
+  [
+   "!",
+   "10",
+   -1
+  ],
+  [
+   "!",
+   "0\u0007",
+   -1
+  ],
+  [
+   "!",
+   "1-",
+   -1
+  ],
+  [
+   "!",
+   "-\u0007",
+   1
+  ],
+  [
+   "!",
+   "1_",
+   -1
+  ],
+  [
+   "!",
+   "_\u0007",
+   1
+  ],
+  [
+   "!",
+   "1 ",
+   -1
+  ],
+  [
+   "!",
+   " \u0007",
+   1
+  ],
+  [
+   "!",
+   "1\u0001",
+   -1
+  ],
+  [
+   "!",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "!",
+   "not_an_event",
+   -1
+  ],
+  [
+   "!",
+   "AB",
+   -1
+  ],
+  [
+   "$",
+   "\u0000",
+   1
+  ],
+  [
+   "$",
+   "\u0007",
+   1
+  ],
+  [
+   "$",
+   "\u000e",
+   1
+  ],
+  [
+   "$",
+   "\u0015",
+   1
+  ],
+  [
+   "$",
+   "\u001c",
+   1
+  ],
+  [
+   "$",
+   "#",
+   1
+  ],
+  [
+   "$",
+   "*",
+   1
+  ],
+  [
+   "$",
+   "1",
+   -1
+  ],
+  [
+   "$",
+   "8",
+   -1
+  ],
+  [
+   "$",
+   "?",
+   1
+  ],
+  [
+   "$",
+   "F",
+   -1
+  ],
+  [
+   "$",
+   "M",
+   -1
+  ],
+  [
+   "$",
+   "T",
+   -1
+  ],
+  [
+   "$",
+   "[",
+   1
+  ],
+  [
+   "$",
+   "b",
+   -1
+  ],
+  [
+   "$",
+   "i",
+   -1
+  ],
+  [
+   "$",
+   "p",
+   -1
+  ],
+  [
+   "$",
+   "w",
+   -1
+  ],
+  [
+   "$",
+   "~",
+   1
+  ],
+  [
+   "$",
+   "1a",
+   -1
+  ],
+  [
+   "$",
+   "a\u0007",
+   -1
+  ],
+  [
+   "$",
+   "1A",
+   -1
+  ],
+  [
+   "$",
+   "A\u0007",
+   -1
+  ],
+  [
+   "$",
+   "10",
+   -1
+  ],
+  [
+   "$",
+   "0\u0007",
+   -1
+  ],
+  [
+   "$",
+   "1-",
+   -1
+  ],
+  [
+   "$",
+   "-\u0007",
+   1
+  ],
+  [
+   "$",
+   "1_",
+   -1
+  ],
+  [
+   "$",
+   "_\u0007",
+   1
+  ],
+  [
+   "$",
+   "1 ",
+   -1
+  ],
+  [
+   "$",
+   " \u0007",
+   1
+  ],
+  [
+   "$",
+   "1\u0001",
+   -1
+  ],
+  [
+   "$",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "$",
+   "not_an_event",
+   -1
+  ],
+  [
+   "$",
+   "AB",
+   -1
+  ],
+  [
+   "'",
+   "\u0000",
+   1
+  ],
+  [
+   "'",
+   "\u0007",
+   1
+  ],
+  [
+   "'",
+   "\u000e",
+   1
+  ],
+  [
+   "'",
+   "\u0015",
+   1
+  ],
+  [
+   "'",
+   "\u001c",
+   1
+  ],
+  [
+   "'",
+   "#",
+   -1
+  ],
+  [
+   "'",
+   "*",
+   -1
+  ],
+  [
+   "'",
+   "1",
+   -1
+  ],
+  [
+   "'",
+   "8",
+   -1
+  ],
+  [
+   "'",
+   "?",
+   1
+  ],
+  [
+   "'",
+   "F",
+   -1
+  ],
+  [
+   "'",
+   "M",
+   -1
+  ],
+  [
+   "'",
+   "T",
+   -1
+  ],
+  [
+   "'",
+   "[",
+   -1
+  ],
+  [
+   "'",
+   "b",
+   -1
+  ],
+  [
+   "'",
+   "i",
+   -1
+  ],
+  [
+   "'",
+   "p",
+   -1
+  ],
+  [
+   "'",
+   "w",
+   -1
+  ],
+  [
+   "'",
+   "~",
+   -1
+  ],
+  [
+   "'",
+   "1a",
+   -1
+  ],
+  [
+   "'",
+   "a\u0007",
+   -1
+  ],
+  [
+   "'",
+   "1A",
+   -1
+  ],
+  [
+   "'",
+   "A\u0007",
+   -1
+  ],
+  [
+   "'",
+   "10",
+   -1
+  ],
+  [
+   "'",
+   "0\u0007",
+   -1
+  ],
+  [
+   "'",
+   "1-",
+   -1
+  ],
+  [
+   "'",
+   "-\u0007",
+   1
+  ],
+  [
+   "'",
+   "1_",
+   -1
+  ],
+  [
+   "'",
+   "_\u0007",
+   1
+  ],
+  [
+   "'",
+   "1 ",
+   -1
+  ],
+  [
+   "'",
+   " \u0007",
+   1
+  ],
+  [
+   "'",
+   "1\u0001",
+   -1
+  ],
+  [
+   "'",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "'",
+   "not_an_event",
+   -1
+  ],
+  [
+   "'",
+   "AB",
+   -1
+  ],
+  [
+   "*",
+   "\u0000",
+   1
+  ],
+  [
+   "*",
+   "\u0007",
+   1
+  ],
+  [
+   "*",
+   "\u000e",
+   1
+  ],
+  [
+   "*",
+   "\u0015",
+   1
+  ],
+  [
+   "*",
+   "\u001c",
+   1
+  ],
+  [
+   "*",
+   "#",
+   -1
+  ],
+  [
+   "*",
+   "*",
+   0
+  ],
+  [
+   "*",
+   "1",
+   -1
+  ],
+  [
+   "*",
+   "8",
+   -1
+  ],
+  [
+   "*",
+   "?",
+   1
+  ],
+  [
+   "*",
+   "F",
+   -1
+  ],
+  [
+   "*",
+   "M",
+   -1
+  ],
+  [
+   "*",
+   "T",
+   -1
+  ],
+  [
+   "*",
+   "[",
+   1
+  ],
+  [
+   "*",
+   "b",
+   -1
+  ],
+  [
+   "*",
+   "i",
+   -1
+  ],
+  [
+   "*",
+   "p",
+   -1
+  ],
+  [
+   "*",
+   "w",
+   -1
+  ],
+  [
+   "*",
+   "~",
+   -1
+  ],
+  [
+   "*",
+   "1a",
+   -1
+  ],
+  [
+   "*",
+   "a\u0007",
+   -1
+  ],
+  [
+   "*",
+   "1A",
+   -1
+  ],
+  [
+   "*",
+   "A\u0007",
+   -1
+  ],
+  [
+   "*",
+   "10",
+   -1
+  ],
+  [
+   "*",
+   "0\u0007",
+   -1
+  ],
+  [
+   "*",
+   "1-",
+   -1
+  ],
+  [
+   "*",
+   "-\u0007",
+   1
+  ],
+  [
+   "*",
+   "1_",
+   -1
+  ],
+  [
+   "*",
+   "_\u0007",
+   1
+  ],
+  [
+   "*",
+   "1 ",
+   -1
+  ],
+  [
+   "*",
+   " \u0007",
+   1
+  ],
+  [
+   "*",
+   "1\u0001",
+   -1
+  ],
+  [
+   "*",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "*",
+   "not_an_event",
+   -1
+  ],
+  [
+   "*",
+   "AB",
+   -1
+  ],
+  [
+   "-",
+   "\u0000",
+   1
+  ],
+  [
+   "-",
+   "\u0007",
+   1
+  ],
+  [
+   "-",
+   "\u000e",
+   1
+  ],
+  [
+   "-",
+   "\u0015",
+   1
+  ],
+  [
+   "-",
+   "\u001c",
+   1
+  ],
+  [
+   "-",
+   "#",
+   -1
+  ],
+  [
+   "-",
+   "*",
+   -1
+  ],
+  [
+   "-",
+   "1",
+   -1
+  ],
+  [
+   "-",
+   "8",
+   -1
+  ],
+  [
+   "-",
+   "?",
+   -1
+  ],
+  [
+   "-",
+   "F",
+   -1
+  ],
+  [
+   "-",
+   "M",
+   -1
+  ],
+  [
+   "-",
+   "T",
+   -1
+  ],
+  [
+   "-",
+   "[",
+   -1
+  ],
+  [
+   "-",
+   "b",
+   -1
+  ],
+  [
+   "-",
+   "i",
+   -1
+  ],
+  [
+   "-",
+   "p",
+   -1
+  ],
+  [
+   "-",
+   "w",
+   -1
+  ],
+  [
+   "-",
+   "~",
+   -1
+  ],
+  [
+   "-",
+   "1a",
+   -1
+  ],
+  [
+   "-",
+   "a\u0007",
+   -1
+  ],
+  [
+   "-",
+   "1A",
+   -1
+  ],
+  [
+   "-",
+   "A\u0007",
+   -1
+  ],
+  [
+   "-",
+   "10",
+   -1
+  ],
+  [
+   "-",
+   "0\u0007",
+   -1
+  ],
+  [
+   "-",
+   "1-",
+   -1
+  ],
+  [
+   "-",
+   "-\u0007",
+   0
+  ],
+  [
+   "-",
+   "1_",
+   -1
+  ],
+  [
+   "-",
+   "_\u0007",
+   1
+  ],
+  [
+   "-",
+   "1 ",
+   -1
+  ],
+  [
+   "-",
+   " \u0007",
+   1
+  ],
+  [
+   "-",
+   "1\u0001",
+   -1
+  ],
+  [
+   "-",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "-",
+   "not_an_event",
+   -1
+  ],
+  [
+   "-",
+   "AB",
+   -1
+  ],
+  [
+   "0",
+   "\u0000",
+   1
+  ],
+  [
+   "0",
+   "\u0007",
+   1
+  ],
+  [
+   "0",
+   "\u000e",
+   1
+  ],
+  [
+   "0",
+   "\u0015",
+   1
+  ],
+  [
+   "0",
+   "\u001c",
+   1
+  ],
+  [
+   "0",
+   "#",
+   1
+  ],
+  [
+   "0",
+   "*",
+   1
+  ],
+  [
+   "0",
+   "1",
+   -1
+  ],
+  [
+   "0",
+   "8",
+   -1
+  ],
+  [
+   "0",
+   "?",
+   1
+  ],
+  [
+   "0",
+   "F",
+   -1
+  ],
+  [
+   "0",
+   "M",
+   -1
+  ],
+  [
+   "0",
+   "T",
+   -1
+  ],
+  [
+   "0",
+   "[",
+   1
+  ],
+  [
+   "0",
+   "b",
+   -1
+  ],
+  [
+   "0",
+   "i",
+   -1
+  ],
+  [
+   "0",
+   "p",
+   -1
+  ],
+  [
+   "0",
+   "w",
+   -1
+  ],
+  [
+   "0",
+   "~",
+   1
+  ],
+  [
+   "0",
+   "1a",
+   -1
+  ],
+  [
+   "0",
+   "a\u0007",
+   -1
+  ],
+  [
+   "0",
+   "1A",
+   -1
+  ],
+  [
+   "0",
+   "A\u0007",
+   -1
+  ],
+  [
+   "0",
+   "10",
+   -1
+  ],
+  [
+   "0",
+   "0\u0007",
+   0
+  ],
+  [
+   "0",
+   "1-",
+   -1
+  ],
+  [
+   "0",
+   "-\u0007",
+   1
+  ],
+  [
+   "0",
+   "1_",
+   -1
+  ],
+  [
+   "0",
+   "_\u0007",
+   1
+  ],
+  [
+   "0",
+   "1 ",
+   -1
+  ],
+  [
+   "0",
+   " \u0007",
+   1
+  ],
+  [
+   "0",
+   "1\u0001",
+   -1
+  ],
+  [
+   "0",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "0",
+   "not_an_event",
+   -1
+  ],
+  [
+   "0",
+   "AB",
+   -1
+  ],
+  [
+   "3",
+   "\u0000",
+   1
+  ],
+  [
+   "3",
+   "\u0007",
+   1
+  ],
+  [
+   "3",
+   "\u000e",
+   1
+  ],
+  [
+   "3",
+   "\u0015",
+   1
+  ],
+  [
+   "3",
+   "\u001c",
+   1
+  ],
+  [
+   "3",
+   "#",
+   1
+  ],
+  [
+   "3",
+   "*",
+   1
+  ],
+  [
+   "3",
+   "1",
+   1
+  ],
+  [
+   "3",
+   "8",
+   -1
+  ],
+  [
+   "3",
+   "?",
+   1
+  ],
+  [
+   "3",
+   "F",
+   -1
+  ],
+  [
+   "3",
+   "M",
+   -1
+  ],
+  [
+   "3",
+   "T",
+   -1
+  ],
+  [
+   "3",
+   "[",
+   1
+  ],
+  [
+   "3",
+   "b",
+   -1
+  ],
+  [
+   "3",
+   "i",
+   -1
+  ],
+  [
+   "3",
+   "p",
+   -1
+  ],
+  [
+   "3",
+   "w",
+   -1
+  ],
+  [
+   "3",
+   "~",
+   1
+  ],
+  [
+   "3",
+   "1a",
+   1
+  ],
+  [
+   "3",
+   "a\u0007",
+   -1
+  ],
+  [
+   "3",
+   "1A",
+   1
+  ],
+  [
+   "3",
+   "A\u0007",
+   -1
+  ],
+  [
+   "3",
+   "10",
+   1
+  ],
+  [
+   "3",
+   "0\u0007",
+   1
+  ],
+  [
+   "3",
+   "1-",
+   1
+  ],
+  [
+   "3",
+   "-\u0007",
+   1
+  ],
+  [
+   "3",
+   "1_",
+   1
+  ],
+  [
+   "3",
+   "_\u0007",
+   1
+  ],
+  [
+   "3",
+   "1 ",
+   1
+  ],
+  [
+   "3",
+   " \u0007",
+   1
+  ],
+  [
+   "3",
+   "1\u0001",
+   1
+  ],
+  [
+   "3",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "3",
+   "not_an_event",
+   -1
+  ],
+  [
+   "3",
+   "AB",
+   -1
+  ],
+  [
+   "6",
+   "\u0000",
+   1
+  ],
+  [
+   "6",
+   "\u0007",
+   1
+  ],
+  [
+   "6",
+   "\u000e",
+   1
+  ],
+  [
+   "6",
+   "\u0015",
+   1
+  ],
+  [
+   "6",
+   "\u001c",
+   1
+  ],
+  [
+   "6",
+   "#",
+   1
+  ],
+  [
+   "6",
+   "*",
+   1
+  ],
+  [
+   "6",
+   "1",
+   1
+  ],
+  [
+   "6",
+   "8",
+   -1
+  ],
+  [
+   "6",
+   "?",
+   1
+  ],
+  [
+   "6",
+   "F",
+   -1
+  ],
+  [
+   "6",
+   "M",
+   -1
+  ],
+  [
+   "6",
+   "T",
+   -1
+  ],
+  [
+   "6",
+   "[",
+   1
+  ],
+  [
+   "6",
+   "b",
+   -1
+  ],
+  [
+   "6",
+   "i",
+   -1
+  ],
+  [
+   "6",
+   "p",
+   -1
+  ],
+  [
+   "6",
+   "w",
+   -1
+  ],
+  [
+   "6",
+   "~",
+   1
+  ],
+  [
+   "6",
+   "1a",
+   1
+  ],
+  [
+   "6",
+   "a\u0007",
+   -1
+  ],
+  [
+   "6",
+   "1A",
+   1
+  ],
+  [
+   "6",
+   "A\u0007",
+   -1
+  ],
+  [
+   "6",
+   "10",
+   1
+  ],
+  [
+   "6",
+   "0\u0007",
+   1
+  ],
+  [
+   "6",
+   "1-",
+   1
+  ],
+  [
+   "6",
+   "-\u0007",
+   1
+  ],
+  [
+   "6",
+   "1_",
+   1
+  ],
+  [
+   "6",
+   "_\u0007",
+   1
+  ],
+  [
+   "6",
+   "1 ",
+   1
+  ],
+  [
+   "6",
+   " \u0007",
+   1
+  ],
+  [
+   "6",
+   "1\u0001",
+   1
+  ],
+  [
+   "6",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "6",
+   "not_an_event",
+   -1
+  ],
+  [
+   "6",
+   "AB",
+   -1
+  ],
+  [
+   "9",
+   "\u0000",
+   1
+  ],
+  [
+   "9",
+   "\u0007",
+   1
+  ],
+  [
+   "9",
+   "\u000e",
+   1
+  ],
+  [
+   "9",
+   "\u0015",
+   1
+  ],
+  [
+   "9",
+   "\u001c",
+   1
+  ],
+  [
+   "9",
+   "#",
+   1
+  ],
+  [
+   "9",
+   "*",
+   1
+  ],
+  [
+   "9",
+   "1",
+   1
+  ],
+  [
+   "9",
+   "8",
+   1
+  ],
+  [
+   "9",
+   "?",
+   1
+  ],
+  [
+   "9",
+   "F",
+   -1
+  ],
+  [
+   "9",
+   "M",
+   -1
+  ],
+  [
+   "9",
+   "T",
+   -1
+  ],
+  [
+   "9",
+   "[",
+   1
+  ],
+  [
+   "9",
+   "b",
+   -1
+  ],
+  [
+   "9",
+   "i",
+   -1
+  ],
+  [
+   "9",
+   "p",
+   -1
+  ],
+  [
+   "9",
+   "w",
+   -1
+  ],
+  [
+   "9",
+   "~",
+   1
+  ],
+  [
+   "9",
+   "1a",
+   1
+  ],
+  [
+   "9",
+   "a\u0007",
+   -1
+  ],
+  [
+   "9",
+   "1A",
+   1
+  ],
+  [
+   "9",
+   "A\u0007",
+   -1
+  ],
+  [
+   "9",
+   "10",
+   1
+  ],
+  [
+   "9",
+   "0\u0007",
+   1
+  ],
+  [
+   "9",
+   "1-",
+   1
+  ],
+  [
+   "9",
+   "-\u0007",
+   1
+  ],
+  [
+   "9",
+   "1_",
+   1
+  ],
+  [
+   "9",
+   "_\u0007",
+   1
+  ],
+  [
+   "9",
+   "1 ",
+   1
+  ],
+  [
+   "9",
+   " \u0007",
+   1
+  ],
+  [
+   "9",
+   "1\u0001",
+   1
+  ],
+  [
+   "9",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "9",
+   "not_an_event",
+   -1
+  ],
+  [
+   "9",
+   "AB",
+   -1
+  ],
+  [
+   "<",
+   "\u0000",
+   1
+  ],
+  [
+   "<",
+   "\u0007",
+   1
+  ],
+  [
+   "<",
+   "\u000e",
+   1
+  ],
+  [
+   "<",
+   "\u0015",
+   1
+  ],
+  [
+   "<",
+   "\u001c",
+   1
+  ],
+  [
+   "<",
+   "#",
+   1
+  ],
+  [
+   "<",
+   "*",
+   1
+  ],
+  [
+   "<",
+   "1",
+   -1
+  ],
+  [
+   "<",
+   "8",
+   -1
+  ],
+  [
+   "<",
+   "?",
+   1
+  ],
+  [
+   "<",
+   "F",
+   -1
+  ],
+  [
+   "<",
+   "M",
+   -1
+  ],
+  [
+   "<",
+   "T",
+   -1
+  ],
+  [
+   "<",
+   "[",
+   1
+  ],
+  [
+   "<",
+   "b",
+   -1
+  ],
+  [
+   "<",
+   "i",
+   -1
+  ],
+  [
+   "<",
+   "p",
+   -1
+  ],
+  [
+   "<",
+   "w",
+   -1
+  ],
+  [
+   "<",
+   "~",
+   -1
+  ],
+  [
+   "<",
+   "1a",
+   -1
+  ],
+  [
+   "<",
+   "a\u0007",
+   -1
+  ],
+  [
+   "<",
+   "1A",
+   -1
+  ],
+  [
+   "<",
+   "A\u0007",
+   -1
+  ],
+  [
+   "<",
+   "10",
+   -1
+  ],
+  [
+   "<",
+   "0\u0007",
+   -1
+  ],
+  [
+   "<",
+   "1-",
+   -1
+  ],
+  [
+   "<",
+   "-\u0007",
+   1
+  ],
+  [
+   "<",
+   "1_",
+   -1
+  ],
+  [
+   "<",
+   "_\u0007",
+   1
+  ],
+  [
+   "<",
+   "1 ",
+   -1
+  ],
+  [
+   "<",
+   " \u0007",
+   1
+  ],
+  [
+   "<",
+   "1\u0001",
+   -1
+  ],
+  [
+   "<",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "<",
+   "not_an_event",
+   -1
+  ],
+  [
+   "<",
+   "AB",
+   -1
+  ],
+  [
+   "?",
+   "\u0000",
+   1
+  ],
+  [
+   "?",
+   "\u0007",
+   1
+  ],
+  [
+   "?",
+   "\u000e",
+   1
+  ],
+  [
+   "?",
+   "\u0015",
+   1
+  ],
+  [
+   "?",
+   "\u001c",
+   1
+  ],
+  [
+   "?",
+   "#",
+   -1
+  ],
+  [
+   "?",
+   "*",
+   -1
+  ],
+  [
+   "?",
+   "1",
+   -1
+  ],
+  [
+   "?",
+   "8",
+   -1
+  ],
+  [
+   "?",
+   "?",
+   0
+  ],
+  [
+   "?",
+   "F",
+   -1
+  ],
+  [
+   "?",
+   "M",
+   -1
+  ],
+  [
+   "?",
+   "T",
+   -1
+  ],
+  [
+   "?",
+   "[",
+   -1
+  ],
+  [
+   "?",
+   "b",
+   -1
+  ],
+  [
+   "?",
+   "i",
+   -1
+  ],
+  [
+   "?",
+   "p",
+   -1
+  ],
+  [
+   "?",
+   "w",
+   -1
+  ],
+  [
+   "?",
+   "~",
+   -1
+  ],
+  [
+   "?",
+   "1a",
+   -1
+  ],
+  [
+   "?",
+   "a\u0007",
+   -1
+  ],
+  [
+   "?",
+   "1A",
+   -1
+  ],
+  [
+   "?",
+   "A\u0007",
+   -1
+  ],
+  [
+   "?",
+   "10",
+   -1
+  ],
+  [
+   "?",
+   "0\u0007",
+   -1
+  ],
+  [
+   "?",
+   "1-",
+   -1
+  ],
+  [
+   "?",
+   "-\u0007",
+   1
+  ],
+  [
+   "?",
+   "1_",
+   -1
+  ],
+  [
+   "?",
+   "_\u0007",
+   1
+  ],
+  [
+   "?",
+   "1 ",
+   -1
+  ],
+  [
+   "?",
+   " \u0007",
+   1
+  ],
+  [
+   "?",
+   "1\u0001",
+   -1
+  ],
+  [
+   "?",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "?",
+   "not_an_event",
+   -1
+  ],
+  [
+   "?",
+   "AB",
+   -1
+  ],
+  [
+   "B",
+   "\u0000",
+   1
+  ],
+  [
+   "B",
+   "\u0007",
+   1
+  ],
+  [
+   "B",
+   "\u000e",
+   1
+  ],
+  [
+   "B",
+   "\u0015",
+   1
+  ],
+  [
+   "B",
+   "\u001c",
+   1
+  ],
+  [
+   "B",
+   "#",
+   1
+  ],
+  [
+   "B",
+   "*",
+   1
+  ],
+  [
+   "B",
+   "1",
+   1
+  ],
+  [
+   "B",
+   "8",
+   1
+  ],
+  [
+   "B",
+   "?",
+   1
+  ],
+  [
+   "B",
+   "F",
+   -1
+  ],
+  [
+   "B",
+   "M",
+   -1
+  ],
+  [
+   "B",
+   "T",
+   -1
+  ],
+  [
+   "B",
+   "[",
+   1
+  ],
+  [
+   "B",
+   "b",
+   1
+  ],
+  [
+   "B",
+   "i",
+   -1
+  ],
+  [
+   "B",
+   "p",
+   -1
+  ],
+  [
+   "B",
+   "w",
+   -1
+  ],
+  [
+   "B",
+   "~",
+   1
+  ],
+  [
+   "B",
+   "1a",
+   1
+  ],
+  [
+   "B",
+   "a\u0007",
+   1
+  ],
+  [
+   "B",
+   "1A",
+   1
+  ],
+  [
+   "B",
+   "A\u0007",
+   1
+  ],
+  [
+   "B",
+   "10",
+   1
+  ],
+  [
+   "B",
+   "0\u0007",
+   1
+  ],
+  [
+   "B",
+   "1-",
+   1
+  ],
+  [
+   "B",
+   "-\u0007",
+   1
+  ],
+  [
+   "B",
+   "1_",
+   1
+  ],
+  [
+   "B",
+   "_\u0007",
+   1
+  ],
+  [
+   "B",
+   "1 ",
+   1
+  ],
+  [
+   "B",
+   " \u0007",
+   1
+  ],
+  [
+   "B",
+   "1\u0001",
+   1
+  ],
+  [
+   "B",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "B",
+   "not_an_event",
+   -1
+  ],
+  [
+   "B",
+   "AB",
+   1
+  ],
+  [
+   "E",
+   "\u0000",
+   1
+  ],
+  [
+   "E",
+   "\u0007",
+   1
+  ],
+  [
+   "E",
+   "\u000e",
+   1
+  ],
+  [
+   "E",
+   "\u0015",
+   1
+  ],
+  [
+   "E",
+   "\u001c",
+   1
+  ],
+  [
+   "E",
+   "#",
+   1
+  ],
+  [
+   "E",
+   "*",
+   1
+  ],
+  [
+   "E",
+   "1",
+   1
+  ],
+  [
+   "E",
+   "8",
+   1
+  ],
+  [
+   "E",
+   "?",
+   1
+  ],
+  [
+   "E",
+   "F",
+   -1
+  ],
+  [
+   "E",
+   "M",
+   -1
+  ],
+  [
+   "E",
+   "T",
+   -1
+  ],
+  [
+   "E",
+   "[",
+   1
+  ],
+  [
+   "E",
+   "b",
+   1
+  ],
+  [
+   "E",
+   "i",
+   -1
+  ],
+  [
+   "E",
+   "p",
+   -1
+  ],
+  [
+   "E",
+   "w",
+   -1
+  ],
+  [
+   "E",
+   "~",
+   1
+  ],
+  [
+   "E",
+   "1a",
+   1
+  ],
+  [
+   "E",
+   "a\u0007",
+   1
+  ],
+  [
+   "E",
+   "1A",
+   1
+  ],
+  [
+   "E",
+   "A\u0007",
+   1
+  ],
+  [
+   "E",
+   "10",
+   1
+  ],
+  [
+   "E",
+   "0\u0007",
+   1
+  ],
+  [
+   "E",
+   "1-",
+   1
+  ],
+  [
+   "E",
+   "-\u0007",
+   1
+  ],
+  [
+   "E",
+   "1_",
+   1
+  ],
+  [
+   "E",
+   "_\u0007",
+   1
+  ],
+  [
+   "E",
+   "1 ",
+   1
+  ],
+  [
+   "E",
+   " \u0007",
+   1
+  ],
+  [
+   "E",
+   "1\u0001",
+   1
+  ],
+  [
+   "E",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "E",
+   "not_an_event",
+   -1
+  ],
+  [
+   "E",
+   "AB",
+   1
+  ],
+  [
+   "H",
+   "\u0000",
+   1
+  ],
+  [
+   "H",
+   "\u0007",
+   1
+  ],
+  [
+   "H",
+   "\u000e",
+   1
+  ],
+  [
+   "H",
+   "\u0015",
+   1
+  ],
+  [
+   "H",
+   "\u001c",
+   1
+  ],
+  [
+   "H",
+   "#",
+   1
+  ],
+  [
+   "H",
+   "*",
+   1
+  ],
+  [
+   "H",
+   "1",
+   1
+  ],
+  [
+   "H",
+   "8",
+   1
+  ],
+  [
+   "H",
+   "?",
+   1
+  ],
+  [
+   "H",
+   "F",
+   1
+  ],
+  [
+   "H",
+   "M",
+   -1
+  ],
+  [
+   "H",
+   "T",
+   -1
+  ],
+  [
+   "H",
+   "[",
+   1
+  ],
+  [
+   "H",
+   "b",
+   1
+  ],
+  [
+   "H",
+   "i",
+   -1
+  ],
+  [
+   "H",
+   "p",
+   -1
+  ],
+  [
+   "H",
+   "w",
+   -1
+  ],
+  [
+   "H",
+   "~",
+   1
+  ],
+  [
+   "H",
+   "1a",
+   1
+  ],
+  [
+   "H",
+   "a\u0007",
+   1
+  ],
+  [
+   "H",
+   "1A",
+   1
+  ],
+  [
+   "H",
+   "A\u0007",
+   1
+  ],
+  [
+   "H",
+   "10",
+   1
+  ],
+  [
+   "H",
+   "0\u0007",
+   1
+  ],
+  [
+   "H",
+   "1-",
+   1
+  ],
+  [
+   "H",
+   "-\u0007",
+   1
+  ],
+  [
+   "H",
+   "1_",
+   1
+  ],
+  [
+   "H",
+   "_\u0007",
+   1
+  ],
+  [
+   "H",
+   "1 ",
+   1
+  ],
+  [
+   "H",
+   " \u0007",
+   1
+  ],
+  [
+   "H",
+   "1\u0001",
+   1
+  ],
+  [
+   "H",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "H",
+   "not_an_event",
+   -1
+  ],
+  [
+   "H",
+   "AB",
+   1
+  ],
+  [
+   "K",
+   "\u0000",
+   1
+  ],
+  [
+   "K",
+   "\u0007",
+   1
+  ],
+  [
+   "K",
+   "\u000e",
+   1
+  ],
+  [
+   "K",
+   "\u0015",
+   1
+  ],
+  [
+   "K",
+   "\u001c",
+   1
+  ],
+  [
+   "K",
+   "#",
+   1
+  ],
+  [
+   "K",
+   "*",
+   1
+  ],
+  [
+   "K",
+   "1",
+   1
+  ],
+  [
+   "K",
+   "8",
+   1
+  ],
+  [
+   "K",
+   "?",
+   1
+  ],
+  [
+   "K",
+   "F",
+   1
+  ],
+  [
+   "K",
+   "M",
+   -1
+  ],
+  [
+   "K",
+   "T",
+   -1
+  ],
+  [
+   "K",
+   "[",
+   1
+  ],
+  [
+   "K",
+   "b",
+   1
+  ],
+  [
+   "K",
+   "i",
+   1
+  ],
+  [
+   "K",
+   "p",
+   -1
+  ],
+  [
+   "K",
+   "w",
+   -1
+  ],
+  [
+   "K",
+   "~",
+   1
+  ],
+  [
+   "K",
+   "1a",
+   1
+  ],
+  [
+   "K",
+   "a\u0007",
+   1
+  ],
+  [
+   "K",
+   "1A",
+   1
+  ],
+  [
+   "K",
+   "A\u0007",
+   1
+  ],
+  [
+   "K",
+   "10",
+   1
+  ],
+  [
+   "K",
+   "0\u0007",
+   1
+  ],
+  [
+   "K",
+   "1-",
+   1
+  ],
+  [
+   "K",
+   "-\u0007",
+   1
+  ],
+  [
+   "K",
+   "1_",
+   1
+  ],
+  [
+   "K",
+   "_\u0007",
+   1
+  ],
+  [
+   "K",
+   "1 ",
+   1
+  ],
+  [
+   "K",
+   " \u0007",
+   1
+  ],
+  [
+   "K",
+   "1\u0001",
+   1
+  ],
+  [
+   "K",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "K",
+   "not_an_event",
+   -1
+  ],
+  [
+   "K",
+   "AB",
+   1
+  ],
+  [
+   "N",
+   "\u0000",
+   1
+  ],
+  [
+   "N",
+   "\u0007",
+   1
+  ],
+  [
+   "N",
+   "\u000e",
+   1
+  ],
+  [
+   "N",
+   "\u0015",
+   1
+  ],
+  [
+   "N",
+   "\u001c",
+   1
+  ],
+  [
+   "N",
+   "#",
+   1
+  ],
+  [
+   "N",
+   "*",
+   1
+  ],
+  [
+   "N",
+   "1",
+   1
+  ],
+  [
+   "N",
+   "8",
+   1
+  ],
+  [
+   "N",
+   "?",
+   1
+  ],
+  [
+   "N",
+   "F",
+   1
+  ],
+  [
+   "N",
+   "M",
+   1
+  ],
+  [
+   "N",
+   "T",
+   -1
+  ],
+  [
+   "N",
+   "[",
+   1
+  ],
+  [
+   "N",
+   "b",
+   1
+  ],
+  [
+   "N",
+   "i",
+   1
+  ],
+  [
+   "N",
+   "p",
+   -1
+  ],
+  [
+   "N",
+   "w",
+   -1
+  ],
+  [
+   "N",
+   "~",
+   1
+  ],
+  [
+   "N",
+   "1a",
+   1
+  ],
+  [
+   "N",
+   "a\u0007",
+   1
+  ],
+  [
+   "N",
+   "1A",
+   1
+  ],
+  [
+   "N",
+   "A\u0007",
+   1
+  ],
+  [
+   "N",
+   "10",
+   1
+  ],
+  [
+   "N",
+   "0\u0007",
+   1
+  ],
+  [
+   "N",
+   "1-",
+   1
+  ],
+  [
+   "N",
+   "-\u0007",
+   1
+  ],
+  [
+   "N",
+   "1_",
+   1
+  ],
+  [
+   "N",
+   "_\u0007",
+   1
+  ],
+  [
+   "N",
+   "1 ",
+   1
+  ],
+  [
+   "N",
+   " \u0007",
+   1
+  ],
+  [
+   "N",
+   "1\u0001",
+   1
+  ],
+  [
+   "N",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "N",
+   "not_an_event",
+   -1
+  ],
+  [
+   "N",
+   "AB",
+   1
+  ],
+  [
+   "Q",
+   "\u0000",
+   1
+  ],
+  [
+   "Q",
+   "\u0007",
+   1
+  ],
+  [
+   "Q",
+   "\u000e",
+   1
+  ],
+  [
+   "Q",
+   "\u0015",
+   1
+  ],
+  [
+   "Q",
+   "\u001c",
+   1
+  ],
+  [
+   "Q",
+   "#",
+   1
+  ],
+  [
+   "Q",
+   "*",
+   1
+  ],
+  [
+   "Q",
+   "1",
+   1
+  ],
+  [
+   "Q",
+   "8",
+   1
+  ],
+  [
+   "Q",
+   "?",
+   1
+  ],
+  [
+   "Q",
+   "F",
+   1
+  ],
+  [
+   "Q",
+   "M",
+   1
+  ],
+  [
+   "Q",
+   "T",
+   -1
+  ],
+  [
+   "Q",
+   "[",
+   1
+  ],
+  [
+   "Q",
+   "b",
+   1
+  ],
+  [
+   "Q",
+   "i",
+   1
+  ],
+  [
+   "Q",
+   "p",
+   1
+  ],
+  [
+   "Q",
+   "w",
+   -1
+  ],
+  [
+   "Q",
+   "~",
+   1
+  ],
+  [
+   "Q",
+   "1a",
+   1
+  ],
+  [
+   "Q",
+   "a\u0007",
+   1
+  ],
+  [
+   "Q",
+   "1A",
+   1
+  ],
+  [
+   "Q",
+   "A\u0007",
+   1
+  ],
+  [
+   "Q",
+   "10",
+   1
+  ],
+  [
+   "Q",
+   "0\u0007",
+   1
+  ],
+  [
+   "Q",
+   "1-",
+   1
+  ],
+  [
+   "Q",
+   "-\u0007",
+   1
+  ],
+  [
+   "Q",
+   "1_",
+   1
+  ],
+  [
+   "Q",
+   "_\u0007",
+   1
+  ],
+  [
+   "Q",
+   "1 ",
+   1
+  ],
+  [
+   "Q",
+   " \u0007",
+   1
+  ],
+  [
+   "Q",
+   "1\u0001",
+   1
+  ],
+  [
+   "Q",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "Q",
+   "not_an_event",
+   1
+  ],
+  [
+   "Q",
+   "AB",
+   1
+  ],
+  [
+   "T",
+   "\u0000",
+   1
+  ],
+  [
+   "T",
+   "\u0007",
+   1
+  ],
+  [
+   "T",
+   "\u000e",
+   1
+  ],
+  [
+   "T",
+   "\u0015",
+   1
+  ],
+  [
+   "T",
+   "\u001c",
+   1
+  ],
+  [
+   "T",
+   "#",
+   1
+  ],
+  [
+   "T",
+   "*",
+   1
+  ],
+  [
+   "T",
+   "1",
+   1
+  ],
+  [
+   "T",
+   "8",
+   1
+  ],
+  [
+   "T",
+   "?",
+   1
+  ],
+  [
+   "T",
+   "F",
+   1
+  ],
+  [
+   "T",
+   "M",
+   1
+  ],
+  [
+   "T",
+   "T",
+   0
+  ],
+  [
+   "T",
+   "[",
+   1
+  ],
+  [
+   "T",
+   "b",
+   1
+  ],
+  [
+   "T",
+   "i",
+   1
+  ],
+  [
+   "T",
+   "p",
+   1
+  ],
+  [
+   "T",
+   "w",
+   -1
+  ],
+  [
+   "T",
+   "~",
+   1
+  ],
+  [
+   "T",
+   "1a",
+   1
+  ],
+  [
+   "T",
+   "a\u0007",
+   1
+  ],
+  [
+   "T",
+   "1A",
+   1
+  ],
+  [
+   "T",
+   "A\u0007",
+   1
+  ],
+  [
+   "T",
+   "10",
+   1
+  ],
+  [
+   "T",
+   "0\u0007",
+   1
+  ],
+  [
+   "T",
+   "1-",
+   1
+  ],
+  [
+   "T",
+   "-\u0007",
+   1
+  ],
+  [
+   "T",
+   "1_",
+   1
+  ],
+  [
+   "T",
+   "_\u0007",
+   1
+  ],
+  [
+   "T",
+   "1 ",
+   1
+  ],
+  [
+   "T",
+   " \u0007",
+   1
+  ],
+  [
+   "T",
+   "1\u0001",
+   1
+  ],
+  [
+   "T",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "T",
+   "not_an_event",
+   1
+  ],
+  [
+   "T",
+   "AB",
+   1
+  ],
+  [
+   "W",
+   "\u0000",
+   1
+  ],
+  [
+   "W",
+   "\u0007",
+   1
+  ],
+  [
+   "W",
+   "\u000e",
+   1
+  ],
+  [
+   "W",
+   "\u0015",
+   1
+  ],
+  [
+   "W",
+   "\u001c",
+   1
+  ],
+  [
+   "W",
+   "#",
+   1
+  ],
+  [
+   "W",
+   "*",
+   1
+  ],
+  [
+   "W",
+   "1",
+   1
+  ],
+  [
+   "W",
+   "8",
+   1
+  ],
+  [
+   "W",
+   "?",
+   1
+  ],
+  [
+   "W",
+   "F",
+   1
+  ],
+  [
+   "W",
+   "M",
+   1
+  ],
+  [
+   "W",
+   "T",
+   1
+  ],
+  [
+   "W",
+   "[",
+   1
+  ],
+  [
+   "W",
+   "b",
+   1
+  ],
+  [
+   "W",
+   "i",
+   1
+  ],
+  [
+   "W",
+   "p",
+   1
+  ],
+  [
+   "W",
+   "w",
+   1
+  ],
+  [
+   "W",
+   "~",
+   1
+  ],
+  [
+   "W",
+   "1a",
+   1
+  ],
+  [
+   "W",
+   "a\u0007",
+   1
+  ],
+  [
+   "W",
+   "1A",
+   1
+  ],
+  [
+   "W",
+   "A\u0007",
+   1
+  ],
+  [
+   "W",
+   "10",
+   1
+  ],
+  [
+   "W",
+   "0\u0007",
+   1
+  ],
+  [
+   "W",
+   "1-",
+   1
+  ],
+  [
+   "W",
+   "-\u0007",
+   1
+  ],
+  [
+   "W",
+   "1_",
+   1
+  ],
+  [
+   "W",
+   "_\u0007",
+   1
+  ],
+  [
+   "W",
+   "1 ",
+   1
+  ],
+  [
+   "W",
+   " \u0007",
+   1
+  ],
+  [
+   "W",
+   "1\u0001",
+   1
+  ],
+  [
+   "W",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "W",
+   "not_an_event",
+   1
+  ],
+  [
+   "W",
+   "AB",
+   1
+  ],
+  [
+   "Z",
+   "\u0000",
+   1
+  ],
+  [
+   "Z",
+   "\u0007",
+   1
+  ],
+  [
+   "Z",
+   "\u000e",
+   1
+  ],
+  [
+   "Z",
+   "\u0015",
+   1
+  ],
+  [
+   "Z",
+   "\u001c",
+   1
+  ],
+  [
+   "Z",
+   "#",
+   1
+  ],
+  [
+   "Z",
+   "*",
+   1
+  ],
+  [
+   "Z",
+   "1",
+   1
+  ],
+  [
+   "Z",
+   "8",
+   1
+  ],
+  [
+   "Z",
+   "?",
+   1
+  ],
+  [
+   "Z",
+   "F",
+   1
+  ],
+  [
+   "Z",
+   "M",
+   1
+  ],
+  [
+   "Z",
+   "T",
+   1
+  ],
+  [
+   "Z",
+   "[",
+   1
+  ],
+  [
+   "Z",
+   "b",
+   1
+  ],
+  [
+   "Z",
+   "i",
+   1
+  ],
+  [
+   "Z",
+   "p",
+   1
+  ],
+  [
+   "Z",
+   "w",
+   1
+  ],
+  [
+   "Z",
+   "~",
+   1
+  ],
+  [
+   "Z",
+   "1a",
+   1
+  ],
+  [
+   "Z",
+   "a\u0007",
+   1
+  ],
+  [
+   "Z",
+   "1A",
+   1
+  ],
+  [
+   "Z",
+   "A\u0007",
+   1
+  ],
+  [
+   "Z",
+   "10",
+   1
+  ],
+  [
+   "Z",
+   "0\u0007",
+   1
+  ],
+  [
+   "Z",
+   "1-",
+   1
+  ],
+  [
+   "Z",
+   "-\u0007",
+   1
+  ],
+  [
+   "Z",
+   "1_",
+   1
+  ],
+  [
+   "Z",
+   "_\u0007",
+   1
+  ],
+  [
+   "Z",
+   "1 ",
+   1
+  ],
+  [
+   "Z",
+   " \u0007",
+   1
+  ],
+  [
+   "Z",
+   "1\u0001",
+   1
+  ],
+  [
+   "Z",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "Z",
+   "not_an_event",
+   1
+  ],
+  [
+   "Z",
+   "AB",
+   1
+  ],
+  [
+   "]",
+   "\u0000",
+   1
+  ],
+  [
+   "]",
+   "\u0007",
+   1
+  ],
+  [
+   "]",
+   "\u000e",
+   1
+  ],
+  [
+   "]",
+   "\u0015",
+   1
+  ],
+  [
+   "]",
+   "\u001c",
+   1
+  ],
+  [
+   "]",
+   "#",
+   -1
+  ],
+  [
+   "]",
+   "*",
+   -1
+  ],
+  [
+   "]",
+   "1",
+   -1
+  ],
+  [
+   "]",
+   "8",
+   -1
+  ],
+  [
+   "]",
+   "?",
+   1
+  ],
+  [
+   "]",
+   "F",
+   -1
+  ],
+  [
+   "]",
+   "M",
+   -1
+  ],
+  [
+   "]",
+   "T",
+   -1
+  ],
+  [
+   "]",
+   "[",
+   1
+  ],
+  [
+   "]",
+   "b",
+   -1
+  ],
+  [
+   "]",
+   "i",
+   -1
+  ],
+  [
+   "]",
+   "p",
+   -1
+  ],
+  [
+   "]",
+   "w",
+   -1
+  ],
+  [
+   "]",
+   "~",
+   -1
+  ],
+  [
+   "]",
+   "1a",
+   -1
+  ],
+  [
+   "]",
+   "a\u0007",
+   -1
+  ],
+  [
+   "]",
+   "1A",
+   -1
+  ],
+  [
+   "]",
+   "A\u0007",
+   -1
+  ],
+  [
+   "]",
+   "10",
+   -1
+  ],
+  [
+   "]",
+   "0\u0007",
+   -1
+  ],
+  [
+   "]",
+   "1-",
+   -1
+  ],
+  [
+   "]",
+   "-\u0007",
+   1
+  ],
+  [
+   "]",
+   "1_",
+   -1
+  ],
+  [
+   "]",
+   "_\u0007",
+   1
+  ],
+  [
+   "]",
+   "1 ",
+   -1
+  ],
+  [
+   "]",
+   " \u0007",
+   1
+  ],
+  [
+   "]",
+   "1\u0001",
+   -1
+  ],
+  [
+   "]",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "]",
+   "not_an_event",
+   -1
+  ],
+  [
+   "]",
+   "AB",
+   -1
+  ],
+  [
+   "`",
+   "\u0000",
+   1
+  ],
+  [
+   "`",
+   "\u0007",
+   1
+  ],
+  [
+   "`",
+   "\u000e",
+   1
+  ],
+  [
+   "`",
+   "\u0015",
+   1
+  ],
+  [
+   "`",
+   "\u001c",
+   1
+  ],
+  [
+   "`",
+   "#",
+   1
+  ],
+  [
+   "`",
+   "*",
+   1
+  ],
+  [
+   "`",
+   "1",
+   -1
+  ],
+  [
+   "`",
+   "8",
+   -1
+  ],
+  [
+   "`",
+   "?",
+   1
+  ],
+  [
+   "`",
+   "F",
+   -1
+  ],
+  [
+   "`",
+   "M",
+   -1
+  ],
+  [
+   "`",
+   "T",
+   -1
+  ],
+  [
+   "`",
+   "[",
+   1
+  ],
+  [
+   "`",
+   "b",
+   -1
+  ],
+  [
+   "`",
+   "i",
+   -1
+  ],
+  [
+   "`",
+   "p",
+   -1
+  ],
+  [
+   "`",
+   "w",
+   -1
+  ],
+  [
+   "`",
+   "~",
+   -1
+  ],
+  [
+   "`",
+   "1a",
+   -1
+  ],
+  [
+   "`",
+   "a\u0007",
+   -1
+  ],
+  [
+   "`",
+   "1A",
+   -1
+  ],
+  [
+   "`",
+   "A\u0007",
+   -1
+  ],
+  [
+   "`",
+   "10",
+   -1
+  ],
+  [
+   "`",
+   "0\u0007",
+   -1
+  ],
+  [
+   "`",
+   "1-",
+   -1
+  ],
+  [
+   "`",
+   "-\u0007",
+   1
+  ],
+  [
+   "`",
+   "1_",
+   -1
+  ],
+  [
+   "`",
+   "_\u0007",
+   1
+  ],
+  [
+   "`",
+   "1 ",
+   -1
+  ],
+  [
+   "`",
+   " \u0007",
+   1
+  ],
+  [
+   "`",
+   "1\u0001",
+   -1
+  ],
+  [
+   "`",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "`",
+   "not_an_event",
+   -1
+  ],
+  [
+   "`",
+   "AB",
+   -1
+  ],
+  [
+   "c",
+   "\u0000",
+   1
+  ],
+  [
+   "c",
+   "\u0007",
+   1
+  ],
+  [
+   "c",
+   "\u000e",
+   1
+  ],
+  [
+   "c",
+   "\u0015",
+   1
+  ],
+  [
+   "c",
+   "\u001c",
+   1
+  ],
+  [
+   "c",
+   "#",
+   1
+  ],
+  [
+   "c",
+   "*",
+   1
+  ],
+  [
+   "c",
+   "1",
+   1
+  ],
+  [
+   "c",
+   "8",
+   1
+  ],
+  [
+   "c",
+   "?",
+   1
+  ],
+  [
+   "c",
+   "F",
+   -1
+  ],
+  [
+   "c",
+   "M",
+   -1
+  ],
+  [
+   "c",
+   "T",
+   -1
+  ],
+  [
+   "c",
+   "[",
+   1
+  ],
+  [
+   "c",
+   "b",
+   1
+  ],
+  [
+   "c",
+   "i",
+   -1
+  ],
+  [
+   "c",
+   "p",
+   -1
+  ],
+  [
+   "c",
+   "w",
+   -1
+  ],
+  [
+   "c",
+   "~",
+   1
+  ],
+  [
+   "c",
+   "1a",
+   1
+  ],
+  [
+   "c",
+   "a\u0007",
+   1
+  ],
+  [
+   "c",
+   "1A",
+   1
+  ],
+  [
+   "c",
+   "A\u0007",
+   1
+  ],
+  [
+   "c",
+   "10",
+   1
+  ],
+  [
+   "c",
+   "0\u0007",
+   1
+  ],
+  [
+   "c",
+   "1-",
+   1
+  ],
+  [
+   "c",
+   "-\u0007",
+   1
+  ],
+  [
+   "c",
+   "1_",
+   1
+  ],
+  [
+   "c",
+   "_\u0007",
+   1
+  ],
+  [
+   "c",
+   "1 ",
+   1
+  ],
+  [
+   "c",
+   " \u0007",
+   1
+  ],
+  [
+   "c",
+   "1\u0001",
+   1
+  ],
+  [
+   "c",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "c",
+   "not_an_event",
+   -1
+  ],
+  [
+   "c",
+   "AB",
+   1
+  ],
+  [
+   "f",
+   "\u0000",
+   1
+  ],
+  [
+   "f",
+   "\u0007",
+   1
+  ],
+  [
+   "f",
+   "\u000e",
+   1
+  ],
+  [
+   "f",
+   "\u0015",
+   1
+  ],
+  [
+   "f",
+   "\u001c",
+   1
+  ],
+  [
+   "f",
+   "#",
+   1
+  ],
+  [
+   "f",
+   "*",
+   1
+  ],
+  [
+   "f",
+   "1",
+   1
+  ],
+  [
+   "f",
+   "8",
+   1
+  ],
+  [
+   "f",
+   "?",
+   1
+  ],
+  [
+   "f",
+   "F",
+   -1
+  ],
+  [
+   "f",
+   "M",
+   -1
+  ],
+  [
+   "f",
+   "T",
+   -1
+  ],
+  [
+   "f",
+   "[",
+   1
+  ],
+  [
+   "f",
+   "b",
+   1
+  ],
+  [
+   "f",
+   "i",
+   -1
+  ],
+  [
+   "f",
+   "p",
+   -1
+  ],
+  [
+   "f",
+   "w",
+   -1
+  ],
+  [
+   "f",
+   "~",
+   1
+  ],
+  [
+   "f",
+   "1a",
+   1
+  ],
+  [
+   "f",
+   "a\u0007",
+   1
+  ],
+  [
+   "f",
+   "1A",
+   1
+  ],
+  [
+   "f",
+   "A\u0007",
+   1
+  ],
+  [
+   "f",
+   "10",
+   1
+  ],
+  [
+   "f",
+   "0\u0007",
+   1
+  ],
+  [
+   "f",
+   "1-",
+   1
+  ],
+  [
+   "f",
+   "-\u0007",
+   1
+  ],
+  [
+   "f",
+   "1_",
+   1
+  ],
+  [
+   "f",
+   "_\u0007",
+   1
+  ],
+  [
+   "f",
+   "1 ",
+   1
+  ],
+  [
+   "f",
+   " \u0007",
+   1
+  ],
+  [
+   "f",
+   "1\u0001",
+   1
+  ],
+  [
+   "f",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "f",
+   "not_an_event",
+   -1
+  ],
+  [
+   "f",
+   "AB",
+   1
+  ],
+  [
+   "i",
+   "\u0000",
+   1
+  ],
+  [
+   "i",
+   "\u0007",
+   1
+  ],
+  [
+   "i",
+   "\u000e",
+   1
+  ],
+  [
+   "i",
+   "\u0015",
+   1
+  ],
+  [
+   "i",
+   "\u001c",
+   1
+  ],
+  [
+   "i",
+   "#",
+   1
+  ],
+  [
+   "i",
+   "*",
+   1
+  ],
+  [
+   "i",
+   "1",
+   1
+  ],
+  [
+   "i",
+   "8",
+   1
+  ],
+  [
+   "i",
+   "?",
+   1
+  ],
+  [
+   "i",
+   "F",
+   1
+  ],
+  [
+   "i",
+   "M",
+   -1
+  ],
+  [
+   "i",
+   "T",
+   -1
+  ],
+  [
+   "i",
+   "[",
+   1
+  ],
+  [
+   "i",
+   "b",
+   1
+  ],
+  [
+   "i",
+   "i",
+   0
+  ],
+  [
+   "i",
+   "p",
+   -1
+  ],
+  [
+   "i",
+   "w",
+   -1
+  ],
+  [
+   "i",
+   "~",
+   1
+  ],
+  [
+   "i",
+   "1a",
+   1
+  ],
+  [
+   "i",
+   "a\u0007",
+   1
+  ],
+  [
+   "i",
+   "1A",
+   1
+  ],
+  [
+   "i",
+   "A\u0007",
+   1
+  ],
+  [
+   "i",
+   "10",
+   1
+  ],
+  [
+   "i",
+   "0\u0007",
+   1
+  ],
+  [
+   "i",
+   "1-",
+   1
+  ],
+  [
+   "i",
+   "-\u0007",
+   1
+  ],
+  [
+   "i",
+   "1_",
+   1
+  ],
+  [
+   "i",
+   "_\u0007",
+   1
+  ],
+  [
+   "i",
+   "1 ",
+   1
+  ],
+  [
+   "i",
+   " \u0007",
+   1
+  ],
+  [
+   "i",
+   "1\u0001",
+   1
+  ],
+  [
+   "i",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "i",
+   "not_an_event",
+   -1
+  ],
+  [
+   "i",
+   "AB",
+   1
+  ],
+  [
+   "l",
+   "\u0000",
+   1
+  ],
+  [
+   "l",
+   "\u0007",
+   1
+  ],
+  [
+   "l",
+   "\u000e",
+   1
+  ],
+  [
+   "l",
+   "\u0015",
+   1
+  ],
+  [
+   "l",
+   "\u001c",
+   1
+  ],
+  [
+   "l",
+   "#",
+   1
+  ],
+  [
+   "l",
+   "*",
+   1
+  ],
+  [
+   "l",
+   "1",
+   1
+  ],
+  [
+   "l",
+   "8",
+   1
+  ],
+  [
+   "l",
+   "?",
+   1
+  ],
+  [
+   "l",
+   "F",
+   1
+  ],
+  [
+   "l",
+   "M",
+   -1
+  ],
+  [
+   "l",
+   "T",
+   -1
+  ],
+  [
+   "l",
+   "[",
+   1
+  ],
+  [
+   "l",
+   "b",
+   1
+  ],
+  [
+   "l",
+   "i",
+   1
+  ],
+  [
+   "l",
+   "p",
+   -1
+  ],
+  [
+   "l",
+   "w",
+   -1
+  ],
+  [
+   "l",
+   "~",
+   1
+  ],
+  [
+   "l",
+   "1a",
+   1
+  ],
+  [
+   "l",
+   "a\u0007",
+   1
+  ],
+  [
+   "l",
+   "1A",
+   1
+  ],
+  [
+   "l",
+   "A\u0007",
+   1
+  ],
+  [
+   "l",
+   "10",
+   1
+  ],
+  [
+   "l",
+   "0\u0007",
+   1
+  ],
+  [
+   "l",
+   "1-",
+   1
+  ],
+  [
+   "l",
+   "-\u0007",
+   1
+  ],
+  [
+   "l",
+   "1_",
+   1
+  ],
+  [
+   "l",
+   "_\u0007",
+   1
+  ],
+  [
+   "l",
+   "1 ",
+   1
+  ],
+  [
+   "l",
+   " \u0007",
+   1
+  ],
+  [
+   "l",
+   "1\u0001",
+   1
+  ],
+  [
+   "l",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "l",
+   "not_an_event",
+   -1
+  ],
+  [
+   "l",
+   "AB",
+   1
+  ],
+  [
+   "o",
+   "\u0000",
+   1
+  ],
+  [
+   "o",
+   "\u0007",
+   1
+  ],
+  [
+   "o",
+   "\u000e",
+   1
+  ],
+  [
+   "o",
+   "\u0015",
+   1
+  ],
+  [
+   "o",
+   "\u001c",
+   1
+  ],
+  [
+   "o",
+   "#",
+   1
+  ],
+  [
+   "o",
+   "*",
+   1
+  ],
+  [
+   "o",
+   "1",
+   1
+  ],
+  [
+   "o",
+   "8",
+   1
+  ],
+  [
+   "o",
+   "?",
+   1
+  ],
+  [
+   "o",
+   "F",
+   1
+  ],
+  [
+   "o",
+   "M",
+   1
+  ],
+  [
+   "o",
+   "T",
+   -1
+  ],
+  [
+   "o",
+   "[",
+   1
+  ],
+  [
+   "o",
+   "b",
+   1
+  ],
+  [
+   "o",
+   "i",
+   1
+  ],
+  [
+   "o",
+   "p",
+   -1
+  ],
+  [
+   "o",
+   "w",
+   -1
+  ],
+  [
+   "o",
+   "~",
+   1
+  ],
+  [
+   "o",
+   "1a",
+   1
+  ],
+  [
+   "o",
+   "a\u0007",
+   1
+  ],
+  [
+   "o",
+   "1A",
+   1
+  ],
+  [
+   "o",
+   "A\u0007",
+   1
+  ],
+  [
+   "o",
+   "10",
+   1
+  ],
+  [
+   "o",
+   "0\u0007",
+   1
+  ],
+  [
+   "o",
+   "1-",
+   1
+  ],
+  [
+   "o",
+   "-\u0007",
+   1
+  ],
+  [
+   "o",
+   "1_",
+   1
+  ],
+  [
+   "o",
+   "_\u0007",
+   1
+  ],
+  [
+   "o",
+   "1 ",
+   1
+  ],
+  [
+   "o",
+   " \u0007",
+   1
+  ],
+  [
+   "o",
+   "1\u0001",
+   1
+  ],
+  [
+   "o",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "o",
+   "not_an_event",
+   1
+  ],
+  [
+   "o",
+   "AB",
+   1
+  ],
+  [
+   "r",
+   "\u0000",
+   1
+  ],
+  [
+   "r",
+   "\u0007",
+   1
+  ],
+  [
+   "r",
+   "\u000e",
+   1
+  ],
+  [
+   "r",
+   "\u0015",
+   1
+  ],
+  [
+   "r",
+   "\u001c",
+   1
+  ],
+  [
+   "r",
+   "#",
+   1
+  ],
+  [
+   "r",
+   "*",
+   1
+  ],
+  [
+   "r",
+   "1",
+   1
+  ],
+  [
+   "r",
+   "8",
+   1
+  ],
+  [
+   "r",
+   "?",
+   1
+  ],
+  [
+   "r",
+   "F",
+   1
+  ],
+  [
+   "r",
+   "M",
+   1
+  ],
+  [
+   "r",
+   "T",
+   -1
+  ],
+  [
+   "r",
+   "[",
+   1
+  ],
+  [
+   "r",
+   "b",
+   1
+  ],
+  [
+   "r",
+   "i",
+   1
+  ],
+  [
+   "r",
+   "p",
+   1
+  ],
+  [
+   "r",
+   "w",
+   -1
+  ],
+  [
+   "r",
+   "~",
+   1
+  ],
+  [
+   "r",
+   "1a",
+   1
+  ],
+  [
+   "r",
+   "a\u0007",
+   1
+  ],
+  [
+   "r",
+   "1A",
+   1
+  ],
+  [
+   "r",
+   "A\u0007",
+   1
+  ],
+  [
+   "r",
+   "10",
+   1
+  ],
+  [
+   "r",
+   "0\u0007",
+   1
+  ],
+  [
+   "r",
+   "1-",
+   1
+  ],
+  [
+   "r",
+   "-\u0007",
+   1
+  ],
+  [
+   "r",
+   "1_",
+   1
+  ],
+  [
+   "r",
+   "_\u0007",
+   1
+  ],
+  [
+   "r",
+   "1 ",
+   1
+  ],
+  [
+   "r",
+   " \u0007",
+   1
+  ],
+  [
+   "r",
+   "1\u0001",
+   1
+  ],
+  [
+   "r",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "r",
+   "not_an_event",
+   1
+  ],
+  [
+   "r",
+   "AB",
+   1
+  ],
+  [
+   "u",
+   "\u0000",
+   1
+  ],
+  [
+   "u",
+   "\u0007",
+   1
+  ],
+  [
+   "u",
+   "\u000e",
+   1
+  ],
+  [
+   "u",
+   "\u0015",
+   1
+  ],
+  [
+   "u",
+   "\u001c",
+   1
+  ],
+  [
+   "u",
+   "#",
+   1
+  ],
+  [
+   "u",
+   "*",
+   1
+  ],
+  [
+   "u",
+   "1",
+   1
+  ],
+  [
+   "u",
+   "8",
+   1
+  ],
+  [
+   "u",
+   "?",
+   1
+  ],
+  [
+   "u",
+   "F",
+   1
+  ],
+  [
+   "u",
+   "M",
+   1
+  ],
+  [
+   "u",
+   "T",
+   1
+  ],
+  [
+   "u",
+   "[",
+   1
+  ],
+  [
+   "u",
+   "b",
+   1
+  ],
+  [
+   "u",
+   "i",
+   1
+  ],
+  [
+   "u",
+   "p",
+   1
+  ],
+  [
+   "u",
+   "w",
+   -1
+  ],
+  [
+   "u",
+   "~",
+   1
+  ],
+  [
+   "u",
+   "1a",
+   1
+  ],
+  [
+   "u",
+   "a\u0007",
+   1
+  ],
+  [
+   "u",
+   "1A",
+   1
+  ],
+  [
+   "u",
+   "A\u0007",
+   1
+  ],
+  [
+   "u",
+   "10",
+   1
+  ],
+  [
+   "u",
+   "0\u0007",
+   1
+  ],
+  [
+   "u",
+   "1-",
+   1
+  ],
+  [
+   "u",
+   "-\u0007",
+   1
+  ],
+  [
+   "u",
+   "1_",
+   1
+  ],
+  [
+   "u",
+   "_\u0007",
+   1
+  ],
+  [
+   "u",
+   "1 ",
+   1
+  ],
+  [
+   "u",
+   " \u0007",
+   1
+  ],
+  [
+   "u",
+   "1\u0001",
+   1
+  ],
+  [
+   "u",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "u",
+   "not_an_event",
+   1
+  ],
+  [
+   "u",
+   "AB",
+   1
+  ],
+  [
+   "x",
+   "\u0000",
+   1
+  ],
+  [
+   "x",
+   "\u0007",
+   1
+  ],
+  [
+   "x",
+   "\u000e",
+   1
+  ],
+  [
+   "x",
+   "\u0015",
+   1
+  ],
+  [
+   "x",
+   "\u001c",
+   1
+  ],
+  [
+   "x",
+   "#",
+   1
+  ],
+  [
+   "x",
+   "*",
+   1
+  ],
+  [
+   "x",
+   "1",
+   1
+  ],
+  [
+   "x",
+   "8",
+   1
+  ],
+  [
+   "x",
+   "?",
+   1
+  ],
+  [
+   "x",
+   "F",
+   1
+  ],
+  [
+   "x",
+   "M",
+   1
+  ],
+  [
+   "x",
+   "T",
+   1
+  ],
+  [
+   "x",
+   "[",
+   1
+  ],
+  [
+   "x",
+   "b",
+   1
+  ],
+  [
+   "x",
+   "i",
+   1
+  ],
+  [
+   "x",
+   "p",
+   1
+  ],
+  [
+   "x",
+   "w",
+   1
+  ],
+  [
+   "x",
+   "~",
+   1
+  ],
+  [
+   "x",
+   "1a",
+   1
+  ],
+  [
+   "x",
+   "a\u0007",
+   1
+  ],
+  [
+   "x",
+   "1A",
+   1
+  ],
+  [
+   "x",
+   "A\u0007",
+   1
+  ],
+  [
+   "x",
+   "10",
+   1
+  ],
+  [
+   "x",
+   "0\u0007",
+   1
+  ],
+  [
+   "x",
+   "1-",
+   1
+  ],
+  [
+   "x",
+   "-\u0007",
+   1
+  ],
+  [
+   "x",
+   "1_",
+   1
+  ],
+  [
+   "x",
+   "_\u0007",
+   1
+  ],
+  [
+   "x",
+   "1 ",
+   1
+  ],
+  [
+   "x",
+   " \u0007",
+   1
+  ],
+  [
+   "x",
+   "1\u0001",
+   1
+  ],
+  [
+   "x",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "x",
+   "not_an_event",
+   1
+  ],
+  [
+   "x",
+   "AB",
+   1
+  ],
+  [
+   "{",
+   "\u0000",
+   1
+  ],
+  [
+   "{",
+   "\u0007",
+   1
+  ],
+  [
+   "{",
+   "\u000e",
+   1
+  ],
+  [
+   "{",
+   "\u0015",
+   1
+  ],
+  [
+   "{",
+   "\u001c",
+   1
+  ],
+  [
+   "{",
+   "#",
+   -1
+  ],
+  [
+   "{",
+   "*",
+   -1
+  ],
+  [
+   "{",
+   "1",
+   -1
+  ],
+  [
+   "{",
+   "8",
+   -1
+  ],
+  [
+   "{",
+   "?",
+   1
+  ],
+  [
+   "{",
+   "F",
+   -1
+  ],
+  [
+   "{",
+   "M",
+   -1
+  ],
+  [
+   "{",
+   "T",
+   -1
+  ],
+  [
+   "{",
+   "[",
+   1
+  ],
+  [
+   "{",
+   "b",
+   -1
+  ],
+  [
+   "{",
+   "i",
+   -1
+  ],
+  [
+   "{",
+   "p",
+   -1
+  ],
+  [
+   "{",
+   "w",
+   -1
+  ],
+  [
+   "{",
+   "~",
+   -1
+  ],
+  [
+   "{",
+   "1a",
+   -1
+  ],
+  [
+   "{",
+   "a\u0007",
+   -1
+  ],
+  [
+   "{",
+   "1A",
+   -1
+  ],
+  [
+   "{",
+   "A\u0007",
+   -1
+  ],
+  [
+   "{",
+   "10",
+   -1
+  ],
+  [
+   "{",
+   "0\u0007",
+   -1
+  ],
+  [
+   "{",
+   "1-",
+   -1
+  ],
+  [
+   "{",
+   "-\u0007",
+   1
+  ],
+  [
+   "{",
+   "1_",
+   -1
+  ],
+  [
+   "{",
+   "_\u0007",
+   1
+  ],
+  [
+   "{",
+   "1 ",
+   -1
+  ],
+  [
+   "{",
+   " \u0007",
+   1
+  ],
+  [
+   "{",
+   "1\u0001",
+   -1
+  ],
+  [
+   "{",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "{",
+   "not_an_event",
+   -1
+  ],
+  [
+   "{",
+   "AB",
+   -1
+  ],
+  [
+   "~",
+   "\u0000",
+   1
+  ],
+  [
+   "~",
+   "\u0007",
+   1
+  ],
+  [
+   "~",
+   "\u000e",
+   1
+  ],
+  [
+   "~",
+   "\u0015",
+   1
+  ],
+  [
+   "~",
+   "\u001c",
+   1
+  ],
+  [
+   "~",
+   "#",
+   1
+  ],
+  [
+   "~",
+   "*",
+   1
+  ],
+  [
+   "~",
+   "1",
+   -1
+  ],
+  [
+   "~",
+   "8",
+   -1
+  ],
+  [
+   "~",
+   "?",
+   1
+  ],
+  [
+   "~",
+   "F",
+   -1
+  ],
+  [
+   "~",
+   "M",
+   -1
+  ],
+  [
+   "~",
+   "T",
+   -1
+  ],
+  [
+   "~",
+   "[",
+   1
+  ],
+  [
+   "~",
+   "b",
+   -1
+  ],
+  [
+   "~",
+   "i",
+   -1
+  ],
+  [
+   "~",
+   "p",
+   -1
+  ],
+  [
+   "~",
+   "w",
+   -1
+  ],
+  [
+   "~",
+   "~",
+   0
+  ],
+  [
+   "~",
+   "1a",
+   -1
+  ],
+  [
+   "~",
+   "a\u0007",
+   -1
+  ],
+  [
+   "~",
+   "1A",
+   -1
+  ],
+  [
+   "~",
+   "A\u0007",
+   -1
+  ],
+  [
+   "~",
+   "10",
+   -1
+  ],
+  [
+   "~",
+   "0\u0007",
+   -1
+  ],
+  [
+   "~",
+   "1-",
+   -1
+  ],
+  [
+   "~",
+   "-\u0007",
+   1
+  ],
+  [
+   "~",
+   "1_",
+   -1
+  ],
+  [
+   "~",
+   "_\u0007",
+   1
+  ],
+  [
+   "~",
+   "1 ",
+   -1
+  ],
+  [
+   "~",
+   " \u0007",
+   1
+  ],
+  [
+   "~",
+   "1\u0001",
+   -1
+  ],
+  [
+   "~",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "~",
+   "not_an_event",
+   -1
+  ],
+  [
+   "~",
+   "AB",
+   -1
+  ],
+  [
+   "ba",
+   "\u0000",
+   1
+  ],
+  [
+   "ba",
+   "\u0007",
+   1
+  ],
+  [
+   "ba",
+   "\u000e",
+   1
+  ],
+  [
+   "ba",
+   "\u0015",
+   1
+  ],
+  [
+   "ba",
+   "\u001c",
+   1
+  ],
+  [
+   "ba",
+   "#",
+   1
+  ],
+  [
+   "ba",
+   "*",
+   1
+  ],
+  [
+   "ba",
+   "1",
+   1
+  ],
+  [
+   "ba",
+   "8",
+   1
+  ],
+  [
+   "ba",
+   "?",
+   1
+  ],
+  [
+   "ba",
+   "F",
+   -1
+  ],
+  [
+   "ba",
+   "M",
+   -1
+  ],
+  [
+   "ba",
+   "T",
+   -1
+  ],
+  [
+   "ba",
+   "[",
+   1
+  ],
+  [
+   "ba",
+   "b",
+   1
+  ],
+  [
+   "ba",
+   "i",
+   -1
+  ],
+  [
+   "ba",
+   "p",
+   -1
+  ],
+  [
+   "ba",
+   "w",
+   -1
+  ],
+  [
+   "ba",
+   "~",
+   1
+  ],
+  [
+   "ba",
+   "1a",
+   1
+  ],
+  [
+   "ba",
+   "a\u0007",
+   1
+  ],
+  [
+   "ba",
+   "1A",
+   1
+  ],
+  [
+   "ba",
+   "A\u0007",
+   1
+  ],
+  [
+   "ba",
+   "10",
+   1
+  ],
+  [
+   "ba",
+   "0\u0007",
+   1
+  ],
+  [
+   "ba",
+   "1-",
+   1
+  ],
+  [
+   "ba",
+   "-\u0007",
+   1
+  ],
+  [
+   "ba",
+   "1_",
+   1
+  ],
+  [
+   "ba",
+   "_\u0007",
+   1
+  ],
+  [
+   "ba",
+   "1 ",
+   1
+  ],
+  [
+   "ba",
+   " \u0007",
+   1
+  ],
+  [
+   "ba",
+   "1\u0001",
+   1
+  ],
+  [
+   "ba",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "ba",
+   "not_an_event",
+   -1
+  ],
+  [
+   "ba",
+   "AB",
+   1
+  ],
+  [
+   "a1",
+   "\u0000",
+   1
+  ],
+  [
+   "a1",
+   "\u0007",
+   1
+  ],
+  [
+   "a1",
+   "\u000e",
+   1
+  ],
+  [
+   "a1",
+   "\u0015",
+   1
+  ],
+  [
+   "a1",
+   "\u001c",
+   1
+  ],
+  [
+   "a1",
+   "#",
+   1
+  ],
+  [
+   "a1",
+   "*",
+   1
+  ],
+  [
+   "a1",
+   "1",
+   1
+  ],
+  [
+   "a1",
+   "8",
+   1
+  ],
+  [
+   "a1",
+   "?",
+   1
+  ],
+  [
+   "a1",
+   "F",
+   -1
+  ],
+  [
+   "a1",
+   "M",
+   -1
+  ],
+  [
+   "a1",
+   "T",
+   -1
+  ],
+  [
+   "a1",
+   "[",
+   1
+  ],
+  [
+   "a1",
+   "b",
+   -1
+  ],
+  [
+   "a1",
+   "i",
+   -1
+  ],
+  [
+   "a1",
+   "p",
+   -1
+  ],
+  [
+   "a1",
+   "w",
+   -1
+  ],
+  [
+   "a1",
+   "~",
+   1
+  ],
+  [
+   "a1",
+   "1a",
+   1
+  ],
+  [
+   "a1",
+   "a\u0007",
+   1
+  ],
+  [
+   "a1",
+   "1A",
+   1
+  ],
+  [
+   "a1",
+   "A\u0007",
+   1
+  ],
+  [
+   "a1",
+   "10",
+   1
+  ],
+  [
+   "a1",
+   "0\u0007",
+   1
+  ],
+  [
+   "a1",
+   "1-",
+   1
+  ],
+  [
+   "a1",
+   "-\u0007",
+   1
+  ],
+  [
+   "a1",
+   "1_",
+   1
+  ],
+  [
+   "a1",
+   "_\u0007",
+   1
+  ],
+  [
+   "a1",
+   "1 ",
+   1
+  ],
+  [
+   "a1",
+   " \u0007",
+   1
+  ],
+  [
+   "a1",
+   "1\u0001",
+   1
+  ],
+  [
+   "a1",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "a1",
+   "not_an_event",
+   -1
+  ],
+  [
+   "a1",
+   "AB",
+   -1
+  ],
+  [
+   "_a",
+   "\u0000",
+   1
+  ],
+  [
+   "_a",
+   "\u0007",
+   1
+  ],
+  [
+   "_a",
+   "\u000e",
+   1
+  ],
+  [
+   "_a",
+   "\u0015",
+   1
+  ],
+  [
+   "_a",
+   "\u001c",
+   1
+  ],
+  [
+   "_a",
+   "#",
+   -1
+  ],
+  [
+   "_a",
+   "*",
+   -1
+  ],
+  [
+   "_a",
+   "1",
+   -1
+  ],
+  [
+   "_a",
+   "8",
+   -1
+  ],
+  [
+   "_a",
+   "?",
+   -1
+  ],
+  [
+   "_a",
+   "F",
+   -1
+  ],
+  [
+   "_a",
+   "M",
+   -1
+  ],
+  [
+   "_a",
+   "T",
+   -1
+  ],
+  [
+   "_a",
+   "[",
+   -1
+  ],
+  [
+   "_a",
+   "b",
+   -1
+  ],
+  [
+   "_a",
+   "i",
+   -1
+  ],
+  [
+   "_a",
+   "p",
+   -1
+  ],
+  [
+   "_a",
+   "w",
+   -1
+  ],
+  [
+   "_a",
+   "~",
+   -1
+  ],
+  [
+   "_a",
+   "1a",
+   -1
+  ],
+  [
+   "_a",
+   "a\u0007",
+   -1
+  ],
+  [
+   "_a",
+   "1A",
+   -1
+  ],
+  [
+   "_a",
+   "A\u0007",
+   -1
+  ],
+  [
+   "_a",
+   "10",
+   -1
+  ],
+  [
+   "_a",
+   "0\u0007",
+   -1
+  ],
+  [
+   "_a",
+   "1-",
+   -1
+  ],
+  [
+   "_a",
+   "-\u0007",
+   -1
+  ],
+  [
+   "_a",
+   "1_",
+   -1
+  ],
+  [
+   "_a",
+   "_\u0007",
+   1
+  ],
+  [
+   "_a",
+   "1 ",
+   -1
+  ],
+  [
+   "_a",
+   " \u0007",
+   1
+  ],
+  [
+   "_a",
+   "1\u0001",
+   -1
+  ],
+  [
+   "_a",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "_a",
+   "not_an_event",
+   -1
+  ],
+  [
+   "_a",
+   "AB",
+   -1
+  ],
+  [
+   "a.",
+   "\u0000",
+   1
+  ],
+  [
+   "a.",
+   "\u0007",
+   1
+  ],
+  [
+   "a.",
+   "\u000e",
+   1
+  ],
+  [
+   "a.",
+   "\u0015",
+   1
+  ],
+  [
+   "a.",
+   "\u001c",
+   1
+  ],
+  [
+   "a.",
+   "#",
+   1
+  ],
+  [
+   "a.",
+   "*",
+   1
+  ],
+  [
+   "a.",
+   "1",
+   1
+  ],
+  [
+   "a.",
+   "8",
+   1
+  ],
+  [
+   "a.",
+   "?",
+   1
+  ],
+  [
+   "a.",
+   "F",
+   -1
+  ],
+  [
+   "a.",
+   "M",
+   -1
+  ],
+  [
+   "a.",
+   "T",
+   -1
+  ],
+  [
+   "a.",
+   "[",
+   1
+  ],
+  [
+   "a.",
+   "b",
+   -1
+  ],
+  [
+   "a.",
+   "i",
+   -1
+  ],
+  [
+   "a.",
+   "p",
+   -1
+  ],
+  [
+   "a.",
+   "w",
+   -1
+  ],
+  [
+   "a.",
+   "~",
+   1
+  ],
+  [
+   "a.",
+   "1a",
+   1
+  ],
+  [
+   "a.",
+   "a\u0007",
+   1
+  ],
+  [
+   "a.",
+   "1A",
+   1
+  ],
+  [
+   "a.",
+   "A\u0007",
+   1
+  ],
+  [
+   "a.",
+   "10",
+   1
+  ],
+  [
+   "a.",
+   "0\u0007",
+   1
+  ],
+  [
+   "a.",
+   "1-",
+   1
+  ],
+  [
+   "a.",
+   "-\u0007",
+   1
+  ],
+  [
+   "a.",
+   "1_",
+   1
+  ],
+  [
+   "a.",
+   "_\u0007",
+   1
+  ],
+  [
+   "a.",
+   "1 ",
+   1
+  ],
+  [
+   "a.",
+   " \u0007",
+   1
+  ],
+  [
+   "a.",
+   "1\u0001",
+   1
+  ],
+  [
+   "a.",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "a.",
+   "not_an_event",
+   -1
+  ],
+  [
+   "a.",
+   "AB",
+   -1
+  ],
+  [
+   "\u0007a",
+   "\u0000",
+   1
+  ],
+  [
+   "\u0007a",
+   "\u0007",
+   1
+  ],
+  [
+   "\u0007a",
+   "\u000e",
+   1
+  ],
+  [
+   "\u0007a",
+   "\u0015",
+   1
+  ],
+  [
+   "\u0007a",
+   "\u001c",
+   1
+  ],
+  [
+   "\u0007a",
+   "#",
+   1
+  ],
+  [
+   "\u0007a",
+   "*",
+   1
+  ],
+  [
+   "\u0007a",
+   "1",
+   1
+  ],
+  [
+   "\u0007a",
+   "8",
+   1
+  ],
+  [
+   "\u0007a",
+   "?",
+   1
+  ],
+  [
+   "\u0007a",
+   "F",
+   -1
+  ],
+  [
+   "\u0007a",
+   "M",
+   -1
+  ],
+  [
+   "\u0007a",
+   "T",
+   -1
+  ],
+  [
+   "\u0007a",
+   "[",
+   1
+  ],
+  [
+   "\u0007a",
+   "b",
+   -1
+  ],
+  [
+   "\u0007a",
+   "i",
+   -1
+  ],
+  [
+   "\u0007a",
+   "p",
+   -1
+  ],
+  [
+   "\u0007a",
+   "w",
+   -1
+  ],
+  [
+   "\u0007a",
+   "~",
+   1
+  ],
+  [
+   "\u0007a",
+   "1a",
+   1
+  ],
+  [
+   "\u0007a",
+   "a\u0007",
+   0
+  ],
+  [
+   "\u0007a",
+   "1A",
+   1
+  ],
+  [
+   "\u0007a",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u0007a",
+   "10",
+   1
+  ],
+  [
+   "\u0007a",
+   "0\u0007",
+   1
+  ],
+  [
+   "\u0007a",
+   "1-",
+   1
+  ],
+  [
+   "\u0007a",
+   "-\u0007",
+   1
+  ],
+  [
+   "\u0007a",
+   "1_",
+   1
+  ],
+  [
+   "\u0007a",
+   "_\u0007",
+   1
+  ],
+  [
+   "\u0007a",
+   "1 ",
+   1
+  ],
+  [
+   "\u0007a",
+   " \u0007",
+   1
+  ],
+  [
+   "\u0007a",
+   "1\u0001",
+   1
+  ],
+  [
+   "\u0007a",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "\u0007a",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u0007a",
+   "AB",
+   -1
+  ],
+  [
+   "AB",
+   "\u0000",
+   1
+  ],
+  [
+   "AB",
+   "\u0007",
+   1
+  ],
+  [
+   "AB",
+   "\u000e",
+   1
+  ],
+  [
+   "AB",
+   "\u0015",
+   1
+  ],
+  [
+   "AB",
+   "\u001c",
+   1
+  ],
+  [
+   "AB",
+   "#",
+   1
+  ],
+  [
+   "AB",
+   "*",
+   1
+  ],
+  [
+   "AB",
+   "1",
+   1
+  ],
+  [
+   "AB",
+   "8",
+   1
+  ],
+  [
+   "AB",
+   "?",
+   1
+  ],
+  [
+   "AB",
+   "F",
+   -1
+  ],
+  [
+   "AB",
+   "M",
+   -1
+  ],
+  [
+   "AB",
+   "T",
+   -1
+  ],
+  [
+   "AB",
+   "[",
+   1
+  ],
+  [
+   "AB",
+   "b",
+   -1
+  ],
+  [
+   "AB",
+   "i",
+   -1
+  ],
+  [
+   "AB",
+   "p",
+   -1
+  ],
+  [
+   "AB",
+   "w",
+   -1
+  ],
+  [
+   "AB",
+   "~",
+   1
+  ],
+  [
+   "AB",
+   "1a",
+   1
+  ],
+  [
+   "AB",
+   "a\u0007",
+   1
+  ],
+  [
+   "AB",
+   "1A",
+   1
+  ],
+  [
+   "AB",
+   "A\u0007",
+   1
+  ],
+  [
+   "AB",
+   "10",
+   1
+  ],
+  [
+   "AB",
+   "0\u0007",
+   1
+  ],
+  [
+   "AB",
+   "1-",
+   1
+  ],
+  [
+   "AB",
+   "-\u0007",
+   1
+  ],
+  [
+   "AB",
+   "1_",
+   1
+  ],
+  [
+   "AB",
+   "_\u0007",
+   1
+  ],
+  [
+   "AB",
+   "1 ",
+   1
+  ],
+  [
+   "AB",
+   " \u0007",
+   1
+  ],
+  [
+   "AB",
+   "1\u0001",
+   1
+  ],
+  [
+   "AB",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "AB",
+   "not_an_event",
+   -1
+  ],
+  [
+   "AB",
+   "AB",
+   0
+  ],
+  [
+   "1A",
+   "\u0000",
+   1
+  ],
+  [
+   "1A",
+   "\u0007",
+   1
+  ],
+  [
+   "1A",
+   "\u000e",
+   1
+  ],
+  [
+   "1A",
+   "\u0015",
+   1
+  ],
+  [
+   "1A",
+   "\u001c",
+   1
+  ],
+  [
+   "1A",
+   "#",
+   1
+  ],
+  [
+   "1A",
+   "*",
+   1
+  ],
+  [
+   "1A",
+   "1",
+   1
+  ],
+  [
+   "1A",
+   "8",
+   -1
+  ],
+  [
+   "1A",
+   "?",
+   1
+  ],
+  [
+   "1A",
+   "F",
+   -1
+  ],
+  [
+   "1A",
+   "M",
+   -1
+  ],
+  [
+   "1A",
+   "T",
+   -1
+  ],
+  [
+   "1A",
+   "[",
+   1
+  ],
+  [
+   "1A",
+   "b",
+   -1
+  ],
+  [
+   "1A",
+   "i",
+   -1
+  ],
+  [
+   "1A",
+   "p",
+   -1
+  ],
+  [
+   "1A",
+   "w",
+   -1
+  ],
+  [
+   "1A",
+   "~",
+   1
+  ],
+  [
+   "1A",
+   "1a",
+   1
+  ],
+  [
+   "1A",
+   "a\u0007",
+   -1
+  ],
+  [
+   "1A",
+   "1A",
+   0
+  ],
+  [
+   "1A",
+   "A\u0007",
+   -1
+  ],
+  [
+   "1A",
+   "10",
+   1
+  ],
+  [
+   "1A",
+   "0\u0007",
+   1
+  ],
+  [
+   "1A",
+   "1-",
+   1
+  ],
+  [
+   "1A",
+   "-\u0007",
+   1
+  ],
+  [
+   "1A",
+   "1_",
+   1
+  ],
+  [
+   "1A",
+   "_\u0007",
+   1
+  ],
+  [
+   "1A",
+   "1 ",
+   1
+  ],
+  [
+   "1A",
+   " \u0007",
+   1
+  ],
+  [
+   "1A",
+   "1\u0001",
+   1
+  ],
+  [
+   "1A",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "1A",
+   "not_an_event",
+   -1
+  ],
+  [
+   "1A",
+   "AB",
+   -1
+  ],
+  [
+   "A-",
+   "\u0000",
+   1
+  ],
+  [
+   "A-",
+   "\u0007",
+   1
+  ],
+  [
+   "A-",
+   "\u000e",
+   1
+  ],
+  [
+   "A-",
+   "\u0015",
+   1
+  ],
+  [
+   "A-",
+   "\u001c",
+   1
+  ],
+  [
+   "A-",
+   "#",
+   1
+  ],
+  [
+   "A-",
+   "*",
+   1
+  ],
+  [
+   "A-",
+   "1",
+   1
+  ],
+  [
+   "A-",
+   "8",
+   1
+  ],
+  [
+   "A-",
+   "?",
+   1
+  ],
+  [
+   "A-",
+   "F",
+   -1
+  ],
+  [
+   "A-",
+   "M",
+   -1
+  ],
+  [
+   "A-",
+   "T",
+   -1
+  ],
+  [
+   "A-",
+   "[",
+   1
+  ],
+  [
+   "A-",
+   "b",
+   -1
+  ],
+  [
+   "A-",
+   "i",
+   -1
+  ],
+  [
+   "A-",
+   "p",
+   -1
+  ],
+  [
+   "A-",
+   "w",
+   -1
+  ],
+  [
+   "A-",
+   "~",
+   1
+  ],
+  [
+   "A-",
+   "1a",
+   1
+  ],
+  [
+   "A-",
+   "a\u0007",
+   1
+  ],
+  [
+   "A-",
+   "1A",
+   1
+  ],
+  [
+   "A-",
+   "A\u0007",
+   1
+  ],
+  [
+   "A-",
+   "10",
+   1
+  ],
+  [
+   "A-",
+   "0\u0007",
+   1
+  ],
+  [
+   "A-",
+   "1-",
+   1
+  ],
+  [
+   "A-",
+   "-\u0007",
+   1
+  ],
+  [
+   "A-",
+   "1_",
+   1
+  ],
+  [
+   "A-",
+   "_\u0007",
+   1
+  ],
+  [
+   "A-",
+   "1 ",
+   1
+  ],
+  [
+   "A-",
+   " \u0007",
+   1
+  ],
+  [
+   "A-",
+   "1\u0001",
+   1
+  ],
+  [
+   "A-",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "A-",
+   "not_an_event",
+   -1
+  ],
+  [
+   "A-",
+   "AB",
+   -1
+  ],
+  [
+   ".A",
+   "\u0000",
+   1
+  ],
+  [
+   ".A",
+   "\u0007",
+   1
+  ],
+  [
+   ".A",
+   "\u000e",
+   1
+  ],
+  [
+   ".A",
+   "\u0015",
+   1
+  ],
+  [
+   ".A",
+   "\u001c",
+   1
+  ],
+  [
+   ".A",
+   "#",
+   -1
+  ],
+  [
+   ".A",
+   "*",
+   -1
+  ],
+  [
+   ".A",
+   "1",
+   -1
+  ],
+  [
+   ".A",
+   "8",
+   -1
+  ],
+  [
+   ".A",
+   "?",
+   1
+  ],
+  [
+   ".A",
+   "F",
+   -1
+  ],
+  [
+   ".A",
+   "M",
+   -1
+  ],
+  [
+   ".A",
+   "T",
+   -1
+  ],
+  [
+   ".A",
+   "[",
+   -1
+  ],
+  [
+   ".A",
+   "b",
+   -1
+  ],
+  [
+   ".A",
+   "i",
+   -1
+  ],
+  [
+   ".A",
+   "p",
+   -1
+  ],
+  [
+   ".A",
+   "w",
+   -1
+  ],
+  [
+   ".A",
+   "~",
+   -1
+  ],
+  [
+   ".A",
+   "1a",
+   -1
+  ],
+  [
+   ".A",
+   "a\u0007",
+   -1
+  ],
+  [
+   ".A",
+   "1A",
+   -1
+  ],
+  [
+   ".A",
+   "A\u0007",
+   -1
+  ],
+  [
+   ".A",
+   "10",
+   -1
+  ],
+  [
+   ".A",
+   "0\u0007",
+   -1
+  ],
+  [
+   ".A",
+   "1-",
+   -1
+  ],
+  [
+   ".A",
+   "-\u0007",
+   1
+  ],
+  [
+   ".A",
+   "1_",
+   -1
+  ],
+  [
+   ".A",
+   "_\u0007",
+   1
+  ],
+  [
+   ".A",
+   "1 ",
+   -1
+  ],
+  [
+   ".A",
+   " \u0007",
+   1
+  ],
+  [
+   ".A",
+   "1\u0001",
+   -1
+  ],
+  [
+   ".A",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   ".A",
+   "not_an_event",
+   -1
+  ],
+  [
+   ".A",
+   "AB",
+   -1
+  ],
+  [
+   "0b",
+   "\u0000",
+   1
+  ],
+  [
+   "0b",
+   "\u0007",
+   1
+  ],
+  [
+   "0b",
+   "\u000e",
+   1
+  ],
+  [
+   "0b",
+   "\u0015",
+   1
+  ],
+  [
+   "0b",
+   "\u001c",
+   1
+  ],
+  [
+   "0b",
+   "#",
+   1
+  ],
+  [
+   "0b",
+   "*",
+   1
+  ],
+  [
+   "0b",
+   "1",
+   -1
+  ],
+  [
+   "0b",
+   "8",
+   -1
+  ],
+  [
+   "0b",
+   "?",
+   1
+  ],
+  [
+   "0b",
+   "F",
+   -1
+  ],
+  [
+   "0b",
+   "M",
+   -1
+  ],
+  [
+   "0b",
+   "T",
+   -1
+  ],
+  [
+   "0b",
+   "[",
+   1
+  ],
+  [
+   "0b",
+   "b",
+   -1
+  ],
+  [
+   "0b",
+   "i",
+   -1
+  ],
+  [
+   "0b",
+   "p",
+   -1
+  ],
+  [
+   "0b",
+   "w",
+   -1
+  ],
+  [
+   "0b",
+   "~",
+   1
+  ],
+  [
+   "0b",
+   "1a",
+   -1
+  ],
+  [
+   "0b",
+   "a\u0007",
+   -1
+  ],
+  [
+   "0b",
+   "1A",
+   -1
+  ],
+  [
+   "0b",
+   "A\u0007",
+   -1
+  ],
+  [
+   "0b",
+   "10",
+   -1
+  ],
+  [
+   "0b",
+   "0\u0007",
+   1
+  ],
+  [
+   "0b",
+   "1-",
+   -1
+  ],
+  [
+   "0b",
+   "-\u0007",
+   1
+  ],
+  [
+   "0b",
+   "1_",
+   -1
+  ],
+  [
+   "0b",
+   "_\u0007",
+   1
+  ],
+  [
+   "0b",
+   "1 ",
+   -1
+  ],
+  [
+   "0b",
+   " \u0007",
+   1
+  ],
+  [
+   "0b",
+   "1\u0001",
+   -1
+  ],
+  [
+   "0b",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "0b",
+   "not_an_event",
+   -1
+  ],
+  [
+   "0b",
+   "AB",
+   -1
+  ],
+  [
+   "B0",
+   "\u0000",
+   1
+  ],
+  [
+   "B0",
+   "\u0007",
+   1
+  ],
+  [
+   "B0",
+   "\u000e",
+   1
+  ],
+  [
+   "B0",
+   "\u0015",
+   1
+  ],
+  [
+   "B0",
+   "\u001c",
+   1
+  ],
+  [
+   "B0",
+   "#",
+   1
+  ],
+  [
+   "B0",
+   "*",
+   1
+  ],
+  [
+   "B0",
+   "1",
+   1
+  ],
+  [
+   "B0",
+   "8",
+   1
+  ],
+  [
+   "B0",
+   "?",
+   1
+  ],
+  [
+   "B0",
+   "F",
+   -1
+  ],
+  [
+   "B0",
+   "M",
+   -1
+  ],
+  [
+   "B0",
+   "T",
+   -1
+  ],
+  [
+   "B0",
+   "[",
+   1
+  ],
+  [
+   "B0",
+   "b",
+   1
+  ],
+  [
+   "B0",
+   "i",
+   -1
+  ],
+  [
+   "B0",
+   "p",
+   -1
+  ],
+  [
+   "B0",
+   "w",
+   -1
+  ],
+  [
+   "B0",
+   "~",
+   1
+  ],
+  [
+   "B0",
+   "1a",
+   1
+  ],
+  [
+   "B0",
+   "a\u0007",
+   1
+  ],
+  [
+   "B0",
+   "1A",
+   1
+  ],
+  [
+   "B0",
+   "A\u0007",
+   1
+  ],
+  [
+   "B0",
+   "10",
+   1
+  ],
+  [
+   "B0",
+   "0\u0007",
+   1
+  ],
+  [
+   "B0",
+   "1-",
+   1
+  ],
+  [
+   "B0",
+   "-\u0007",
+   1
+  ],
+  [
+   "B0",
+   "1_",
+   1
+  ],
+  [
+   "B0",
+   "_\u0007",
+   1
+  ],
+  [
+   "B0",
+   "1 ",
+   1
+  ],
+  [
+   "B0",
+   " \u0007",
+   1
+  ],
+  [
+   "B0",
+   "1\u0001",
+   1
+  ],
+  [
+   "B0",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "B0",
+   "not_an_event",
+   -1
+  ],
+  [
+   "B0",
+   "AB",
+   1
+  ],
+  [
+   "0_",
+   "\u0000",
+   1
+  ],
+  [
+   "0_",
+   "\u0007",
+   1
+  ],
+  [
+   "0_",
+   "\u000e",
+   1
+  ],
+  [
+   "0_",
+   "\u0015",
+   1
+  ],
+  [
+   "0_",
+   "\u001c",
+   1
+  ],
+  [
+   "0_",
+   "#",
+   1
+  ],
+  [
+   "0_",
+   "*",
+   1
+  ],
+  [
+   "0_",
+   "1",
+   -1
+  ],
+  [
+   "0_",
+   "8",
+   -1
+  ],
+  [
+   "0_",
+   "?",
+   1
+  ],
+  [
+   "0_",
+   "F",
+   -1
+  ],
+  [
+   "0_",
+   "M",
+   -1
+  ],
+  [
+   "0_",
+   "T",
+   -1
+  ],
+  [
+   "0_",
+   "[",
+   1
+  ],
+  [
+   "0_",
+   "b",
+   -1
+  ],
+  [
+   "0_",
+   "i",
+   -1
+  ],
+  [
+   "0_",
+   "p",
+   -1
+  ],
+  [
+   "0_",
+   "w",
+   -1
+  ],
+  [
+   "0_",
+   "~",
+   1
+  ],
+  [
+   "0_",
+   "1a",
+   -1
+  ],
+  [
+   "0_",
+   "a\u0007",
+   -1
+  ],
+  [
+   "0_",
+   "1A",
+   -1
+  ],
+  [
+   "0_",
+   "A\u0007",
+   -1
+  ],
+  [
+   "0_",
+   "10",
+   -1
+  ],
+  [
+   "0_",
+   "0\u0007",
+   1
+  ],
+  [
+   "0_",
+   "1-",
+   -1
+  ],
+  [
+   "0_",
+   "-\u0007",
+   1
+  ],
+  [
+   "0_",
+   "1_",
+   -1
+  ],
+  [
+   "0_",
+   "_\u0007",
+   1
+  ],
+  [
+   "0_",
+   "1 ",
+   -1
+  ],
+  [
+   "0_",
+   " \u0007",
+   1
+  ],
+  [
+   "0_",
+   "1\u0001",
+   -1
+  ],
+  [
+   "0_",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "0_",
+   "not_an_event",
+   -1
+  ],
+  [
+   "0_",
+   "AB",
+   -1
+  ],
+  [
+   "-0",
+   "\u0000",
+   1
+  ],
+  [
+   "-0",
+   "\u0007",
+   1
+  ],
+  [
+   "-0",
+   "\u000e",
+   1
+  ],
+  [
+   "-0",
+   "\u0015",
+   1
+  ],
+  [
+   "-0",
+   "\u001c",
+   1
+  ],
+  [
+   "-0",
+   "#",
+   -1
+  ],
+  [
+   "-0",
+   "*",
+   -1
+  ],
+  [
+   "-0",
+   "1",
+   -1
+  ],
+  [
+   "-0",
+   "8",
+   -1
+  ],
+  [
+   "-0",
+   "?",
+   -1
+  ],
+  [
+   "-0",
+   "F",
+   -1
+  ],
+  [
+   "-0",
+   "M",
+   -1
+  ],
+  [
+   "-0",
+   "T",
+   -1
+  ],
+  [
+   "-0",
+   "[",
+   -1
+  ],
+  [
+   "-0",
+   "b",
+   -1
+  ],
+  [
+   "-0",
+   "i",
+   -1
+  ],
+  [
+   "-0",
+   "p",
+   -1
+  ],
+  [
+   "-0",
+   "w",
+   -1
+  ],
+  [
+   "-0",
+   "~",
+   -1
+  ],
+  [
+   "-0",
+   "1a",
+   -1
+  ],
+  [
+   "-0",
+   "a\u0007",
+   -1
+  ],
+  [
+   "-0",
+   "1A",
+   -1
+  ],
+  [
+   "-0",
+   "A\u0007",
+   -1
+  ],
+  [
+   "-0",
+   "10",
+   -1
+  ],
+  [
+   "-0",
+   "0\u0007",
+   -1
+  ],
+  [
+   "-0",
+   "1-",
+   -1
+  ],
+  [
+   "-0",
+   "-\u0007",
+   1
+  ],
+  [
+   "-0",
+   "1_",
+   -1
+  ],
+  [
+   "-0",
+   "_\u0007",
+   1
+  ],
+  [
+   "-0",
+   "1 ",
+   -1
+  ],
+  [
+   "-0",
+   " \u0007",
+   1
+  ],
+  [
+   "-0",
+   "1\u0001",
+   -1
+  ],
+  [
+   "-0",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "-0",
+   "not_an_event",
+   -1
+  ],
+  [
+   "-0",
+   "AB",
+   -1
+  ],
+  [
+   "0\u0007",
+   "\u0000",
+   1
+  ],
+  [
+   "0\u0007",
+   "\u0007",
+   1
+  ],
+  [
+   "0\u0007",
+   "\u000e",
+   1
+  ],
+  [
+   "0\u0007",
+   "\u0015",
+   1
+  ],
+  [
+   "0\u0007",
+   "\u001c",
+   1
+  ],
+  [
+   "0\u0007",
+   "#",
+   1
+  ],
+  [
+   "0\u0007",
+   "*",
+   1
+  ],
+  [
+   "0\u0007",
+   "1",
+   -1
+  ],
+  [
+   "0\u0007",
+   "8",
+   -1
+  ],
+  [
+   "0\u0007",
+   "?",
+   1
+  ],
+  [
+   "0\u0007",
+   "F",
+   -1
+  ],
+  [
+   "0\u0007",
+   "M",
+   -1
+  ],
+  [
+   "0\u0007",
+   "T",
+   -1
+  ],
+  [
+   "0\u0007",
+   "[",
+   1
+  ],
+  [
+   "0\u0007",
+   "b",
+   -1
+  ],
+  [
+   "0\u0007",
+   "i",
+   -1
+  ],
+  [
+   "0\u0007",
+   "p",
+   -1
+  ],
+  [
+   "0\u0007",
+   "w",
+   -1
+  ],
+  [
+   "0\u0007",
+   "~",
+   1
+  ],
+  [
+   "0\u0007",
+   "1a",
+   -1
+  ],
+  [
+   "0\u0007",
+   "a\u0007",
+   -1
+  ],
+  [
+   "0\u0007",
+   "1A",
+   -1
+  ],
+  [
+   "0\u0007",
+   "A\u0007",
+   -1
+  ],
+  [
+   "0\u0007",
+   "10",
+   -1
+  ],
+  [
+   "0\u0007",
+   "0\u0007",
+   0
+  ],
+  [
+   "0\u0007",
+   "1-",
+   -1
+  ],
+  [
+   "0\u0007",
+   "-\u0007",
+   1
+  ],
+  [
+   "0\u0007",
+   "1_",
+   -1
+  ],
+  [
+   "0\u0007",
+   "_\u0007",
+   1
+  ],
+  [
+   "0\u0007",
+   "1 ",
+   -1
+  ],
+  [
+   "0\u0007",
+   " \u0007",
+   1
+  ],
+  [
+   "0\u0007",
+   "1\u0001",
+   -1
+  ],
+  [
+   "0\u0007",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "0\u0007",
+   "not_an_event",
+   -1
+  ],
+  [
+   "0\u0007",
+   "AB",
+   -1
+  ],
+  [
+   "b-",
+   "\u0000",
+   1
+  ],
+  [
+   "b-",
+   "\u0007",
+   1
+  ],
+  [
+   "b-",
+   "\u000e",
+   1
+  ],
+  [
+   "b-",
+   "\u0015",
+   1
+  ],
+  [
+   "b-",
+   "\u001c",
+   1
+  ],
+  [
+   "b-",
+   "#",
+   1
+  ],
+  [
+   "b-",
+   "*",
+   1
+  ],
+  [
+   "b-",
+   "1",
+   1
+  ],
+  [
+   "b-",
+   "8",
+   1
+  ],
+  [
+   "b-",
+   "?",
+   1
+  ],
+  [
+   "b-",
+   "F",
+   -1
+  ],
+  [
+   "b-",
+   "M",
+   -1
+  ],
+  [
+   "b-",
+   "T",
+   -1
+  ],
+  [
+   "b-",
+   "[",
+   1
+  ],
+  [
+   "b-",
+   "b",
+   1
+  ],
+  [
+   "b-",
+   "i",
+   -1
+  ],
+  [
+   "b-",
+   "p",
+   -1
+  ],
+  [
+   "b-",
+   "w",
+   -1
+  ],
+  [
+   "b-",
+   "~",
+   1
+  ],
+  [
+   "b-",
+   "1a",
+   1
+  ],
+  [
+   "b-",
+   "a\u0007",
+   1
+  ],
+  [
+   "b-",
+   "1A",
+   1
+  ],
+  [
+   "b-",
+   "A\u0007",
+   1
+  ],
+  [
+   "b-",
+   "10",
+   1
+  ],
+  [
+   "b-",
+   "0\u0007",
+   1
+  ],
+  [
+   "b-",
+   "1-",
+   1
+  ],
+  [
+   "b-",
+   "-\u0007",
+   1
+  ],
+  [
+   "b-",
+   "1_",
+   1
+  ],
+  [
+   "b-",
+   "_\u0007",
+   1
+  ],
+  [
+   "b-",
+   "1 ",
+   1
+  ],
+  [
+   "b-",
+   " \u0007",
+   1
+  ],
+  [
+   "b-",
+   "1\u0001",
+   1
+  ],
+  [
+   "b-",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "b-",
+   "not_an_event",
+   -1
+  ],
+  [
+   "b-",
+   "AB",
+   1
+  ],
+  [
+   "-1",
+   "\u0000",
+   1
+  ],
+  [
+   "-1",
+   "\u0007",
+   1
+  ],
+  [
+   "-1",
+   "\u000e",
+   1
+  ],
+  [
+   "-1",
+   "\u0015",
+   1
+  ],
+  [
+   "-1",
+   "\u001c",
+   1
+  ],
+  [
+   "-1",
+   "#",
+   -1
+  ],
+  [
+   "-1",
+   "*",
+   -1
+  ],
+  [
+   "-1",
+   "1",
+   -1
+  ],
+  [
+   "-1",
+   "8",
+   -1
+  ],
+  [
+   "-1",
+   "?",
+   -1
+  ],
+  [
+   "-1",
+   "F",
+   -1
+  ],
+  [
+   "-1",
+   "M",
+   -1
+  ],
+  [
+   "-1",
+   "T",
+   -1
+  ],
+  [
+   "-1",
+   "[",
+   -1
+  ],
+  [
+   "-1",
+   "b",
+   -1
+  ],
+  [
+   "-1",
+   "i",
+   -1
+  ],
+  [
+   "-1",
+   "p",
+   -1
+  ],
+  [
+   "-1",
+   "w",
+   -1
+  ],
+  [
+   "-1",
+   "~",
+   -1
+  ],
+  [
+   "-1",
+   "1a",
+   -1
+  ],
+  [
+   "-1",
+   "a\u0007",
+   -1
+  ],
+  [
+   "-1",
+   "1A",
+   -1
+  ],
+  [
+   "-1",
+   "A\u0007",
+   -1
+  ],
+  [
+   "-1",
+   "10",
+   -1
+  ],
+  [
+   "-1",
+   "0\u0007",
+   -1
+  ],
+  [
+   "-1",
+   "1-",
+   -1
+  ],
+  [
+   "-1",
+   "-\u0007",
+   1
+  ],
+  [
+   "-1",
+   "1_",
+   -1
+  ],
+  [
+   "-1",
+   "_\u0007",
+   1
+  ],
+  [
+   "-1",
+   "1 ",
+   -1
+  ],
+  [
+   "-1",
+   " \u0007",
+   1
+  ],
+  [
+   "-1",
+   "1\u0001",
+   -1
+  ],
+  [
+   "-1",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "-1",
+   "not_an_event",
+   -1
+  ],
+  [
+   "-1",
+   "AB",
+   -1
+  ],
+  [
+   "_-",
+   "\u0000",
+   1
+  ],
+  [
+   "_-",
+   "\u0007",
+   1
+  ],
+  [
+   "_-",
+   "\u000e",
+   1
+  ],
+  [
+   "_-",
+   "\u0015",
+   1
+  ],
+  [
+   "_-",
+   "\u001c",
+   1
+  ],
+  [
+   "_-",
+   "#",
+   -1
+  ],
+  [
+   "_-",
+   "*",
+   -1
+  ],
+  [
+   "_-",
+   "1",
+   -1
+  ],
+  [
+   "_-",
+   "8",
+   -1
+  ],
+  [
+   "_-",
+   "?",
+   -1
+  ],
+  [
+   "_-",
+   "F",
+   -1
+  ],
+  [
+   "_-",
+   "M",
+   -1
+  ],
+  [
+   "_-",
+   "T",
+   -1
+  ],
+  [
+   "_-",
+   "[",
+   -1
+  ],
+  [
+   "_-",
+   "b",
+   -1
+  ],
+  [
+   "_-",
+   "i",
+   -1
+  ],
+  [
+   "_-",
+   "p",
+   -1
+  ],
+  [
+   "_-",
+   "w",
+   -1
+  ],
+  [
+   "_-",
+   "~",
+   -1
+  ],
+  [
+   "_-",
+   "1a",
+   -1
+  ],
+  [
+   "_-",
+   "a\u0007",
+   -1
+  ],
+  [
+   "_-",
+   "1A",
+   -1
+  ],
+  [
+   "_-",
+   "A\u0007",
+   -1
+  ],
+  [
+   "_-",
+   "10",
+   -1
+  ],
+  [
+   "_-",
+   "0\u0007",
+   -1
+  ],
+  [
+   "_-",
+   "1-",
+   -1
+  ],
+  [
+   "_-",
+   "-\u0007",
+   -1
+  ],
+  [
+   "_-",
+   "1_",
+   -1
+  ],
+  [
+   "_-",
+   "_\u0007",
+   1
+  ],
+  [
+   "_-",
+   "1 ",
+   -1
+  ],
+  [
+   "_-",
+   " \u0007",
+   1
+  ],
+  [
+   "_-",
+   "1\u0001",
+   -1
+  ],
+  [
+   "_-",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "_-",
+   "not_an_event",
+   -1
+  ],
+  [
+   "_-",
+   "AB",
+   -1
+  ],
+  [
+   "-.",
+   "\u0000",
+   1
+  ],
+  [
+   "-.",
+   "\u0007",
+   1
+  ],
+  [
+   "-.",
+   "\u000e",
+   1
+  ],
+  [
+   "-.",
+   "\u0015",
+   1
+  ],
+  [
+   "-.",
+   "\u001c",
+   1
+  ],
+  [
+   "-.",
+   "#",
+   -1
+  ],
+  [
+   "-.",
+   "*",
+   -1
+  ],
+  [
+   "-.",
+   "1",
+   -1
+  ],
+  [
+   "-.",
+   "8",
+   -1
+  ],
+  [
+   "-.",
+   "?",
+   -1
+  ],
+  [
+   "-.",
+   "F",
+   -1
+  ],
+  [
+   "-.",
+   "M",
+   -1
+  ],
+  [
+   "-.",
+   "T",
+   -1
+  ],
+  [
+   "-.",
+   "[",
+   -1
+  ],
+  [
+   "-.",
+   "b",
+   -1
+  ],
+  [
+   "-.",
+   "i",
+   -1
+  ],
+  [
+   "-.",
+   "p",
+   -1
+  ],
+  [
+   "-.",
+   "w",
+   -1
+  ],
+  [
+   "-.",
+   "~",
+   -1
+  ],
+  [
+   "-.",
+   "1a",
+   -1
+  ],
+  [
+   "-.",
+   "a\u0007",
+   -1
+  ],
+  [
+   "-.",
+   "1A",
+   -1
+  ],
+  [
+   "-.",
+   "A\u0007",
+   -1
+  ],
+  [
+   "-.",
+   "10",
+   -1
+  ],
+  [
+   "-.",
+   "0\u0007",
+   -1
+  ],
+  [
+   "-.",
+   "1-",
+   -1
+  ],
+  [
+   "-.",
+   "-\u0007",
+   1
+  ],
+  [
+   "-.",
+   "1_",
+   -1
+  ],
+  [
+   "-.",
+   "_\u0007",
+   1
+  ],
+  [
+   "-.",
+   "1 ",
+   -1
+  ],
+  [
+   "-.",
+   " \u0007",
+   1
+  ],
+  [
+   "-.",
+   "1\u0001",
+   -1
+  ],
+  [
+   "-.",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "-.",
+   "not_an_event",
+   -1
+  ],
+  [
+   "-.",
+   "AB",
+   -1
+  ],
+  [
+   "\u0007-",
+   "\u0000",
+   1
+  ],
+  [
+   "\u0007-",
+   "\u0007",
+   1
+  ],
+  [
+   "\u0007-",
+   "\u000e",
+   1
+  ],
+  [
+   "\u0007-",
+   "\u0015",
+   1
+  ],
+  [
+   "\u0007-",
+   "\u001c",
+   1
+  ],
+  [
+   "\u0007-",
+   "#",
+   -1
+  ],
+  [
+   "\u0007-",
+   "*",
+   -1
+  ],
+  [
+   "\u0007-",
+   "1",
+   -1
+  ],
+  [
+   "\u0007-",
+   "8",
+   -1
+  ],
+  [
+   "\u0007-",
+   "?",
+   -1
+  ],
+  [
+   "\u0007-",
+   "F",
+   -1
+  ],
+  [
+   "\u0007-",
+   "M",
+   -1
+  ],
+  [
+   "\u0007-",
+   "T",
+   -1
+  ],
+  [
+   "\u0007-",
+   "[",
+   -1
+  ],
+  [
+   "\u0007-",
+   "b",
+   -1
+  ],
+  [
+   "\u0007-",
+   "i",
+   -1
+  ],
+  [
+   "\u0007-",
+   "p",
+   -1
+  ],
+  [
+   "\u0007-",
+   "w",
+   -1
+  ],
+  [
+   "\u0007-",
+   "~",
+   -1
+  ],
+  [
+   "\u0007-",
+   "1a",
+   -1
+  ],
+  [
+   "\u0007-",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\u0007-",
+   "1A",
+   -1
+  ],
+  [
+   "\u0007-",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u0007-",
+   "10",
+   -1
+  ],
+  [
+   "\u0007-",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\u0007-",
+   "1-",
+   -1
+  ],
+  [
+   "\u0007-",
+   "-\u0007",
+   0
+  ],
+  [
+   "\u0007-",
+   "1_",
+   -1
+  ],
+  [
+   "\u0007-",
+   "_\u0007",
+   1
+  ],
+  [
+   "\u0007-",
+   "1 ",
+   -1
+  ],
+  [
+   "\u0007-",
+   " \u0007",
+   1
+  ],
+  [
+   "\u0007-",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\u0007-",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "\u0007-",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u0007-",
+   "AB",
+   -1
+  ],
+  [
+   "_B",
+   "\u0000",
+   1
+  ],
+  [
+   "_B",
+   "\u0007",
+   1
+  ],
+  [
+   "_B",
+   "\u000e",
+   1
+  ],
+  [
+   "_B",
+   "\u0015",
+   1
+  ],
+  [
+   "_B",
+   "\u001c",
+   1
+  ],
+  [
+   "_B",
+   "#",
+   -1
+  ],
+  [
+   "_B",
+   "*",
+   -1
+  ],
+  [
+   "_B",
+   "1",
+   -1
+  ],
+  [
+   "_B",
+   "8",
+   -1
+  ],
+  [
+   "_B",
+   "?",
+   -1
+  ],
+  [
+   "_B",
+   "F",
+   -1
+  ],
+  [
+   "_B",
+   "M",
+   -1
+  ],
+  [
+   "_B",
+   "T",
+   -1
+  ],
+  [
+   "_B",
+   "[",
+   -1
+  ],
+  [
+   "_B",
+   "b",
+   -1
+  ],
+  [
+   "_B",
+   "i",
+   -1
+  ],
+  [
+   "_B",
+   "p",
+   -1
+  ],
+  [
+   "_B",
+   "w",
+   -1
+  ],
+  [
+   "_B",
+   "~",
+   -1
+  ],
+  [
+   "_B",
+   "1a",
+   -1
+  ],
+  [
+   "_B",
+   "a\u0007",
+   -1
+  ],
+  [
+   "_B",
+   "1A",
+   -1
+  ],
+  [
+   "_B",
+   "A\u0007",
+   -1
+  ],
+  [
+   "_B",
+   "10",
+   -1
+  ],
+  [
+   "_B",
+   "0\u0007",
+   -1
+  ],
+  [
+   "_B",
+   "1-",
+   -1
+  ],
+  [
+   "_B",
+   "-\u0007",
+   -1
+  ],
+  [
+   "_B",
+   "1_",
+   -1
+  ],
+  [
+   "_B",
+   "_\u0007",
+   1
+  ],
+  [
+   "_B",
+   "1 ",
+   -1
+  ],
+  [
+   "_B",
+   " \u0007",
+   1
+  ],
+  [
+   "_B",
+   "1\u0001",
+   -1
+  ],
+  [
+   "_B",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "_B",
+   "not_an_event",
+   -1
+  ],
+  [
+   "_B",
+   "AB",
+   -1
+  ],
+  [
+   "1_",
+   "\u0000",
+   1
+  ],
+  [
+   "1_",
+   "\u0007",
+   1
+  ],
+  [
+   "1_",
+   "\u000e",
+   1
+  ],
+  [
+   "1_",
+   "\u0015",
+   1
+  ],
+  [
+   "1_",
+   "\u001c",
+   1
+  ],
+  [
+   "1_",
+   "#",
+   1
+  ],
+  [
+   "1_",
+   "*",
+   1
+  ],
+  [
+   "1_",
+   "1",
+   1
+  ],
+  [
+   "1_",
+   "8",
+   -1
+  ],
+  [
+   "1_",
+   "?",
+   1
+  ],
+  [
+   "1_",
+   "F",
+   -1
+  ],
+  [
+   "1_",
+   "M",
+   -1
+  ],
+  [
+   "1_",
+   "T",
+   -1
+  ],
+  [
+   "1_",
+   "[",
+   1
+  ],
+  [
+   "1_",
+   "b",
+   -1
+  ],
+  [
+   "1_",
+   "i",
+   -1
+  ],
+  [
+   "1_",
+   "p",
+   -1
+  ],
+  [
+   "1_",
+   "w",
+   -1
+  ],
+  [
+   "1_",
+   "~",
+   1
+  ],
+  [
+   "1_",
+   "1a",
+   -1
+  ],
+  [
+   "1_",
+   "a\u0007",
+   -1
+  ],
+  [
+   "1_",
+   "1A",
+   -1
+  ],
+  [
+   "1_",
+   "A\u0007",
+   -1
+  ],
+  [
+   "1_",
+   "10",
+   -1
+  ],
+  [
+   "1_",
+   "0\u0007",
+   1
+  ],
+  [
+   "1_",
+   "1-",
+   -1
+  ],
+  [
+   "1_",
+   "-\u0007",
+   1
+  ],
+  [
+   "1_",
+   "1_",
+   0
+  ],
+  [
+   "1_",
+   "_\u0007",
+   1
+  ],
+  [
+   "1_",
+   "1 ",
+   1
+  ],
+  [
+   "1_",
+   " \u0007",
+   1
+  ],
+  [
+   "1_",
+   "1\u0001",
+   1
+  ],
+  [
+   "1_",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "1_",
+   "not_an_event",
+   -1
+  ],
+  [
+   "1_",
+   "AB",
+   -1
+  ],
+  [
+   "_-",
+   "\u0000",
+   1
+  ],
+  [
+   "_-",
+   "\u0007",
+   1
+  ],
+  [
+   "_-",
+   "\u000e",
+   1
+  ],
+  [
+   "_-",
+   "\u0015",
+   1
+  ],
+  [
+   "_-",
+   "\u001c",
+   1
+  ],
+  [
+   "_-",
+   "#",
+   -1
+  ],
+  [
+   "_-",
+   "*",
+   -1
+  ],
+  [
+   "_-",
+   "1",
+   -1
+  ],
+  [
+   "_-",
+   "8",
+   -1
+  ],
+  [
+   "_-",
+   "?",
+   -1
+  ],
+  [
+   "_-",
+   "F",
+   -1
+  ],
+  [
+   "_-",
+   "M",
+   -1
+  ],
+  [
+   "_-",
+   "T",
+   -1
+  ],
+  [
+   "_-",
+   "[",
+   -1
+  ],
+  [
+   "_-",
+   "b",
+   -1
+  ],
+  [
+   "_-",
+   "i",
+   -1
+  ],
+  [
+   "_-",
+   "p",
+   -1
+  ],
+  [
+   "_-",
+   "w",
+   -1
+  ],
+  [
+   "_-",
+   "~",
+   -1
+  ],
+  [
+   "_-",
+   "1a",
+   -1
+  ],
+  [
+   "_-",
+   "a\u0007",
+   -1
+  ],
+  [
+   "_-",
+   "1A",
+   -1
+  ],
+  [
+   "_-",
+   "A\u0007",
+   -1
+  ],
+  [
+   "_-",
+   "10",
+   -1
+  ],
+  [
+   "_-",
+   "0\u0007",
+   -1
+  ],
+  [
+   "_-",
+   "1-",
+   -1
+  ],
+  [
+   "_-",
+   "-\u0007",
+   -1
+  ],
+  [
+   "_-",
+   "1_",
+   -1
+  ],
+  [
+   "_-",
+   "_\u0007",
+   1
+  ],
+  [
+   "_-",
+   "1 ",
+   -1
+  ],
+  [
+   "_-",
+   " \u0007",
+   1
+  ],
+  [
+   "_-",
+   "1\u0001",
+   -1
+  ],
+  [
+   "_-",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "_-",
+   "not_an_event",
+   -1
+  ],
+  [
+   "_-",
+   "AB",
+   -1
+  ],
+  [
+   "._",
+   "\u0000",
+   1
+  ],
+  [
+   "._",
+   "\u0007",
+   1
+  ],
+  [
+   "._",
+   "\u000e",
+   1
+  ],
+  [
+   "._",
+   "\u0015",
+   1
+  ],
+  [
+   "._",
+   "\u001c",
+   1
+  ],
+  [
+   "._",
+   "#",
+   -1
+  ],
+  [
+   "._",
+   "*",
+   -1
+  ],
+  [
+   "._",
+   "1",
+   -1
+  ],
+  [
+   "._",
+   "8",
+   -1
+  ],
+  [
+   "._",
+   "?",
+   1
+  ],
+  [
+   "._",
+   "F",
+   -1
+  ],
+  [
+   "._",
+   "M",
+   -1
+  ],
+  [
+   "._",
+   "T",
+   -1
+  ],
+  [
+   "._",
+   "[",
+   -1
+  ],
+  [
+   "._",
+   "b",
+   -1
+  ],
+  [
+   "._",
+   "i",
+   -1
+  ],
+  [
+   "._",
+   "p",
+   -1
+  ],
+  [
+   "._",
+   "w",
+   -1
+  ],
+  [
+   "._",
+   "~",
+   -1
+  ],
+  [
+   "._",
+   "1a",
+   -1
+  ],
+  [
+   "._",
+   "a\u0007",
+   -1
+  ],
+  [
+   "._",
+   "1A",
+   -1
+  ],
+  [
+   "._",
+   "A\u0007",
+   -1
+  ],
+  [
+   "._",
+   "10",
+   -1
+  ],
+  [
+   "._",
+   "0\u0007",
+   -1
+  ],
+  [
+   "._",
+   "1-",
+   -1
+  ],
+  [
+   "._",
+   "-\u0007",
+   1
+  ],
+  [
+   "._",
+   "1_",
+   -1
+  ],
+  [
+   "._",
+   "_\u0007",
+   1
+  ],
+  [
+   "._",
+   "1 ",
+   -1
+  ],
+  [
+   "._",
+   " \u0007",
+   1
+  ],
+  [
+   "._",
+   "1\u0001",
+   -1
+  ],
+  [
+   "._",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "._",
+   "not_an_event",
+   -1
+  ],
+  [
+   "._",
+   "AB",
+   -1
+  ],
+  [
+   " b",
+   "\u0000",
+   1
+  ],
+  [
+   " b",
+   "\u0007",
+   1
+  ],
+  [
+   " b",
+   "\u000e",
+   1
+  ],
+  [
+   " b",
+   "\u0015",
+   1
+  ],
+  [
+   " b",
+   "\u001c",
+   1
+  ],
+  [
+   " b",
+   "#",
+   -1
+  ],
+  [
+   " b",
+   "*",
+   -1
+  ],
+  [
+   " b",
+   "1",
+   -1
+  ],
+  [
+   " b",
+   "8",
+   -1
+  ],
+  [
+   " b",
+   "?",
+   -1
+  ],
+  [
+   " b",
+   "F",
+   -1
+  ],
+  [
+   " b",
+   "M",
+   -1
+  ],
+  [
+   " b",
+   "T",
+   -1
+  ],
+  [
+   " b",
+   "[",
+   -1
+  ],
+  [
+   " b",
+   "b",
+   -1
+  ],
+  [
+   " b",
+   "i",
+   -1
+  ],
+  [
+   " b",
+   "p",
+   -1
+  ],
+  [
+   " b",
+   "w",
+   -1
+  ],
+  [
+   " b",
+   "~",
+   -1
+  ],
+  [
+   " b",
+   "1a",
+   -1
+  ],
+  [
+   " b",
+   "a\u0007",
+   -1
+  ],
+  [
+   " b",
+   "1A",
+   -1
+  ],
+  [
+   " b",
+   "A\u0007",
+   -1
+  ],
+  [
+   " b",
+   "10",
+   -1
+  ],
+  [
+   " b",
+   "0\u0007",
+   -1
+  ],
+  [
+   " b",
+   "1-",
+   -1
+  ],
+  [
+   " b",
+   "-\u0007",
+   -1
+  ],
+  [
+   " b",
+   "1_",
+   -1
+  ],
+  [
+   " b",
+   "_\u0007",
+   -1
+  ],
+  [
+   " b",
+   "1 ",
+   -1
+  ],
+  [
+   " b",
+   " \u0007",
+   1
+  ],
+  [
+   " b",
+   "1\u0001",
+   -1
+  ],
+  [
+   " b",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   " b",
+   "not_an_event",
+   -1
+  ],
+  [
+   " b",
+   "AB",
+   -1
+  ],
+  [
+   "B ",
+   "\u0000",
+   1
+  ],
+  [
+   "B ",
+   "\u0007",
+   1
+  ],
+  [
+   "B ",
+   "\u000e",
+   1
+  ],
+  [
+   "B ",
+   "\u0015",
+   1
+  ],
+  [
+   "B ",
+   "\u001c",
+   1
+  ],
+  [
+   "B ",
+   "#",
+   1
+  ],
+  [
+   "B ",
+   "*",
+   1
+  ],
+  [
+   "B ",
+   "1",
+   1
+  ],
+  [
+   "B ",
+   "8",
+   1
+  ],
+  [
+   "B ",
+   "?",
+   1
+  ],
+  [
+   "B ",
+   "F",
+   -1
+  ],
+  [
+   "B ",
+   "M",
+   -1
+  ],
+  [
+   "B ",
+   "T",
+   -1
+  ],
+  [
+   "B ",
+   "[",
+   1
+  ],
+  [
+   "B ",
+   "b",
+   1
+  ],
+  [
+   "B ",
+   "i",
+   -1
+  ],
+  [
+   "B ",
+   "p",
+   -1
+  ],
+  [
+   "B ",
+   "w",
+   -1
+  ],
+  [
+   "B ",
+   "~",
+   1
+  ],
+  [
+   "B ",
+   "1a",
+   1
+  ],
+  [
+   "B ",
+   "a\u0007",
+   1
+  ],
+  [
+   "B ",
+   "1A",
+   1
+  ],
+  [
+   "B ",
+   "A\u0007",
+   1
+  ],
+  [
+   "B ",
+   "10",
+   1
+  ],
+  [
+   "B ",
+   "0\u0007",
+   1
+  ],
+  [
+   "B ",
+   "1-",
+   1
+  ],
+  [
+   "B ",
+   "-\u0007",
+   1
+  ],
+  [
+   "B ",
+   "1_",
+   1
+  ],
+  [
+   "B ",
+   "_\u0007",
+   1
+  ],
+  [
+   "B ",
+   "1 ",
+   1
+  ],
+  [
+   "B ",
+   " \u0007",
+   1
+  ],
+  [
+   "B ",
+   "1\u0001",
+   1
+  ],
+  [
+   "B ",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "B ",
+   "not_an_event",
+   -1
+  ],
+  [
+   "B ",
+   "AB",
+   1
+  ],
+  [
+   " _",
+   "\u0000",
+   1
+  ],
+  [
+   " _",
+   "\u0007",
+   1
+  ],
+  [
+   " _",
+   "\u000e",
+   1
+  ],
+  [
+   " _",
+   "\u0015",
+   1
+  ],
+  [
+   " _",
+   "\u001c",
+   1
+  ],
+  [
+   " _",
+   "#",
+   -1
+  ],
+  [
+   " _",
+   "*",
+   -1
+  ],
+  [
+   " _",
+   "1",
+   -1
+  ],
+  [
+   " _",
+   "8",
+   -1
+  ],
+  [
+   " _",
+   "?",
+   -1
+  ],
+  [
+   " _",
+   "F",
+   -1
+  ],
+  [
+   " _",
+   "M",
+   -1
+  ],
+  [
+   " _",
+   "T",
+   -1
+  ],
+  [
+   " _",
+   "[",
+   -1
+  ],
+  [
+   " _",
+   "b",
+   -1
+  ],
+  [
+   " _",
+   "i",
+   -1
+  ],
+  [
+   " _",
+   "p",
+   -1
+  ],
+  [
+   " _",
+   "w",
+   -1
+  ],
+  [
+   " _",
+   "~",
+   -1
+  ],
+  [
+   " _",
+   "1a",
+   -1
+  ],
+  [
+   " _",
+   "a\u0007",
+   -1
+  ],
+  [
+   " _",
+   "1A",
+   -1
+  ],
+  [
+   " _",
+   "A\u0007",
+   -1
+  ],
+  [
+   " _",
+   "10",
+   -1
+  ],
+  [
+   " _",
+   "0\u0007",
+   -1
+  ],
+  [
+   " _",
+   "1-",
+   -1
+  ],
+  [
+   " _",
+   "-\u0007",
+   -1
+  ],
+  [
+   " _",
+   "1_",
+   -1
+  ],
+  [
+   " _",
+   "_\u0007",
+   -1
+  ],
+  [
+   " _",
+   "1 ",
+   -1
+  ],
+  [
+   " _",
+   " \u0007",
+   1
+  ],
+  [
+   " _",
+   "1\u0001",
+   -1
+  ],
+  [
+   " _",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   " _",
+   "not_an_event",
+   -1
+  ],
+  [
+   " _",
+   "AB",
+   -1
+  ],
+  [
+   "- ",
+   "\u0000",
+   1
+  ],
+  [
+   "- ",
+   "\u0007",
+   1
+  ],
+  [
+   "- ",
+   "\u000e",
+   1
+  ],
+  [
+   "- ",
+   "\u0015",
+   1
+  ],
+  [
+   "- ",
+   "\u001c",
+   1
+  ],
+  [
+   "- ",
+   "#",
+   -1
+  ],
+  [
+   "- ",
+   "*",
+   -1
+  ],
+  [
+   "- ",
+   "1",
+   -1
+  ],
+  [
+   "- ",
+   "8",
+   -1
+  ],
+  [
+   "- ",
+   "?",
+   -1
+  ],
+  [
+   "- ",
+   "F",
+   -1
+  ],
+  [
+   "- ",
+   "M",
+   -1
+  ],
+  [
+   "- ",
+   "T",
+   -1
+  ],
+  [
+   "- ",
+   "[",
+   -1
+  ],
+  [
+   "- ",
+   "b",
+   -1
+  ],
+  [
+   "- ",
+   "i",
+   -1
+  ],
+  [
+   "- ",
+   "p",
+   -1
+  ],
+  [
+   "- ",
+   "w",
+   -1
+  ],
+  [
+   "- ",
+   "~",
+   -1
+  ],
+  [
+   "- ",
+   "1a",
+   -1
+  ],
+  [
+   "- ",
+   "a\u0007",
+   -1
+  ],
+  [
+   "- ",
+   "1A",
+   -1
+  ],
+  [
+   "- ",
+   "A\u0007",
+   -1
+  ],
+  [
+   "- ",
+   "10",
+   -1
+  ],
+  [
+   "- ",
+   "0\u0007",
+   -1
+  ],
+  [
+   "- ",
+   "1-",
+   -1
+  ],
+  [
+   "- ",
+   "-\u0007",
+   1
+  ],
+  [
+   "- ",
+   "1_",
+   -1
+  ],
+  [
+   "- ",
+   "_\u0007",
+   1
+  ],
+  [
+   "- ",
+   "1 ",
+   -1
+  ],
+  [
+   "- ",
+   " \u0007",
+   1
+  ],
+  [
+   "- ",
+   "1\u0001",
+   -1
+  ],
+  [
+   "- ",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "- ",
+   "not_an_event",
+   -1
+  ],
+  [
+   "- ",
+   "AB",
+   -1
+  ],
+  [
+   " \u0007",
+   "\u0000",
+   1
+  ],
+  [
+   " \u0007",
+   "\u0007",
+   1
+  ],
+  [
+   " \u0007",
+   "\u000e",
+   1
+  ],
+  [
+   " \u0007",
+   "\u0015",
+   1
+  ],
+  [
+   " \u0007",
+   "\u001c",
+   1
+  ],
+  [
+   " \u0007",
+   "#",
+   -1
+  ],
+  [
+   " \u0007",
+   "*",
+   -1
+  ],
+  [
+   " \u0007",
+   "1",
+   -1
+  ],
+  [
+   " \u0007",
+   "8",
+   -1
+  ],
+  [
+   " \u0007",
+   "?",
+   -1
+  ],
+  [
+   " \u0007",
+   "F",
+   -1
+  ],
+  [
+   " \u0007",
+   "M",
+   -1
+  ],
+  [
+   " \u0007",
+   "T",
+   -1
+  ],
+  [
+   " \u0007",
+   "[",
+   -1
+  ],
+  [
+   " \u0007",
+   "b",
+   -1
+  ],
+  [
+   " \u0007",
+   "i",
+   -1
+  ],
+  [
+   " \u0007",
+   "p",
+   -1
+  ],
+  [
+   " \u0007",
+   "w",
+   -1
+  ],
+  [
+   " \u0007",
+   "~",
+   -1
+  ],
+  [
+   " \u0007",
+   "1a",
+   -1
+  ],
+  [
+   " \u0007",
+   "a\u0007",
+   -1
+  ],
+  [
+   " \u0007",
+   "1A",
+   -1
+  ],
+  [
+   " \u0007",
+   "A\u0007",
+   -1
+  ],
+  [
+   " \u0007",
+   "10",
+   -1
+  ],
+  [
+   " \u0007",
+   "0\u0007",
+   -1
+  ],
+  [
+   " \u0007",
+   "1-",
+   -1
+  ],
+  [
+   " \u0007",
+   "-\u0007",
+   -1
+  ],
+  [
+   " \u0007",
+   "1_",
+   -1
+  ],
+  [
+   " \u0007",
+   "_\u0007",
+   -1
+  ],
+  [
+   " \u0007",
+   "1 ",
+   -1
+  ],
+  [
+   " \u0007",
+   " \u0007",
+   0
+  ],
+  [
+   " \u0007",
+   "1\u0001",
+   -1
+  ],
+  [
+   " \u0007",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   " \u0007",
+   "not_an_event",
+   -1
+  ],
+  [
+   " \u0007",
+   "AB",
+   -1
+  ],
+  [
+   "b\u0001",
+   "\u0000",
+   1
+  ],
+  [
+   "b\u0001",
+   "\u0007",
+   1
+  ],
+  [
+   "b\u0001",
+   "\u000e",
+   1
+  ],
+  [
+   "b\u0001",
+   "\u0015",
+   1
+  ],
+  [
+   "b\u0001",
+   "\u001c",
+   1
+  ],
+  [
+   "b\u0001",
+   "#",
+   1
+  ],
+  [
+   "b\u0001",
+   "*",
+   1
+  ],
+  [
+   "b\u0001",
+   "1",
+   1
+  ],
+  [
+   "b\u0001",
+   "8",
+   1
+  ],
+  [
+   "b\u0001",
+   "?",
+   1
+  ],
+  [
+   "b\u0001",
+   "F",
+   -1
+  ],
+  [
+   "b\u0001",
+   "M",
+   -1
+  ],
+  [
+   "b\u0001",
+   "T",
+   -1
+  ],
+  [
+   "b\u0001",
+   "[",
+   1
+  ],
+  [
+   "b\u0001",
+   "b",
+   0
+  ],
+  [
+   "b\u0001",
+   "i",
+   -1
+  ],
+  [
+   "b\u0001",
+   "p",
+   -1
+  ],
+  [
+   "b\u0001",
+   "w",
+   -1
+  ],
+  [
+   "b\u0001",
+   "~",
+   1
+  ],
+  [
+   "b\u0001",
+   "1a",
+   1
+  ],
+  [
+   "b\u0001",
+   "a\u0007",
+   1
+  ],
+  [
+   "b\u0001",
+   "1A",
+   1
+  ],
+  [
+   "b\u0001",
+   "A\u0007",
+   1
+  ],
+  [
+   "b\u0001",
+   "10",
+   1
+  ],
+  [
+   "b\u0001",
+   "0\u0007",
+   1
+  ],
+  [
+   "b\u0001",
+   "1-",
+   1
+  ],
+  [
+   "b\u0001",
+   "-\u0007",
+   1
+  ],
+  [
+   "b\u0001",
+   "1_",
+   1
+  ],
+  [
+   "b\u0001",
+   "_\u0007",
+   1
+  ],
+  [
+   "b\u0001",
+   "1 ",
+   1
+  ],
+  [
+   "b\u0001",
+   " \u0007",
+   1
+  ],
+  [
+   "b\u0001",
+   "1\u0001",
+   1
+  ],
+  [
+   "b\u0001",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "b\u0001",
+   "not_an_event",
+   -1
+  ],
+  [
+   "b\u0001",
+   "AB",
+   1
+  ],
+  [
+   "\u00011",
+   "\u0000",
+   1
+  ],
+  [
+   "\u00011",
+   "\u0007",
+   1
+  ],
+  [
+   "\u00011",
+   "\u000e",
+   1
+  ],
+  [
+   "\u00011",
+   "\u0015",
+   1
+  ],
+  [
+   "\u00011",
+   "\u001c",
+   1
+  ],
+  [
+   "\u00011",
+   "#",
+   1
+  ],
+  [
+   "\u00011",
+   "*",
+   1
+  ],
+  [
+   "\u00011",
+   "1",
+   0
+  ],
+  [
+   "\u00011",
+   "8",
+   -1
+  ],
+  [
+   "\u00011",
+   "?",
+   1
+  ],
+  [
+   "\u00011",
+   "F",
+   -1
+  ],
+  [
+   "\u00011",
+   "M",
+   -1
+  ],
+  [
+   "\u00011",
+   "T",
+   -1
+  ],
+  [
+   "\u00011",
+   "[",
+   1
+  ],
+  [
+   "\u00011",
+   "b",
+   -1
+  ],
+  [
+   "\u00011",
+   "i",
+   -1
+  ],
+  [
+   "\u00011",
+   "p",
+   -1
+  ],
+  [
+   "\u00011",
+   "w",
+   -1
+  ],
+  [
+   "\u00011",
+   "~",
+   1
+  ],
+  [
+   "\u00011",
+   "1a",
+   -1
+  ],
+  [
+   "\u00011",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\u00011",
+   "1A",
+   -1
+  ],
+  [
+   "\u00011",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u00011",
+   "10",
+   -1
+  ],
+  [
+   "\u00011",
+   "0\u0007",
+   1
+  ],
+  [
+   "\u00011",
+   "1-",
+   -1
+  ],
+  [
+   "\u00011",
+   "-\u0007",
+   1
+  ],
+  [
+   "\u00011",
+   "1_",
+   -1
+  ],
+  [
+   "\u00011",
+   "_\u0007",
+   1
+  ],
+  [
+   "\u00011",
+   "1 ",
+   -1
+  ],
+  [
+   "\u00011",
+   " \u0007",
+   1
+  ],
+  [
+   "\u00011",
+   "1\u0001",
+   0
+  ],
+  [
+   "\u00011",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "\u00011",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u00011",
+   "AB",
+   -1
+  ],
+  [
+   "_\u0001",
+   "\u0000",
+   1
+  ],
+  [
+   "_\u0001",
+   "\u0007",
+   1
+  ],
+  [
+   "_\u0001",
+   "\u000e",
+   1
+  ],
+  [
+   "_\u0001",
+   "\u0015",
+   1
+  ],
+  [
+   "_\u0001",
+   "\u001c",
+   1
+  ],
+  [
+   "_\u0001",
+   "#",
+   -1
+  ],
+  [
+   "_\u0001",
+   "*",
+   -1
+  ],
+  [
+   "_\u0001",
+   "1",
+   -1
+  ],
+  [
+   "_\u0001",
+   "8",
+   -1
+  ],
+  [
+   "_\u0001",
+   "?",
+   -1
+  ],
+  [
+   "_\u0001",
+   "F",
+   -1
+  ],
+  [
+   "_\u0001",
+   "M",
+   -1
+  ],
+  [
+   "_\u0001",
+   "T",
+   -1
+  ],
+  [
+   "_\u0001",
+   "[",
+   -1
+  ],
+  [
+   "_\u0001",
+   "b",
+   -1
+  ],
+  [
+   "_\u0001",
+   "i",
+   -1
+  ],
+  [
+   "_\u0001",
+   "p",
+   -1
+  ],
+  [
+   "_\u0001",
+   "w",
+   -1
+  ],
+  [
+   "_\u0001",
+   "~",
+   -1
+  ],
+  [
+   "_\u0001",
+   "1a",
+   -1
+  ],
+  [
+   "_\u0001",
+   "a\u0007",
+   -1
+  ],
+  [
+   "_\u0001",
+   "1A",
+   -1
+  ],
+  [
+   "_\u0001",
+   "A\u0007",
+   -1
+  ],
+  [
+   "_\u0001",
+   "10",
+   -1
+  ],
+  [
+   "_\u0001",
+   "0\u0007",
+   -1
+  ],
+  [
+   "_\u0001",
+   "1-",
+   -1
+  ],
+  [
+   "_\u0001",
+   "-\u0007",
+   -1
+  ],
+  [
+   "_\u0001",
+   "1_",
+   -1
+  ],
+  [
+   "_\u0001",
+   "_\u0007",
+   0
+  ],
+  [
+   "_\u0001",
+   "1 ",
+   -1
+  ],
+  [
+   "_\u0001",
+   " \u0007",
+   1
+  ],
+  [
+   "_\u0001",
+   "1\u0001",
+   -1
+  ],
+  [
+   "_\u0001",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "_\u0001",
+   "not_an_event",
+   -1
+  ],
+  [
+   "_\u0001",
+   "AB",
+   -1
+  ],
+  [
+   "\u0001.",
+   "\u0000",
+   1
+  ],
+  [
+   "\u0001.",
+   "\u0007",
+   1
+  ],
+  [
+   "\u0001.",
+   "\u000e",
+   1
+  ],
+  [
+   "\u0001.",
+   "\u0015",
+   1
+  ],
+  [
+   "\u0001.",
+   "\u001c",
+   1
+  ],
+  [
+   "\u0001.",
+   "#",
+   -1
+  ],
+  [
+   "\u0001.",
+   "*",
+   -1
+  ],
+  [
+   "\u0001.",
+   "1",
+   -1
+  ],
+  [
+   "\u0001.",
+   "8",
+   -1
+  ],
+  [
+   "\u0001.",
+   "?",
+   1
+  ],
+  [
+   "\u0001.",
+   "F",
+   -1
+  ],
+  [
+   "\u0001.",
+   "M",
+   -1
+  ],
+  [
+   "\u0001.",
+   "T",
+   -1
+  ],
+  [
+   "\u0001.",
+   "[",
+   -1
+  ],
+  [
+   "\u0001.",
+   "b",
+   -1
+  ],
+  [
+   "\u0001.",
+   "i",
+   -1
+  ],
+  [
+   "\u0001.",
+   "p",
+   -1
+  ],
+  [
+   "\u0001.",
+   "w",
+   -1
+  ],
+  [
+   "\u0001.",
+   "~",
+   -1
+  ],
+  [
+   "\u0001.",
+   "1a",
+   -1
+  ],
+  [
+   "\u0001.",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\u0001.",
+   "1A",
+   -1
+  ],
+  [
+   "\u0001.",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u0001.",
+   "10",
+   -1
+  ],
+  [
+   "\u0001.",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\u0001.",
+   "1-",
+   -1
+  ],
+  [
+   "\u0001.",
+   "-\u0007",
+   1
+  ],
+  [
+   "\u0001.",
+   "1_",
+   -1
+  ],
+  [
+   "\u0001.",
+   "_\u0007",
+   1
+  ],
+  [
+   "\u0001.",
+   "1 ",
+   -1
+  ],
+  [
+   "\u0001.",
+   " \u0007",
+   1
+  ],
+  [
+   "\u0001.",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\u0001.",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "\u0001.",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u0001.",
+   "AB",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "\u0000",
+   0
+  ],
+  [
+   "\u0007\u0001",
+   "\u0007",
+   0
+  ],
+  [
+   "\u0007\u0001",
+   "\u000e",
+   0
+  ],
+  [
+   "\u0007\u0001",
+   "\u0015",
+   0
+  ],
+  [
+   "\u0007\u0001",
+   "\u001c",
+   0
+  ],
+  [
+   "\u0007\u0001",
+   "#",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "*",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "1",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "8",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "?",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "F",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "M",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "T",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "[",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "b",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "i",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "p",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "w",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "~",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "1a",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "a\u0007",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "1A",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "A\u0007",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "10",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "0\u0007",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "1-",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "-\u0007",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "1_",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "_\u0007",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "1 ",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   " \u0007",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "1\u0001",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "\u0001\u0007",
+   0
+  ],
+  [
+   "\u0007\u0001",
+   "not_an_event",
+   -1
+  ],
+  [
+   "\u0007\u0001",
+   "AB",
+   -1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "\u0000",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "\u0007",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "\u000e",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "\u0015",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "\u001c",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "#",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "*",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "1",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "8",
+   -1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "?",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "F",
+   -1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "M",
+   -1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "T",
+   -1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "[",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "b",
+   -1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "i",
+   -1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "p",
+   -1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "w",
+   -1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "~",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "1a",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "a\u0007",
+   -1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "1A",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "A\u0007",
+   -1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "10",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "0\u0007",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "1-",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "-\u0007",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "1_",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "_\u0007",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "1 ",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   " \u0007",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "1\u0001",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "not_an_event",
+   -1
+  ],
+  [
+   "2026-10-20_22-14-3",
+   "AB",
+   -1
+  ],
+  [
+   "not_an_event",
+   "\u0000",
+   1
+  ],
+  [
+   "not_an_event",
+   "\u0007",
+   1
+  ],
+  [
+   "not_an_event",
+   "\u000e",
+   1
+  ],
+  [
+   "not_an_event",
+   "\u0015",
+   1
+  ],
+  [
+   "not_an_event",
+   "\u001c",
+   1
+  ],
+  [
+   "not_an_event",
+   "#",
+   1
+  ],
+  [
+   "not_an_event",
+   "*",
+   1
+  ],
+  [
+   "not_an_event",
+   "1",
+   1
+  ],
+  [
+   "not_an_event",
+   "8",
+   1
+  ],
+  [
+   "not_an_event",
+   "?",
+   1
+  ],
+  [
+   "not_an_event",
+   "F",
+   1
+  ],
+  [
+   "not_an_event",
+   "M",
+   1
+  ],
+  [
+   "not_an_event",
+   "T",
+   -1
+  ],
+  [
+   "not_an_event",
+   "[",
+   1
+  ],
+  [
+   "not_an_event",
+   "b",
+   1
+  ],
+  [
+   "not_an_event",
+   "i",
+   1
+  ],
+  [
+   "not_an_event",
+   "p",
+   -1
+  ],
+  [
+   "not_an_event",
+   "w",
+   -1
+  ],
+  [
+   "not_an_event",
+   "~",
+   1
+  ],
+  [
+   "not_an_event",
+   "1a",
+   1
+  ],
+  [
+   "not_an_event",
+   "a\u0007",
+   1
+  ],
+  [
+   "not_an_event",
+   "1A",
+   1
+  ],
+  [
+   "not_an_event",
+   "A\u0007",
+   1
+  ],
+  [
+   "not_an_event",
+   "10",
+   1
+  ],
+  [
+   "not_an_event",
+   "0\u0007",
+   1
+  ],
+  [
+   "not_an_event",
+   "1-",
+   1
+  ],
+  [
+   "not_an_event",
+   "-\u0007",
+   1
+  ],
+  [
+   "not_an_event",
+   "1_",
+   1
+  ],
+  [
+   "not_an_event",
+   "_\u0007",
+   1
+  ],
+  [
+   "not_an_event",
+   "1 ",
+   1
+  ],
+  [
+   "not_an_event",
+   " \u0007",
+   1
+  ],
+  [
+   "not_an_event",
+   "1\u0001",
+   1
+  ],
+  [
+   "not_an_event",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "not_an_event",
+   "not_an_event",
+   0
+  ],
+  [
+   "not_an_event",
+   "AB",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "\u0000",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "\u0007",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "\u000e",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "\u0015",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "\u001c",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "#",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "*",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "1",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "8",
+   -1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "?",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "F",
+   -1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "M",
+   -1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "T",
+   -1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "[",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "b",
+   -1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "i",
+   -1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "p",
+   -1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "w",
+   -1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "~",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "1a",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "a\u0007",
+   -1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "1A",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "A\u0007",
+   -1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "10",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "0\u0007",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "1-",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "-\u0007",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "1_",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "_\u0007",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "1 ",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   " \u0007",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "1\u0001",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "not_an_event",
+   -1
+  ],
+  [
+   "2026-10-2_22-14-03",
+   "AB",
+   -1
+  ],
+  [
+   "Ab",
+   "\u0000",
+   1
+  ],
+  [
+   "Ab",
+   "\u0007",
+   1
+  ],
+  [
+   "Ab",
+   "\u000e",
+   1
+  ],
+  [
+   "Ab",
+   "\u0015",
+   1
+  ],
+  [
+   "Ab",
+   "\u001c",
+   1
+  ],
+  [
+   "Ab",
+   "#",
+   1
+  ],
+  [
+   "Ab",
+   "*",
+   1
+  ],
+  [
+   "Ab",
+   "1",
+   1
+  ],
+  [
+   "Ab",
+   "8",
+   1
+  ],
+  [
+   "Ab",
+   "?",
+   1
+  ],
+  [
+   "Ab",
+   "F",
+   -1
+  ],
+  [
+   "Ab",
+   "M",
+   -1
+  ],
+  [
+   "Ab",
+   "T",
+   -1
+  ],
+  [
+   "Ab",
+   "[",
+   1
+  ],
+  [
+   "Ab",
+   "b",
+   -1
+  ],
+  [
+   "Ab",
+   "i",
+   -1
+  ],
+  [
+   "Ab",
+   "p",
+   -1
+  ],
+  [
+   "Ab",
+   "w",
+   -1
+  ],
+  [
+   "Ab",
+   "~",
+   1
+  ],
+  [
+   "Ab",
+   "1a",
+   1
+  ],
+  [
+   "Ab",
+   "a\u0007",
+   1
+  ],
+  [
+   "Ab",
+   "1A",
+   1
+  ],
+  [
+   "Ab",
+   "A\u0007",
+   1
+  ],
+  [
+   "Ab",
+   "10",
+   1
+  ],
+  [
+   "Ab",
+   "0\u0007",
+   1
+  ],
+  [
+   "Ab",
+   "1-",
+   1
+  ],
+  [
+   "Ab",
+   "-\u0007",
+   1
+  ],
+  [
+   "Ab",
+   "1_",
+   1
+  ],
+  [
+   "Ab",
+   "_\u0007",
+   1
+  ],
+  [
+   "Ab",
+   "1 ",
+   1
+  ],
+  [
+   "Ab",
+   " \u0007",
+   1
+  ],
+  [
+   "Ab",
+   "1\u0001",
+   1
+  ],
+  [
+   "Ab",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "Ab",
+   "not_an_event",
+   -1
+  ],
+  [
+   "Ab",
+   "AB",
+   -1
+  ],
+  [
+   "A",
+   "\u0000",
+   1
+  ],
+  [
+   "A",
+   "\u0007",
+   1
+  ],
+  [
+   "A",
+   "\u000e",
+   1
+  ],
+  [
+   "A",
+   "\u0015",
+   1
+  ],
+  [
+   "A",
+   "\u001c",
+   1
+  ],
+  [
+   "A",
+   "#",
+   1
+  ],
+  [
+   "A",
+   "*",
+   1
+  ],
+  [
+   "A",
+   "1",
+   1
+  ],
+  [
+   "A",
+   "8",
+   1
+  ],
+  [
+   "A",
+   "?",
+   1
+  ],
+  [
+   "A",
+   "F",
+   -1
+  ],
+  [
+   "A",
+   "M",
+   -1
+  ],
+  [
+   "A",
+   "T",
+   -1
+  ],
+  [
+   "A",
+   "[",
+   1
+  ],
+  [
+   "A",
+   "b",
+   -1
+  ],
+  [
+   "A",
+   "i",
+   -1
+  ],
+  [
+   "A",
+   "p",
+   -1
+  ],
+  [
+   "A",
+   "w",
+   -1
+  ],
+  [
+   "A",
+   "~",
+   1
+  ],
+  [
+   "A",
+   "1a",
+   1
+  ],
+  [
+   "A",
+   "a\u0007",
+   1
+  ],
+  [
+   "A",
+   "1A",
+   1
+  ],
+  [
+   "A",
+   "A\u0007",
+   0
+  ],
+  [
+   "A",
+   "10",
+   1
+  ],
+  [
+   "A",
+   "0\u0007",
+   1
+  ],
+  [
+   "A",
+   "1-",
+   1
+  ],
+  [
+   "A",
+   "-\u0007",
+   1
+  ],
+  [
+   "A",
+   "1_",
+   1
+  ],
+  [
+   "A",
+   "_\u0007",
+   1
+  ],
+  [
+   "A",
+   "1 ",
+   1
+  ],
+  [
+   "A",
+   " \u0007",
+   1
+  ],
+  [
+   "A",
+   "1\u0001",
+   1
+  ],
+  [
+   "A",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "A",
+   "not_an_event",
+   -1
+  ],
+  [
+   "A",
+   "AB",
+   -1
+  ],
+  [
+   "ab\u0001",
+   "\u0000",
+   1
+  ],
+  [
+   "ab\u0001",
+   "\u0007",
+   1
+  ],
+  [
+   "ab\u0001",
+   "\u000e",
+   1
+  ],
+  [
+   "ab\u0001",
+   "\u0015",
+   1
+  ],
+  [
+   "ab\u0001",
+   "\u001c",
+   1
+  ],
+  [
+   "ab\u0001",
+   "#",
+   1
+  ],
+  [
+   "ab\u0001",
+   "*",
+   1
+  ],
+  [
+   "ab\u0001",
+   "1",
+   1
+  ],
+  [
+   "ab\u0001",
+   "8",
+   1
+  ],
+  [
+   "ab\u0001",
+   "?",
+   1
+  ],
+  [
+   "ab\u0001",
+   "F",
+   -1
+  ],
+  [
+   "ab\u0001",
+   "M",
+   -1
+  ],
+  [
+   "ab\u0001",
+   "T",
+   -1
+  ],
+  [
+   "ab\u0001",
+   "[",
+   1
+  ],
+  [
+   "ab\u0001",
+   "b",
+   -1
+  ],
+  [
+   "ab\u0001",
+   "i",
+   -1
+  ],
+  [
+   "ab\u0001",
+   "p",
+   -1
+  ],
+  [
+   "ab\u0001",
+   "w",
+   -1
+  ],
+  [
+   "ab\u0001",
+   "~",
+   1
+  ],
+  [
+   "ab\u0001",
+   "1a",
+   1
+  ],
+  [
+   "ab\u0001",
+   "a\u0007",
+   1
+  ],
+  [
+   "ab\u0001",
+   "1A",
+   1
+  ],
+  [
+   "ab\u0001",
+   "A\u0007",
+   1
+  ],
+  [
+   "ab\u0001",
+   "10",
+   1
+  ],
+  [
+   "ab\u0001",
+   "0\u0007",
+   1
+  ],
+  [
+   "ab\u0001",
+   "1-",
+   1
+  ],
+  [
+   "ab\u0001",
+   "-\u0007",
+   1
+  ],
+  [
+   "ab\u0001",
+   "1_",
+   1
+  ],
+  [
+   "ab\u0001",
+   "_\u0007",
+   1
+  ],
+  [
+   "ab\u0001",
+   "1 ",
+   1
+  ],
+  [
+   "ab\u0001",
+   " \u0007",
+   1
+  ],
+  [
+   "ab\u0001",
+   "1\u0001",
+   1
+  ],
+  [
+   "ab\u0001",
+   "\u0001\u0007",
+   1
+  ],
+  [
+   "ab\u0001",
+   "not_an_event",
+   -1
+  ],
+  [
+   "ab\u0001",
+   "AB",
+   -1
+  ]
+ ],
+ "uris": [
+  {
+   "text": "/srv/v/a b/thumb.png",
+   "uri": "%2Fsrv%2Fv%2Fa%20b%2Fthumb.png"
+  },
+  {
+   "text": "C:/x/ä#?&=+.mp4",
+   "uri": "C%3A%2Fx%2F%C3%A4%23%3F%26%3D%2B.mp4"
+  },
+  {
+   "text": "-_.!~*'()",
+   "uri": "-_.!~*'()"
+  },
+  {
+   "text": "ü€𝄞",
+   "uri": "%C3%BC%E2%82%AC%F0%9D%84%9E"
+  },
+  {
+   "text": "\t\n",
+   "uri": "%09%0A"
+  }
+ ]
+}

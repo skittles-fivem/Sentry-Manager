@@ -248,10 +248,14 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   footage-long) scroll the same element to the top as capture.js does on
   the web after its clicks (the open recording's card).
 - Phase 2 (built-in Viewer): in progress. The playback engine, the
-  telemetry and the clip library (scan and grouping, part 2) are written;
-  the rest of the Viewer page (Studio's controls, clip list, dashboard,
+  telemetry, the clip library (scan and grouping, part 2) and the clip
+  browser (the clip list panel, part 3) are written; the rest of the
+  Viewer page (Studio's controls, the cameras on the Player, dashboard,
   map, settings modal: `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
-  still opens in the browser. Core (C# 5, tested
+  still opens in the browser (`ViewerPage.Complete` stays false until it
+  is all there; then its browser fallback goes and Footage's Play day /
+  Play recording land in it, which they already do through
+  `ViewerSlot.Open`). Core (C# 5, tested
   under mono with a stub runner here, by Core.Tests on Windows):
   `Telemetry` (protobuf.js's SeiMetadata.decode step for step, atob,
   collectSei, hasValidGps, findSeiAtTime, and an 8-clip cache asking
@@ -365,6 +369,45 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   ViewerLibraryTests (3 tests, passing under mono) replays every read,
   toast, loading step, event.json seek and the library after each step.
   Render list: viewer-mixed (viewer, -day, -recording now list their days).
+  Viewer part 3, the clip browser (type-checked with mcs, not yet built or
+  rendered on Windows): `Core/ClipBrowser.cs` (`ClipBrowser.Render`:
+  renderClipList's order, Recent Clips, the Sentry and Saved events newest
+  first by Chrome's localeCompare, the day's other clips titled by their
+  first group's tag; createClipItem's title, badges, formatEventReason's
+  reason badge (alert / warning, the raw reason as its title; a reason
+  that is not text stops the list where the web's throws), sub line,
+  delete folder (the collection's deletion, else the first file's
+  folder), hover preview sources (thumb.png for Sentry / Saved, the first
+  segment's front .mp4 for the filmstrip), highlightSelectedClip; the
+  delete dialogs' words and `Delete`: POST /api/studio/trashFolder as the
+  shim's deleteFolder, its outcome; `ClipsPanelMode`: panelMode.js;
+  `JsText.LocaleCompare` / `EncodeUriComponent`) and
+  `Ui/Builtin/ViewerClips.cs` (`StudioClipBrowser`: the panel floating,
+  folded, docked with its resize handle (saved as sidebarWidth) or hidden,
+  the header with #dayFilter (`StudioSelect`) and the shim's vehicle
+  picker, the items, the hover preview, the two .modal delete dialogs;
+  `StudioIcons`: the Material Symbols it uses as path data). The Viewer
+  reads GET /api/studio/settings for layoutStyle, sidebarWidth and
+  dateFormat, remembers the mode in this PC's prefs
+  (teslareplay.ui.clipsMode), redraws the list on the library's
+  ClipsChanged / EventsRead, highlights on Selected, opens a clicked item
+  through `StudioViewer.SelectCollection` (the player part opens it in the
+  Player), reads the start folder again after a delete, and starts over
+  (location.reload) when the open collection was deleted, then says
+  "Clip deleted successfully" and reads the folder again half a second
+  later as the web does. test/windowsNativeClipBrowser.test.js runs
+  clipBrowser.js with clipListHelpers.js on pretend elements over 5 clip
+  lists (9 renders: every badge kind, reasons known, made up, empty, a
+  list and a number, deletion allowed and refused, a Windows path, GM),
+  10 delete answers, panelMode.js on 6 step lists, formatEventReason,
+  localeCompare over all of ASCII and encodeURIComponent, and writes
+  Core.Tests/Fixtures/expected-clip-browser.json; Core.Tests
+  ClipBrowserTests (4 tests, passing under mono). Render list:
+  viewer-sentry, -saved, -collapsed, -classic, -classic-hidden, -vehicles,
+  -delete, -delete-final (capture.js picks the day and presses the buttons
+  inside Studio's frame: `frame`; RenderFixture.json has GET
+  /api/studio/settings and the variants, from a real capture.js fixture
+  run).
 - Phases 3-7 (Encoder, Horizon, Flux, Aurora, Daylight): not started.
   Their pages open in the browser.
 
@@ -378,7 +421,14 @@ expiring toasts are left out (the web's are gone by its capture). The Viewer's n
 segment starts loading 3 s before the boundary (the web: 12 s, a Chrome
 limit that does not apply to waiting ffmpeg processes); telemetry is
 asked without gzip (the browser accepts it), so a remote server sends a
-clip's records uncompressed; the Viewer's loading overlay has no backdrop blur; a
+clip's records uncompressed; the Viewer's loading overlay has no backdrop blur
+(nor has the clip list panel); a Sentry or Saved event folder name with
+characters outside ASCII is ordered by .NET's invariant culture, not ICU's
+(event folders are timestamps); when the open collection is deleted the
+web's script, until its reload lands, sends the folder to the Recycle Bin a
+second time (nothing is left to move) and may flash a toast, the native
+Viewer starts over at once; the selects' option lists are WPF menus, not
+Chrome's popup; the clip list's scroll bar is the app's overlay bar; a
 folder read with no answer from the server reads "Failed to fetch" as the
 browser's; a camera's failure is given the MediaError code Chromium would
 give (from ffmpeg's words) with ffmpeg's line as its detail; WPF puts a line's baseline

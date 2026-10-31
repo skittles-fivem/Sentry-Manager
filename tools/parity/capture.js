@@ -127,7 +127,20 @@ const PAGES = {
   'viewer-readerror': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
   // the clip library (part 2): a start folder with Tesla and GM footage side by side (Studio's
   // "both Tesla and GMC footage" toast, then the status line: no clips shown)
-  'viewer-mixed': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 }
+  'viewer-mixed': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
+  // the clip browser (part 3): the Sentry day and the Saved day picked in #dayFilter (frame: what
+  // the reader does in Studio's frame after the settle; the native side opens the Viewer at that
+  // day), the panel collapsed (this browser's remembered mode), the Classic sidebar docked and
+  // hidden (the layoutStyle setting), two vehicles (the shim's vehicle picker), the delete
+  // button's first and second dialog
+  'viewer-sentry': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19']] },
+  'viewer-saved': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-18']] },
+  'viewer-collapsed': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, storage: { 'teslareplay.ui.clipsMode': 'collapsed' } },
+  'viewer-classic': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
+  'viewer-classic-hidden': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, storage: { 'teslareplay.ui.clipsMode': 'hidden' } },
+  'viewer-vehicles': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
+  'viewer-delete': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19'], ['click', '.clip-delete-btn']] },
+  'viewer-delete-final': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19'], ['click', '.clip-delete-btn'], ['click', '#confirmDeleteBtn']] }
 };
 
 // the Footage page's first page of days, as it asks for it
@@ -216,6 +229,18 @@ const VARIANTS = {
   'viewer-noclips': { route: 'viewer', api: { 'POST /api/studio/readDir': [] } },
   'viewer-readerror': { route: 'viewer', api: { 'POST /api/studio/readDir': { $error: 'That path is outside the vehicle shares.', $status: 403 } } },
   'viewer-mixed': (api) => viewerMixed(api),
+  'viewer-sentry': { route: 'viewer', state: { date: '2026-10-19' } },
+  'viewer-saved': (api) => ({ route: 'viewer', state: { date: '2026-10-18' }, api: { 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], dateFormat: 'mdy' } } }),
+  'viewer-collapsed': { route: 'viewer', prefs: { 'teslareplay.ui.clipsMode': 'collapsed' } },
+  'viewer-classic': (api) => ({ route: 'viewer', api: { 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], layoutStyle: 'classic', sidebarWidth: 420 } } }),
+  'viewer-classic-hidden': (api) => ({ route: 'viewer', prefs: { 'teslareplay.ui.clipsMode': 'hidden' }, api: { 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], layoutStyle: 'classic', sidebarWidth: 420 } } }),
+  'viewer-vehicles': (api) => {
+    const list = api['GET /api/vehicles'].vehicles || [];
+    return { route: 'viewer', api: { 'GET /api/vehicles': { ...api['GET /api/vehicles'], vehicles: [...list, ...list.slice(0, 1).map((v) => ({ ...v, id: 'model-y', name: 'Model Y Long Range' }))] } } };
+  },
+  // (viewerOpen: the native render opens that dialog for the first item with a delete button)
+  'viewer-delete': { route: 'viewer', state: { date: '2026-10-19' }, viewerOpen: 'delete' },
+  'viewer-delete-final': { route: 'viewer', state: { date: '2026-10-19' }, viewerOpen: 'delete-final' },
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },
@@ -481,7 +506,8 @@ function fixturePaths(vehicle, days) {
     `/api/vehicles/${v}/days?${new URLSearchParams({ category: 'all', offset: '0', limit: '30' })}`,
     ...days.map((d) => `/api/vehicles/${v}/recordings?${new URLSearchParams({ category: 'all', date: d, limit: '500' })}`),
     '/api/stats', '/api/stats/history?range=24h', '/api/logs?level=problems', '/api/logs?level=all', '/api/logs/archive',
-    '/api/security', '/api/system', '/api/system/volumes', '/api/updates', '/api/ui-packs', '/api/speeds/status', '/api/settings/network'
+    '/api/security', '/api/system', '/api/system/volumes', '/api/updates', '/api/ui-packs', '/api/speeds/status', '/api/settings/network',
+    '/api/studio/settings'
   ];
   const posts = ['getAuto', 'getCapabilities', 'devices'].map((n) => `/api/converter/invoke/${n}`);
   return { gets, posts };
@@ -663,6 +689,18 @@ async function shoot(browser, base, ui, pageName, size, file, vehicle, fixture) 
     }
     // (Studio's Viewer loads in its frame after the shell: time to read the folders)
     if (spec.settle) await page.waitForTimeout(spec.settle);
+    // what the reader does in Studio's frame: pick a day, press a button (then the pointer off
+    // the clip list, so no hover is left in the picture)
+    if (spec.frame && spec.frame.length) {
+      const studio = page.frameLocator('iframe[title^="Sentry Studio"]');
+      for (const [kind, sel, value] of spec.frame) {
+        if (kind === 'select') await studio.locator(sel).first().selectOption(value);
+        else await studio.locator(sel).first().click({ force: true });
+        await page.waitForTimeout(1500);
+      }
+      await page.mouse.move(size.width - 4, size.height - 4);
+      await page.waitForTimeout(500);
+    }
     // a variant's own scroll (the native render scrolls to the same element; see footageScroll)
     const scroll = fixture.variants?.[pageName]?.scroll;
     if (scroll && scroll.web) {

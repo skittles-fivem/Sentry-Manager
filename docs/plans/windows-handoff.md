@@ -848,3 +848,45 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
 - Next part: the clip list (renderClipList over `DayCollections`, the
   day select with `DayOptionText`, `Subtitle`) and opening `Selected`
   in the Player.
+
+
+### Phase 2: Viewer part 3, the clip browser (2026-10-31)
+
+- `Core/ClipBrowser.cs`: `ClipBrowser` (Render / Item / Highlight over the
+  library's DayData and DayCollections, FormatEventTime, FormatEventReason,
+  FilmstripSource, ThumbPath, MediaUrl, the delete dialogs' words, `Delete`
+  and `Trash`), `ClipListItem`, `ClipListView` (`Thrown`: where the web's
+  renderClipList throws), `ClipDeleteDialog`, `ClipDeleteOutcome`,
+  `ClipsPanelMode` (panelMode.js: Init / Apply / Toggle / SetLayout /
+  Dragged / DragEnd, StorageKey teslareplay.ui.clipsMode).
+  `JsText.LocaleCompare` (CLDR root order of ASCII as Chrome's
+  localeCompare; other text by the invariant culture) and
+  `JsText.EncodeUriComponent` are new in Core/Dashcam.cs.
+- `Ui/Builtin/ViewerClips.cs`: `StudioClipBrowser` (in StudioViewer's root
+  at z-index 90, its `TipLayer` at 9999 and `ModalLayer` at 1002 over the
+  loading overlay and toasts), `StudioSelect`, `Centred` (the folded
+  header centres its actions with the overflow on both sides, as CSS
+  flex does when the shim's vehicle picker wraps under the button; to be
+  checked in the viewer-vehicles pictures folded), `StudioIcons`.
+- `StudioViewer` (ViewerPage.cs): `Clips`, `SelectCollection(c)` (the
+  player part hooks the library's Selected / this to open the collection
+  in the Player and call `CollectionOpening`), `SaveSetting`, `Prefs`,
+  `Life`, `Rescan`, `ReloadAfterDelete` (through
+  `ViewerSlot.ReloadAfterDelete` / `TakePendingDelete`, the shim's
+  sm-pending-delete), the docked sidebar moving the stage, drop overlay
+  and loading overlay right (`VideoMoved`; the controls bar's padding is
+  the controls part's). A new constructor argument `renderOpen` (the
+  fixture variant's `viewerOpen`) opens a delete dialog in the render
+  test mode. `ReadSettings` reads GET /api/studio/settings once (a 404 is
+  {}: the fixture before this part had no answer).
+- capture.js: PAGES `frame` (select / click inside Studio's frame after
+  the settle, then the pointer to the bottom right corner), the eight new
+  variants, '/api/studio/settings' in the recorded GETs. Requiring
+  capture.js runs it (it has no require.main guard): run it, do not
+  require it.
+- Not done here (other parts): Studio's keyboard shortcut for the clips
+  panel (toggleClips), the Settings modal's Classic sidebar switch (call
+  `Clips.SetLayout` and `SaveSetting("layoutStyle", …)`), opening the
+  selected collection in the Player, the controls bar's left padding in
+  the hidden / docked modes.
+

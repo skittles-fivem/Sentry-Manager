@@ -109,6 +109,59 @@ namespace SentrySix.Core
             return list;
         }
 
+        // CLDR root collation of ASCII (Chrome's localeCompare): the controls but tab to CR are
+        // ignored; then white space, punctuation and symbols in this order, digits, letters
+        const string Primary = "\t\n\u000B\f\r _-,;:!?.'\"()[]{}@*/\\&#%`^+<=>|~$0123456789abcdefghijklmnopqrstuvwxyz";
+
+        static int Weight(char c)
+        {
+            if (c >= 'A' && c <= 'Z') c = (char)(c + 32);
+            return Primary.IndexOf(c);
+        }
+
+        /// <summary>
+        /// a.localeCompare(b) as Chrome orders ASCII text (CLDR root: letters
+        /// alike in either case first, then lower case before upper case; the
+        /// other controls ignored). Text with other characters is compared by
+        /// .NET's invariant culture (not the same as ICU's for every script).
+        /// </summary>
+        public static int LocaleCompare(string a, string b)
+        {
+            a = a ?? "undefined";
+            b = b ?? "undefined";
+            foreach (char c in a) if (c > 0x7F) return Math.Sign(string.Compare(a, b, StringComparison.InvariantCulture));
+            foreach (char c in b) if (c > 0x7F) return Math.Sign(string.Compare(a, b, StringComparison.InvariantCulture));
+            List<int> pa = new List<int>(), pb = new List<int>();
+            List<bool> ua = new List<bool>(), ub = new List<bool>();
+            foreach (char c in a) { int w = Weight(c); if (w >= 0) { pa.Add(w); ua.Add(c >= 'A' && c <= 'Z'); } }
+            foreach (char c in b) { int w = Weight(c); if (w >= 0) { pb.Add(w); ub.Add(c >= 'A' && c <= 'Z'); } }
+            for (int i = 0; i < Math.Min(pa.Count, pb.Count); i++) if (pa[i] != pb[i]) return pa[i] < pb[i] ? -1 : 1;
+            if (pa.Count != pb.Count) return pa.Count < pb.Count ? -1 : 1;
+            for (int i = 0; i < ua.Count; i++) if (ua[i] != ub[i]) return ua[i] ? 1 : -1;
+            return 0;
+        }
+
+        /// <summary>encodeURIComponent(s): UTF-8, A-Z a-z 0-9 - _ . ! ~ * ' ( ) kept (a lone surrogate throws URIError).</summary>
+        public static string EncodeUriComponent(string s)
+        {
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < s.Length; i++)
+            {
+                char c = s[i];
+                if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || "-_.!~*'()".IndexOf(c) >= 0) { b.Append(c); continue; }
+                int cp = c;
+                if (char.IsHighSurrogate(c))
+                {
+                    if (i + 1 >= s.Length || !char.IsLowSurrogate(s[i + 1])) throw new FormatException("URI malformed");
+                    cp = char.ConvertToUtf32(c, s[i + 1]);
+                    i++;
+                }
+                else if (char.IsLowSurrogate(c)) throw new FormatException("URI malformed");
+                foreach (byte x in Encoding.UTF8.GetBytes(char.ConvertFromUtf32(cp))) b.Append('%').Append(x.ToString("X2", CultureInfo.InvariantCulture));
+            }
+            return b.ToString();
+        }
+
         /// <summary>ASCII digits at s[from .. from + n).</summary>
         public static bool Digits(string s, int from, int n)
         {

@@ -40,6 +40,7 @@ namespace SentrySix.Ui.Builtin
         readonly IJsonApi api;
         readonly bool still;
         readonly ViewerSlot slot;
+        readonly JsonValue fixture;
         readonly StudioFrameWrap wrap = new StudioFrameWrap();
 
         public ViewerPage(PageContext ctx)
@@ -47,6 +48,7 @@ namespace SentrySix.Ui.Builtin
             shell = ctx.Shell;
             api = ctx.Api;
             still = ctx.Fixture != null || (shell != null && shell.Still);
+            fixture = ctx.Fixture;
             slot = ViewerSlot.Of(shell);
         }
 
@@ -55,7 +57,8 @@ namespace SentrySix.Ui.Builtin
         public Task<FrameworkElement> Render()
         {
             // (at once: the page that was there is closed after this one has the Viewer)
-            slot.Show(shell, this, start => new StudioViewer(shell, api, start, still));
+            string open = fixture != null ? fixture["viewerOpen"].Str : null;
+            slot.Show(shell, this, start => new StudioViewer(shell, api, start, still, open));
             slot.Place(wrap);
             return Task.FromResult<FrameworkElement>(wrap);
         }
@@ -81,6 +84,27 @@ namespace SentrySix.Ui.Builtin
         ViewerPage owner;
         StudioFrameWrap holder;
         bool disposed;
+        bool? pendingDelete;
+
+        /// <summary>
+        /// The shim's sm-pending-delete: the open collection's folder was sent to
+        /// the Recycle Bin just before the Viewer started over; the next Viewer
+        /// takes the result once (true: it moved).
+        /// </summary>
+        public bool? TakePendingDelete()
+        {
+            bool? p = pendingDelete;
+            pendingDelete = null;
+            return p;
+        }
+
+        /// <summary>deleteFolderWithReload: the result kept, and that Viewer opened again at the same address.</summary>
+        public void ReloadAfterDelete(StudioViewer which, bool success)
+        {
+            if (view == null || view != which) return;
+            pendingDelete = success;
+            Reload(which);
+        }
 
         /// <summary>The shell's slot (made on first use; the render test mode's state { date, folder } opens it as Play day / Play recording would).</summary>
         public static ViewerSlot Of(ShellModel shell)
@@ -293,17 +317,28 @@ namespace SentrySix.Ui.Builtin
         readonly StudioToasts toasts;
         readonly ViewerFirstLoad firstLoad = new ViewerFirstLoad();
         readonly System.Threading.CancellationTokenSource life = new System.Threading.CancellationTokenSource();
+        readonly StudioClipBrowser clips;
+        readonly string renderOpen;
+        bool? deleted;
         Player player;
         DayWish wish;
         ViewerLibrary library;
         bool disposed;
 
         public StudioViewer(ShellModel shell, IJsonApi api, ViewerStart start, bool still)
+            : this(shell, api, start, still, null)
+        {
+        }
+
+        /// <param name="renderOpen">The render test mode: "delete" or "delete-final" opens that dialog for the first item that has a delete button.</param>
+        public StudioViewer(ShellModel shell, IJsonApi api, ViewerStart start, bool still, string renderOpen)
         {
             this.shell = shell;
             this.api = api;
             this.still = still;
+            this.renderOpen = renderOpen;
             Start = start;
+            deleted = ViewerSlot.Of(shell).TakePendingDelete();
             root.Background = VideoBg;
             root.SetValue(TextElement.FontFamilyProperty, U.Inter);
             root.Children.Add(stage);
@@ -347,6 +382,13 @@ namespace SentrySix.Ui.Builtin
             root.Children.Add(loadingView);
             toasts = new StudioToasts(still);
             root.Children.Add(toasts);
+            // #clipBrowser floats over the empty screen (z-index 90), under the loading overlay
+            clips = new StudioClipBrowser(this, still);
+            clips.VideoMoved += VideoMoved;
+            root.Children.Add(clips);
+            root.Children.Add(clips.TipLayer);
+            root.Children.Add(clips.ModalLayer);
+            ReadSettings();
 
             if (Start.StartFolder == null)
             {
@@ -357,6 +399,11 @@ namespace SentrySix.Ui.Builtin
             foreach (JsonValue v in shell.VehiclesReply["vehicles"].Items)
                 if (v["id"].IsString && v["id"].Str == Start.VehicleId) { name = v["name"].Str; break; }
             Say(ViewerStart.Opening(name), false);
+            // the vehicle picker replaces the folder button (two vehicles or more)
+            List<KeyValuePair<string, string>> vehicles = new List<KeyValuePair<string, string>>();
+            foreach (JsonValue v in shell.VehiclesReply["vehicles"].Items)
+                vehicles.Add(new KeyValuePair<string, string>(StudioFrames.JsString(v["id"]), StudioFrames.JsString(v["name"])));
+            if (ViewerStart.ShowPicker(vehicles.Count)) clips.SetVehicles(vehicles, Start.VehicleId);
             if (!string.IsNullOrEmpty(Start.Date)) wish = new DayWish(Start.Date, NowMs());
             MakeLibrary();
             Begin();
@@ -378,6 +425,7 @@ namespace SentrySix.Ui.Builtin
         /// </summary>
         void Begin()
         {
+            if (deleted == true) AfterDelete();
             Watch(() => reads.Active, () => reads.At, () => reads.Error, () => Days, () => PickedDay, d => { Action<string> p = PickDay; if (p != null) p(d); });
             if (still) { Load(); return; }
             DispatcherTimer once = new DispatcherTimer(DispatcherPriority.Background);
@@ -409,6 +457,109 @@ namespace SentrySix.Ui.Builtin
             if (disposed) return;
             if (own) HideLoading();
             if (still) Settle();
+            if (still && renderOpen != null)
+            {
+                ClipListItem first = clips.FirstDeletable();
+                if (first != null)
+                {
+                    if (renderOpen == "delete-final") clips.AskDeleteFinal(first);
+                    else clips.AskDelete(first);
+                }
+            }
+        }
+
+        string dateFormat;
+
+        /// <summary>
+        /// The Studio settings the clip list uses (GET /api/studio/settings, as
+        /// the shim's getSetting reads them; {} when it fails): layoutStyle and
+        /// sidebarWidth for the panel's mode (with this PC's remembered one),
+        /// dateFormat for the day list.
+        /// </summary>
+        async void ReadSettings()
+        {
+            JsonValue all;
+            try { all = await api.Get("/api/studio/settings", life.Token); }
+            catch (Exception) { all = JsonValue.Object(); }
+            if (disposed) return;
+            if (all == null || !all.IsObject) all = JsonValue.Object();
+            string saved = shell.Prefs != null ? shell.Prefs.Get(ClipsPanelMode.StorageKey, null) : null;
+            clips.InitMode(all, saved);
+            JsonValue f = all["dateFormat"];
+            dateFormat = f.Bool ? StudioFrames.JsString(f) : "ymd";
+            if (library != null)
+            {
+                library.DateFormat = dateFormat;
+                clips.SetDays(library);
+            }
+        }
+
+        /// <summary>The settings Studio saves (setSetting: POST /api/studio/settings { key, value }; failures ignored).</summary>
+        public async void SaveSetting(string key, JsonValue value)
+        {
+            if (still) return;
+            try { await api.Post("/api/studio/settings", JsonValue.Object("key", key, "value", value), life.Token); }
+            catch (Exception) { }
+        }
+
+        /// <summary>This PC's own choices (the web's localStorage).</summary>
+        public IPrefs Prefs { get { return shell.Prefs; } }
+
+        /// <summary>The Viewer's life (cancelled when it is closed).</summary>
+        public System.Threading.CancellationToken Life { get { return life.Token; } }
+
+        /// <summary>The clip list panel.</summary>
+        public StudioClipBrowser Clips { get { return clips; } }
+
+        /// <summary>.clips-mode-docked .video-container: the video area starts right of the docked sidebar.</summary>
+        void VideoMoved()
+        {
+            Thickness m = new Thickness(clips.VideoLeft, 0, 0, 0);
+            stage.Margin = m;
+            overlay.Margin = m;
+            loadingView.Margin = m;
+        }
+
+        /// <summary>selectDayCollection(key) from the clip list: that collection is the open one (the player opens it).</summary>
+        public void SelectCollection(DayCollection c)
+        {
+            if (library == null || c == null) return;
+            library.Select(c);
+        }
+
+        /// <summary>onClipDeleted: the start folder read again, the clip list drawn after.</summary>
+        public async void Rescan()
+        {
+            if (library == null || disposed) return;
+            try { await library.Traverse(Start.StartFolder); }
+            catch (Exception) { return; }
+            if (!disposed) clips.Render(library);
+        }
+
+        /// <summary>The open collection was deleted: the Viewer starts over at the same address (location.reload) and says how it went.</summary>
+        public void ReloadAfterDelete(bool success)
+        {
+            ViewerSlot.Of(shell).ReloadAfterDelete(this, success);
+            shell.Navigate(ViewerSlot.Key);
+        }
+
+        /// <summary>After that reload: "Clip deleted successfully" and, half a second later, the start folder read again (as well as the start's own read).</summary>
+        void AfterDelete()
+        {
+            Notify(ClipBrowser.DeleteSuccess, "success");
+            if (still || library == null) return;
+            DispatcherTimer t = new DispatcherTimer(DispatcherPriority.Background);
+            t.Interval = TimeSpan.FromMilliseconds(500);
+            t.Tick += delegate
+            {
+                t.Stop();
+                timers.Remove(t);
+                if (disposed) return;
+                Task run = library.Traverse(Start.StartFolder);
+                run.ContinueWith(x => { Exception ignored = x.Exception; }, TaskContinuationOptions.OnlyOnFaulted);
+            };
+            timers.Add(t);
+            t.Start();
         }
 
         /// <summary>
@@ -421,7 +572,16 @@ namespace SentrySix.Ui.Builtin
         void MakeLibrary()
         {
             library = new ViewerLibrary(new Files(this), new Surface(this));
-            library.DaysListed = HideOverlay;
+            if (dateFormat != null) library.DateFormat = dateFormat;
+            library.DaysListed = () =>
+            {
+                HideOverlay();
+                clips.SetSubtitle(library.Subtitle);
+                clips.SetDays(library);
+            };
+            library.ClipsChanged = () => clips.Render(library);
+            library.EventsRead = () => clips.Render(library);
+            library.Selected = c => clips.Highlight(library);
             Scan = v => v.library.Open(v.Start.StartFolder);
             PickDay = d =>
             {

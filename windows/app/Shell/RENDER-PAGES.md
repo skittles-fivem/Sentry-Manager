@@ -215,6 +215,28 @@ stage is still black there. viewer-mixed: the start folder holds
 RecentClips and a GM Continuous folder ("This folder contains both Tesla
 and GMC footage…", gone by the capture; then the status line's "No
 dashcam clips found in <folder>…" with Try again).
+The clip browser (part 3): every Viewer render now has Studio's clip list
+panel over the empty screen (#clipBrowser: the logo and "Clips", the
+subtitle, Date and #dayFilter, the collapse button; with no clips only
+the header), and viewer, -day, -recording list the picked day's
+collections (the newest selected). viewer-sentry and viewer-saved: the
+Sentry day (2026-10-19) and the Saved day (2026-10-18, its Honk reason
+badge; the dateFormat setting mdy, so the days read 10/18/2026); the
+web picks the day in #dayFilter inside Studio's frame (capture.js
+`frame`), the native side opens the Viewer at that day (`state`
+`{ "date": … }`). viewer-collapsed: the panel folded to its 44 px button
+(this PC's remembered mode, the web's localStorage
+teslareplay.ui.clipsMode, the native prefs key of the same name).
+viewer-classic and viewer-classic-hidden: the Classic sidebar (GET
+/api/studio/settings layoutStyle classic, sidebarWidth 420) docked at the
+left with the video area beside it, and hidden. viewer-vehicles: a
+second vehicle, so the shim's vehicle picker stands beside the collapse
+button. viewer-delete and viewer-delete-final: the first item's delete
+button's first and second dialog (the web clicks .clip-delete-btn and
+#confirmDeleteBtn in the frame; the native render opens them itself,
+the variant's `viewerOpen`). After its clicks capture.js moves the
+pointer to the bottom right corner, so no hover is left in the picture;
+the hover preview (thumb.png and the filmstrip) is not rendered.
 
 - builtin overview
 - builtin overview-off
@@ -273,3 +295,11 @@ dashcam clips found in <folder>…" with Try again).
 - builtin viewer-noclips
 - builtin viewer-readerror
 - builtin viewer-mixed
+- builtin viewer-sentry
+- builtin viewer-saved
+- builtin viewer-collapsed
+- builtin viewer-classic
+- builtin viewer-classic-hidden
+- builtin viewer-vehicles
+- builtin viewer-delete
+- builtin viewer-delete-final

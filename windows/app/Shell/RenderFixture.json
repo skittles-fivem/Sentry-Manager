@@ -13355,6 +13355,9 @@
   ],
   "POST /api/studio/readFile {\"path\":\"/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/event.json\"}": {
    "text": "{\"timestamp\":\"2026-10-19T22:14:03\",\"city\":\"Austin\",\"est_lat\":\"30.2672\",\"est_lon\":\"-97.7431\",\"reason\":\"sentry_aware_object_detection\",\"camera\":\"0\"}"
+  },
+  "GET /api/studio/settings": {
+   "timeFormat": "12h"
   }
  },
  "variants": {
@@ -17422,6 +17425,220 @@
      }
     ]
    }
+  },
+  "viewer-sentry": {
+   "route": "viewer",
+   "state": {
+    "date": "2026-10-19"
+   }
+  },
+  "viewer-saved": {
+   "route": "viewer",
+   "state": {
+    "date": "2026-10-18"
+   },
+   "api": {
+    "GET /api/studio/settings": {
+     "timeFormat": "12h",
+     "dateFormat": "mdy"
+    }
+   }
+  },
+  "viewer-collapsed": {
+   "route": "viewer",
+   "prefs": {
+    "teslareplay.ui.clipsMode": "collapsed"
+   }
+  },
+  "viewer-classic": {
+   "route": "viewer",
+   "api": {
+    "GET /api/studio/settings": {
+     "timeFormat": "12h",
+     "layoutStyle": "classic",
+     "sidebarWidth": 420
+    }
+   }
+  },
+  "viewer-classic-hidden": {
+   "route": "viewer",
+   "prefs": {
+    "teslareplay.ui.clipsMode": "hidden"
+   },
+   "api": {
+    "GET /api/studio/settings": {
+     "timeFormat": "12h",
+     "layoutStyle": "classic",
+     "sidebarWidth": 420
+    }
+   }
+  },
+  "viewer-vehicles": {
+   "route": "viewer",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "timezone": "UTC",
+       "source": {
+        "type": "path",
+        "path": "/srv/sentry-parity/footage"
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29442093056,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793486586098,
+        "writeCheckedAt": 1793486586109,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10129817,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5063027
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2535183
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2531607
+         }
+        },
+        "scannedAt": 1793486586125
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y Long Range",
+       "timezone": "UTC",
+       "source": {
+        "type": "path",
+        "path": "/srv/sentry-parity/footage"
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29442093056,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793486586098,
+        "writeCheckedAt": 1793486586109,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10129817,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5063027
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2535183
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2531607
+         }
+        },
+        "scannedAt": 1793486586125
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      }
+     ]
+    }
+   }
+  },
+  "viewer-delete": {
+   "route": "viewer",
+   "state": {
+    "date": "2026-10-19"
+   },
+   "viewerOpen": "delete"
+  },
+  "viewer-delete-final": {
+   "route": "viewer",
+   "state": {
+    "date": "2026-10-19"
+   },
+   "viewerOpen": "delete-final"
   }
  },
  "prefs": {}
