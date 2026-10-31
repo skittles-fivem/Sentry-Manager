@@ -54,6 +54,9 @@ $ModeKey = 'HKLM:\SOFTWARE\SentrySixManager'
 $RunKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
 $RunValueName = 'SentrySixManager'
 $ShortcutName = 'Sentry Six Manager.lnk'
+# the Settings > Apps entry of SentrySixManager-Setup.exe (its AppId in
+# windows\setup\SentrySixManager.iss); this script writes none of its own
+$SetupAppsKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{37874499-7900-4DA9-8103-133AFC180A56}_is1'
 
 function Say([string]$Text) { Write-Host $Text }
 function Warn([string]$Text) { Write-Host "Warning: $Text" -ForegroundColor Yellow }
@@ -296,6 +299,7 @@ $ShortcutFile = Join-Path ([Environment]::GetFolderPath('CommonPrograms')) $Shor
 
 $stoppedByUs = $false
 $finished = $false
+$ver = $null
 
 try {
   Say 'Sentry Six Manager setup'
@@ -453,6 +457,12 @@ try {
       }
     }
     Say 'Program files are in place.'
+    # installed with the Setup: its entry shows this version after an
+    # update.ps1 update too
+    if ($ver -and (Test-Path -LiteralPath $SetupAppsKey)) {
+      try { Set-ItemProperty -LiteralPath $SetupAppsKey -Name 'DisplayVersion' -Value ([string]$ver) -Type String }
+      catch { Warn "Could not update the version shown in Settings > Apps ($($_.Exception.Message))." }
+    }
   }
 
   # --- 4. data folders and manager.env ---

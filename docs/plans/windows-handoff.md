@@ -214,3 +214,49 @@ it edited `windows/install.ps1` (ebabdba):
   SID has entries. icacls refused the SID of a service that never existed.
 
 Nothing else in the file changed. Please pull before editing it.
+
+## SentrySixManager-Setup.exe: one installer (2026-10-31, the owner's request)
+
+The owner: "users will not run these, I need one clean .exe". People now
+download `SentrySixManager-Setup-<version>.exe` and run it; the zip,
+SHA256SUMS and release.json stay as they were (update.ps1 and
+releaseUpdates.js use the zip; SHA256SUMS gains the Setup's line).
+
+- `windows/setup/SentrySixManager.iss` (Inno Setup 6.7.4, pinned with its
+  SHA-256 in `windows/versions.json` as `innosetup`). `build.ps1` unpacks
+  that installer in its portable mode into `build\windows\innosetup-<ver>`
+  and compiles the Setup from the same stage folder as the zip, after the
+  zip. Wizard: Welcome, a mode page (service, recommended for a dedicated
+  PC; or app when I sign in), Ready, progress, Finish with install.ps1's
+  address / setup code / fingerprint lines and "Open Sentry Six Manager".
+- It does not install files itself: in `PrepareToInstall` it unpacks the
+  payload to `{tmp}\payload` (the zip's layout) and runs that `install.ps1`
+  hidden (`-Service` or `-NoService`, always one of them; `-ForUser` on a
+  first app-mode install or a switch to app mode, from
+  `windows/setup/setup-user.ps1`, which finds who started the Setup when
+  Windows asked another account for the admin password). install.ps1 failing
+  stops the Setup there with its last lines (silent: exit code 7; all
+  output in `%TEMP%\SentrySixManager-Setup.log` and Inno's /LOG).
+- Silent: `/VERYSILENT /SUPPRESSMSGBOXES /MODE=service|app` (no /MODE:
+  keeps the installed mode, a first install is app mode).
+- Settings > Apps: Inno's entry is the only one (install.ps1 never wrote
+  one), AppId `{37874499-7900-4DA9-8103-133AFC180A56}`, which must never
+  change. Its uninstaller lives in `%ProgramFiles%\SentrySixManager-Uninstall`
+  (not in the program folder, which install.ps1 replaces on every upgrade)
+  and runs `uninstall.ps1 -Force -FromSetup` hidden, keeping the data unless
+  the person says yes to deleting it (silent: `/REMOVEDATA=1`). If
+  uninstall.ps1 fails, the uninstall stops and the entry stays.
+- install.ps1: sets the entry's DisplayVersion after copying the program
+  files, so an update.ps1 update shows the right version (no other change).
+- uninstall.ps1: new `-FromSetup`; without it (run by hand) it also removes
+  the Setup's entry and its uninstaller folder once everything else is gone.
+- windows.yml: package also uploads the artifact `SentrySixManager-Setup`;
+  install-check and install-check-app install with the Setup silently
+  (`/MODE=service`, `/MODE=app`) and uninstall with `unins000.exe
+  /VERYSILENT /REMOVEDATA=1`, with every earlier check kept plus "one Apps
+  entry" and "no uninstaller left"; publish attaches the Setup to the
+  release; the 5.1 parse check covers `windows/setup/*.ps1` too.
+- Not changed yet (yours, wording): `server/releaseUpdates.js` HOW and the
+  setup-code text in `server/auth.js` still say Install.cmd; they could say
+  "download and run SentrySixManager-Setup" instead (test/deploymentWording
+  pins the current text). Code signing is a commented hook in the .iss.
