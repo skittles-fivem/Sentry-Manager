@@ -67,6 +67,8 @@ namespace SentrySix.Core.Tests
             readonly Queue<bool> confirms = new Queue<bool>();
             readonly bool confirmAll;
             readonly Queue<string> prompts = new Queue<string>();
+            /// <summary>The pack's dialog buttons: the no value, the yes value, the yes class (Horizon no/yes/go, Flux cancel/ok/primary).</summary>
+            public string[] Dialect = { "no", "yes", "go" };
 
             public HzWindow(JsonValue confirm, JsonValue prompts = null)
             {
@@ -79,7 +81,7 @@ namespace SentrySix.Core.Tests
                 Ui.Ask = a =>
                 {
                     bool yes = listed ? (confirms.Count > 0 && confirms.Dequeue()) : confirmAll;
-                    Dialogs.Add(string.Join(" | ", a.Outline()) + " => " + (yes ? "yes" : "no"));
+                    Dialogs.Add(string.Join(" | ", a.Outline(Dialect[0], Dialect[1], Dialect[2])) + " => " + (yes ? "yes" : "no"));
                     return Task.FromResult(yes);
                 };
                 Ui.AskText = a =>

@@ -40,12 +40,18 @@ namespace SentrySix.Core.Horizon
         /// </summary>
         public List<string> Outline()
         {
+            return Outline("no", "yes", "go");
+        }
+
+        /// <summary>The same in another pack's dialect: its buttons' values and the yes button's class (Flux: cancel, ok, primary).</summary>
+        public List<string> Outline(string noValue, string yesValue, string yesClass)
+        {
             List<string> o = new List<string>();
             Add(o, Title);
             foreach (HzPara p in Body) foreach (RichRun r in p.Text.Runs) Add(o, r.Text);
-            o.Add("[btn no]");
+            o.Add("[btn " + noValue + "]");
             Add(o, No);
-            o.Add(Danger ? "[btn yes danger]" : "[btn yes go]");
+            o.Add("[btn " + yesValue + " " + (Danger ? "danger" : yesClass) + "]");
             Add(o, Yes);
             return o;
         }

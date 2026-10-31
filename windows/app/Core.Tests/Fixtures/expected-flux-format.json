@@ -1,0 +1,1510 @@
+{
+ "about": "Written by test/windowsNativeFlux.test.js from examples/ui-packs/flux/web/flux/core.js; checked by windows/app/Core.Tests (FluxFormatTests.cs, SentrySix.Core.Flux.Fx).",
+ "now": 1793459402000,
+ "cases": [
+  {
+   "fn": "bytes",
+   "args": [
+    0
+   ],
+   "out": "0 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1
+   ],
+   "out": "1 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    512
+   ],
+   "out": "512 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1023
+   ],
+   "out": "1023 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1024
+   ],
+   "out": "1.0 KB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1536
+   ],
+   "out": "1.5 KB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    104857600
+   ],
+   "out": "100 MB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    123456789
+   ],
+   "out": "118 MB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1099511627776
+   ],
+   "out": "1.0 TB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1200000000000000000
+   ],
+   "out": "1066 PB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    -2048
+   ],
+   "out": "-2.0 KB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    "2048"
+   ],
+   "out": "2.0 KB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    null
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    "x"
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    true
+   ],
+   "out": "1 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1536,
+    0
+   ],
+   "out": "2 KB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    123456789,
+    0
+   ],
+   "out": "118 MB"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    0
+   ],
+   "out": "0 B/s"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    1048576
+   ],
+   "out": "1.0 MB/s"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    52428800
+   ],
+   "out": "50.0 MB/s"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    null
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "rate",
+   "args": [
+    "x"
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    0
+   ],
+   "out": "0%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    42
+   ],
+   "out": "42%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    42.4
+   ],
+   "out": "42%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    99.95
+   ],
+   "out": "100%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    null
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    42.46,
+    1
+   ],
+   "out": "42.5%"
+  },
+  {
+   "fn": "num",
+   "args": [
+    0
+   ],
+   "out": "0"
+  },
+  {
+   "fn": "num",
+   "args": [
+    1204
+   ],
+   "out": "1,204"
+  },
+  {
+   "fn": "num",
+   "args": [
+    1234567.891
+   ],
+   "out": "1,234,568"
+  },
+  {
+   "fn": "num",
+   "args": [
+    3.5
+   ],
+   "out": "4"
+  },
+  {
+   "fn": "num",
+   "args": [
+    null
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "num",
+   "args": [
+    3.5,
+    2
+   ],
+   "out": "3.50"
+  },
+  {
+   "fn": "num",
+   "args": [
+    1234.5678,
+    1
+   ],
+   "out": "1,234.6"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    0,
+    "job"
+   ],
+   "out": "0 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    1,
+    "job"
+   ],
+   "out": "1 job"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    2,
+    "job"
+   ],
+   "out": "2 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    1204,
+    "job"
+   ],
+   "out": "1,204 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    null,
+    "job"
+   ],
+   "out": "0 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    "1",
+    "job"
+   ],
+   "out": "1 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    1.5,
+    "job"
+   ],
+   "out": "1.5 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    1,
+    "entry",
+    "entries"
+   ],
+   "out": "1 entry"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    7,
+    "entry",
+    "entries"
+   ],
+   "out": "7 entries"
+  },
+  {
+   "fn": "dur",
+   "args": [
+    0
+   ],
+   "out": "0s"
+  },
+  {
+   "fn": "dur",
+   "args": [
+    499
+   ],
+   "out": "0s"
+  },
+  {
+   "fn": "dur",
+   "args": [
+    500
+   ],
+   "out": "1s"
+  },
+  {
+   "fn": "dur",
+   "args": [
+    42400
+   ],
+   "out": "42s"
+  },
+  {
+   "fn": "dur",
+   "args": [
+    60000
+   ],
+   "out": "1m 00s"
+  },
+  {
+   "fn": "dur",
+   "args": [
+    754000
+   ],
+   "out": "12m 34s"
+  },
+  {
+   "fn": "dur",
+   "args": [
+    3725000
+   ],
+   "out": "1h 02m"
+  },
+  {
+   "fn": "dur",
+   "args": [
+    86400000
+   ],
+   "out": "1d 0h"
+  },
+  {
+   "fn": "dur",
+   "args": [
+    183600000
+   ],
+   "out": "2d 3h"
+  },
+  {
+   "fn": "dur",
+   "args": [
+    -5
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "dur",
+   "args": [
+    null
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    0
+   ],
+   "out": "0:00.0"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    5
+   ],
+   "out": "0:05.0"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    5.04
+   ],
+   "out": "0:05.0"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    59.96
+   ],
+   "out": "0:60.0"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    60
+   ],
+   "out": "1:00.0"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    65.25
+   ],
+   "out": "1:05.3"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    187.4
+   ],
+   "out": "3:07.4"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    3601
+   ],
+   "out": "60:01.0"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    -1
+   ],
+   "out": "0:00"
+  },
+  {
+   "fn": "clock",
+   "args": [
+    null
+   ],
+   "out": "0:00"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    0
+   ],
+   "out": "never"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    null
+   ],
+   "out": "never"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459402000
+   ],
+   "out": "just now"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459398000
+   ],
+   "out": "just now"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459343000
+   ],
+   "out": "59s ago"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459341000
+   ],
+   "out": "1m ago"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793452202000
+   ],
+   "out": "2h ago"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793365802000
+   ],
+   "out": "1d ago"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1792019402000
+   ],
+   "out": "17d ago"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1793459402000,
+    false,
+    false
+   ],
+   "out": "3:10 PM"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1793459402000,
+    true,
+    false
+   ],
+   "out": "3:10:02 PM"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1793365802000,
+    false,
+    false
+   ],
+   "out": "1:10 PM"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1793365802000,
+    true,
+    false
+   ],
+   "out": "1:10:02 PM"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1767312309000,
+    false,
+    false
+   ],
+   "out": "12:05 AM"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1767312309000,
+    true,
+    false
+   ],
+   "out": "12:05:09 AM"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1783166400000,
+    false,
+    false
+   ],
+   "out": "12:00 PM"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1783166400000,
+    true,
+    false
+   ],
+   "out": "12:00:00 PM"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1798761599000,
+    false,
+    false
+   ],
+   "out": "11:59 PM"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1798761599000,
+    true,
+    false
+   ],
+   "out": "11:59:59 PM"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1793459402000,
+    false,
+    true
+   ],
+   "out": "15:10"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1793459402000,
+    true,
+    true
+   ],
+   "out": "15:10:02"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1793365802000,
+    false,
+    true
+   ],
+   "out": "13:10"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1793365802000,
+    true,
+    true
+   ],
+   "out": "13:10:02"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1767312309000,
+    false,
+    true
+   ],
+   "out": "00:05"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1767312309000,
+    true,
+    true
+   ],
+   "out": "00:05:09"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1783166400000,
+    false,
+    true
+   ],
+   "out": "12:00"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1783166400000,
+    true,
+    true
+   ],
+   "out": "12:00:00"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1798761599000,
+    false,
+    true
+   ],
+   "out": "23:59"
+  },
+  {
+   "fn": "tod",
+   "args": [
+    1798761599000,
+    true,
+    true
+   ],
+   "out": "23:59:59"
+  },
+  {
+   "fn": "when",
+   "args": [
+    0,
+    false
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    0,
+    false
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "when",
+   "args": [
+    null,
+    false
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    null,
+    false
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1793459402000,
+    false
+   ],
+   "out": "Oct 31, 2026, 3:10:02 PM"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    1793459402000,
+    false
+   ],
+   "out": "2026-10-31 3:10:02 PM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1793365802000,
+    false
+   ],
+   "out": "Oct 30, 2026, 1:10:02 PM"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    1793365802000,
+    false
+   ],
+   "out": "2026-10-30 1:10:02 PM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1767312309000,
+    false
+   ],
+   "out": "Jan 02, 2026, 12:05:09 AM"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    1767312309000,
+    false
+   ],
+   "out": "2026-01-02 12:05:09 AM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1783166400000,
+    false
+   ],
+   "out": "Jul 04, 2026, 12:00:00 PM"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    1783166400000,
+    false
+   ],
+   "out": "2026-07-04 12:00:00 PM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1798761599000,
+    false
+   ],
+   "out": "Dec 31, 2026, 11:59:59 PM"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    1798761599000,
+    false
+   ],
+   "out": "2026-12-31 11:59:59 PM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    0,
+    true
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    0,
+    true
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "when",
+   "args": [
+    null,
+    true
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    null,
+    true
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1793459402000,
+    true
+   ],
+   "out": "Oct 31, 2026, 15:10:02"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    1793459402000,
+    true
+   ],
+   "out": "2026-10-31 15:10:02"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1793365802000,
+    true
+   ],
+   "out": "Oct 30, 2026, 13:10:02"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    1793365802000,
+    true
+   ],
+   "out": "2026-10-30 13:10:02"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1767312309000,
+    true
+   ],
+   "out": "Jan 02, 2026, 00:05:09"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    1767312309000,
+    true
+   ],
+   "out": "2026-01-02 00:05:09"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1783166400000,
+    true
+   ],
+   "out": "Jul 04, 2026, 12:00:00"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    1783166400000,
+    true
+   ],
+   "out": "2026-07-04 12:00:00"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1798761599000,
+    true
+   ],
+   "out": "Dec 31, 2026, 23:59:59"
+  },
+  {
+   "fn": "isoish",
+   "args": [
+    1798761599000,
+    true
+   ],
+   "out": "2026-12-31 23:59:59"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01 06:07:45",
+    true,
+    false
+   ],
+   "out": "6:07:45 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01 06:07:45",
+    false,
+    false
+   ],
+   "out": "6:07 AM"
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    "2024-05-01 06:07:45",
+    false
+   ],
+   "out": "2024-05-01 6:07:45 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01_06-07-45",
+    true,
+    false
+   ],
+   "out": "6:07:45 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01_06-07-45",
+    false,
+    false
+   ],
+   "out": "6:07 AM"
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    "2024-05-01_06-07-45",
+    false
+   ],
+   "out": "2024-05-01 6:07:45 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "06:07:45",
+    true,
+    false
+   ],
+   "out": "6:07:45 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "06:07:45",
+    false,
+    false
+   ],
+   "out": "6:07 AM"
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    "06:07:45",
+    false
+   ],
+   "out": "06:07:45 6:07:45 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "12:30",
+    true,
+    false
+   ],
+   "out": "12:30 PM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "12:30",
+    false,
+    false
+   ],
+   "out": "12:30 PM"
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    "12:30",
+    false
+   ],
+   "out": "12:30 12:30 PM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "nothing",
+    true,
+    false
+   ],
+   "out": "nothing"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "nothing",
+    false,
+    false
+   ],
+   "out": "nothing"
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    "nothing",
+    false
+   ],
+   "out": "nothing nothing"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "",
+    true,
+    false
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "",
+    false,
+    false
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    "",
+    false
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    null,
+    true,
+    false
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    null,
+    false,
+    false
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    null,
+    false
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01 06:07:45",
+    true,
+    true
+   ],
+   "out": "06:07:45"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01 06:07:45",
+    false,
+    true
+   ],
+   "out": "06:07"
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    "2024-05-01 06:07:45",
+    true
+   ],
+   "out": "2024-05-01 06:07:45"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01_06-07-45",
+    true,
+    true
+   ],
+   "out": "06:07:45"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01_06-07-45",
+    false,
+    true
+   ],
+   "out": "06:07"
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    "2024-05-01_06-07-45",
+    true
+   ],
+   "out": "2024-05-01 06:07:45"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "06:07:45",
+    true,
+    true
+   ],
+   "out": "06:07:45"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "06:07:45",
+    false,
+    true
+   ],
+   "out": "06:07"
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    "06:07:45",
+    true
+   ],
+   "out": "06:07:45 06:07:45"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "12:30",
+    true,
+    true
+   ],
+   "out": "12:30"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "12:30",
+    false,
+    true
+   ],
+   "out": "12:30"
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    "12:30",
+    true
+   ],
+   "out": "12:30 12:30"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "nothing",
+    true,
+    true
+   ],
+   "out": "nothing"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "nothing",
+    false,
+    true
+   ],
+   "out": "nothing"
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    "nothing",
+    true
+   ],
+   "out": "nothing nothing"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "",
+    true,
+    true
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "",
+    false,
+    true
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    "",
+    true
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    null,
+    true,
+    true
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    null,
+    false,
+    true
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wallDay",
+   "args": [
+    null,
+    true
+   ],
+   "out": ""
+  },
+  {
+   "fn": "watts",
+   "args": [
+    0
+   ],
+   "out": "0.0 W"
+  },
+  {
+   "fn": "watts",
+   "args": [
+    4.24
+   ],
+   "out": "4.2 W"
+  },
+  {
+   "fn": "watts",
+   "args": [
+    9.96
+   ],
+   "out": "10.0 W"
+  },
+  {
+   "fn": "watts",
+   "args": [
+    10
+   ],
+   "out": "10 W"
+  },
+  {
+   "fn": "watts",
+   "args": [
+    245.5
+   ],
+   "out": "246 W"
+  },
+  {
+   "fn": "watts",
+   "args": [
+    null
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "energy",
+   "args": [
+    0
+   ],
+   "out": "0.0 Wh"
+  },
+  {
+   "fn": "energy",
+   "args": [
+    12.44
+   ],
+   "out": "12.4 Wh"
+  },
+  {
+   "fn": "energy",
+   "args": [
+    99.96
+   ],
+   "out": "100.0 Wh"
+  },
+  {
+   "fn": "energy",
+   "args": [
+    412.6
+   ],
+   "out": "413 Wh"
+  },
+  {
+   "fn": "energy",
+   "args": [
+    1000
+   ],
+   "out": "1.00 kWh"
+  },
+  {
+   "fn": "energy",
+   "args": [
+    5210
+   ],
+   "out": "5.21 kWh"
+  },
+  {
+   "fn": "energy",
+   "args": [
+    null
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "money",
+   "args": [
+    0.1449,
+    "$"
+   ],
+   "out": "$0.14"
+  },
+  {
+   "fn": "money",
+   "args": [
+    99.995,
+    "$"
+   ],
+   "out": "$100.00"
+  },
+  {
+   "fn": "money",
+   "args": [
+    1204.5,
+    "$"
+   ],
+   "out": "$1,205"
+  },
+  {
+   "fn": "money",
+   "args": [
+    154.4,
+    "kr"
+   ],
+   "out": "154 kr"
+  },
+  {
+   "fn": "money",
+   "args": [
+    3,
+    "€"
+   ],
+   "out": "€3.00"
+  },
+  {
+   "fn": "money",
+   "args": [
+    null,
+    "$"
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    "low_space"
+   ],
+   "out": "Low space"
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    "share-down"
+   ],
+   "out": "Share down"
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    ""
+   ],
+   "out": ""
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    null
+   ],
+   "out": ""
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    "x"
+   ],
+   "out": "X"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2026-10-31"
+   ],
+   "out": "Sat, Oct 31, 2026"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2026-01-01"
+   ],
+   "out": "Thu, Jan 1, 2026"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2024-02-29"
+   ],
+   "out": "Thu, Feb 29, 2024"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "not a day"
+   ],
+   "out": "not a day"
+  }
+ ]
+}
