@@ -341,8 +341,8 @@
   const MAC_UPDATE = 'In Terminal on the Mac, run <code>sudo sentry-six-manager update</code>.';
   const WIN_LOGS = '%ProgramData%\\SentrySixManager\\data\\logs\\service.log';
   const WIN_UPDATE = 'Run update.ps1 as administrator, or download the latest release and run Install.cmd.';
-  // CPU watts on this Windows PC: only from Windows' own energy meter
-  const CPU_NA_WINDOWS = 'CPU watts show only when Windows has an energy meter for the processor (most PCs don\'t). NVIDIA GPU watts show when the card reports them.';
+  // CPU watts on this Windows PC: from the CPU power service (PawnIO, Setup's option) or Windows' own energy meter
+  const CPU_NA_WINDOWS = 'CPU watts need the "Measure CPU power" option of Sentry Six Manager Setup (it installs the signed PawnIO driver; restart Windows after installing it), or an energy meter for the processor in Windows. NVIDIA GPU watts show when the card reports them.';
   /** The server's own words on how to update (status().how, plain text) as one sentence, or ''. */
   const toldHow = (u) => {
     const how = typeof u?.how === 'string' ? u.how.trim() : '';

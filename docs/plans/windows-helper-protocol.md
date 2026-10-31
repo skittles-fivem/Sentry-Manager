@@ -114,7 +114,7 @@ DXGI `CreateDXGIFactory1` + `EnumAdapters1`/`GetDesc1`; PCI address from
 (bus, device, function → `0000:bb:dd.f`, lower-case hex). Software adapters
 (`DXGI_ADAPTER_FLAG_SOFTWARE` or vendor 0x1414) are listed with `software:true`.
 
-### `perf.sample` `{sets:['cpu','disk','net','gpu','gpumem','energy','proc']}` → `{t100ns:'n', freq:'n', sets:{...}}`
+### `perf.sample` `{sets:['cpu','disk','net','gpu','gpumem','energy','rapl','proc']}` → `{t100ns:'n', freq:'n', sets:{...}}`
 Raw cumulative counters via `PerformanceCounterCategory.ReadCategory()` (English
 names through the registry 009 index, so non-English Windows works). Each set is
 `{instanceName: {counterName: 'rawValue', …}, …}` with the category's
@@ -128,11 +128,54 @@ names through the registry 009 index, so non-English Windows works). Each set is
 | gpu | GPU Engine | Utilization Percentage (instance names carry pid, luid, engine type) |
 | gpumem | GPU Adapter Memory | Dedicated Usage, Shared Usage |
 | energy | Energy Meter | Energy, Power (only on machines that have it; empty object otherwise) |
+| rapl | (not a category: the CPU power service, below) | EnergyUj, Time100ns per `package-N` |
 | proc | Process | % Processor Time, Working Set - Private, ID Process, Creating Process ID, IO Read Bytes/sec, IO Write Bytes/sec |
 
 A counter with a base (averages, fractions) also carries `<counter> Base` per
 instance, e.g. `% Processor Performance Base`, which the CPU clock needs.
 A category that does not exist yields `{}` for its set, never an error.
+
+**`rapl`: CPU package energy through PawnIO.** Not a performance counter. The
+helper connects to `\\.\pipe\SentrySixPower`, served by `bin\SentryPower.exe`,
+the `SentrySixPower` service (LocalSystem). Setup installs it with "Measure CPU
+power (installs the signed PawnIO driver)". The helper connects for reading only,
+at impersonation level Identification, with a 200 ms connect timeout and a 1 s read
+timeout. After a failed connect it does not try again for a minute. The service
+writes one JSON line and hangs up:
+
+```
+{"ok":true,"source":"pawnio-rapl","vendor":"amd","driver":"2.2.0",
+ "packages":[{"socket":0,"energyUj":"123456789","t100ns":"987654321"}]}
+{"ok":false,"reason":"no-driver"}   reasons: starting, no-driver, old-driver (< 2.0.0),
+                                    cpu (not AMD 17h-1Ah / Intel Sandy Bridge+), load-failed, msr-failed
+```
+
+The helper relays an `ok` answer as `{"package-0": {"EnergyUj": "n", "Time100ns": "n"}, …}`.
+Anything else becomes `{}`: no service, no driver, a VM, an unknown CPU.
+
+- `EnergyUj` is a 64-bit running total in microjoules, the same meaning as Linux's
+  `intel-rapl:N/energy_uj` for a top-level package zone.
+- The service reads the 32-bit package energy MSR every second, on a CPU of that
+  package, and handles its wrap.
+- AMD: `MSR_PWR_UNIT` 0xC0010299 and `MSR_PKG_ENERGY_STAT` 0xC001029B. Intel:
+  `MSR_RAPL_POWER_UNIT` 0x606 and `MSR_PKG_ENERGY_STATUS` 0x611. Joules per count
+  are 0.5^ESU (bits 12:8 of the unit MSR). Silvermont and Airmont count 2^ESU µJ.
+- `Time100ns` is the service's QueryPerformanceCounter clock in 100 ns when it read
+  the counter. It is only good for the time between two readings.
+- A total that went back means the service restarted. That interval gives no rate.
+
+node (`server/stats/platform/win32.js` WinPower) takes CPU watts from `rapl` when the
+set has packages: ΔEnergyUj / ΔTime100ns, summed over packages, `cpuSource: 'rapl'`.
+Otherwise it takes them from `energy`, with `cpuSource: 'energy-meter'`. With neither,
+cpuW is null and `cpuUnavailable: 'windows'`.
+
+The service only ever calls the signed module's `ioctl_read_msr`, and only for those
+four MSRs. The module is AMDFamily17.bin or IntelMSR.bin from PawnIO.Modules, embedded
+in SentryPower.exe. The pipe takes no input: clients other than SYSTEM and
+Administrators get read access only, network logons are denied, and remote clients
+are rejected. PawnIO's device admits only SYSTEM and Administrators, which is why
+this is a service of its own and not part of the helper. `SentryPower.exe --once`,
+run as administrator, prints two readings a second apart, to check a PC by hand.
 
 ### `sys.info` → `{os:{caption, version, build}, cpus:[{name, cores, threads, socket}], memory:{total:'n'}, bootTime:'ISO', disks:[{number, model, serial, size:'n', mediaType, busType}], volumes:[{letter, label, fs, size:'n', free:'n', disk}], adapters:[{name, description, mac, speed:'n', physical:bool}], elevated:bool, account}`
 WMI (Win32_OperatingSystem, Win32_Processor, MSFT_PhysicalDisk, Win32_Volume /

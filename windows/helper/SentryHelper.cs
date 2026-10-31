@@ -1539,11 +1539,88 @@ namespace SentrySixManager.Helper
         }
     }
 
+    // The CPU package energy from SentryPower.exe (the SentrySixPower
+    // service, installed with Setup's "Measure CPU power"), which reads the
+    // RAPL counters through the PawnIO driver: perf.sample's 'rapl' set,
+    // {"package-0": {"EnergyUj": "n", "Time100ns": "n"}, ...}. EnergyUj is a
+    // 64-bit running total in microjoules (the service has already dealt
+    // with the 32-bit counter's wrap), Time100ns the service's monotonic
+    // clock when it read it. {} when the service is not installed or has no
+    // reading (no driver, a CPU it does not know): then Energy Meter, if
+    // any, is what node uses.
+    static class CpuPower
+    {
+        const string PipeName = "SentrySixPower";
+        const int ConnectMs = 200;
+        const int ReadMs = 1000;
+        static readonly Regex Digits = new Regex(@"^\d{1,20}$");
+        // after a failed connect (no service on this PC) the pipe is not
+        // tried again for a minute, so perf.sample does not wait each time
+        static DateTime skipUntil = DateTime.MinValue;
+
+        public static JObj Read()
+        {
+            var result = new JObj();
+            string line = null;
+            if (DateTime.UtcNow < skipUntil) return result;
+            try
+            {
+                // Identification: the service learns who asks, but can never
+                // act as us (were the name ever held by another program)
+                using (var pipe = new System.IO.Pipes.NamedPipeClientStream(".", PipeName, System.IO.Pipes.PipeDirection.In,
+                    System.IO.Pipes.PipeOptions.Asynchronous, TokenImpersonationLevel.Identification))
+                {
+                    pipe.Connect(ConnectMs);
+                    var buf = new byte[4096];
+                    int got = 0;
+                    DateTime until = DateTime.UtcNow.AddMilliseconds(ReadMs);
+                    while (got < buf.Length)
+                    {
+                        int left = (int)(until - DateTime.UtcNow).TotalMilliseconds;
+                        if (left <= 0) return result;
+                        IAsyncResult r = pipe.BeginRead(buf, got, buf.Length - got, null, null);
+                        if (!r.AsyncWaitHandle.WaitOne(left)) return result;
+                        int n = pipe.EndRead(r);
+                        if (n <= 0) break;
+                        got += n;
+                        if (Array.IndexOf(buf, (byte)'\n', 0, got) >= 0) break;
+                    }
+                    line = new UTF8Encoding(false, false).GetString(buf, 0, got);
+                }
+            }
+            catch (TimeoutException) { skipUntil = DateTime.UtcNow.AddMinutes(1); return result; } // not installed, or not running
+            catch (IOException) { return result; }
+            catch (UnauthorizedAccessException) { Program.Diag("perf.rapl: the CPU power service refused the connection"); return result; }
+            catch (Exception e) { Program.Diag("perf.rapl: failed (" + e.GetType().Name + ")"); return result; }
+
+            int nl = line.IndexOf('\n');
+            if (nl >= 0) line = line.Substring(0, nl);
+            Dictionary<string, object> msg;
+            try { msg = Json.Parse(line.Trim()) as Dictionary<string, object>; }
+            catch (Exception) { msg = null; }
+            object ok, pkgs;
+            if (msg == null || !msg.TryGetValue("ok", out ok) || !(ok is bool) || !(bool)ok) return result;
+            if (!msg.TryGetValue("packages", out pkgs) || !(pkgs is List<object>)) return result;
+            foreach (object o in (List<object>)pkgs)
+            {
+                var p = o as Dictionary<string, object>;
+                object socket, energy, t;
+                if (p == null || !p.TryGetValue("socket", out socket) || !(socket is long)) continue;
+                if (!p.TryGetValue("energyUj", out energy) || !(energy is string) || !Digits.IsMatch((string)energy)) continue;
+                if (!p.TryGetValue("t100ns", out t) || !(t is string) || !Digits.IsMatch((string)t)) continue;
+                long s = (long)socket;
+                if (s < 0 || s > 63) continue;
+                result.Add("package-" + s.ToString(CultureInfo.InvariantCulture), new JObj { { "EnergyUj", (string)energy }, { "Time100ns", (string)t } });
+            }
+            return result;
+        }
+    }
+
     static class Perf
     {
         static readonly object Gate = new object();
 
-        static readonly string[] SetOrder = { "cpu", "disk", "net", "gpu", "gpumem", "energy", "proc" };
+        static readonly string[] SetOrder = { "cpu", "disk", "net", "gpu", "gpumem", "energy", "rapl", "proc" };
 
         static readonly Dictionary<string, KeyValuePair<string, string[]>> Sets = new Dictionary<string, KeyValuePair<string, string[]>>
         {
@@ -1617,7 +1694,7 @@ namespace SentrySixManager.Helper
                 foreach (object o in list)
                 {
                     var s = o as string;
-                    if (s == null || !Sets.ContainsKey(s)) throw HelperError.Invalid("Invalid argument: sets (unknown set).");
+                    if (s == null || (!Sets.ContainsKey(s) && s != "rapl")) throw HelperError.Invalid("Invalid argument: sets (unknown set).");
                     if (!wanted.Contains(s)) wanted.Add(s);
                 }
             }
@@ -1630,6 +1707,13 @@ namespace SentrySixManager.Helper
                 string t100 = null;
                 foreach (string set in wanted)
                 {
+                    if (set == "rapl")
+                    {
+                        // not a performance counter category: the CPU power
+                        // service's latest reading (it carries its own times)
+                        sets.Add(set, CpuPower.Read());
+                        continue;
+                    }
                     CounterSample? stamp;
                     sets.Add(set, ReadSet(set, out stamp));
                     if (stamp.HasValue)

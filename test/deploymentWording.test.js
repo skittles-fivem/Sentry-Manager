@@ -86,7 +86,7 @@ test('app.js: on Windows nothing points at compose, docker logs or the container
     assert.ok(html.includes('<p>Shown only when the server provides it. Every number stays on this server.</p>'));
   }
   const power = app.serverBody(withUnlock(sample('amd')), { deployment: 'windows' });
-  if (power.includes('nd-note')) assert.match(power, /CPU watts show only when Windows has an energy meter/);
+  if (power.includes('nd-note')) assert.match(power, /CPU watts need the &quot;Measure CPU power&quot; option|CPU watts need the "Measure CPU power" option/);
   for (const u of Object.values(UPDATES)) {
     const html = app.updatesCard(u, 'windows');
     assert.doesNotMatch(html, DOCKER_WORDS);

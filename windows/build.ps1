@@ -145,12 +145,15 @@ Write-Host "Building $ZipName ($Repo, branch '$Branch', $BuiltAt, critical level
 # ---- pinned downloads --------------------------------------------------------
 
 $Pins = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'versions.json') | ConvertFrom-Json
-$unset = @(foreach ($n in 'node', 'ffmpeg') { if ((Prop (Prop $Pins $n) 'sha256') -notmatch '^[0-9a-fA-F]{64}$') { $n } })
+# every pin: node, ffmpeg, and PawnIO's installer and modules (the optional
+# CPU power measurement, see windows\power\SentryPower.cs)
+$PinNames = @('node', 'ffmpeg', 'pawnio-setup', 'pawnio-modules')
+$unset = @(foreach ($n in $PinNames) { if ((Prop (Prop $Pins $n) 'sha256') -notmatch '^[0-9a-fA-F]{64}$') { $n } })
 if ($unset.Count) {
   Fail ("windows\versions.json has no SHA-256 for: $($unset -join ', '). " +
     "Download each url yourself, check it against the publisher's own checksum where there is one " +
     "(nodejs.org/dist/v<version>/SHASUMS256.txt for node), then run " +
-    "(Get-FileHash -Algorithm SHA256 <file.zip>).Hash.ToLower() and put the result in its sha256 field.")
+    "(Get-FileHash -Algorithm SHA256 <file>).Hash.ToLower() and put the result in its sha256 field.")
 }
 
 function Get-Pinned([string]$name) {
@@ -205,6 +208,51 @@ New-Item -ItemType Directory -Path $Stage | Out-Null
 Expand-Pinned 'node' (Get-Pinned 'node') (Join-Path $Stage 'node')
 Expand-Pinned 'ffmpeg' (Get-Pinned 'ffmpeg') (Join-Path $Stage 'ffmpeg')
 
+# PawnIO (https://pawnio.eu), for Setup's optional "Measure CPU power":
+# its official signed installer, shipped byte for byte as published (its
+# terms allow redistributing it unmodified, nothing else: no repacking, and
+# never the -unrestricted developer edition), and the two signed modules
+# SentryPower.exe embeds (AMDFamily17.bin, IntelMSR.bin; LGPL-2.1), each
+# checked against its own SHA-256 as well as the zip's.
+$PawnDir = Join-Path $Stage 'pawnio'
+New-Item -ItemType Directory -Path $PawnDir | Out-Null
+$pawnSetup = Prop $Pins 'pawnio-setup'
+$pawnFile = [string](Prop $pawnSetup 'file')
+if ($pawnFile -notmatch '^[A-Za-z0-9._-]+\.exe$') { Fail "versions.json: pawnio-setup file '$pawnFile' is not a plain .exe name" }
+Copy-Item -LiteralPath (Get-Pinned 'pawnio-setup') -Destination (Join-Path $PawnDir $pawnFile)
+$ModDir = Join-Path $WorkDir 'pawnio-modules'
+if (Test-Path -LiteralPath $ModDir) { Remove-Item -LiteralPath $ModDir -Recurse -Force }
+$pawnMods = Prop $Pins 'pawnio-modules'
+Expand-Pinned 'pawnio-modules' (Get-Pinned 'pawnio-modules') $ModDir
+foreach ($f in @((Prop $pawnMods 'fileSha256').PSObject.Properties)) {
+  $p = Join-Path $ModDir $f.Name
+  if (-not (Test-Path -LiteralPath $p)) { Fail "pawnio-modules: $($f.Name) was not extracted" }
+  $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $p).Hash.ToLowerInvariant()
+  if ($got -ne ([string]$f.Value).ToLowerInvariant()) { Fail "pawnio-modules: $($f.Name) does not match its pinned SHA-256 (expected $($f.Value), got $got)" }
+}
+foreach ($n in @(@((Prop $pawnMods 'notices').PSObject.Properties) | ForEach-Object { $_.Name })) {
+  $p = Join-Path $ModDir $n
+  if (Test-Path -LiteralPath $p) { Copy-Item -LiteralPath $p -Destination (Join-Path $PawnDir $n) }
+}
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'notices\PawnIO.txt') -Destination (Join-Path $PawnDir 'PawnIO.txt')
+$modLines = @(@((Prop $pawnMods 'fileSha256').PSObject.Properties) | ForEach-Object { "  $($_.Name)  sha256 $($_.Value)" })
+$pawnReadme = @"
+PawnIO, for the optional CPU power measurement
+
+$pawnFile is PawnIO $($pawnSetup.version) by namazso (https://pawnio.eu,
+source $($pawnSetup.source)), the official signed installer, exactly as
+published at $($pawnSetup.url)
+(sha256 $($pawnSetup.sha256)). Sentry Six Manager Setup runs it only when
+"Measure CPU power" is ticked and PawnIO is not installed yet. See PawnIO.txt.
+
+bin\SentryPower.exe embeds these signed modules of PawnIO.Modules
+$($pawnMods.version) ($($pawnMods.source), release $($pawnMods.url)),
+unmodified, under the GNU Lesser General Public License 2.1
+(PawnIO.Modules-COPYING.txt):
+$($modLines -join "`n")
+"@
+Write-Text (Join-Path $PawnDir 'README.txt') (($pawnReadme -replace '\r?\n', "`r`n") + "`r`n")
+
 # what was pinned is what runs
 $nodeVer = (& (Join-Path $Stage 'node\node.exe') --version).Trim()
 if ($nodeVer -ne "v$(Prop $Pins.node 'version')") { Fail "node.exe says $nodeVer, versions.json pins $($Pins.node.version)" }
@@ -223,11 +271,12 @@ if (-not (Test-Path -LiteralPath $Csc)) { Fail "no .NET Framework 4.8 compiler a
 $Bin = Join-Path $Stage 'bin'
 New-Item -ItemType Directory -Path $Bin | Out-Null
 
-function Build-Exe([string]$source, [string]$exe, [string[]]$refs) {
+function Build-Exe([string]$source, [string]$exe, [string[]]$refs, [string[]]$extra = @()) {
   $src = Join-Path $PSScriptRoot $source
   if (-not (Test-Path -LiteralPath $src)) { Fail "windows\$source is missing: it has to be written before a package can be built" }
   $cscArgs = @('/nologo', '/target:exe', '/optimize+', '/platform:x64', "/out:$(Join-Path $Bin $exe)")
   $cscArgs += @($refs | ForEach-Object { "/reference:$_" })
+  $cscArgs += $extra
   $cscArgs += $src
   & $Csc @cscArgs
   if ($LASTEXITCODE -ne 0) { Fail "csc could not compile windows\$source" }
@@ -235,6 +284,9 @@ function Build-Exe([string]$source, [string]$exe, [string[]]$refs) {
 # the helper: WMI (smb.status, sys.info) and JSON lines
 Build-Exe 'helper\SentryHelper.cs' 'SentryHelper.exe' @('System.dll', 'System.Core.dll', 'System.Management.dll', 'System.Web.Extensions.dll')
 Build-Exe 'service\SentryService.cs' 'SentryService.exe' @('System.dll', 'System.Core.dll', 'System.ServiceProcess.dll')
+# the CPU power service, with the two signed PawnIO modules embedded by name
+Build-Exe 'power\SentryPower.cs' 'SentryPower.exe' @('System.dll', 'System.Core.dll', 'System.ServiceProcess.dll') @(
+  @((Prop $pawnMods 'files').PSObject.Properties) | ForEach-Object { "/resource:$(Join-Path $ModDir $_.Name),$($_.Name)" })
 
 # ---- the native app (SentrySix.exe) ----------------------------------------------------
 #
@@ -404,7 +456,7 @@ Write-Text (Join-Path $App 'BUILD_INFO.json') (($buildInfo | ConvertTo-Json -Dep
 
 # ---- scripts and readme at the zip root ---------------------------------------------
 
-foreach ($s in 'install.ps1', 'uninstall.ps1', 'update.ps1', 'Install.cmd') {
+foreach ($s in 'install.ps1', 'uninstall.ps1', 'update.ps1', 'cpupower.ps1', 'Install.cmd') {
   $p = Join-Path $PSScriptRoot $s
   if (-not (Test-Path -LiteralPath $p)) { Fail "windows\$s is missing: it has to be written before a package can be built" }
   Copy-Item -LiteralPath $p -Destination (Join-Path $Stage $s)
@@ -440,7 +492,14 @@ Uninstall
   Your data stays unless you add -RemoveData.
 
 Included: Node.js $($Pins.node.version) (node\) and FFmpeg $($Pins.ffmpeg.version) (ffmpeg\, GPL),
-each with its licence.
+each with its licence, and PawnIO $($pawnSetup.version) with PawnIO.Modules $($pawnMods.version)
+(pawnio\, for the optional CPU power measurement; see pawnio\README.txt).
+
+CPU power (optional)
+  install.ps1 -CpuPower installs the signed PawnIO driver (only if it is not
+  installed yet) and the Sentry Six Manager CPU power service, so the server
+  shows the CPU package watts; -NoCpuPower removes them again (PawnIO only if
+  Sentry Six Manager installed it). Restart Windows if PawnIO asks for it.
 "@
 Write-Text (Join-Path $Stage 'README-Windows.txt') (($readme -replace '\r?\n', "`r`n") + "`r`n")
 

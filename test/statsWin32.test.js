@@ -10,7 +10,7 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('events');
 const { createStats } = require('../server/stats');
 const { powerReport } = require('../server/nodePower');
-const { counterDelta, luidKey, hexId, perfInstanceName, diskKind, windowsName, packageSocket, createProviders } = require('../server/stats/platform/win32');
+const { counterDelta, luidKey, hexId, perfInstanceName, diskKind, windowsName, packageSocket, raplSocket, createProviders } = require('../server/stats/platform/win32');
 const { cpuUnavailable } = require('../server/stats/power');
 const M = require('./fixtures/stats/machines');
 const W = require('./fixtures/stats/win32');
@@ -138,7 +138,7 @@ test('Windows: the whole body from the helper\'s performance counters', async ()
     assert.deepEqual(snap.unlock, [], 'no compose lines to suggest on Windows');
     assert.deepEqual(snap.filesystems.map((f) => f.label), ['Footage']);
     assert.ok(w.helper.calls.every((c) => ['perf.sample', 'sys.info', 'gpu.list'].includes(c.op)));
-    assert.deepEqual(w.helper.calls.find((c) => c.op === 'perf.sample').args, { sets: ['cpu', 'disk', 'net', 'gpu', 'gpumem', 'energy', 'proc'] });
+    assert.deepEqual(w.helper.calls.find((c) => c.op === 'perf.sample').args, { sets: ['cpu', 'disk', 'net', 'gpu', 'gpumem', 'energy', 'rapl', 'proc'] });
   } finally {
     w.done();
   }
@@ -438,6 +438,81 @@ test('Windows: where a share lives (drive letter, UNC path)', () => {
     options: { helper: null, os: W.fakeOs(), smbConnected: () => { throw new Error('x'); } }
   });
   assert.equal(broken.locate('\\\\nas\\tesla', true).mounted, false);
+});
+
+// The CPU power service (SentryPower.exe through PawnIO): perf.sample's
+// 'rapl' set as the helper relays it, a 64-bit microjoule total per package
+// and the service's own clock when it read it (windows-helper-protocol.md).
+const T_SERVICE = 52000000000n; // the service's monotonic clock, 100 ns
+function withRapl(perf, packages) {
+  return perf.map((r, n) => W.edited(r, (x) => {
+    x.sets.rapl = {};
+    for (const [socket, { uj0, w }] of Object.entries(packages)) {
+      x.sets.rapl[`package-${socket}`] = { EnergyUj: String(BigInt(uj0) + BigInt(w * 2e6) * BigInt(n)), Time100ns: String(T_SERVICE + 20000000n * BigInt(n)) };
+    }
+  }));
+}
+
+test('Windows: CPU package watts from the CPU power service (PawnIO RAPL), as Docker reads energy_uj', async () => {
+  // the owner's PC: Ryzen 9 9950X, no Energy Meter counters; 85 W over 2 s
+  const w = winSetup({ helper: W.fakeHelper({ perf: withRapl(W.RECORDED.perfNoEnergy, { 0: { uj0: '987654321000', w: 85 } }) }) });
+  try {
+    const snap = await sampled(w, 1);
+    assert.equal(snap.power.cpuW, 85);
+    assert.equal(snap.power.cpuSource, 'rapl', 'the same name as the Docker build\'s figure');
+    assert.equal(snap.power.cpuUnavailable, null);
+    // the Radeon iGPU has no reading here, so the chip is the CPU package, and the RTX is added
+    assert.equal(snap.power.totalW, 146.4);
+  } finally {
+    w.done();
+  }
+});
+
+test('Windows: the CPU power service comes before Energy Meter; two sockets are summed', async () => {
+  const w = winSetup({ helper: W.fakeHelper({ perf: withRapl(W.RECORDED.perf, { 0: { uj0: '1000', w: 50 }, 1: { uj0: '5000000', w: 30.5 } }) }) });
+  try {
+    const snap = await sampled(w, 1);
+    assert.equal(snap.power.cpuW, 80.5, 'RAPL, not the Energy Meter\'s 72 W');
+    assert.equal(snap.power.cpuSource, 'rapl');
+  } finally {
+    w.done();
+  }
+});
+
+test('Windows: a CPU power service reading that went back (it restarted) or did not move on gives no figure', async () => {
+  const perf = withRapl(W.RECORDED.perfNoEnergy, { 0: { uj0: '900000000', w: 85 } });
+  perf[1] = W.edited(perf[1], (x) => { x.sets.rapl['package-0'].EnergyUj = '12'; });
+  let w = winSetup({ helper: W.fakeHelper({ perf }) });
+  try {
+    const snap = await sampled(w, 1);
+    assert.equal(snap.power.cpuW, null);
+    assert.equal(snap.power.cpuUnavailable, null, 'the PC has the readings: a gap, not "not available"');
+  } finally {
+    w.done();
+  }
+  const same = withRapl(W.RECORDED.perfNoEnergy, { 0: { uj0: '900000000', w: 85 } });
+  same[1] = W.edited(same[1], (x) => { x.sets.rapl = JSON.parse(JSON.stringify(same[0].sets.rapl)); });
+  w = winSetup({ helper: W.fakeHelper({ perf: same }) });
+  try {
+    assert.equal((await sampled(w, 1)).power.cpuW, null, 'the same reading twice is no time at all');
+  } finally {
+    w.done();
+  }
+});
+
+test('Windows: no CPU power service and no Energy Meter: an empty rapl set changes nothing', async () => {
+  const perf = W.RECORDED.perfNoEnergy.map((r) => W.edited(r, (x) => { x.sets.rapl = {}; }));
+  const w = winSetup({ helper: W.fakeHelper({ perf }) });
+  try {
+    const snap = await sampled(w, 1);
+    assert.equal(snap.power.cpuW, null);
+    assert.equal(snap.power.cpuUnavailable, 'windows');
+  } finally {
+    w.done();
+  }
+  assert.equal(raplSocket('package-1'), 1);
+  assert.equal(raplSocket('package-0-die-0'), null);
+  assert.equal(raplSocket('RAPL_Package0_PKG'), null);
 });
 
 test('Windows: helpers for names and ids', () => {
