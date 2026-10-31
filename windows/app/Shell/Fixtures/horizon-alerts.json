@@ -1,0 +1,188 @@
+{
+ "about": "Written by tools/parity/packFixtures.js from tools/parity/packs/horizon-alerts.js and Shell/RenderFixture.json: the horizon pages' states for SentrySix.exe --render (RENDER-PAGES.md).",
+ "variants": {
+  "horizon:alerts": {
+   "route": "alerts",
+   "api": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": "n1",
+       "level": "critical",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793454666000,
+       "updatedAt": 1793454666000,
+       "readAt": null,
+       "resolvedAt": null
+      },
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793353866000,
+       "updatedAt": 1793353866000,
+       "readAt": null,
+       "resolvedAt": null
+      },
+      {
+       "id": "n3",
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793173866000,
+       "updatedAt": 1793177466000,
+       "readAt": 1793177466000,
+       "resolvedAt": 1793177466000
+      },
+      {
+       "id": "n4",
+       "level": "warning",
+       "title": "A notification with a title that is far too long to fit on one line of the list at all",
+       "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+       "createdAt": 1792021866000,
+       "updatedAt": 1792021866000,
+       "readAt": null,
+       "resolvedAt": null
+      }
+     ]
+    },
+    "GET /api/notifications?open=1": {
+     "notifications": [
+      {
+       "id": "n1",
+       "level": "critical",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793454666000,
+       "updatedAt": 1793454666000,
+       "readAt": null,
+       "resolvedAt": null
+      },
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793353866000,
+       "updatedAt": 1793353866000,
+       "readAt": null,
+       "resolvedAt": null
+      },
+      {
+       "id": "n4",
+       "level": "warning",
+       "title": "A notification with a title that is far too long to fit on one line of the list at all",
+       "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+       "createdAt": 1792021866000,
+       "updatedAt": 1792021866000,
+       "readAt": null,
+       "resolvedAt": null
+      }
+     ]
+    }
+   }
+  },
+  "horizon:alerts-empty": {
+   "route": "alerts"
+  },
+  "horizon:alerts-all": {
+   "route": "alerts",
+   "state": {
+    "alerts": {
+     "show": "all"
+    }
+   },
+   "api": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": "n1",
+       "level": "critical",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793454666000,
+       "updatedAt": 1793454666000,
+       "readAt": null,
+       "resolvedAt": null
+      },
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793353866000,
+       "updatedAt": 1793353866000,
+       "readAt": null,
+       "resolvedAt": null
+      },
+      {
+       "id": "n3",
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793173866000,
+       "updatedAt": 1793177466000,
+       "readAt": 1793177466000,
+       "resolvedAt": 1793177466000
+      },
+      {
+       "id": "n4",
+       "level": "warning",
+       "title": "A notification with a title that is far too long to fit on one line of the list at all",
+       "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+       "createdAt": 1792021866000,
+       "updatedAt": 1792021866000,
+       "readAt": null,
+       "resolvedAt": null
+      }
+     ]
+    },
+    "GET /api/notifications?open=1": {
+     "notifications": [
+      {
+       "id": "n1",
+       "level": "critical",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793454666000,
+       "updatedAt": 1793454666000,
+       "readAt": null,
+       "resolvedAt": null
+      },
+      {
+       "id": "n2",
+       "level": "warning",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793353866000,
+       "updatedAt": 1793353866000,
+       "readAt": null,
+       "resolvedAt": null
+      },
+      {
+       "id": "n4",
+       "level": "warning",
+       "title": "A notification with a title that is far too long to fit on one line of the list at all",
+       "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+       "createdAt": 1792021866000,
+       "updatedAt": 1792021866000,
+       "readAt": null,
+       "resolvedAt": null
+      }
+     ]
+    }
+   }
+  },
+  "horizon:alerts-error": {
+   "route": "alerts",
+   "api": {
+    "GET /api/notifications": {
+     "$error": "The notifications could not be read.",
+     "$status": 500
+    }
+   }
+  }
+ }
+}

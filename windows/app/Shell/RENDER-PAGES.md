@@ -276,3 +276,17 @@ bin-every-vehicle ("Every vehicle" picked: each item names its vehicle).
 - horizon bin-long
 - horizon bin-error
 - horizon bin-every-vehicle
+
+### Horizon: Notifications
+
+The warning lights (hz/pages/alerts.js) on the same answers as the built-in
+Notifications page's states: alerts (two open and unread, critical and
+warning, one long; the resolved one hidden), alerts-empty (the fixture
+server's own answer: "All lights are off."), alerts-all ("All, with
+resolved" picked: the resolved one faded), alerts-error (the list not
+readable: the page shows none).
+
+- horizon alerts
+- horizon alerts-empty
+- horizon alerts-all
+- horizon alerts-error
