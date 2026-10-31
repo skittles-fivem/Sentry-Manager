@@ -222,7 +222,9 @@ namespace SentrySix.Ui.Builtin
             int i = pageRoot.Children.IndexOf(section);
             if (i < 0) return;
             Border next = BuildSection();
-            pageRoot.Children[i] = next;
+            // (UIElementCollection's setter throws while the slot holds a child: out, then in)
+            pageRoot.Children.RemoveAt(i);
+            pageRoot.Children.Insert(i, next);
             section = next;
             DrawMonitor();
             DrawLogs(true);

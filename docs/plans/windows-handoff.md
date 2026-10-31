@@ -650,3 +650,8 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   #/encoder/vehicles).
 - Footage Download streams the recording into the file (`Api.GetToFile`,
   no time limit, not held in memory).
+- First Windows CI runs of the native pages (wip, 2026-10-31): SentrySix.exe
+  builds; Core.Tests needed no await in a finally (Core is C# 5; mcs had
+  let it through), then 67 passed; the Overview's narrow-width redraw
+  replaced a panel child with the indexer, which WPF refuses (RemoveAt +
+  Insert now).
