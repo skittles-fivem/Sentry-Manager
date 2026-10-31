@@ -8,15 +8,21 @@ name: Windows
 #     SDK, its Core tests against the real server, and every page listed in
 #     windows\app\Shell\RENDER-PAGES.md rendered to PNG (artifact
 #     native-renders, for tools/parity/report.js). Runs beside test.
-#   - package: windows\build.ps1 makes the zip, SHA256SUMS and release.json.
-#   - install-check: installs that zip as a user would (install.ps1 -Service
-#     in Windows PowerShell 5.1), checks the web UI over HTTPS and the service
-#     account, then uninstalls and checks nothing is left.
-#   - install-check-app: the same zip without the service (install.ps1
-#     -NoService): the server started as the app starts it, checked, stopped
-#     by writing "stop" to it, then uninstalled.
-#   - publish: on a push to main only, a GitHub Release with the zip,
-#     SHA256SUMS and release.json (what update notices and update.ps1 read).
+#   - package: windows\build.ps1 makes the zip, SHA256SUMS, release.json
+#     and SentrySixManager-Setup-<version>.exe (the same files in one
+#     installer, windows\setup\SentrySixManager.iss; artifact
+#     SentrySixManager-Setup).
+#   - install-check: installs with that Setup as a user would, silently
+#     (/VERYSILENT /MODE=service: it runs the package's install.ps1 in
+#     Windows PowerShell 5.1), checks the web UI over HTTPS, the service
+#     account and the one Settings > Apps entry, then uninstalls with the
+#     Setup's uninstaller (unins000.exe) and checks nothing is left.
+#   - install-check-app: the same Setup without the service (/MODE=app):
+#     the server started as the app starts it, checked, stopped by writing
+#     "stop" to it, then uninstalled the same way.
+#   - publish: on a push to main only, a GitHub Release with the Setup, the
+#     zip, SHA256SUMS and release.json (what update notices and update.ps1
+#     read).
 # Docker-only and macOS-only changes do not run it, and it never touches
 # ghcr.io. Never on pull requests: nobody else's code runs here with this
 # repository's token.
@@ -74,13 +80,15 @@ jobs:
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
         run: |
           $bad = 0
-          foreach ($f in Get-ChildItem windows -Filter *.ps1) {
+          # (windows\setup: the Setup's own helper)
+          foreach ($f in Get-ChildItem -Path windows, windows\setup -Filter *.ps1) {
             $tokens = $null; $errs = $null
+            $rel = $f.FullName.Substring((Get-Location).Path.Length + 1) -replace '\\', '/'
             [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errs)
-            foreach ($e in $errs) { Write-Host "::error file=windows/$($f.Name),line=$($e.Extent.StartLineNumber)::$($e.Message)"; $bad++ }
+            foreach ($e in $errs) { Write-Host "::error file=$rel,line=$($e.Extent.StartLineNumber)::$($e.Message)"; $bad++ }
           }
           if ($bad) { exit 1 }
-          Write-Host "All windows\*.ps1 parse in PowerShell $($PSVersionTable.PSVersion)"
+          Write-Host "All windows\*.ps1 and windows\setup\*.ps1 parse in PowerShell $($PSVersionTable.PSVersion)"
       - name: Pinned ffmpeg
         run: |
           $pin = (Get-Content -Raw -LiteralPath windows/versions.json | ConvertFrom-Json).ffmpeg
@@ -236,9 +244,11 @@ jobs:
   package:
     needs: [test, app]
     runs-on: windows-latest
-    timeout-minutes: 30
+    # (compressing the Setup takes a few minutes of it)
+    timeout-minutes: 45
     outputs:
       zip: ${{ steps.made.outputs.zip }}
+      setup: ${{ steps.made.outputs.setup }}
       version: ${{ steps.made.outputs.version }}
       short: ${{ steps.made.outputs.short }}
     steps:
@@ -253,7 +263,7 @@ jobs:
           $pins = Get-Content -Raw -LiteralPath windows/versions.json | ConvertFrom-Json
           $unset = @()
           $ProgressPreference = 'SilentlyContinue'
-          foreach ($name in 'node', 'ffmpeg', 'pawnio-setup', 'pawnio-modules') {
+          foreach ($name in 'node', 'ffmpeg', 'innosetup', 'pawnio-setup', 'pawnio-modules') {
             $pin = $pins.$name
             $want = ([string]$pin.sha256).ToLowerInvariant()
             if ($want -match '^[0-9a-f]{64}$') { Write-Host "$name sha256 (pinned): $want"; continue }
@@ -311,13 +321,29 @@ jobs:
           $version = [string]$rel.version
           if ($version -notmatch '^[A-Za-z0-9][A-Za-z0-9._+-]{0,39}$') { throw "release.json has no usable version" }
           if ([string]$rel.sha -ne $env:GITHUB_SHA) { throw "release.json names $($rel.sha), this run built $env:GITHUB_SHA" }
-          Get-Content -LiteralPath dist/SHA256SUMS
-          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value @("zip=$($zips[0].Name)", "version=$version", "short=$($env:GITHUB_SHA.Substring(0, 7))")
+          $setup = "SentrySixManager-Setup-$version.exe"
+          $setups = @(Get-ChildItem -LiteralPath dist -Filter 'SentrySixManager-Setup-*.exe' -File)
+          if ($setups.Count -ne 1 -or $setups[0].Name -ne $setup) { throw "expected $setup in dist, found: $(($setups | ForEach-Object Name) -join ', ')" }
+          $sums = Get-Content -LiteralPath dist/SHA256SUMS
+          foreach ($f in $zips[0].Name, 'release.json', $setup) {
+            if (-not ($sums | Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($f))$" })) { throw "SHA256SUMS has no line for $f" }
+          }
+          $sums
+          Write-Host "$setup is $([math]::Round($setups[0].Length / 1MB, 1)) MB"
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value @("zip=$($zips[0].Name)", "setup=$setup", "version=$version", "short=$($env:GITHUB_SHA.Substring(0, 7))")
 
       - uses: actions/upload-artifact@v7
         with:
           name: windows-package
           path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+      # the one file people download and run, on its own
+      - uses: actions/upload-artifact@v7
+        with:
+          name: SentrySixManager-Setup
+          path: dist/${{ steps.made.outputs.setup }}
           if-no-files-found: error
           retention-days: 14
 
@@ -332,28 +358,32 @@ jobs:
         shell: powershell
     env:
       ZIP: ${{ needs.package.outputs.zip }}
+      SETUP: ${{ needs.package.outputs.setup }}
+      VERSION: ${{ needs.package.outputs.version }}
       PORT: '9000'
+      APPS_KEY: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{37874499-7900-4DA9-8103-133AFC180A56}_is1'
     steps:
       - uses: actions/download-artifact@v8
         with:
           name: windows-package
           path: dist
 
-      - name: Unpack (checked against SHA256SUMS)
+      - name: The Setup matches SHA256SUMS
         run: |
-          $zip = Join-Path $PWD "dist\$env:ZIP"
-          $line = Get-Content -LiteralPath dist\SHA256SUMS | Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($env:ZIP))$" } | Select-Object -First 1
-          if (-not $line) { throw "SHA256SUMS has no line for $env:ZIP" }
-          $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
-          if ($got -ne $line.Substring(0, 64)) { throw "$env:ZIP does not match SHA256SUMS" }
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          [IO.Compression.ZipFile]::ExtractToDirectory($zip, (Join-Path $PWD 'pkg'))
+          $setup = Join-Path $PWD "dist\$env:SETUP"
+          $line = Get-Content -LiteralPath dist\SHA256SUMS | Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($env:SETUP))$" } | Select-Object -First 1
+          if (-not $line) { throw "SHA256SUMS has no line for $env:SETUP" }
+          $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $setup).Hash.ToLowerInvariant()
+          if ($got -ne $line.Substring(0, 64)) { throw "$env:SETUP does not match SHA256SUMS" }
 
-      - name: Install
+      # as a script or an updater would: no window, the mode on the command line
+      - name: Install (Setup /VERYSILENT /MODE=service)
         run: |
           $ErrorActionPreference = 'Continue'
-          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File pkg\install.ps1 -Service
-          if ($LASTEXITCODE -ne 0) { Write-Host "::error::install.ps1 failed (exit code $LASTEXITCODE)"; exit 1 }
+          $log = Join-Path $env:RUNNER_TEMP 'setup.log'
+          $p = Start-Process -FilePath (Join-Path $PWD "dist\$env:SETUP") -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/MODE=service', '/CPUPOWER=1', "/LOG=`"$log`"") -Wait -PassThru
+          if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log }
+          if ($p.ExitCode -ne 0) { Write-Host "::error::$env:SETUP failed (exit code $($p.ExitCode)); install.ps1's lines are in the log above"; exit 1 }
 
       - name: Start menu entry, start at sign-in, mode
         run: |
@@ -368,6 +398,57 @@ jobs:
           $mode = (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\SentrySixManager').Mode
           if ($mode -ne 'service') { throw "install.ps1 recorded mode '$mode', expected service" }
           Write-Host "Start menu entry, sign-in start ($run) and mode ($mode) are in place"
+
+      - name: One entry in Settings > Apps, with its uninstaller
+        run: |
+          if (-not (Test-Path -LiteralPath $env:APPS_KEY)) { throw "no Settings > Apps entry at $env:APPS_KEY" }
+          $e = Get-ItemProperty -LiteralPath $env:APPS_KEY
+          if ($e.DisplayName -ne 'Sentry Six Manager') { throw "the entry is called '$($e.DisplayName)'" }
+          if ($e.Publisher -ne 'Sentry Six') { throw "the entry's publisher is '$($e.Publisher)'" }
+          if ($e.DisplayVersion -ne $env:VERSION) { throw "the entry says version '$($e.DisplayVersion)', expected $env:VERSION" }
+          $unins = Join-Path $env:ProgramFiles 'SentrySixManager-Uninstall\unins000.exe'
+          if (-not (Test-Path -LiteralPath $unins)) { throw "no uninstaller at $unins" }
+          if ($e.UninstallString -notlike "*$unins*") { throw "the entry uninstalls with '$($e.UninstallString)', not $unins" }
+          if ($e.DisplayIcon -notlike '*SentrySixManager\app-ui\SentrySix.exe*') { throw "the entry's icon is '$($e.DisplayIcon)'" }
+          $all = @(foreach ($root in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall') {
+            if (Test-Path -LiteralPath $root) {
+              Get-ChildItem -LiteralPath $root | ForEach-Object { Get-ItemProperty -LiteralPath $_.PSPath } | Where-Object { $_.PSObject.Properties['DisplayName'] -and "$($_.DisplayName)" -like 'Sentry Six*' } | ForEach-Object { $_.PSChildName }
+            }
+          })
+          if ($all.Count -ne 1) { throw "expected one Settings > Apps entry for Sentry Six Manager, found $($all.Count): $($all -join ', ')" }
+          Write-Host "One Settings > Apps entry ($($all[0])), version $($e.DisplayVersion), uninstaller $unins"
+
+      # update.ps1 and the in-app updates install the zip, not the Setup: it
+      # must hold exactly what the Setup installed
+      - name: The zip matches SHA256SUMS and holds what the Setup installed
+        run: |
+          $zip = Join-Path $PWD "dist\$env:ZIP"
+          $line = Get-Content -LiteralPath dist\SHA256SUMS | Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($env:ZIP))$" } | Select-Object -First 1
+          if (-not $line) { throw "SHA256SUMS has no line for $env:ZIP" }
+          $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
+          if ($got -ne $line.Substring(0, 64)) { throw "$env:ZIP does not match SHA256SUMS" }
+          $pkg = Join-Path $env:RUNNER_TEMP 'pkg'
+          if (Test-Path -LiteralPath $pkg) { Remove-Item -LiteralPath $pkg -Recurse -Force }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [IO.Compression.ZipFile]::ExtractToDirectory($zip, $pkg)
+          $ver = (Get-Content -LiteralPath (Join-Path $pkg 'app\version.json') -Raw | ConvertFrom-Json).version
+          if ($ver -ne $env:VERSION) { throw "the zip's app\version.json says '$ver', expected $env:VERSION" }
+          foreach ($need in 'install.ps1', 'uninstall.ps1', 'update.ps1', 'Install.cmd', 'README-Windows.txt', 'app-ui\SentrySix.exe', 'node\node.exe') {
+            if (-not (Test-Path -LiteralPath (Join-Path $pkg $need) -PathType Leaf)) { throw "the zip has no $need" }
+          }
+          $inst = Join-Path $env:ProgramFiles 'SentrySixManager'
+          $files = @(Get-ChildItem -LiteralPath $pkg -Recurse -File -Force)
+          $bad = @()
+          foreach ($f in $files) {
+            $rel = $f.FullName.Substring($pkg.Length + 1)
+            # install.ps1 copies everything but the readme into Program Files
+            if ($rel -eq 'README-Windows.txt') { continue }
+            $there = Join-Path $inst $rel
+            if (-not (Test-Path -LiteralPath $there -PathType Leaf)) { $bad += "missing: $rel"; continue }
+            if ((Get-FileHash -Algorithm SHA256 -LiteralPath $f.FullName).Hash -ne (Get-FileHash -Algorithm SHA256 -LiteralPath $there).Hash) { $bad += "differs: $rel" }
+          }
+          if ($bad.Count -gt 0) { $bad | Select-Object -First 30 | ForEach-Object { Write-Host $_ }; throw "$($bad.Count) of the zip's $($files.Count) files are not what the Setup installed" }
+          Write-Host "$env:ZIP matches SHA256SUMS; its $($files.Count) files are the ones the Setup installed in $inst"
 
       - name: The web UI answers over HTTPS
         run: |
@@ -415,33 +496,63 @@ jobs:
           if (-not $rule.Count) { throw 'install.ps1 added no firewall rule' }
           Write-Host "The service and node run as $account ($mine), which is not an administrator"
 
-      - name: Uninstall
+      # /CPUPOWER=1: PawnIO and the CPU power service. A runner is a virtual
+      # machine, whose MSRs the hypervisor keeps, so no watts are expected;
+      # this shows what was installed and what the service says.
+      - name: CPU power (informational)
+        if: always()
         run: |
           $ErrorActionPreference = 'Continue'
-          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$env:ProgramFiles\SentrySixManager\uninstall.ps1" -RemoveData -Force
-          if ($LASTEXITCODE -ne 0) { Write-Host "::error::uninstall.ps1 failed (exit code $LASTEXITCODE)"; exit 1 }
+          Get-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue | Format-List Name, Status, StartType
+          Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO' -ErrorAction SilentlyContinue | Format-List DisplayName, DisplayVersion
+          Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\SentrySixManager\PawnIO' -ErrorAction SilentlyContinue | Format-List InstalledBySentry, Version
+          $exe = Join-Path $env:ProgramFiles 'SentrySixManager\bin\SentryPower.exe'
+          if (Test-Path -LiteralPath $exe) { & $exe --once; Write-Host "SentryPower.exe --once: exit code $LASTEXITCODE" }
+          exit 0
 
+      # as Settings > Apps does, silently, with the data too (the default keeps it)
+      - name: Uninstall (unins000.exe /VERYSILENT /REMOVEDATA=1)
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $unins = Join-Path $env:ProgramFiles 'SentrySixManager-Uninstall\unins000.exe'
+          if (-not (Test-Path -LiteralPath $unins)) { Write-Host "::error::no $unins"; exit 1 }
+          $log = Join-Path $env:RUNNER_TEMP 'uninstall.log'
+          $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/REMOVEDATA=1', "/LOG=`"$log`"") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Write-Host "::error::the uninstaller failed (exit code $($p.ExitCode))"; exit 1 }
+
+      # (the uninstaller deletes itself and its folder a moment after it exits)
       - name: Nothing is left
         run: |
-          $left = @()
-          if (Get-Service -Name 'SentrySixManager' -ErrorAction SilentlyContinue) { $left += 'the service' }
-          if (@(Get-NetFirewallRule -Name 'SentrySixManager-WebUI' -ErrorAction SilentlyContinue).Count) { $left += 'the firewall rule' }
           $dir = Join-Path $env:ProgramFiles 'SentrySixManager'
-          foreach ($p in $dir, "$dir.new", "$dir.old", (Join-Path $env:ProgramData 'SentrySixManager')) {
-            if (Test-Path -LiteralPath $p) { $left += $p }
-          }
-          $running = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith("$dir\", [StringComparison]::OrdinalIgnoreCase) })
-          if ($running.Count) { $left += "$($running.Count) process(es) from $dir" }
-          if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Sentry Six Manager.lnk')) { $left += 'the Start menu entry' }
-          if ($null -ne (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run').PSObject.Properties['SentrySixManager']) { $left += 'the start at sign-in' }
-          if (Test-Path -LiteralPath 'HKLM:\SOFTWARE\SentrySixManager') { $left += 'HKLM\SOFTWARE\SentrySixManager' }
+          $until = (Get-Date).AddSeconds(60)
+          do {
+            $left = @()
+            if (Get-Service -Name 'SentrySixManager' -ErrorAction SilentlyContinue) { $left += 'the service' }
+            if (Get-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue) { $left += 'the CPU power service' }
+            if (@(Get-NetFirewallRule -Name 'SentrySixManager-WebUI' -ErrorAction SilentlyContinue).Count) { $left += 'the firewall rule' }
+            foreach ($p in $dir, "$dir.new", "$dir.old", "$dir-Uninstall", (Join-Path $env:ProgramData 'SentrySixManager')) {
+              if (Test-Path -LiteralPath $p) { $left += $p }
+            }
+            $running = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith("$dir\", [StringComparison]::OrdinalIgnoreCase) })
+            if ($running.Count) { $left += "$($running.Count) process(es) from $dir" }
+            if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Sentry Six Manager.lnk')) { $left += 'the Start menu entry' }
+            if ($null -ne (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run').PSObject.Properties['SentrySixManager']) { $left += 'the start at sign-in' }
+            if (Test-Path -LiteralPath 'HKLM:\SOFTWARE\SentrySixManager') { $left += 'HKLM\SOFTWARE\SentrySixManager' }
+            if (Test-Path -LiteralPath $env:APPS_KEY) { $left += 'the Settings > Apps entry' }
+            if (-not $left.Count) { break }
+            Start-Sleep -Seconds 2
+          } while ((Get-Date) -lt $until)
           if ($left.Count) { throw "uninstall left: $($left -join '; ')" }
-          Write-Host 'Uninstalled cleanly: no service, firewall rule, Start menu entry, sign-in start, program files or data'
+          Write-Host 'Uninstalled cleanly: no service, firewall rule, Start menu entry, sign-in start, Settings > Apps entry, uninstaller, program files or data'
 
       - name: Logs (on failure)
         if: failure()
         run: |
           Get-Service -Name 'SentrySixManager' -ErrorAction SilentlyContinue | Format-List Name, Status, StartType
+          foreach ($p in (Join-Path $env:RUNNER_TEMP 'setup.log'), (Join-Path $env:RUNNER_TEMP 'uninstall.log'), (Join-Path $env:TEMP 'SentrySixManager-Setup.log'), (Join-Path $env:TEMP 'SentrySixManager-Uninstall.log')) {
+            Write-Host "== $p"
+            if (Test-Path -LiteralPath $p) { Get-Content -LiteralPath $p -Tail 300 } else { Write-Host '(none)' }
+          }
           foreach ($f in 'service.log', 'manager.log') {
             $p = Join-Path $env:ProgramData "SentrySixManager\data\logs\$f"
             Write-Host "== $p"
@@ -451,7 +562,7 @@ jobs:
             Where-Object { $_.ProviderName -match 'SentrySix|Service Control Manager|\.NET Runtime|Application Error' } |
             Format-List TimeCreated, ProviderName, Message
 
-  # The same zip without the service: the app runs the server. Here the
+  # The same Setup without the service: the app runs the server. Here the
   # server is started as the app starts it (SentryService.exe run --data, as
   # the user who installed it) and stopped as the app's Quit stops it
   # ("stop" on its stdin).
@@ -463,33 +574,34 @@ jobs:
       run:
         shell: powershell
     env:
-      ZIP: ${{ needs.package.outputs.zip }}
+      SETUP: ${{ needs.package.outputs.setup }}
       PORT: '9000'
+      APPS_KEY: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{37874499-7900-4DA9-8103-133AFC180A56}_is1'
     steps:
       - uses: actions/download-artifact@v8
         with:
           name: windows-package
           path: dist
 
-      - name: Unpack (checked against SHA256SUMS)
+      - name: The Setup matches SHA256SUMS
         run: |
-          $zip = Join-Path $PWD "dist\$env:ZIP"
-          $line = Get-Content -LiteralPath dist\SHA256SUMS | Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($env:ZIP))$" } | Select-Object -First 1
-          if (-not $line) { throw "SHA256SUMS has no line for $env:ZIP" }
-          $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
-          if ($got -ne $line.Substring(0, 64)) { throw "$env:ZIP does not match SHA256SUMS" }
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          [IO.Compression.ZipFile]::ExtractToDirectory($zip, (Join-Path $PWD 'pkg'))
+          $setup = Join-Path $PWD "dist\$env:SETUP"
+          $line = Get-Content -LiteralPath dist\SHA256SUMS | Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($env:SETUP))$" } | Select-Object -First 1
+          if (-not $line) { throw "SHA256SUMS has no line for $env:SETUP" }
+          $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $setup).Hash.ToLowerInvariant()
+          if ($got -ne $line.Substring(0, 64)) { throw "$env:SETUP does not match SHA256SUMS" }
 
-      - name: Install without the service
+      - name: Install without the service (Setup /VERYSILENT /MODE=app)
         run: |
           $ErrorActionPreference = 'Continue'
-          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File pkg\install.ps1 -NoService
-          if ($LASTEXITCODE -ne 0) { Write-Host "::error::install.ps1 -NoService failed (exit code $LASTEXITCODE)"; exit 1 }
+          $log = Join-Path $env:RUNNER_TEMP 'setup.log'
+          $p = Start-Process -FilePath (Join-Path $PWD "dist\$env:SETUP") -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/MODE=app', '/CPUPOWER=0', "/LOG=`"$log`"") -Wait -PassThru
+          if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log }
+          if ($p.ExitCode -ne 0) { Write-Host "::error::$env:SETUP /MODE=app failed (exit code $($p.ExitCode)); install.ps1's lines are in the log above"; exit 1 }
 
-      - name: No service; Start menu entry, start at sign-in, data rights for this user
+      - name: No service; Start menu entry, start at sign-in, data rights for this user, one Apps entry
         run: |
-          if (Get-Service -Name 'SentrySixManager' -ErrorAction SilentlyContinue) { throw 'install.ps1 -NoService installed the service' }
+          if (Get-Service -Name 'SentrySixManager' -ErrorAction SilentlyContinue) { throw 'the Setup with /MODE=app installed the service' }
           $exe = Join-Path $env:ProgramFiles 'SentrySixManager\app-ui\SentrySix.exe'
           $lnk = Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Sentry Six Manager.lnk'
           if (-not (Test-Path -LiteralPath $lnk)) { throw "no Start menu entry at $lnk" }
@@ -498,13 +610,16 @@ jobs:
           $reg = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\SentrySixManager'
           $me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
           if ($reg.Mode -ne 'app') { throw "install.ps1 recorded mode '$($reg.Mode)', expected app" }
+          # (the Setup worked out who started it, setup-user.ps1, and passed -ForUser)
           if ($reg.AppUserSid -ne $me) { throw "the data is for $($reg.AppUserSid), not this user ($me)" }
           $data = Join-Path $env:ProgramData 'SentrySixManager\data'
           $acl = Get-Acl -LiteralPath $data
           $mine = @($acl.Access | Where-Object { $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value -eq $me -and ($_.FileSystemRights -band [Security.AccessControl.FileSystemRights]::Modify) -eq [Security.AccessControl.FileSystemRights]::Modify })
           if (-not $mine.Count) { throw "this user ($me) cannot change $data" }
           if (@(Get-NetFirewallRule -Name 'SentrySixManager-WebUI' -ErrorAction SilentlyContinue).Count -eq 0) { throw 'install.ps1 added no firewall rule' }
-          Write-Host "App mode for $me; Start menu entry, sign-in start and firewall rule in place"
+          if (-not (Test-Path -LiteralPath $env:APPS_KEY)) { throw "no Settings > Apps entry at $env:APPS_KEY" }
+          if (-not (Test-Path -LiteralPath (Join-Path $env:ProgramFiles 'SentrySixManager-Uninstall\unins000.exe'))) { throw 'no uninstaller' }
+          Write-Host "App mode for $me; Start menu entry, sign-in start, firewall rule and Settings > Apps entry in place"
 
       - name: The server, started as the app starts it, answers over HTTPS and stops on "stop"
         run: |
@@ -542,30 +657,44 @@ jobs:
           if ($failed) { Write-Host "::error::$failed"; exit 1 }
           Write-Host "healthz and the login page answered on $base; the server stopped cleanly on stop"
 
-      - name: Uninstall
+      - name: Uninstall (unins000.exe /VERYSILENT /REMOVEDATA=1)
         run: |
           $ErrorActionPreference = 'Continue'
-          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$env:ProgramFiles\SentrySixManager\uninstall.ps1" -RemoveData -Force
-          if ($LASTEXITCODE -ne 0) { Write-Host "::error::uninstall.ps1 failed (exit code $LASTEXITCODE)"; exit 1 }
+          $unins = Join-Path $env:ProgramFiles 'SentrySixManager-Uninstall\unins000.exe'
+          if (-not (Test-Path -LiteralPath $unins)) { Write-Host "::error::no $unins"; exit 1 }
+          $log = Join-Path $env:RUNNER_TEMP 'uninstall.log'
+          $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/REMOVEDATA=1', "/LOG=`"$log`"") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Write-Host "::error::the uninstaller failed (exit code $($p.ExitCode))"; exit 1 }
 
       - name: Nothing is left
         run: |
-          $left = @()
-          if (Get-Service -Name 'SentrySixManager' -ErrorAction SilentlyContinue) { $left += 'a service' }
-          if (@(Get-NetFirewallRule -Name 'SentrySixManager-WebUI' -ErrorAction SilentlyContinue).Count) { $left += 'the firewall rule' }
           $dir = Join-Path $env:ProgramFiles 'SentrySixManager'
-          foreach ($p in $dir, "$dir.new", "$dir.old", (Join-Path $env:ProgramData 'SentrySixManager')) {
-            if (Test-Path -LiteralPath $p) { $left += $p }
-          }
-          if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Sentry Six Manager.lnk')) { $left += 'the Start menu entry' }
-          if ($null -ne (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run').PSObject.Properties['SentrySixManager']) { $left += 'the start at sign-in' }
-          if (Test-Path -LiteralPath 'HKLM:\SOFTWARE\SentrySixManager') { $left += 'HKLM\SOFTWARE\SentrySixManager' }
+          $until = (Get-Date).AddSeconds(60)
+          do {
+            $left = @()
+            if (Get-Service -Name 'SentrySixManager' -ErrorAction SilentlyContinue) { $left += 'a service' }
+            if (Get-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue) { $left += 'the CPU power service' }
+            if (@(Get-NetFirewallRule -Name 'SentrySixManager-WebUI' -ErrorAction SilentlyContinue).Count) { $left += 'the firewall rule' }
+            foreach ($p in $dir, "$dir.new", "$dir.old", "$dir-Uninstall", (Join-Path $env:ProgramData 'SentrySixManager')) {
+              if (Test-Path -LiteralPath $p) { $left += $p }
+            }
+            if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Sentry Six Manager.lnk')) { $left += 'the Start menu entry' }
+            if ($null -ne (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run').PSObject.Properties['SentrySixManager']) { $left += 'the start at sign-in' }
+            if (Test-Path -LiteralPath 'HKLM:\SOFTWARE\SentrySixManager') { $left += 'HKLM\SOFTWARE\SentrySixManager' }
+            if (Test-Path -LiteralPath $env:APPS_KEY) { $left += 'the Settings > Apps entry' }
+            if (-not $left.Count) { break }
+            Start-Sleep -Seconds 2
+          } while ((Get-Date) -lt $until)
           if ($left.Count) { throw "uninstall left: $($left -join '; ')" }
           Write-Host 'Uninstalled cleanly'
 
       - name: Logs (on failure)
         if: failure()
         run: |
+          foreach ($p in (Join-Path $env:RUNNER_TEMP 'setup.log'), (Join-Path $env:RUNNER_TEMP 'uninstall.log'), (Join-Path $env:TEMP 'SentrySixManager-Setup.log'), (Join-Path $env:TEMP 'SentrySixManager-Uninstall.log')) {
+            Write-Host "== $p"
+            if (Test-Path -LiteralPath $p) { Get-Content -LiteralPath $p -Tail 300 } else { Write-Host '(none)' }
+          }
           foreach ($f in 'service.log', 'manager.log') {
             $p = Join-Path $env:ProgramData "SentrySixManager\data\logs\$f"
             Write-Host "== $p"
@@ -589,7 +718,7 @@ jobs:
           path: dist
 
       # Never a draft or a pre-release: update notices and update.ps1 read
-      # the latest final release only. A published release with all three
+      # the latest final release only. A published release with all four
       # files (a re-run) is left as it was; one left a draft or short of a
       # file by a run cut off is finished here.
       - name: GitHub Release
@@ -597,20 +726,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ZIP: ${{ needs.package.outputs.zip }}
+          SETUP: ${{ needs.package.outputs.setup }}
           VERSION: ${{ needs.package.outputs.version }}
           SHORT: ${{ needs.package.outputs.short }}
         run: |
           [[ "$VERSION" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]{0,39}$ ]] || { echo "::error::no usable version"; exit 1; }
           [[ "$SHORT" =~ ^[0-9a-f]{7}$ ]] || { echo "::error::no short commit id"; exit 1; }
+          [[ "$SETUP" == "SentrySixManager-Setup-$VERSION.exe" ]] || { echo "::error::no Setup ($SETUP)"; exit 1; }
           sha256sum -c SHA256SUMS
           tag="v$VERSION-$SHORT"
           if have="$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft,assets 2>/dev/null)"; then
-            if jq -e --arg zip "$ZIP" '(.isDraft | not) and ([.assets[].name] as $n | [$zip, "SHA256SUMS", "release.json"] | all(. as $f | $n | index($f)))' <<<"$have" >/dev/null; then
+            if jq -e --arg zip "$ZIP" --arg setup "$SETUP" '(.isDraft | not) and ([.assets[].name] as $n | [$setup, $zip, "SHA256SUMS", "release.json"] | all(. as $f | $n | index($f)))' <<<"$have" >/dev/null; then
               echo "::notice::Release $tag already exists; left as it is"
               exit 0
             fi
             echo "::notice::Release $tag is a draft or short of a file; finishing it"
-            gh release upload "$tag" "$ZIP" SHA256SUMS release.json --repo "$GITHUB_REPOSITORY" --clobber
+            gh release upload "$tag" "$SETUP" "$ZIP" SHA256SUMS release.json --repo "$GITHUB_REPOSITORY" --clobber
             gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --latest
             exit 0
           fi
@@ -619,12 +750,14 @@ jobs:
           {
             echo "Sentry Six Manager $VERSION for Windows (x64), built from $GITHUB_SHA."
             echo
-            echo "Unpack $ZIP and double-click Install.cmd. Running it again upgrades in place and keeps your data."
+            echo "Download $SETUP and run it. Running a newer one upgrades in place and keeps your data; uninstall it in Settings > Apps."
+            echo
+            echo "$ZIP is the same program for update.ps1 and the in-app updates (or unpack it and double-click Install.cmd)."
             echo "Already installed: run update.ps1 in %ProgramFiles%\\SentrySixManager as administrator."
             echo "Check the download against SHA256SUMS."
             if [ "$level" != 0 ] && [ -n "$reason" ]; then echo; echo "Critical update (level $level): $reason"; fi
           } > notes.md
-          gh release create "$tag" "$ZIP" SHA256SUMS release.json \
+          gh release create "$tag" "$SETUP" "$ZIP" SHA256SUMS release.json \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "Sentry Six Manager $VERSION for Windows ($SHORT)" \

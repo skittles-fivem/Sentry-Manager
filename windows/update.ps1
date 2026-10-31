@@ -297,6 +297,14 @@ try {
     Start-Service -Name $ServiceName -ErrorAction SilentlyContinue; Start-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue
     exit 3
   }
+  # the Setup's Settings > Apps entry: the version that is installed again
+  $setupAppsKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{37874499-7900-4DA9-8103-133AFC180A56}_is1'
+  if (Test-Path -LiteralPath $setupAppsKey) {
+    try {
+      $oldVer = (Get-Content -LiteralPath (Join-Path $InstallDir 'app\version.json') -Raw | ConvertFrom-Json).version
+      if ($oldVer) { Set-ItemProperty -LiteralPath $setupAppsKey -Name 'DisplayVersion' -Value ([string]$oldVer) -Type String }
+    } catch { Write-Host "Could not set the version shown in Settings > Apps back: $($_.Exception.Message)" -ForegroundColor Yellow }
+  }
   Start-Service -Name $ServiceName -ErrorAction SilentlyContinue; Start-Service -Name 'SentrySixPower' -ErrorAction SilentlyContinue
   $back = Wait-Healthy
   Write-Host ("Rolled back to $(if ($installedSha) { $installedSha.Substring(0, 7) } else { 'the previous version' })" +

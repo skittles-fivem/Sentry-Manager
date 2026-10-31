@@ -6,7 +6,11 @@
   Out come dist\SentrySixManager-<version>-<shortsha>-win-x64.zip, its
   SHA256SUMS and release.json (what server/releaseUpdates.js reads). The zip's
   root is the program folder as installed: node\ ffmpeg\ bin\ app-ui\ app\
-  plus the install, uninstall and update scripts.
+  plus the install, uninstall and update scripts. Then
+  dist\SentrySixManager-Setup-<version>.exe, what people download and run:
+  the same files in one installer (windows\setup\SentrySixManager.iss, Inno
+  Setup) that runs the same install.ps1. The zip stays for update.ps1 and
+  the in-app updates.
 
     bin\      SentryService.exe, SentryHelper.exe (csc from .NET Framework)
     app-ui\   SentrySix.exe, the native app, with the files it reads at run
@@ -14,8 +18,9 @@
              with the .NET SDK from windows\app\SentrySix.csproj
     app\      the server, as the Dockerfile copies it
 
-  The only network use is the two pinned downloads in windows\versions.json,
-  each checked against its SHA-256 before anything in it is used. The app
+  The only network use is the three pinned downloads in windows\versions.json
+  (node, ffmpeg, the Inno Setup compiler), each checked against its SHA-256
+  before anything in it is used. The app
   files are the ones the Dockerfile copies into /app, read from the Dockerfile
   and .dockerignore themselves, so the two builds ship the same app.
 
@@ -140,14 +145,15 @@ $Critical = Get-Critical (Join-Path $Root 'CRITICAL_UPDATE.txt')
 
 $Short = $Sha.Substring(0, 7)
 $ZipName = "SentrySixManager-$Version-$Short-win-x64.zip"
+$SetupName = "SentrySixManager-Setup-$Version.exe"
 Write-Host "Building $ZipName ($Repo, branch '$Branch', $BuiltAt, critical level $($Critical.level))"
 
 # ---- pinned downloads --------------------------------------------------------
 
 $Pins = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'versions.json') | ConvertFrom-Json
-# every pin: node, ffmpeg, and PawnIO's installer and modules (the optional
-# CPU power measurement, see windows\power\SentryPower.cs)
-$PinNames = @('node', 'ffmpeg', 'pawnio-setup', 'pawnio-modules')
+# every pin: node, ffmpeg, Inno Setup, and PawnIO's installer and modules
+# (the optional CPU power measurement, see windows\power\SentryPower.cs)
+$PinNames = @('node', 'ffmpeg', 'innosetup', 'pawnio-setup', 'pawnio-modules')
 $unset = @(foreach ($n in $PinNames) { if ((Prop (Prop $Pins $n) 'sha256') -notmatch '^[0-9a-fA-F]{64}$') { $n } })
 if ($unset.Count) {
   Fail ("windows\versions.json has no SHA-256 for: $($unset -join ', '). " +
@@ -467,6 +473,13 @@ Sentry Six Manager $Version for Windows (x64)
 Built $BuiltAt from $Repo at $Short.
 
 Install or upgrade
+  The easy way: download SentrySixManager-Setup-$Version.exe from the same
+  release and run it. It asks how to run (a Windows service, always on, or
+  an app while you are signed in), installs, and shows the address and the
+  setup code at the end. Running a newer one upgrades in place and keeps
+  your data. Uninstall it in Settings > Apps.
+
+  From this zip instead (what update.ps1 uses):
   Double-click Install.cmd and allow it to run as administrator. It installs to
   %ProgramFiles%\SentrySixManager, keeps settings and data in
   %ProgramData%\SentrySixManager, adds Sentry Six Manager to the Start menu
@@ -488,8 +501,9 @@ Update
   back to the old version by itself if the new one does not start.
 
 Uninstall
-  As administrator: powershell -ExecutionPolicy Bypass -File "%ProgramFiles%\SentrySixManager\uninstall.ps1"
-  Your data stays unless you add -RemoveData.
+  Settings > Apps > Sentry Six Manager > Uninstall, or as administrator:
+  powershell -ExecutionPolicy Bypass -File "%ProgramFiles%\SentrySixManager\uninstall.ps1"
+  Your data stays unless you choose to delete it (uninstall.ps1 -RemoveData).
 
 Included: Node.js $($Pins.node.version) (node\) and FFmpeg $($Pins.ffmpeg.version) (ffmpeg\, GPL),
 each with its licence, and PawnIO $($pawnSetup.version) with PawnIO.Modules $($pawnMods.version)
@@ -531,11 +545,68 @@ $release = [ordered]@{ sha = $Sha; builtAt = $BuiltAt; version = $Version; criti
 $releasePath = Join-Path $OutDir 'release.json'
 Write-Text $releasePath (($release | ConvertTo-Json -Depth 5) + "`n")
 
+# ---- the Setup: SentrySixManager-Setup-<version>.exe ------------------------------------
+#
+# The stage folder (the zip's contents) inside one installer, compiled with
+# the pinned Inno Setup. Its installer is run in its own portable mode into
+# WorkDir: nothing is installed on this PC, and it is reused while its
+# SHA-256 still matches.
+
+function Get-Iscc {
+  $pin = Prop $Pins 'innosetup'
+  $ver = [string](Prop $pin 'version')
+  if ($ver -notmatch '^6\.\d+\.\d+$') { Fail "versions.json: innosetup version '$ver' is not Inno Setup 6.x.y" }
+  $want = ([string](Prop $pin 'sha256')).ToLowerInvariant()
+  $dir = Join-Path $WorkDir "innosetup-$ver"
+  $iscc = Join-Path $dir 'ISCC.exe'
+  $mark = Join-Path $dir 'pinned.sha256'
+  if ((Test-Path -LiteralPath $iscc) -and (Test-Path -LiteralPath $mark) -and ([IO.File]::ReadAllText($mark).Trim() -eq $want)) { return $iscc }
+  $installer = Get-Pinned 'innosetup'
+  if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
+  $log = Join-Path $WorkDir "innosetup-$ver-unpack.log"
+  Write-Host "Unpacking Inno Setup $ver into $dir (portable mode)"
+  $p = Start-Process -FilePath $installer -Wait -PassThru -ArgumentList @(
+    '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', '/CURRENTUSER', '/PORTABLE=1', '/NOICONS',
+    "/DIR=`"$dir`"", "/LOG=`"$log`"")
+  if ($p.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $iscc)) {
+    Fail "the Inno Setup $ver installer did not unpack ISCC.exe into $dir (exit code $($p.ExitCode); see $log)"
+  }
+  Write-Text $mark "$want`n"
+  $iscc
+}
+
+# VERSIONINFO wants four numbers: the leading digits of the version, the rest 0
+$num = @(0, 0, 0, 0)
+if ($Version -match '^(\d{1,5})(?:\.(\d{1,5}))?(?:\.(\d{1,5}))?(?:\.(\d{1,5}))?') {
+  for ($i = 1; $i -le 4; $i++) { if ($Matches[$i]) { $num[$i - 1] = [Math]::Min(65535, [int]$Matches[$i]) } }
+}
+$NumVersion = $num -join '.'
+$PayloadBytes = [long](Get-ChildItem -LiteralPath $Stage -Recurse -File -Force | Measure-Object -Property Length -Sum).Sum
+foreach ($f in 'install.ps1', 'uninstall.ps1', 'cpupower.ps1', 'app-ui\SentrySix.exe', 'app-ui\SentrySix.ico') {
+  if (-not (Test-Path -LiteralPath (Join-Path $Stage $f))) { Fail "the stage has no $f, which the Setup needs" }
+}
+$Iscc = Get-Iscc
+$setupPath = Join-Path $OutDir $SetupName
+if (Test-Path -LiteralPath $setupPath) { Remove-Item -LiteralPath $setupPath -Force }
+Write-Host "Compiling $SetupName with $Iscc"
+# (code signing, once set up: add /S<name>=<command> here; see the .iss)
+$isccArgs = @('/Qp', "/O$OutDir", "/DAppVersion=$Version", "/DAppNumVersion=$NumVersion",
+  "/DPayloadDir=$Stage", "/DPayloadBytes=$PayloadBytes", "/DRepo=$Repo",
+  (Join-Path $PSScriptRoot 'setup\SentrySixManager.iss'))
+$eap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try {
+  & $Iscc @isccArgs | Out-Host
+  $rc = $LASTEXITCODE
+} finally { $ErrorActionPreference = $eap }
+if ($rc -ne 0) { Fail "ISCC could not compile windows\setup\SentrySixManager.iss (exit code $rc)" }
+if (-not (Test-Path -LiteralPath $setupPath)) { Fail "ISCC made no $setupPath" }
+
 # sha256sum's format: "<hash>  <name>", LF, so `sha256sum -c` works too
-$sums = foreach ($f in @($ZipName, 'release.json')) {
+$sums = foreach ($f in @($ZipName, 'release.json', $SetupName)) {
   "$((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $OutDir $f)).Hash.ToLowerInvariant())  $f"
 }
 Write-Text (Join-Path $OutDir 'SHA256SUMS') (($sums -join "`n") + "`n")
 
 Remove-Item -LiteralPath $Stage -Recurse -Force
-Write-Host "Wrote $zipPath, SHA256SUMS and release.json to $OutDir"
+Write-Host "Wrote $zipPath, $SetupName, SHA256SUMS and release.json to $OutDir"
