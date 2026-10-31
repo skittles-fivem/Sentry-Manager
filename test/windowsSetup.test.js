@@ -294,3 +294,8 @@ test('no .iss line starts with # unless it is a preprocessor directive (ISPP rea
     .filter(([, l]) => /^\s*#/.test(l) && !/^\s*#(if|ifdef|ifndef|else|elif|endif|error|define|undef|include|emit|expr|sub|endsub|pragma|for)\b/.test(l));
   assert.deepEqual(bad, [], 'a Pascal line like "#13#10 + ..." must not start a line');
 });
+
+test('"Open Sentry Six Manager" on the last page opens the app as the person, not as administrator', () => {
+  const run = section('Run');
+  assert.match(run, /SentrySix\.exe".*Flags: [^\n]*\bpostinstall\b[^\n]*\bskipifsilent\b[^\n]*\brunasoriginaluser\b/);
+});

@@ -119,7 +119,7 @@ Source: "{#SourcePath}setup-user.ps1"; DestDir: "{tmp}"; Flags: dontcopy
 Source: "{#PayloadDir}\*"; DestDir: "{tmp}\payload"; Flags: dontcopy recursesubdirs createallsubdirs
 
 [Run]
-Filename: "{commonpf64}\SentrySixManager\app-ui\SentrySix.exe"; WorkingDir: "{commonpf64}\SentrySixManager\app-ui"; Description: "Open Sentry Six Manager"; Flags: postinstall nowait skipifsilent
+Filename: "{commonpf64}\SentrySixManager\app-ui\SentrySix.exe"; WorkingDir: "{commonpf64}\SentrySixManager\app-ui"; Description: "Open Sentry Six Manager"; Flags: postinstall nowait skipifsilent runasoriginaluser
 
 [Code]
 const
