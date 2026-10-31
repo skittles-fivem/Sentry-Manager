@@ -199,3 +199,18 @@ The `app` job (native app) also failed on that run.
 Mine since then: fc60ed0 = hevc_nvenc peak-rate cap (measured, water run
 41089010627) + verifier tolerating "Last message repeated" only after a
 tolerated line.
+
+## install.ps1: taken over for the 1639 and 1332 fixes (Windows session, 2026-10-30)
+
+The owner asked the Windows session to fix the two install-check failures, so
+it edited `windows/install.ps1` (ebabdba):
+
+- Service mode, `sc.exe` exit code 1639: `sc create` and `sc config` now go
+  through `Run-NativeLine`, which hands sc.exe the command line exactly as
+  written (`System.Diagnostics.Process`, no PowerShell re-quoting), with
+  `binPath= "\"<path>\""`.
+- App mode, `icacls` exit code 1332: the old account's entries are removed by
+  `Remove-SidEntries` (Get-Acl, PurgeAccessRules, Set-Acl) and only where that
+  SID has entries. icacls refused the SID of a service that never existed.
+
+Nothing else in the file changed. Please pull before editing it.
