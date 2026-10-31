@@ -106,8 +106,13 @@ test('HTTPS, the setup code, cookies and password confirmation', { skip: needsTl
   let s = await startServer(dir, {});
   try {
     const ca = fs.readFileSync(path.join(dir, 'data/tls/ca.crt'));
+    // Windows listening on this PC only (HOST=127.0.0.1): this PC creates the
+    // first account without the code, and none is printed (the code path on
+    // Windows: test/windowsLocalOnly.test.js, TRUST_PROXY and HOST=0.0.0.0)
+    const WIN = process.platform === 'win32';
     const code = s.output().match(/setup code ([A-Z0-9-]+)/)?.[1];
-    assert.ok(code, 'the setup code is printed in the log');
+    if (WIN) assert.equal(code, undefined, 'no setup code is printed while only this PC can reach the page');
+    else assert.ok(code, 'the setup code is printed in the log');
 
     // plain HTTP never serves the app: requests are redirected to HTTPS...
     const plain = await fetch(`http://127.0.0.1:${s.port}/settings?x=1`, { redirect: 'manual' });
@@ -154,17 +159,24 @@ test('HTTPS, the setup code, cookies and password confirmation', { skip: needsTl
     h2.close();
 
     // whoever reaches the page first cannot claim it without the code
-    assert.equal((await httpsCall(s.port, ca, 'POST', '/api/auth/setup', { body: { username: 'mallory', password: 'attackerpass1' } })).status, 403);
-    assert.equal((await httpsCall(s.port, ca, 'POST', '/api/auth/setup', { body: { username: 'mallory', password: 'attackerpass1', code: 'AAAAA-BBBBB-CCCCC' } })).status, 403);
-    const setup = await httpsCall(s.port, ca, 'POST', '/api/auth/setup', { body: { username: 'admin', password: 'correct horse', code: code.toLowerCase() } });
+    // (Windows: only this PC can reach it, and it needs none)
+    if (!WIN) {
+      assert.equal((await httpsCall(s.port, ca, 'POST', '/api/auth/setup', { body: { username: 'mallory', password: 'attackerpass1' } })).status, 403);
+      assert.equal((await httpsCall(s.port, ca, 'POST', '/api/auth/setup', { body: { username: 'mallory', password: 'attackerpass1', code: 'AAAAA-BBBBB-CCCCC' } })).status, 403);
+    }
+    const setup = await httpsCall(s.port, ca, 'POST', '/api/auth/setup', { body: { username: 'admin', password: 'correct horse', ...(WIN ? {} : { code: code.toLowerCase() }) } });
     assert.equal(setup.status, 200);
     const setCookie = setup.headers['set-cookie'][0];
     assert.match(setCookie, /^__Host-sm_session=/);
     for (const flag of ['HttpOnly', 'Secure', 'SameSite=Strict', 'Path=/']) assert.ok(setCookie.includes(flag), flag);
     const cookie = setCookie.split(';')[0];
     await new Promise((r) => setTimeout(r, 200));
-    assert.match(s.output(), /\[audit\] Account setup with a wrong setup code from /);
-    assert.match(s.output(), /\[audit\] Account "admin" created with the setup code: admin from /);
+    if (WIN) {
+      assert.match(s.output(), /\[audit\] Account "admin" created on this PC: admin from /);
+    } else {
+      assert.match(s.output(), /\[audit\] Account setup with a wrong setup code from /);
+      assert.match(s.output(), /\[audit\] Account "admin" created with the setup code: admin from /);
+    }
     assert.equal((await httpsCall(s.port, ca, 'POST', '/api/auth/setup', { body: { username: 'x', password: 'whatever123', code } })).status, 409);
     // the live-update stream over HTTP/2 (no HTTP/1-only headers such as Connection)
     const h2s = http2.connect(`https://127.0.0.1:${s.port}`, { ca, servername: 'localhost' });
