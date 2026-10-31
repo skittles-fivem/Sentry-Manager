@@ -190,6 +190,8 @@ namespace SentrySix.Shell
                 // the page on a canvas, so its size is the one asked for even where the
                 // screen is smaller than the window (Windows clamps a window to the screen)
                 Canvas stage = new Canvas();
+                // (the pages' media queries measure the page, not this canvas)
+                stage.Name = U.RenderStage;
                 stage.Children.Add(root);
                 w.Content = stage;
                 w.Show();
