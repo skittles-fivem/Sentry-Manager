@@ -5,6 +5,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 
 namespace SentrySix.Core
@@ -578,15 +579,19 @@ namespace SentrySix.Core
             Task<JsonValue> ui = Quiet(api.Get("/api/ui-packs", ct));
             Task<JsonValue> net = Quiet(api.Get("/api/settings/network", ct));
             SettingsData d = new SettingsData();
+            // (C# 5: no await in a finally; the four never throw, and are waited for either way)
+            Exception failed = null;
             try
             {
                 d.Settings = await settings.ConfigureAwait(false);
                 d.Updates = await updates.ConfigureAwait(false);
             }
-            finally
+            catch (Exception ex)
             {
-                await Task.WhenAll(sys, sec, ui, net).ConfigureAwait(false);
+                failed = ex;
             }
+            await Task.WhenAll(sys, sec, ui, net).ConfigureAwait(false);
+            if (failed != null) ExceptionDispatchInfo.Capture(failed).Throw();
             d.System = await sys.ConfigureAwait(false);
             d.Security = await sec.ConfigureAwait(false);
             d.Ui = await ui.ConfigureAwait(false);

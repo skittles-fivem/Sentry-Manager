@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 
 namespace SentrySix.Core
@@ -270,15 +271,18 @@ namespace SentrySix.Core
             Task<JsonValue> cars = Quiet(api.Get("/api/vehicles", ct), JsonValue.Object("vehicles", JsonValue.Array(null)));
             Task<JsonValue> network = Quiet(api.Get("/api/settings/network", ct), JsonValue.Null);
             NodesData d = new NodesData();
+            // (C# 5: no await in a finally; the other two never throw, and are waited for either way)
+            Exception failed = null;
             try
             {
                 d.Answer = await nodes.ConfigureAwait(false);
             }
-            finally
+            catch (Exception ex)
             {
-                // (the other two never throw)
-                await Task.WhenAll(cars, network).ConfigureAwait(false);
+                failed = ex;
             }
+            await Task.WhenAll(cars, network).ConfigureAwait(false);
+            if (failed != null) ExceptionDispatchInfo.Capture(failed).Throw();
             JsonValue v = (await cars.ConfigureAwait(false))["vehicles"];
             d.Cars = v.IsArray ? v : JsonValue.Array(null);
             d.Network = await network.ConfigureAwait(false);
