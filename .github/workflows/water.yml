@@ -69,6 +69,16 @@ jobs:
         continue-on-error: true
         run: |
           $ErrorActionPreference = 'Stop'
+          # PawnIO's device and creating a service need an administrator: a
+          # runner without one says so and measures nothing (nothing changed)
+          $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          $pawnState = if (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO') { "PawnIO $([string](Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO').DisplayVersion) is installed" } else { 'PawnIO is not installed' }
+          if (-not $admin) {
+            $msg = "The runner runs as $([Security.Principal.WindowsIdentity]::GetCurrent().Name) without administrator rights, so PawnIO's device (SYSTEM and Administrators only) cannot be opened and no CPU power service can be created: CPU watts not measured. $pawnState; nothing was installed or changed."
+            Write-Host "::warning::$msg"
+            if ($env:GITHUB_STEP_SUMMARY) { [IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, "### CPU power`n`n- $msg`n") }
+            exit 0
+          }
           $ProgressPreference = 'SilentlyContinue'
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -138,8 +148,8 @@ jobs:
             }
 
             Write-Host '== SentryPower.exe --once (two readings a second apart, straight from the driver)'
-            & $powerExe --once
-            Write-Host "exit code $LASTEXITCODE"
+            # (Smart App Control or WDAC may block an exe built here, which is unsigned)
+            try { & $powerExe --once; Write-Host "exit code $LASTEXITCODE" } catch { Write-Host "::warning::SentryPower.exe --once did not run: $($_.Exception.Message)"; $summary += "SentryPower.exe did not run: $($_.Exception.Message)" }
 
             # the helper's perf.sample 'rapl' reads the CPU power service's pipe
             if (-not $hadService) {
