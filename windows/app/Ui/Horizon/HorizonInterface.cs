@@ -436,6 +436,8 @@ namespace SentrySix.Ui.Horizon
                 for (int i = 0; i < pages.Length; i++) (i < 5 ? navA : navB).Children.Add(NavItem(pages[i]));
                 navA.Justify = "end";
                 navB.Justify = "start";
+                // .dash-nav: min-width 0, overflow visible (a label wider than its track spills over the gap)
+                navA.Overflow = navB.Overflow = true;
 
                 // the radio display
                 BtnLook seek = new BtnLook();

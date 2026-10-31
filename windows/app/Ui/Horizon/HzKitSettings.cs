@@ -39,7 +39,16 @@ namespace SentrySix.Ui.Horizon
             int Cols(double w)
             {
                 if (double.IsInfinity(w) || w <= 0) return 1;
-                return Math.Max(1, (int)Math.Floor((w + ColGap) / (Math.Min(Min, w) + ColGap)));
+                int n = Math.Max(1, (int)Math.Floor((w + ColGap) / (Math.Min(Min, w) + ColGap)));
+                // auto-fit: the tracks no item lands in collapse, so fewer items share the row
+                int items = 0;
+                foreach (UIElement c in InternalChildren)
+                {
+                    if (c.Visibility == Visibility.Collapsed) continue;
+                    if (GetSpanAll(c)) return n;
+                    items++;
+                }
+                return items > 0 ? Math.Min(n, items) : n;
             }
 
             protected override Size MeasureOverride(Size avail)
