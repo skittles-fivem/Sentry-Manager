@@ -72,8 +72,11 @@ namespace SentrySix.Core
             handler.CookieContainer = cookies;
             handler.AllowAutoRedirect = false;
             // .NET Framework allows 2 connections per server by default; the
-            // event stream holds one for good, and pages load several things at once
-            handler.MaxConnectionsPerServer = 16;
+            // event stream holds one for good, pages load several things at
+            // once, and the Viewer's decoders hold theirs open while playing or
+            // paused: two segments' six cameras, a six-camera scrub preview,
+            // the duration probes and the API calls besides
+            handler.MaxConnectionsPerServer = 64;
             handler.ServerCertificateCustomValidationCallback = CheckCertificate;
             http = new HttpClient(handler, true);
             http.Timeout = Timeout.InfiniteTimeSpan; // per request instead: the event stream stays open for hours

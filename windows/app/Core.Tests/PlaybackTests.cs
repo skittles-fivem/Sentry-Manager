@@ -215,6 +215,9 @@ namespace SentrySix.Core.Tests
                 Assert.Equal(FollowerAction.Restart, PlaybackSync.Decide(10, 8.4, false), "1.6 s late");
                 Assert.Equal(FollowerAction.Restart, PlaybackSync.Decide(10, 12, false), "far ahead");
                 Assert.Equal(FollowerAction.Restart, PlaybackSync.Decide(10, 10, true), "failed");
+                Assert.Equal(FollowerAction.Drop, PlaybackSync.Decide(10, 8.4, false, 2), "1.6 s late at 2x");
+                Assert.Equal(FollowerAction.Restart, PlaybackSync.Decide(10, 6.9, false, 2), "3.1 s late at 2x");
+                Assert.Equal(FollowerAction.Restart, PlaybackSync.Decide(10, 8.4, false, 0.5), "1.6 s late at 0.5x");
             });
 
             // ------------------------------------------------------------ the timeline

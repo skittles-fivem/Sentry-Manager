@@ -179,10 +179,21 @@ namespace SentrySix.Core
         /// </summary>
         public static FollowerAction Decide(double clock, double newest, bool failed)
         {
+            return Decide(clock, newest, failed, 1);
+        }
+
+        /// <summary>
+        /// As above at a playback rate: the restart limit grows with the rate
+        /// (at 4x a decoder's start-up time alone is seconds of clip), so a
+        /// camera restarted at 2x-4x is not restarted again for its own start.
+        /// </summary>
+        public static FollowerAction Decide(double clock, double newest, bool failed, double rate)
+        {
             if (failed) return FollowerAction.Restart;
             if (double.IsNaN(newest)) return FollowerAction.Show;
             double late = clock - newest;
-            if (late > RestartSeconds || -late > RestartSeconds) return FollowerAction.Restart;
+            double limit = RestartSeconds * Math.Max(1, double.IsNaN(rate) ? 1 : rate);
+            if (late > limit || -late > limit) return FollowerAction.Restart;
             if (late > DriftSeconds) return FollowerAction.Drop;
             return FollowerAction.Show;
         }

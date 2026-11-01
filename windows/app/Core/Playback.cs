@@ -16,14 +16,75 @@ namespace SentrySix.Core
         public double Time;
         public long Index;
 
-        public VideoFrame(int w, int h)
+        public VideoFrame(int w, int h) : this(w, h, new byte[w * h * 4]) { }
+
+        VideoFrame(int w, int h, byte[] data)
         {
             Width = w;
             Height = h;
-            Data = new byte[w * h * 4];
+            Data = data;
+        }
+
+        /// <summary>A frame on a buffer from the <see cref="FrameBuffers"/> pool (give it back with FrameBuffers.Return).</summary>
+        public static VideoFrame Pooled(int w, int h)
+        {
+            return new VideoFrame(w, h, FrameBuffers.Rent(w * h * 4));
         }
 
         public int Stride { get { return Width * 4; } }
+    }
+
+    /// <summary>
+    /// The frame buffers of decoders that stopped, kept by size for the next
+    /// ones: a tile frame is over 85 KB (the Large Object Heap), and every
+    /// segment, preload, restart and scrub preview would otherwise allocate
+    /// its own and drop the old ones together at the segment boundary, where
+    /// a gen2 collection shows as a hitch. Bounded by <see cref="MaxBytes"/>.
+    /// Thread safe.
+    /// </summary>
+    public static class FrameBuffers
+    {
+        /// <summary>At most this many bytes are kept for reuse (about two sets of six 1080p tiles' rings).</summary>
+        public const long MaxBytes = 192L * 1024 * 1024;
+
+        static readonly object gate = new object();
+        static readonly Dictionary<int, Stack<byte[]>> bySize = new Dictionary<int, Stack<byte[]>>();
+        static long kept;
+
+        public static long KeptBytes { get { lock (gate) return kept; } }
+
+        public static byte[] Rent(int size)
+        {
+            lock (gate)
+            {
+                Stack<byte[]> st;
+                if (bySize.TryGetValue(size, out st) && st.Count > 0)
+                {
+                    kept -= size;
+                    return st.Pop();
+                }
+            }
+            return new byte[size];
+        }
+
+        public static void Return(byte[] buf)
+        {
+            if (buf == null) return;
+            lock (gate)
+            {
+                if (kept + buf.Length > MaxBytes) return;
+                Stack<byte[]> st;
+                if (!bySize.TryGetValue(buf.Length, out st)) bySize[buf.Length] = st = new Stack<byte[]>();
+                st.Push(buf);
+                kept += buf.Length;
+            }
+        }
+
+        /// <summary>Lets every kept buffer go (tests; the app on low memory).</summary>
+        public static void Clear()
+        {
+            lock (gate) { bySize.Clear(); kept = 0; }
+        }
     }
 
     /// <summary>
@@ -37,16 +98,25 @@ namespace SentrySix.Core
         readonly object gate = new object();
         readonly Stack<VideoFrame> free = new Stack<VideoFrame>();
         readonly LinkedList<VideoFrame> ready = new LinkedList<VideoFrame>();
+        readonly List<VideoFrame> all = new List<VideoFrame>();
         readonly int capacity;
-        bool closed;
+        bool closed, recycled;
 
-        public FrameRing(int capacity, int width, int height)
+        public FrameRing(int capacity, int width, int height) : this(capacity, width, height, false) { }
+
+        /// <param name="pooled">The buffers come from <see cref="FrameBuffers"/> and go back on <see cref="Recycle"/>.</param>
+        public FrameRing(int capacity, int width, int height, bool pooled)
         {
             if (capacity < 1) throw new ArgumentOutOfRangeException("capacity");
             this.capacity = capacity;
             Width = width;
             Height = height;
-            for (int i = 0; i < capacity; i++) free.Push(new VideoFrame(width, height));
+            for (int i = 0; i < capacity; i++)
+            {
+                VideoFrame f = pooled ? VideoFrame.Pooled(width, height) : new VideoFrame(width, height);
+                all.Add(f);
+                free.Push(f);
+            }
         }
 
         public int Width { get; private set; }
@@ -144,6 +214,24 @@ namespace SentrySix.Core
         }
 
         public bool Closed { get { lock (gate) return closed; } }
+
+        /// <summary>
+        /// Closed, with its reader stopped: the buffers go back to the pool
+        /// once, and only those that are free again (a frame the renderer
+        /// still holds is left to the collector).
+        /// </summary>
+        public void Recycle()
+        {
+            List<VideoFrame> back;
+            lock (gate)
+            {
+                if (!closed || recycled) return;
+                recycled = true;
+                back = new List<VideoFrame>(free);
+                free.Clear();
+            }
+            foreach (VideoFrame f in back) FrameBuffers.Return(f.Data);
+        }
     }
 
     /// <summary>Where the ffmpeg of the package is: ffmpeg\ next to app-ui\, else on PATH (a developer's PC).</summary>
@@ -272,7 +360,7 @@ namespace SentrySix.Core
             if (ffmpegPath == null) throw new ArgumentNullException("ffmpegPath");
             ffmpeg = ffmpegPath;
             this.request = request;
-            ring = new FrameRing(ringFrames, request.Width, request.Height);
+            ring = new FrameRing(ringFrames, request.Width, request.Height, true);
         }
 
         public DecodeRequest Request { get { return request; } }
@@ -298,19 +386,25 @@ namespace SentrySix.Core
 
         public void Start()
         {
-            process = FfmpegTools.Start(ffmpeg, FfmpegArgs.Decode(request), true);
-            errReader = new Thread(ReadErrors) { IsBackground = true, Name = "ffmpeg stderr" };
+            Process p = FfmpegTools.Start(ffmpeg, FfmpegArgs.Decode(request), true);
+            process = p;
+            // the pipes are taken here, on the caller's thread: a Dispose right after Start
+            // (a scrub preview replaced, a quick seek) closes the process before the
+            // threads run, and Process.StandardOutput would throw on them then
+            Stream outStream = p.StandardOutput.BaseStream;
+            StreamReader errStream = p.StandardError;
+            errReader = new Thread(() => ReadErrors(errStream)) { IsBackground = true, Name = "ffmpeg stderr" };
             errReader.Start();
-            reader = new Thread(ReadFrames) { IsBackground = true, Name = "ffmpeg frames" };
+            reader = new Thread(() => ReadFrames(p, outStream)) { IsBackground = true, Name = "ffmpeg frames" };
             reader.Start();
         }
 
-        void ReadErrors()
+        void ReadErrors(StreamReader err)
         {
             try
             {
                 string line;
-                while ((line = process.StandardError.ReadLine()) != null)
+                while ((line = err.ReadLine()) != null)
                 {
                     lock (errors)
                     {
@@ -321,11 +415,33 @@ namespace SentrySix.Core
             catch (Exception) { }
         }
 
-        void ReadFrames()
+        // nothing in here may throw out: an exception on a background thread ends the app
+        void ReadFrames(Process proc, Stream s)
         {
-            Stream s = process.StandardOutput.BaseStream;
-            double fps = request.Fps > 0 ? request.Fps : FfmpegArgs.DefaultFps;
             try
+            {
+                ReadLoop(proc, s);
+            }
+            catch (Exception ex)
+            {
+                if (!stopped) { failed = true; try { lock (errors) errors.AppendLine(ex.Message); } catch (Exception) { } }
+            }
+            finally
+            {
+                if (stopped) ring.Recycle();
+            }
+            if (stopped) return;
+            try
+            {
+                Action<CameraStream> h = Finished;
+                if (h != null) h(this);
+            }
+            catch (Exception) { }
+        }
+
+        void ReadLoop(Process proc, Stream s)
+        {
+            double fps = request.Fps > 0 ? request.Fps : FfmpegArgs.DefaultFps;
             {
                 while (!stopped)
                 {
@@ -336,8 +452,8 @@ namespace SentrySix.Core
                     {
                         ring.Return(f);
                         if (stopped) return;
-                        process.WaitForExit(5000);
-                        bool clean = got == 0 && process.HasExited && process.ExitCode == 0;
+                        proc.WaitForExit(5000);
+                        bool clean = got == 0 && proc.HasExited && proc.ExitCode == 0;
                         if (clean) ended = true;
                         else
                         {
@@ -352,15 +468,6 @@ namespace SentrySix.Core
                     lock (errors) newestTime = f.Time;
                     ring.Add(f);
                 }
-            }
-            catch (Exception ex)
-            {
-                if (!stopped) { failed = true; lock (errors) errors.AppendLine(ex.Message); }
-            }
-            if (!stopped)
-            {
-                Action<CameraStream> h = Finished;
-                if (h != null) h(this);
             }
         }
 
@@ -387,6 +494,8 @@ namespace SentrySix.Core
                 try { if (!process.HasExited) process.Kill(); } catch (Exception) { }
                 try { process.Dispose(); } catch (Exception) { }
             }
+            // never started, or its reader already gone: the buffers go back now (else the reader returns them)
+            if (reader == null || !reader.IsAlive) ring.Recycle();
         }
     }
 

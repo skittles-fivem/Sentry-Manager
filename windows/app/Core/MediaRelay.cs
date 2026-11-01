@@ -128,7 +128,16 @@ namespace SentrySix.Core
                     {
                         Request req = await ReadRequest(ns, pending).ConfigureAwait(false);
                         if (req == null) return;
-                        bool keep = await Answer(ns, req, buffer).ConfigureAwait(false);
+                        bool keep;
+                        // per request: cancelled when the relay stops or ffmpeg hangs up (a seek killed it),
+                        // so a request still waiting for one of the Api's connections lets it go at once
+                        using (CancellationTokenSource gone = CancellationTokenSource.CreateLinkedTokenSource(stop.Token))
+                        {
+                            Task watch = WatchHangUp(c, gone);
+                            try { keep = await Answer(ns, req, buffer, gone.Token).ConfigureAwait(false); }
+                            finally { gone.Cancel(); }
+                            await watch.ConfigureAwait(false);
+                        }
                         if (!keep || !req.KeepAlive) return;
                     }
                 }
@@ -142,6 +151,25 @@ namespace SentrySix.Core
                 lock (gate) clients.Remove(c);
                 c.Close();
             }
+        }
+
+        /// <summary>Cancels <paramref name="gone"/> once the client closed its end (polled; ends when gone is cancelled).</summary>
+        static async Task WatchHangUp(TcpClient c, CancellationTokenSource gone)
+        {
+            try
+            {
+                while (!gone.IsCancellationRequested)
+                {
+                    await Task.Delay(250, gone.Token).ConfigureAwait(false);
+                    Socket sock = c.Client;
+                    if (sock == null || (sock.Poll(0, SelectMode.SelectRead) && sock.Available == 0))
+                    {
+                        gone.Cancel();
+                        return;
+                    }
+                }
+            }
+            catch (Exception) { }
         }
 
         static async Task<Request> ReadRequest(NetworkStream ns, MemoryStream pending)
@@ -220,7 +248,7 @@ namespace SentrySix.Core
         }
 
         /// <summary>One answer; false when the connection cannot be used again.</summary>
-        async Task<bool> Answer(NetworkStream ns, Request req, byte[] buffer)
+        async Task<bool> Answer(NetworkStream ns, Request req, byte[] buffer, CancellationToken ct)
         {
             List<KeyValuePair<string, string>> h = new List<KeyValuePair<string, string>>();
             bool head = req.Method == "HEAD";
@@ -241,7 +269,7 @@ namespace SentrySix.Core
             HttpResponseMessage res = null;
             try
             {
-                res = await open(path, req.Range, head, stop.Token).ConfigureAwait(false);
+                res = await open(path, req.Range, head, ct).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -272,10 +300,10 @@ namespace SentrySix.Core
                     long sent = 0;
                     while (true)
                     {
-                        int n = await body.ReadAsync(buffer, 0, buffer.Length, stop.Token).ConfigureAwait(false);
+                        int n = await body.ReadAsync(buffer, 0, buffer.Length, ct).ConfigureAwait(false);
                         if (n <= 0) break;
                         // a write to a client that went away throws: the request (and the server's read) ends with it
-                        await ns.WriteAsync(buffer, 0, n, stop.Token).ConfigureAwait(false);
+                        await ns.WriteAsync(buffer, 0, n, ct).ConfigureAwait(false);
                         sent += n;
                     }
                     if (length.HasValue && sent != length.Value) return false;

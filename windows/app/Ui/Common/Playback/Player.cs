@@ -33,6 +33,10 @@ namespace SentrySix.Ui.Playback
         public const int HiddenReleaseMs = 30000;
         /// <summary>How many segments' front clips are probed at once (resolveSegmentDurations' concurrency).</summary>
         public const int ProbeConcurrency = 4;
+        /// <summary>A follower restarted for drift starts this far (x the rate) ahead of the clock: its decoder's start-up time.</summary>
+        public const double StartupLeadSec = 0.5;
+        /// <summary>A scrub preview that has shown nothing yet is replaced after this long at the latest.</summary>
+        public const int PreviewPatienceMs = 1500;
 
         sealed class SegmentSet
         {
@@ -40,6 +44,8 @@ namespace SentrySix.Ui.Playback
             public SegmentView View;
             public double Offset;
             public string MasterSlot;
+            /// <summary>Where the clock waits while the master has no frame yet (its start, or where it was restarted).</summary>
+            public double HeldAt;
             public readonly Dictionary<string, CameraStream> Streams = new Dictionary<string, CameraStream>(StringComparer.Ordinal);
             public readonly Dictionary<string, int> Restarts = new Dictionary<string, int>(StringComparer.Ordinal);
 
@@ -63,7 +69,7 @@ namespace SentrySix.Ui.Playback
         readonly PlaybackClock clock;
         readonly Dictionary<string, VideoSurface> surfaces = new Dictionary<string, VideoSurface>(StringComparer.Ordinal);
         readonly Dictionary<string, Task<ProbeResult>> probes = new Dictionary<string, Task<ProbeResult>>(StringComparer.Ordinal);
-        readonly HashSet<string> hwFailed = new HashSet<string>(StringComparer.Ordinal);
+        readonly HashSet<string> hwFailedFamily = new HashSet<string>(StringComparer.Ordinal);
         readonly DispatcherTimer resizeTimer;
         readonly DispatcherTimer scrubTimer;
         readonly DispatcherTimer hiddenTimer;
@@ -81,6 +87,8 @@ namespace SentrySix.Ui.Playback
         bool disposed;
         bool scrubbing, wasPlayingBeforeScrub;
         double scrubTarget = double.NaN;
+        bool previewPending;
+        readonly System.Diagnostics.Stopwatch previewAge = new System.Diagnostics.Stopwatch();
         bool released;
         long shown, dropped, restarts;
 
@@ -103,7 +111,7 @@ namespace SentrySix.Ui.Playback
             resizeTimer = new DispatcherTimer(DispatcherPriority.Background, ui) { Interval = TimeSpan.FromMilliseconds(ResizeDebounceMs) };
             resizeTimer.Tick += delegate { resizeTimer.Stop(); ApplySizes(); };
             scrubTimer = new DispatcherTimer(DispatcherPriority.Normal, ui) { Interval = TimeSpan.FromMilliseconds(ScrubPreviewMs) };
-            scrubTimer.Tick += delegate { scrubTimer.Stop(); StartPreview(); };
+            scrubTimer.Tick += delegate { scrubTimer.Stop(); OnScrubTimer(); };
             hiddenTimer = new DispatcherTimer(DispatcherPriority.Background, ui) { Interval = TimeSpan.FromMilliseconds(HiddenReleaseMs) };
             hiddenTimer.Tick += delegate { hiddenTimer.Stop(); Release(); };
         }
@@ -135,6 +143,13 @@ namespace SentrySix.Ui.Playback
 
         /// <summary>A segment could not be played and was skipped (index, why).</summary>
         public event Action<int, string> SegmentFailed;
+
+        /// <summary>
+        /// The GPU path of a codec family failed on this PC: it decodes on the
+        /// CPU for the rest of the session and the decode paths now say so
+        /// (the page saves <see cref="DecodePaths.Save"/>).
+        /// </summary>
+        public event Action<string> DecodePathFailed;
 
         /// <summary>The grid's slots (the profile's layoutSlots with the custom camera order).</summary>
         public void SetLayout(IEnumerable<LayoutSlot> layout)
@@ -185,6 +200,17 @@ namespace SentrySix.Ui.Playback
             get { return current == null ? 0 : Math.Max(0, clock.Position - plan.Start(current.Index)); }
         }
 
+        /// <summary>The playing segment's decoders by slot (diagnostics: the playback check, the timing log).</summary>
+        public IList<KeyValuePair<string, CameraStream>> CurrentStreams
+        {
+            get { return current == null ? new List<KeyValuePair<string, CameraStream>>() : current.Streams.ToList(); }
+        }
+
+        /// <summary>Frames shown and dropped, decoders restarted so far.</summary>
+        public long FramesShown { get { return shown; } }
+        public long FramesDropped { get { return dropped; } }
+        public long Restarts { get { return restarts; } }
+
         /// <summary>For the timing log: frames shown and dropped, decoders restarted, each camera's decode path.</summary>
         public string Describe()
         {
@@ -213,11 +239,12 @@ namespace SentrySix.Ui.Playback
             clock.Pause();
             clock.End = plan.Total;
             Hook();
-            ProbeDurations(collectionGeneration);
             int seg;
             double local;
             plan.FirstLoad(startOffsetSec, out seg, out local);
+            // the first picture's probes go first; the background durations queue behind them
             Start(seg, local);
+            ProbeDurations(collectionGeneration);
         }
 
         void ProbeDurations(int gen)
@@ -247,18 +274,46 @@ namespace SentrySix.Ui.Playback
                 ui.BeginInvoke(new Action(() =>
                 {
                     if (disposed || gen != collectionGeneration) return;
+                    // the clock keeps its place in its segment (the web keeps the video's currentTime):
+                    // the earlier segments' durations move the segment's start, not the picture
+                    int ci;
+                    double keep;
+                    Where(clock.Position, out ci, out keep);
+                    int si = -1;
+                    double skeep = 0;
+                    if (!double.IsNaN(scrubTarget)) plan.Locate(scrubTarget, out si, out skeep);
                     plan.SetProbed(results);
                     // the opened segment's real duration stays
                     if (current != null)
                     {
                         Task<ProbeResult> mp;
                         string mf = MasterFile(current);
-                        if (mf != null && probes.TryGetValue(mf, out mp) && mp.IsCompleted)
+                        if (mf != null && TryProbe(mf, out mp) && mp.IsCompleted)
                             plan.SetActual(current.Index, mp.Result.Duration);
                     }
                     clock.End = plan.Total;
+                    if (ci >= 0)
+                    {
+                        clock.Seek(plan.Start(ci) + keep);
+                        if (current != null && current.Index == ci) UpdateMasterReady(current);
+                        else clock.MasterReady = double.NegativeInfinity;
+                    }
+                    if (si >= 0) scrubTarget = plan.Start(si) + skeep;
                 }));
             });
+        }
+
+        /// <summary>The clock's segment and its time in it: the playing one when there is one, else the plan's.</summary>
+        void Where(double pos, out int seg, out double local)
+        {
+            if (current != null)
+            {
+                seg = current.Index;
+                local = Math.Max(0, pos - plan.Start(seg));
+                return;
+            }
+            if (segments.Count == 0) { seg = -1; local = 0; return; }
+            plan.Locate(pos, out seg, out local);
         }
 
         Task<ProbeResult> ProbeOf(string serverPath)
@@ -269,10 +324,18 @@ namespace SentrySix.Ui.Playback
                 if (probes.TryGetValue(serverPath, out t)) return t;
                 string url = relay.UrlFor(serverPath);
                 string probe = ffprobe;
-                t = Task.Run(() => probe == null ? new ProbeResult() : FfmpegTools.ProbeClip(probe, url, 20000));
+                // ffprobe blocks its thread until it exits: its own thread, not one of the pool's
+                t = Task.Factory.StartNew(() => probe == null ? new ProbeResult() : FfmpegTools.ProbeClip(probe, url, 20000),
+                    CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
                 probes[serverPath] = t;
                 return t;
             }
+        }
+
+        /// <summary>The probe of a clip already asked for (the duration workers write the table from other threads).</summary>
+        bool TryProbe(string serverPath, out Task<ProbeResult> t)
+        {
+            lock (probes) return probes.TryGetValue(serverPath, out t);
         }
 
         // ------------------------------------------------------------ controls
@@ -280,6 +343,7 @@ namespace SentrySix.Ui.Playback
         public void Play()
         {
             if (current == null && segments.Count == 0) return;
+            Hook();
             clock.Play();
         }
 
@@ -320,6 +384,12 @@ namespace SentrySix.Ui.Playback
         {
             bool fastBefore = clock.Rate >= 2;
             clock.SetRate(rate);
+            if ((clock.Rate >= 2) != fastBefore)
+            {
+                // the preloaded segment was started with the old -skip_frame: it starts again at the new rate
+                if (next != null) { next.Dispose(); next = null; }
+                preloading = -1;
+            }
             if ((clock.Rate >= 2) != fastBefore && current != null)
             {
                 // -skip_frame nonref on or off for the followers
@@ -340,6 +410,7 @@ namespace SentrySix.Ui.Playback
         public void BeginScrub()
         {
             if (scrubbing) return;
+            Hook();
             scrubbing = true;
             wasPlayingBeforeScrub = clock.Playing;
             clock.Pause();
@@ -361,6 +432,7 @@ namespace SentrySix.Ui.Playback
             scrubbing = false;
             scrubTimer.Stop();
             StopPreview();
+            previewPending = false;
             if (!double.IsNaN(scrubTarget)) Seek(scrubTarget);
             scrubTarget = double.NaN;
             if (wasPlayingBeforeScrub) clock.Play();
@@ -376,11 +448,14 @@ namespace SentrySix.Ui.Playback
             if (!visible)
             {
                 clock.Pause();
+                // nothing to draw off screen: no render tick until the page is back
+                Unhook();
                 hiddenTimer.Stop();
                 hiddenTimer.Start();
                 return;
             }
             hiddenTimer.Stop();
+            if (segments.Count > 0) Hook();
             if (released && segments.Count > 0)
             {
                 released = false;
@@ -391,9 +466,12 @@ namespace SentrySix.Ui.Playback
         void Release()
         {
             if (clock.Playing) return;
+            // a Prepare still waiting on its probes must not start decoders on the hidden page
+            generation++;
             released = true;
             DisposeSets();
             StopPreview();
+            Unhook();
         }
 
         // ------------------------------------------------------------ decoders
@@ -401,6 +479,7 @@ namespace SentrySix.Ui.Playback
         void Start(int segIdx, double local)
         {
             int gen = ++generation;
+            Hook();
             clock.Seek(plan.Start(segIdx) + local);
             // hold the clock until the master's first frame
             clock.MasterReady = double.NegativeInfinity;
@@ -429,19 +508,14 @@ namespace SentrySix.Ui.Playback
             Task.WhenAll(waits).ContinueWith(_ => ui.BeginInvoke(new Action(() =>
             {
                 if (disposed || gen != generation) return;
-                SegmentSet set = new SegmentSet { Index = segIdx, View = view, Offset = local, MasterSlot = view.MasterSlot };
+                SegmentSet set = new SegmentSet { Index = segIdx, View = view, Offset = local, HeldAt = local, MasterSlot = view.MasterSlot };
                 if (asNext)
                 {
                     if (preloading != segIdx || next != null || current == null || current.Index + 1 != segIdx) return;
                     preloading = -1;
                     next = set;
                 }
-                foreach (SegmentTarget t in view.Targets)
-                {
-                    if (t.File == null) continue;
-                    if (FocusSlot != null && t.Slot != FocusSlot) continue; // the others wait while one is focused
-                    StartStream(set, t, local);
-                }
+                foreach (SegmentTarget t in StreamTargets(view)) StartStream(set, t, local);
                 if (set.Master == null && set.Streams.Count > 0) set.MasterSlot = set.Streams.Keys.First();
                 if (!asNext)
                 {
@@ -451,12 +525,28 @@ namespace SentrySix.Ui.Playback
             })));
         }
 
+        /// <summary>
+        /// The clips a segment decodes: every one in the grid; while a camera
+        /// is focused only that one, or, when the focused camera has no clip
+        /// in this segment, the master's (else the first there is), so the
+        /// clock and the telemetry go on with the focused tile cleared.
+        /// </summary>
+        List<SegmentTarget> StreamTargets(SegmentView view)
+        {
+            List<SegmentTarget> all = view.Targets.Where(t => t.File != null).ToList();
+            if (FocusSlot == null) return all;
+            SegmentTarget pick = all.FirstOrDefault(t => t.Slot == FocusSlot)
+                ?? all.FirstOrDefault(t => t.Slot == view.MasterSlot)
+                ?? all.FirstOrDefault();
+            return pick == null ? new List<SegmentTarget>() : new List<SegmentTarget> { pick };
+        }
+
         void Activate(SegmentSet set)
         {
             current = set;
             Task<ProbeResult> mp;
             string mf = MasterFile(set);
-            if (mf != null && probes.TryGetValue(mf, out mp) && mp.IsCompleted)
+            if (mf != null && TryProbe(mf, out mp) && mp.IsCompleted)
             {
                 // onMasterLoaded: the real duration
                 plan.SetActual(set.Index, mp.Result.Duration);
@@ -478,7 +568,7 @@ namespace SentrySix.Ui.Playback
         DecodeRequest RequestFor(SegmentSet set, SegmentTarget t, double local, bool forceCpu)
         {
             Task<ProbeResult> pt;
-            ProbeResult p = probes.TryGetValue(t.File, out pt) && pt.IsCompleted ? pt.Result : new ProbeResult();
+            ProbeResult p = TryProbe(t.File, out pt) && pt.IsCompleted ? pt.Result : new ProbeResult();
             int w, h;
             bool full = !MultiEnabled || t.Slot == FocusSlot;
             VideoSurface s;
@@ -490,8 +580,8 @@ namespace SentrySix.Ui.Playback
                 FfmpegArgs.TileSize(px.Width, px.Height, p.Width, p.Height, out w, out h);
             }
             DecodePath path = paths == null ? DecodePath.Cpu : paths.For(p.Codec, Hardware);
-            if (forceCpu || hwFailed.Contains(t.File)) path = DecodePath.Cpu;
             string family = FfmpegArgs.Family(p.Codec);
+            if (forceCpu || hwFailedFamily.Contains(family)) path = DecodePath.Cpu;
             return new DecodeRequest
             {
                 Url = relay.UrlFor(t.File),
@@ -527,13 +617,36 @@ namespace SentrySix.Ui.Playback
             SegmentTarget t = set.View.Targets.FirstOrDefault(x => x.Slot == slot);
             CameraStream old;
             if (t == null || t.File == null || !set.Streams.TryGetValue(slot, out old)) return;
-            bool cpu = old.Failed && old.PathUsed != DecodePath.Cpu;
-            if (cpu) hwFailed.Add(t.File); // a clip the GPU path cannot decode: the CPU from now on
+            if (old.Failed && old.PathUsed != DecodePath.Cpu) GpuFailed(t.File);
             old.Dispose();
             set.Streams.Remove(slot);
             restarts++;
-            double local = set == current ? Math.Max(0, clock.Position - plan.Start(set.Index)) : 0;
+            double local = set == current ? Math.Max(0, clock.Position - plan.Start(set.Index)) : set.Offset;
+            if (slot == set.MasterSlot) set.HeldAt = local; // the clock waits here for the master's new first frame
+            else if (set == current)
+            {
+                // a follower's first frame comes after ffmpeg's start, the relay and the seek: start it ahead
+                double dur = plan.Duration(set.Index);
+                double ahead = local + clock.Rate * StartupLeadSec;
+                local = dur > 0.1 ? Math.Min(ahead, dur - 0.1) : ahead;
+            }
             StartStream(set, t, local);
+        }
+
+        /// <summary>
+        /// A GPU path that cannot decode: its codec family decodes on the CPU
+        /// for the rest of the session (every clip, not just this one) and
+        /// the remembered paths say the CPU, so the next run does not try again.
+        /// </summary>
+        void GpuFailed(string file)
+        {
+            Task<ProbeResult> pt;
+            ProbeResult p = TryProbe(file, out pt) && pt.IsCompleted ? pt.Result : new ProbeResult();
+            string family = FfmpegArgs.Family(p.Codec);
+            if (string.IsNullOrEmpty(family) || !hwFailedFamily.Add(family)) return;
+            if (paths != null) paths.Set(family, DecodePath.Cpu);
+            Action<string> h = DecodePathFailed;
+            if (h != null) h(family);
         }
 
         /// <summary>At most three restarts of a camera per segment for drift or errors (a broken clip does not restart each tick).</summary>
@@ -549,12 +662,16 @@ namespace SentrySix.Ui.Playback
         void ApplySizes()
         {
             if (current == null) return;
-            foreach (SegmentTarget t in current.View.Targets)
+            foreach (SegmentSet set in new[] { current, next })
             {
-                CameraStream s;
-                if (t.File == null || !current.Streams.TryGetValue(t.Slot, out s)) continue;
-                DecodeRequest want = RequestFor(current, t, 0, false);
-                if (want.Width != s.Request.Width || want.Height != s.Request.Height) Restart(current, t.Slot);
+                if (set == null) continue;
+                foreach (SegmentTarget t in set.View.Targets)
+                {
+                    CameraStream s;
+                    if (t.File == null || !set.Streams.TryGetValue(t.Slot, out s)) continue;
+                    DecodeRequest want = RequestFor(set, t, 0, false);
+                    if (want.Width != s.Request.Width || want.Height != s.Request.Height) Restart(set, t.Slot);
+                }
             }
         }
 
@@ -582,10 +699,30 @@ namespace SentrySix.Ui.Playback
             preview.Clear();
         }
 
+        /// <summary>
+        /// The scrub timer: a new preview only once the last one showed its
+        /// frame or ended (latest target wins); a preview still decoding is
+        /// waited for, so a steady drag shows frames instead of killing each
+        /// one before it arrives. The frame shown stays until the next comes.
+        /// </summary>
+        void OnScrubTimer()
+        {
+            if (!scrubbing) return;
+            bool busy = previewPending || preview.Values.Any(s => s.Frames == 0 && !s.Ended && !s.Failed);
+            if (busy && previewAge.ElapsedMilliseconds < PreviewPatienceMs)
+            {
+                scrubTimer.Start();
+                return;
+            }
+            StartPreview();
+        }
+
         void StartPreview()
         {
             if (!scrubbing || double.IsNaN(scrubTarget) || segments.Count == 0 || ffmpeg == null) return;
             StopPreview();
+            previewPending = true;
+            previewAge.Restart();
             int seg;
             double local;
             plan.Locate(scrubTarget, out seg, out local);
@@ -595,11 +732,13 @@ namespace SentrySix.Ui.Playback
             foreach (SegmentTarget t in view.Targets) if (t.File != null) waits.Add(ProbeOf(t.File));
             Task.WhenAll(waits).ContinueWith(_ => ui.BeginInvoke(new Action(() =>
             {
-                if (disposed || !scrubbing || target != scrubTarget) return;
+                previewPending = false;
+                if (disposed || !scrubbing) return;
+                // the slider moved on while the probes ran: the timer starts the newer one at once
+                if (target != scrubTarget) { scrubTimer.Stop(); scrubTimer.Start(); return; }
                 SegmentSet set = new SegmentSet { Index = seg, View = view, MasterSlot = view.MasterSlot };
-                foreach (SegmentTarget t in view.Targets)
+                foreach (SegmentTarget t in StreamTargets(view))
                 {
-                    if (t.File == null || (FocusSlot != null && t.Slot != FocusSlot)) continue;
                     DecodeRequest r = RequestFor(set, t, local, false);
                     r.OneFrame = true;
                     r.SkipNonRef = false;
@@ -617,6 +756,14 @@ namespace SentrySix.Ui.Playback
             if (hooked) return;
             CompositionTarget.Rendering += OnRendering;
             hooked = true;
+        }
+
+        /// <summary>No render tick (and no page tick) while nothing is on screen: the page hidden, released or stopped.</summary>
+        void Unhook()
+        {
+            if (!hooked) return;
+            CompositionTarget.Rendering -= OnRendering;
+            hooked = false;
         }
 
         void OnRendering(object sender, EventArgs e)
@@ -682,11 +829,15 @@ namespace SentrySix.Ui.Playback
                 {
                     // a GPU path that fails is tried again on the CPU; a clip that fails there is let go
                     if (s.PathUsed != DecodePath.Cpu) { Restart(set, slot); continue; }
-                    if (isMaster && s.Frames == 0) { Failed(set, s.Error); return; }
-                    if (!isMaster && Budget(set, slot)) { Restart(set, slot); continue; }
-                    continue; // the master died part way: show what it has; the clock is let go below
+                    int tried;
+                    set.Restarts.TryGetValue(slot, out tried);
+                    if (isMaster && s.Frames == 0 && tried == 0) { Failed(set, s.Error); return; }
+                    // a master or follower that dies part way (a dropped connection after a long pause)
+                    // starts again at the clock, three times; the clock waits for the master meanwhile
+                    if (Budget(set, slot)) { Restart(set, slot); if (isMaster) master = set.Master; continue; }
+                    continue; // out of tries: show what it has; for the master the clock is let go below
                 }
-                if (!isMaster && !s.Ended && PlaybackSync.Decide(local, s.NewestTime, false) == FollowerAction.Restart && Budget(set, slot))
+                if (!isMaster && !s.Ended && s.Frames > 0 && PlaybackSync.Decide(local, s.NewestTime, false, clock.Rate) == FollowerAction.Restart && Budget(set, slot))
                 {
                     Restart(set, slot);
                     continue;
@@ -701,13 +852,16 @@ namespace SentrySix.Ui.Playback
                     s.Ring.Return(f);
                 }
             }
-            // the master holds the clock to its newest frame (buffering)
-            if (master == null || master.Ended || master.Failed) clock.MasterReady = double.PositiveInfinity;
-            else
+            UpdateMasterReady(set);
+            // the preloaded segment's decoders that failed before the boundary start again now
+            // (a GPU path on the CPU), so the switch stays gapless
+            if (next != null)
             {
-                double newest = master.NewestTime;
-                double fps = master.Request.Fps > 0 ? master.Request.Fps : FfmpegArgs.DefaultFps;
-                clock.MasterReady = double.IsNaN(newest) ? start + set.Offset : start + newest + 1 / fps;
+                foreach (string slot in next.Streams.Keys.ToList())
+                {
+                    CameraStream ns = next.Streams[slot];
+                    if (ns.Failed && (ns.PathUsed != DecodePath.Cpu || Budget(next, slot))) Restart(next, slot);
+                }
             }
             // next-segment preload
             if (next == null && preloading < 0 && set.Index + 1 < plan.Count &&
@@ -718,6 +872,20 @@ namespace SentrySix.Ui.Playback
                 // (the page loads its telemetry into the cache, where the switch finds it)
                 Action<int> pre = PreloadStarted;
                 if (pre != null) pre(preloading);
+            }
+        }
+
+        /// <summary>The master holds the clock to its newest frame (buffering); while it has none, at where it started.</summary>
+        void UpdateMasterReady(SegmentSet set)
+        {
+            double start = plan.Start(set.Index);
+            CameraStream master = set.Master;
+            if (master == null || master.Ended || master.Failed) clock.MasterReady = double.PositiveInfinity;
+            else
+            {
+                double newest = master.NewestTime;
+                double fps = master.Request.Fps > 0 ? master.Request.Fps : FfmpegArgs.DefaultFps;
+                clock.MasterReady = double.IsNaN(newest) ? start + set.HeldAt : start + newest + 1 / fps;
             }
         }
 
@@ -745,6 +913,7 @@ namespace SentrySix.Ui.Playback
             DisposeSets();
             StopPreview();
             clock.Pause();
+            Unhook();
         }
 
         public void Dispose()
@@ -752,8 +921,7 @@ namespace SentrySix.Ui.Playback
             if (disposed) return;
             disposed = true;
             closing.Cancel();
-            if (hooked) CompositionTarget.Rendering -= OnRendering;
-            hooked = false;
+            Unhook();
             resizeTimer.Stop();
             scrubTimer.Stop();
             hiddenTimer.Stop();
