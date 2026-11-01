@@ -312,7 +312,9 @@ namespace SentrySix.Core
                 if (res.Headers.TryGetValues("Accept-Ranges", out ar)) h.Add(new KeyValuePair<string, string>("Accept-Ranges", string.Join(", ", ar)));
                 else if (res.Headers.AcceptRanges.Count > 0) h.Add(new KeyValuePair<string, string>("Accept-Ranges", string.Join(", ", res.Headers.AcceptRanges)));
                 bool chunked = !length.HasValue && !head;
-                if (chunked) h.Add(new KeyValuePair<string, string>("Connection", "close"));
+                // a request that asked to close (ffmpeg's Connection: close) is told the connection
+                // closes, so it opens a new one to seek instead of asking again on this one
+                if (chunked || !req.KeepAlive) h.Add(new KeyValuePair<string, string>("Connection", "close"));
                 await WriteHead(ns, (int)res.StatusCode, res.ReasonPhrase, h).ConfigureAwait(false);
                 if (head || res.Content == null) return true;
                 using (Stream body = await res.Content.ReadAsStreamAsync().ConfigureAwait(false))
