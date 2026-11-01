@@ -592,6 +592,18 @@ namespace SentrySix.Ui.Builtin
             if (!steps.IsArray) return;
             try { await settingsRead; }
             catch (Exception) { }
+            // (the reads may come back on a pool thread: the drags are the window's thread's)
+            if (!root.Dispatcher.CheckAccess())
+            {
+                await root.Dispatcher.InvokeAsync(new Func<Task>(TouchSteps)).Task.Unwrap();
+                return;
+            }
+            await TouchSteps();
+        }
+
+        async Task TouchSteps()
+        {
+            JsonValue steps = renderDash["viewerTouch"];
             if (!root.IsLoaded)
             {
                 TaskCompletionSource<bool> loaded = new TaskCompletionSource<bool>();
@@ -601,7 +613,7 @@ namespace SentrySix.Ui.Builtin
                 await loaded.Task;
             }
             // (the panels placed: the telemetry's dashboard and route are in)
-            await Dispatcher.Yield(DispatcherPriority.Background);
+            await root.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
             if (disposed) return;
             root.UpdateLayout();
             foreach (JsonValue st in steps.Items)
