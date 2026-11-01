@@ -409,3 +409,18 @@ last run).
 - flux policies-novehicle
 - flux policies-error
 - flux policies-long
+### Flux: Recycle Bin
+
+The bin's table (flux/pages/bin.js; labelled blocks on a phone, the boxes
+at the start of their line) on the built-in Recycle Bin page's states:
+bin (three items, one by policy, one with a file that could not be
+restored), bin-empty, bin-long (a long recording name, 5 TB), bin-error
+(the pack's ! box with Retry), bin-every-vehicle ("Every vehicle" picked:
+the vehicle column; the web clicks the filter, the native side gets the
+variant's state `{ bin: { scope: 'all' } }`).
+
+- flux bin
+- flux bin-empty
+- flux bin-long
+- flux bin-error
+- flux bin-every-vehicle
