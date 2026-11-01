@@ -439,3 +439,15 @@ variant's state `{ notifications: { show: 'all' } }`), notifications-error
 - flux notifications-empty
 - flux notifications-all
 - flux notifications-error
+### Flux: Encoding per vehicle
+
+web/vehicleEncoding.js in Flux's look (flux/pages/vehicles.js) on the same
+answers as the built-in page's states: vehicles (three vehicles: automatic
+on, saved, not set up, one with a long name), vehicles-edit (?edit=<id>: the
+first one's editor open), vehicles-empty (no vehicles), vehicles-error (the
+Encoder still starting: the view is the message).
+
+- flux vehicles
+- flux vehicles-edit
+- flux vehicles-empty
+- flux vehicles-error
