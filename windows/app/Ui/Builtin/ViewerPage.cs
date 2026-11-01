@@ -592,36 +592,38 @@ namespace SentrySix.Ui.Builtin
             if (!steps.IsArray) return;
             try { await settingsRead; }
             catch (Exception) { }
-            // (the reads may come back on a pool thread: the drags are the window's thread's)
-            if (!root.Dispatcher.CheckAccess())
+            // (the reads may come back on a pool thread, and the render mode's awaits do not come
+            // back to the window's thread: the drags are queued on it, with no await in between)
+            TaskCompletionSource<bool> done = new TaskCompletionSource<bool>();
+            Action run = () =>
             {
-                await root.Dispatcher.InvokeAsync(new Func<Task>(TouchSteps)).Task.Unwrap();
-                return;
-            }
-            await TouchSteps();
-        }
-
-        async Task TouchSteps()
-        {
-            JsonValue steps = renderDash["viewerTouch"];
-            if (!root.IsLoaded)
+                try
+                {
+                    if (!disposed)
+                    {
+                        root.UpdateLayout();
+                        foreach (JsonValue st in steps.Items)
+                        {
+                            UIElement on = TouchHandle(st[0].Str);
+                            if (on != null) touchLayer.Replay(on, st[1].Num, st[2].Num);
+                            root.UpdateLayout();
+                        }
+                    }
+                }
+                catch (Exception) { }
+                done.TrySetResult(true);
+            };
+            // (the panels placed first: the telemetry's dashboard and route are in)
+            Action placed = () => root.Dispatcher.BeginInvoke(run, DispatcherPriority.Background);
+            DispatcherOperation queued = root.Dispatcher.BeginInvoke(new Action(() =>
             {
-                TaskCompletionSource<bool> loaded = new TaskCompletionSource<bool>();
+                if (root.IsLoaded) { placed(); return; }
                 RoutedEventHandler once = null;
-                once = delegate { root.Loaded -= once; loaded.TrySetResult(true); };
+                once = delegate { root.Loaded -= once; placed(); };
                 root.Loaded += once;
-                await loaded.Task;
-            }
-            // (the panels placed: the telemetry's dashboard and route are in)
-            await root.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
-            if (disposed) return;
-            root.UpdateLayout();
-            foreach (JsonValue st in steps.Items)
-            {
-                UIElement on = TouchHandle(st[0].Str);
-                if (on != null) touchLayer.Replay(on, st[1].Num, st[2].Num);
-                root.UpdateLayout();
-            }
+            }));
+            if (queued.Status == DispatcherOperationStatus.Aborted) done.TrySetResult(true);
+            await done.Task;
         }
 
         /// <summary>studioTouch.js's HANDLES by their ids (the native elements' Uids).</summary>
