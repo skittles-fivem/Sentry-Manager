@@ -136,6 +136,13 @@ namespace SentrySix.Ui.Builtin
 
         public string Value { get { return value; } }
 
+        /// <summary>The words' font (a select's own font: Inter by default; Chrome's Arial where the page leaves the select's font alone).</summary>
+        public FontFamily LabelFont
+        {
+            get { return label.FontFamily; }
+            set { label.FontFamily = value; Paint(); }
+        }
+
         /// <summary>The options (value, words) and the chosen value (a value no option has picks the first, as a select does).</summary>
         public void Set(IList<KeyValuePair<string, string>> items, string selected)
         {

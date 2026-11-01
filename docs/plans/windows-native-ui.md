@@ -250,8 +250,8 @@ is done when every item is ticked in both. Run on the owner's PC runner.
 - Phase 2 (built-in Viewer): in progress. The playback engine, the
   telemetry, the clip library (scan and grouping, part 2), the clip
   browser (the clip list panel, part 3), the six-camera grid on the
-  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6), the event marker on the timeline (part 7), the telemetry feed (part 8), the telemetry dashboard (part 9) and the map (part 10) are written; the rest of the Viewer page (Studio's
-  settings modal, keys, export, phone layout:
+  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6), the event marker on the timeline (part 7), the telemetry feed (part 8), the telemetry dashboard (part 9), the map (part 10) and the settings modal (part 11) are written; the rest of the Viewer page (Studio's
+  keys, export, phone layout:
   `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
   still opens in the browser (`ViewerPage.Complete` stays false until it
   is all there; then its browser fallback goes and Footage's Play day /
@@ -637,8 +637,59 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   Leaflet's zoom and pan animations (the view jumps; the heading turn is
   animated), touch pinch zoom, Studio's drive routes and FSD event dots
   (Sentry Six's Viewer has no Drives tab).
+  Viewer part 11, the settings modal (type-checked with mcs, not yet built
+  or run on Windows): `Core/ViewerSettings.cs` (`SettingsLayout`: Studio's
+  #settingsModal as index.html has it in English: the six nav items, the
+  sections, their rows, options and words, the NEW badges, the
+  pre-release prompt and the changelog; `ViewerSettingsModal`:
+  settingsModal.js, keybinds.js's settings rows, i18n.js's language and
+  exportVideo.js's badges on what the page's elements hold: the start's
+  reads through the shim's getSetting (the server's settings, its web
+  defaults, the language saved or this PC's, the version from GET
+  /api/studio/context), the nav and sub-tabs, the search (performSearch:
+  section titles and each row's words; search-hidden hides only toggle
+  and select rows, as style.css does), every control's change and the
+  calls it makes (setSetting, then the Viewer's own: dashboardToggle,
+  updateDashboardLayout, setMapTileProvider, applyMapDarkMode,
+  setLayoutStyle, mirrorCamerasChanged, updateEventCameraHighlight,
+  resetCameraOrder, the restart question, ...), the update check's "Up to
+  Date ✓" for 3 s, the pre-release prompt (the shim refuses the channel,
+  so the toggle stays as the web leaves it), Learn More, the changelog
+  (the web's stops at "Loading changelog..."), the legal links, clearing
+  a keybind and an input waiting for a key; `Step` takes the same steps
+  as capture.js and the parity test) and `Ui/Builtin/ViewerSettings.cs`
+  (`StudioSettingsModal`: the dim, the 700 x 657 box, header, sidebar
+  with search and nav, the sections (switches, selects in Arial as
+  Chrome draws them, the glass slider, keybind rows, the security table),
+  footer, the pre-release prompt and changelog over it). The Viewer
+  (`StudioViewer`) opens it from the gear, loads it after its own settings
+  read, applies each call natively (the dashboard's and map's setters,
+  the clip panel's layout, the grid's mirror, glow and camera order, the
+  day list's date format, the controls' skip length, Hardware Video
+  Acceleration on the Player at start; Restart now makes the Viewer again)
+  and saves what the web saves (POST /api/studio/settings, the same keys).
+  For reuse (part 12's keys, the packs' Viewer pages): `StudioViewer.Settings`
+  (`ViewerSettingsModal`: `IsOpen` (the keys leave the page alone while it
+  is open), `Keybinds`, `Bind(action, display, identifier)` with
+  keybinds.js's conflict removal, `Recording`, `SkipDuration`) and
+  `StudioViewer.SettingsView` (`RecordingKey`: a key pressed while an
+  input waits, for part 12 to turn into words and an identifier).
+  test/windowsNativeViewerSettings.test.js runs the web's own modal code
+  on index.html's markup in a small pretend DOM, 14 sessions (174 steps), and writes
+  Core.Tests/Fixtures/expected-viewer-settings.json; Core.Tests
+  ViewerSettingsTests (3 tests, passing under mono; all 128 tests of the
+  stub runner pass). Render list: viewer-settings, -playback, -map,
+  -cameras, -shortcuts, -about, -search, -none (capture.js's
+  SETTINGS_STEPS, replayed natively from the variant's viewerSettings).
+  Not done: Studio's words in the other twelve languages (the Language
+  choice is saved; the native Viewer's words stay English), the backdrop
+  blur (Glass Blur is saved only), Studio's developer settings (five
+  clicks on the title), turning a pressed key into a binding (part 12).
   Phase 2 is not finished: `ViewerPage.Complete` stays false until parts
-  11-14 are in.
+  12-14 (keys, export, phone layout) are in; until then the Viewer's
+  browser fallback stays, and Footage's Play day / Play recording keep
+  going through `ViewerSlot.Open`, which lands in the native Viewer the
+  moment `Complete` is true.
 - Phase 3 (Encoder): not started; its page opens in the browser.
 - Phases 4-7 (the packs): in progress on wip, one pack at a time (this
   session works in its own files: `Core/Horizon/`, `Ui/Horizon/Hz*.cs`,

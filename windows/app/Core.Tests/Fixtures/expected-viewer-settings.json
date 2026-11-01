@@ -1,0 +1,6676 @@
+{
+ "about": "Written by test/windowsNativeViewerSettings.test.js from Studio's index.html (#settingsModal), ui/settingsModal.js, lib/keybinds.js, lib/i18n.js, exportVideo.js's NEW badges and web/electronApiShim.js; checked by windows/app/Core.Tests (ViewerSettingsTests.cs, SentrySix.Core.ViewerSettingsModal).",
+ "layout": {
+  "title": "Settings",
+  "search": "Search settings...",
+  "clear": "×",
+  "noResults": "No matching settings found",
+  "done": "Done",
+  "nav": [
+   {
+    "target": "display",
+    "text": "Display",
+    "badge": null,
+    "badgeText": null
+   },
+   {
+    "target": "playback",
+    "text": "Playback & Overlays",
+    "badge": null,
+    "badgeText": null
+   },
+   {
+    "target": "shortcuts",
+    "text": "Keyboard Shortcuts",
+    "badge": "shortcutsNavNewBadge",
+    "badgeText": "NEW"
+   },
+   {
+    "target": "storage",
+    "text": "Storage",
+    "badge": null,
+    "badgeText": null
+   },
+   {
+    "target": "sentryusb",
+    "text": "SentryUSB",
+    "badge": null,
+    "badgeText": null
+   },
+   {
+    "target": "about",
+    "text": "System & Security",
+    "badge": null,
+    "badgeText": null
+   }
+  ],
+  "sections": [
+   {
+    "section": "display",
+    "title": "Display",
+    "titleSearch": "Display",
+    "embedHidden": false,
+    "items": [
+     {
+      "kind": "select",
+      "key": "settingsLanguage",
+      "label": "Language",
+      "options": [
+       {
+        "value": "en",
+        "text": "English"
+       },
+       {
+        "value": "es",
+        "text": "Español"
+       },
+       {
+        "value": "fr",
+        "text": "Français"
+       },
+       {
+        "value": "de",
+        "text": "Deutsch"
+       },
+       {
+        "value": "zh",
+        "text": "简体中文"
+       },
+       {
+        "value": "ja",
+        "text": "日本語"
+       },
+       {
+        "value": "ko",
+        "text": "한국어"
+       },
+       {
+        "value": "pt",
+        "text": "Português"
+       },
+       {
+        "value": "ru",
+        "text": "Русский"
+       },
+       {
+        "value": "it",
+        "text": "Italiano"
+       },
+       {
+        "value": "nl",
+        "text": "Nederlands"
+       },
+       {
+        "value": "pl",
+        "text": "Polski"
+       },
+       {
+        "value": "tr",
+        "text": "Türkçe"
+       }
+      ],
+      "value": "en",
+      "search": "\nLanguage\nEnglish\nEspañol\nFrançais\nDeutsch\n简体中文\n日本語\n한국어\nPortuguês\nРусский\nItaliano\nNederlands\nPolski\nTürkçe\n"
+     },
+     {
+      "kind": "toggle",
+      "key": "settingsLayoutStyle",
+      "id": null,
+      "hidden": false,
+      "label": "Classic Sidebar",
+      "desc": null,
+      "checked": false,
+      "search": "\nClassic Sidebar\n"
+     },
+     {
+      "kind": "toggle",
+      "key": "settingsMetricToggle",
+      "id": null,
+      "hidden": false,
+      "label": "Metric Units (KM/H)",
+      "desc": null,
+      "checked": false,
+      "search": "\nMetric Units (KM/H)\n"
+     },
+     {
+      "kind": "select",
+      "key": "settingsDateFormat",
+      "label": "Date Format",
+      "options": [
+       {
+        "value": "mdy",
+        "text": "MM/DD/YYYY"
+       },
+       {
+        "value": "dmy",
+        "text": "DD/MM/YYYY"
+       },
+       {
+        "value": "ymd",
+        "text": "YYYY-MM-DD"
+       }
+      ],
+      "value": "ymd",
+      "search": "\nDate Format\nMM/DD/YYYY\nDD/MM/YYYY\nYYYY-MM-DD\n"
+     },
+     {
+      "kind": "slider",
+      "key": "settingsGlassBlur",
+      "label": "Glass Blur",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "value": "7",
+      "valueId": "glassBlurValue",
+      "search": "\nGlass Blur\n7px\n"
+     }
+    ]
+   },
+   {
+    "section": "playback",
+    "title": "Playback & Overlays",
+    "titleSearch": "Playback & Overlays",
+    "embedHidden": false,
+    "items": [
+     {
+      "kind": "subtabs",
+      "tabs": [
+       {
+        "id": "dashboard",
+        "text": "Dashboard"
+       },
+       {
+        "id": "map",
+        "text": "Map"
+       },
+       {
+        "id": "cameras",
+        "text": "Cameras"
+       }
+      ]
+     },
+     {
+      "kind": "panel",
+      "subtab": "dashboard",
+      "items": [
+       {
+        "kind": "toggle",
+        "key": "settingsDashboardToggle",
+        "id": null,
+        "hidden": false,
+        "label": "Dashboard Overlay",
+        "desc": null,
+        "checked": true,
+        "search": "\nDashboard Overlay\n"
+       },
+       {
+        "kind": "select",
+        "key": "settingsDashboardLayout",
+        "label": "Dashboard Style",
+        "options": [
+         {
+          "value": "default",
+          "text": "Default"
+         },
+         {
+          "value": "compact",
+          "text": "Compact"
+         }
+        ],
+        "value": "default",
+        "search": "\nDashboard Style\nDefault\nCompact\n"
+       },
+       {
+        "kind": "toggle",
+        "key": "settingsCompactDashboardFixed",
+        "id": "settingsCompactDashboardFixedRow",
+        "hidden": true,
+        "label": "Fixed to Front Camera",
+        "desc": null,
+        "checked": true,
+        "search": "\nFixed to Front Camera\n"
+       },
+       {
+        "kind": "select",
+        "key": "settingsAccelPedMode",
+        "label": "Accelerator Display",
+        "options": [
+         {
+          "value": "solid",
+          "text": "Solid Color"
+         },
+         {
+          "value": "iconbar",
+          "text": "Icon Bar"
+         },
+         {
+          "value": "sidebar",
+          "text": "Side Bar"
+         }
+        ],
+        "value": "iconbar",
+        "search": "\nAccelerator Display\nSolid Color\nIcon Bar\nSide Bar\n"
+       }
+      ]
+     },
+     {
+      "kind": "panel",
+      "subtab": "map",
+      "items": [
+       {
+        "kind": "toggle",
+        "key": "settingsMapToggle",
+        "id": null,
+        "hidden": false,
+        "label": "GPS Map",
+        "desc": null,
+        "checked": true,
+        "search": "\nGPS Map\n"
+       },
+       {
+        "kind": "select",
+        "key": "settingsMapProvider",
+        "label": "Map Provider",
+        "options": [
+         {
+          "value": "google",
+          "text": "Google Maps"
+         },
+         {
+          "value": "osm",
+          "text": "OpenStreetMap"
+         }
+        ],
+        "value": "google",
+        "search": "\nMap Provider\nGoogle Maps\nOpenStreetMap\n"
+       },
+       {
+        "kind": "select",
+        "key": "settingsMapMode",
+        "label": "Map Style",
+        "options": [
+         {
+          "value": "light",
+          "text": "Light"
+         },
+         {
+          "value": "dark",
+          "text": "Dark"
+         },
+         {
+          "value": "satellite",
+          "text": "Satellite"
+         }
+        ],
+        "value": "light",
+        "search": "\nMap Style\nLight\nDark\nSatellite\n"
+       },
+       {
+        "kind": "toggle",
+        "key": "settingsMapLabels",
+        "id": null,
+        "hidden": false,
+        "label": "Map Labels",
+        "desc": null,
+        "checked": true,
+        "search": "\nMap Labels\n"
+       }
+      ]
+     },
+     {
+      "kind": "panel",
+      "subtab": "cameras",
+      "items": [
+       {
+        "kind": "toggle",
+        "key": "settingsSentryCameraHighlight",
+        "id": null,
+        "hidden": false,
+        "label": "Sentry Camera Glow",
+        "desc": null,
+        "checked": true,
+        "search": "\nSentry Camera Glow\n"
+       },
+       {
+        "kind": "toggle",
+        "key": "settingsSavedCameraHighlight",
+        "id": null,
+        "hidden": false,
+        "label": "Saved Camera Glow",
+        "desc": null,
+        "checked": true,
+        "search": "\nSaved Camera Glow\n"
+       },
+       {
+        "kind": "toggle",
+        "key": "settingsMirrorCameras",
+        "id": null,
+        "hidden": false,
+        "label": "Mirror Cameras",
+        "desc": null,
+        "checked": true,
+        "search": "\nMirror Cameras\n"
+       },
+       {
+        "kind": "toggle",
+        "key": "settingsHardwareVideoAccel",
+        "id": null,
+        "hidden": false,
+        "label": "Hardware Video Acceleration",
+        "desc": "Use the GPU to decode video. Turn this off if cameras freeze on older or integrated graphics. Requires restart.",
+        "checked": true,
+        "search": "\nHardware Video Acceleration\nUse the GPU to decode video. Turn this off if cameras freeze on older or integrated graphics. Requires restart.\n"
+       },
+       {
+        "kind": "action",
+        "key": "resetCameraOrderBtn",
+        "label": "Reset Camera Order",
+        "button": "Reset",
+        "search": "\nReset Camera Order\nReset\n"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "section": "shortcuts",
+    "title": "Keyboard Shortcuts",
+    "titleSearch": "Keyboard Shortcuts",
+    "embedHidden": false,
+    "items": [
+     {
+      "kind": "keybind",
+      "key": "keybindPlayPause",
+      "label": "Play / Pause",
+      "labelId": null,
+      "dot": null,
+      "action": "playPause",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nPlay / Pause\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindSkipForward",
+      "label": "Skip Forward 15s",
+      "labelId": "skipForwardLabel",
+      "dot": null,
+      "action": "skipForward",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nSkip Forward 15s\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindSkipBackward",
+      "label": "Skip Backward 15s",
+      "labelId": "skipBackwardLabel",
+      "dot": null,
+      "action": "skipBackward",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nSkip Backward 15s\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "settingsSkipDuration",
+      "label": "Skip Duration",
+      "labelId": null,
+      "dot": null,
+      "action": null,
+      "options": [
+       {
+        "value": "1",
+        "text": "1s"
+       },
+       {
+        "value": "5",
+        "text": "5s"
+       },
+       {
+        "value": "15",
+        "text": "15s"
+       }
+      ],
+      "value": "15",
+      "placeholder": null,
+      "clear": null,
+      "search": "\nSkip Duration\n1s\n5s\n15s\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindToggleDash",
+      "label": "Toggle Dashboard",
+      "labelId": null,
+      "dot": null,
+      "action": "toggleDash",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nToggle Dashboard\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindToggleMap",
+      "label": "Toggle Map",
+      "labelId": null,
+      "dot": null,
+      "action": "toggleMap",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nToggle Map\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindToggleMetric",
+      "label": "Toggle Units",
+      "labelId": null,
+      "dot": null,
+      "action": "toggleMetric",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nToggle Units\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindToggleClips",
+      "label": "Toggle Clips Panel",
+      "labelId": null,
+      "dot": null,
+      "action": "toggleClips",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nToggle Clips Panel\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindSetMarkerIn",
+      "label": "Export Marker Start",
+      "labelId": null,
+      "dot": null,
+      "action": "setMarkerIn",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nExport Marker Start\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindSetMarkerOut",
+      "label": "Export Marker End",
+      "labelId": null,
+      "dot": null,
+      "action": "setMarkerOut",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nExport Marker End\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindNextClip",
+      "label": "Next Clip",
+      "labelId": null,
+      "dot": "nextClipNewDot",
+      "action": "nextClip",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nNext Clip\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindPrevClip",
+      "label": "Previous Clip",
+      "labelId": null,
+      "dot": "prevClipNewDot",
+      "action": "prevClip",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nPrevious Clip\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindSpeedUp",
+      "label": "Increase Speed",
+      "labelId": null,
+      "dot": null,
+      "action": "speedUp",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nIncrease Speed\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindSpeedDown",
+      "label": "Decrease Speed",
+      "labelId": null,
+      "dot": null,
+      "action": "speedDown",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nDecrease Speed\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindSpeedReset",
+      "label": "Reset Speed (1x)",
+      "labelId": null,
+      "dot": null,
+      "action": "speedReset",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nReset Speed (1x)\n✕\n"
+     },
+     {
+      "kind": "keybind",
+      "key": "keybindSpeedMax",
+      "label": "Max Speed (4x)",
+      "labelId": null,
+      "dot": null,
+      "action": "speedMax",
+      "options": null,
+      "value": null,
+      "placeholder": "—",
+      "clear": "✕",
+      "search": "\nMax Speed (4x)\n✕\n"
+     }
+    ]
+   },
+   {
+    "section": "storage",
+    "title": "Storage",
+    "titleSearch": "Storage",
+    "embedHidden": true,
+    "items": [
+     {
+      "kind": "sublabel",
+      "text": "TeslaCam Folder"
+     },
+     {
+      "kind": "input",
+      "key": "defaultFolderPath",
+      "placeholder": "No default folder",
+      "buttons": [
+       {
+        "id": "browseDefaultFolderBtn",
+        "text": "Browse"
+       },
+       {
+        "id": "clearDefaultFolderBtn",
+        "text": "✕"
+       }
+      ],
+      "search": "\nBrowse\n✕\n"
+     },
+     {
+      "kind": "status",
+      "id": "defaultFolderStatus"
+     }
+    ]
+   },
+   {
+    "section": "sentryusb",
+    "title": "SentryUSB",
+    "titleSearch": "SentryUSB",
+    "embedHidden": true,
+    "items": [
+     {
+      "kind": "sublabel",
+      "text": "Sentry USB Drive Data"
+     },
+     {
+      "kind": "input",
+      "key": "driveDataFilePath",
+      "placeholder": "No drive-data.json selected",
+      "buttons": [
+       {
+        "id": "browseDriveDataFileBtn",
+        "text": "Browse"
+       },
+       {
+        "id": "clearDriveDataFileBtn",
+        "text": "✕"
+       }
+      ],
+      "search": "\nBrowse\n✕\n"
+     },
+     {
+      "kind": "status",
+      "id": "driveDataFileStatus"
+     },
+     {
+      "kind": "toggle",
+      "key": "settingsShowDriveStats",
+      "id": null,
+      "hidden": false,
+      "label": "Show Drive Stats",
+      "desc": "Display acceleration events and FSD disengagement counts on each drive.",
+      "checked": true,
+      "search": "\nShow Drive Stats\nDisplay acceleration events and FSD disengagement counts on each drive.\n"
+     },
+     {
+      "kind": "toggle",
+      "key": "settingsShowFsdEvents",
+      "id": null,
+      "hidden": false,
+      "label": "Show FSD Events on Map",
+      "desc": "Show accelerator push and FSD disengagement markers on the route map when a drive is selected.",
+      "checked": true,
+      "search": "\nShow FSD Events on Map\nShow accelerator push and FSD disengagement markers on the route map when a drive is selected.\n"
+     }
+    ]
+   },
+   {
+    "section": "about",
+    "title": "System & Security",
+    "titleSearch": "System & Security",
+    "embedHidden": false,
+    "items": [
+     {
+      "kind": "security",
+      "details": [
+       {
+        "label": "OS",
+        "id": "securityDetailOS",
+        "value": "---"
+       },
+       {
+        "label": "Architecture",
+        "id": "securityDetailArch",
+        "value": "---"
+       },
+       {
+        "label": "App Version",
+        "id": "settingsCurrentVersion",
+        "value": "v2026.26.35 (web)"
+       }
+      ],
+      "link": "Learn More",
+      "head": [
+       "Feature",
+       "Status",
+       "Description"
+      ],
+      "rows": [
+       {
+        "name": "Footage Privacy",
+        "badge": "badge-local",
+        "status": "Local Only",
+        "desc": "Dashcam clips never leave your local storage."
+       },
+       {
+        "name": "Update Reporting",
+        "badge": "badge-active",
+        "status": "Active",
+        "desc": "On start app pings our API for security and version checks."
+       },
+       {
+        "name": "Device Hash",
+        "badge": "badge-hash",
+        "status": "Hashed (SHA-256)",
+        "desc": "A secure, salted ID used to prevent API spam."
+       }
+      ]
+     },
+     {
+      "kind": "toggle",
+      "key": "settingsPrereleaseUpdates",
+      "id": null,
+      "hidden": false,
+      "label": "Pre-release Updates",
+      "desc": "Receive early beta builds before they are released. May be unstable.",
+      "checked": false,
+      "search": "\nPre-release Updates\nReceive early beta builds before they are released. May be unstable.\n"
+     },
+     {
+      "kind": "action",
+      "key": "checkForUpdatesBtn",
+      "label": "Check for Updates",
+      "button": "Check Now",
+      "search": "\nCheck for Updates\nCheck Now\n"
+     },
+     {
+      "kind": "buttons",
+      "buttons": [
+       {
+        "id": "viewChangelogBtn",
+        "text": "View Changelog"
+       }
+      ]
+     },
+     {
+      "kind": "legal",
+      "links": [
+       {
+        "id": "openPrivacyPolicy",
+        "text": "Privacy Policy"
+       },
+       {
+        "id": "openTermsOfService",
+        "text": "Terms of Service"
+       }
+      ],
+      "separator": "·"
+     }
+    ]
+   }
+  ],
+  "prerelease": {
+   "title": "Switch to pre-release builds?",
+   "body": "Pre-release builds are early betas. They may be unstable, contain bugs, or break your installation. You can switch back to stable updates at any time.",
+   "confirm": "Confirm",
+   "cancel": "Cancel"
+  },
+  "changelog": {
+   "title": "Changelog",
+   "loading": "Loading changelog..."
+  }
+ },
+ "words": {
+  "skipForward": "Skip Forward",
+  "skipBackward": "Skip Backward",
+  "seconds": "seconds",
+  "checking": "Checking...",
+  "updateFound": "Update Found!",
+  "checkFailed": "Check Failed",
+  "upToDate": "Up to Date",
+  "checkNow": "Check Now",
+  "hideDetails": "Hide Details",
+  "learnMore": "Learn More"
+ },
+ "sessions": [
+  {
+   "name": "tabs and search",
+   "foreign": false,
+   "settings": {
+    "timeFormat": "12h"
+   },
+   "context": {
+    "version": "2026.26.35 (web)"
+   },
+   "languages": [
+    "en-US"
+   ],
+   "confirm": false,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "en"
+      ],
+      [
+       "updateAccelPedMode",
+       "iconbar"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": true,
+       "shortcutsNavNewBadge": false,
+       "shortcutsNewBadge": false,
+       "nextClipNewDot": false,
+       "prevClipNewDot": false
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "en",
+       "settingsDateFormat": "ymd",
+       "settingsGlassBlur": "7",
+       "settingsDashboardLayout": "default",
+       "settingsAccelPedMode": "iconbar",
+       "settingsMapProvider": "google",
+       "settingsMapMode": "light",
+       "keybindPlayPause": "",
+       "keybindSkipForward": "",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "15",
+       "keybindToggleDash": "",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": false,
+       "settingsMetricToggle": false,
+       "settingsDashboardToggle": true,
+       "settingsCompactDashboardFixed": true,
+       "settingsMapToggle": true,
+       "settingsMapLabels": true,
+       "settingsSentryCameraHighlight": true,
+       "settingsSavedCameraHighlight": true,
+       "settingsMirrorCameras": true,
+       "settingsHardwareVideoAccel": true,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 15s",
+       "skipBackwardLabel": "Skip Backward 15s",
+       "glassBlurValue": "7px",
+       "settingsCurrentVersion": "v2026.26.35 (web)",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Learn More",
+       "checkForUpdatesBtn": "Check Now",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Skip Backward 15 seconds",
+       "skipBackBtn.label": "15",
+       "skipForwardBtn.title": "Skip Forward 15 seconds",
+       "skipForwardBtn.label": "15"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": false,
+      "prereleaseWarning": false,
+      "glassBlur": "7px",
+      "noGlass": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"playback\"]"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "display": "",
+       "playback": "active"
+      },
+      "sections": {
+       "display": "",
+       "playback": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-subtab-btn[data-subtab=\"map\"]"
+     ],
+     "log": [],
+     "view": {
+      "subtab": "map",
+      "panel": "map"
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-subtab-btn[data-subtab=\"cameras\"]"
+     ],
+     "log": [],
+     "view": {
+      "subtab": "cameras",
+      "panel": "cameras"
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"shortcuts\"]"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "featureSeen_clipNavPreview",
+       true
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "shortcutsNavNewBadge": true
+      },
+      "nav": {
+       "playback": "",
+       "shortcuts": "active"
+      },
+      "sections": {
+       "playback": "",
+       "shortcuts": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"storage\"]"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "shortcuts": "",
+       "storage": "active"
+      },
+      "sections": {
+       "shortcuts": "",
+       "storage": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"sentryusb\"]"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "storage": "",
+       "sentryusb": "active"
+      },
+      "sections": {
+       "storage": "",
+       "sentryusb": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"about\"]"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "sentryusb": "",
+       "about": "active"
+      },
+      "sections": {
+       "sentryusb": "",
+       "about": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"display\"]"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "display": "active",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "about": ""
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"playback\"]"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "display": "",
+       "playback": "active"
+      },
+      "sections": {
+       "display": "",
+       "playback": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "map"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsSearchClear": false
+      },
+      "nav": {
+       "playback": "active search-highlight",
+       "shortcuts": "search-highlight",
+       "sentryusb": "search-highlight"
+      },
+      "sections": {
+       "display": "search-hidden",
+       "playback": "open search-match",
+       "shortcuts": "open search-match",
+       "storage": "search-hidden",
+       "sentryusb": "open search-match",
+       "about": "search-hidden"
+      },
+      "searching": true,
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "map"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "MAP "
+     ],
+     "log": [],
+     "view": {
+      "values": {
+       "settingsSearchInput": "MAP "
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "Map S"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "shortcuts": "",
+       "sentryusb": ""
+      },
+      "sections": {
+       "shortcuts": "search-hidden",
+       "sentryusb": "search-hidden"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "Map S"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "zzz"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsNoResults": false
+      },
+      "nav": {
+       "playback": "active"
+      },
+      "sections": {
+       "playback": "search-hidden"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "zzz"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "skip"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsNoResults": true
+      },
+      "nav": {
+       "shortcuts": "search-highlight"
+      },
+      "sections": {
+       "shortcuts": "open search-match"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "skip"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "glass"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "display": "search-highlight",
+       "shortcuts": ""
+      },
+      "sections": {
+       "display": "open search-match",
+       "shortcuts": "search-hidden"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "glass"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "drive"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "display": "",
+       "sentryusb": "search-highlight"
+      },
+      "sections": {
+       "display": "search-hidden",
+       "sentryusb": "open search-match"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "drive"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "playback"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "playback": "active search-highlight",
+       "sentryusb": ""
+      },
+      "sections": {
+       "playback": "open search-match",
+       "sentryusb": "search-hidden"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "playback"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "classic sidebar"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "display": "search-highlight",
+       "playback": "active"
+      },
+      "sections": {
+       "display": "open search-match",
+       "playback": "search-hidden"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "classic sidebar"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "español"
+     ],
+     "log": [],
+     "view": {
+      "searchHidden": [
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "español"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "✕"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "display": "",
+       "shortcuts": "search-highlight",
+       "storage": "search-highlight",
+       "sentryusb": "search-highlight"
+      },
+      "sections": {
+       "display": "search-hidden",
+       "shortcuts": "open search-match",
+       "storage": "open search-match",
+       "sentryusb": "open search-match"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "settingsSkipDuration",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "✕"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "reset"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "playback": "active search-highlight",
+       "storage": "",
+       "sentryusb": ""
+      },
+      "sections": {
+       "playback": "open search-match",
+       "storage": "search-hidden",
+       "sentryusb": "search-hidden"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "reset"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "beta"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "playback": "active",
+       "shortcuts": "",
+       "about": "search-highlight"
+      },
+      "sections": {
+       "playback": "search-hidden",
+       "shortcuts": "search-hidden",
+       "about": "open search-match"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "beta"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "version"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsNoResults": false
+      },
+      "nav": {
+       "about": ""
+      },
+      "sections": {
+       "about": "search-hidden"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "version"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "dashboard"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsNoResults": true
+      },
+      "nav": {
+       "playback": "active search-highlight",
+       "shortcuts": "search-highlight"
+      },
+      "sections": {
+       "playback": "open search-match",
+       "shortcuts": "open search-match"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "dashboard"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "Security"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "playback": "active",
+       "shortcuts": "",
+       "about": "search-highlight"
+      },
+      "sections": {
+       "playback": "search-hidden",
+       "shortcuts": "search-hidden",
+       "about": "open search-match"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents"
+      ],
+      "values": {
+       "settingsSearchInput": "Security"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "  "
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsSearchClear": true
+      },
+      "nav": {
+       "about": ""
+      },
+      "sections": {
+       "display": "",
+       "playback": "open",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "  "
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "glow"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsSearchClear": false
+      },
+      "nav": {
+       "playback": "active search-highlight"
+      },
+      "sections": {
+       "display": "search-hidden",
+       "playback": "open search-match",
+       "shortcuts": "search-hidden",
+       "storage": "search-hidden",
+       "sentryusb": "search-hidden",
+       "about": "search-hidden"
+      },
+      "searching": true,
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "glow"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsSearchClear"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsSearchClear": true
+      },
+      "nav": {
+       "playback": "active"
+      },
+      "sections": {
+       "display": "",
+       "playback": "open",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": ""
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "units"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsSearchClear": false
+      },
+      "nav": {
+       "display": "search-highlight",
+       "shortcuts": "search-highlight"
+      },
+      "sections": {
+       "display": "open search-match",
+       "playback": "search-hidden",
+       "shortcuts": "open search-match",
+       "storage": "search-hidden",
+       "sentryusb": "search-hidden",
+       "about": "search-hidden"
+      },
+      "searching": true,
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "units"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#closeSettingsModal"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "settingsSearchClear": true
+      },
+      "nav": {
+       "display": "",
+       "shortcuts": ""
+      },
+      "sections": {
+       "display": "",
+       "playback": "open",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": ""
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "speed"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsSearchClear": false
+      },
+      "nav": {
+       "shortcuts": "search-highlight"
+      },
+      "sections": {
+       "display": "search-hidden",
+       "playback": "search-hidden",
+       "shortcuts": "open search-match",
+       "storage": "search-hidden",
+       "sentryusb": "search-hidden",
+       "about": "search-hidden"
+      },
+      "searching": true,
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "speed"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsModal"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": true
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#closeSettingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "settingsSearchClear": true
+      },
+      "nav": {
+       "shortcuts": ""
+      },
+      "sections": {
+       "display": "",
+       "playback": "open",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": ""
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "x"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsSearchClear": false
+      },
+      "nav": {
+       "display": "search-highlight",
+       "playback": "active search-highlight",
+       "shortcuts": "search-highlight"
+      },
+      "sections": {
+       "display": "open search-match",
+       "playback": "open search-match",
+       "shortcuts": "open search-match",
+       "storage": "search-hidden",
+       "sentryusb": "search-hidden",
+       "about": "search-hidden"
+      },
+      "searching": true,
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "x"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-subtab-btn[data-subtab=\"dashboard\"]"
+     ],
+     "log": [],
+     "view": {
+      "subtab": "dashboard",
+      "panel": "dashboard"
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      ""
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsSearchClear": true
+      },
+      "nav": {
+       "display": "",
+       "playback": "active",
+       "shortcuts": ""
+      },
+      "sections": {
+       "display": "",
+       "playback": "open",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": ""
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "every control changed",
+   "foreign": false,
+   "settings": {
+    "timeFormat": "12h"
+   },
+   "context": {
+    "version": "2026.26.35 (web)"
+   },
+   "languages": [
+    "en-US"
+   ],
+   "confirm": false,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "en"
+      ],
+      [
+       "updateAccelPedMode",
+       "iconbar"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": true,
+       "shortcutsNavNewBadge": false,
+       "shortcutsNewBadge": false,
+       "nextClipNewDot": false,
+       "prevClipNewDot": false
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "en",
+       "settingsDateFormat": "ymd",
+       "settingsGlassBlur": "7",
+       "settingsDashboardLayout": "default",
+       "settingsAccelPedMode": "iconbar",
+       "settingsMapProvider": "google",
+       "settingsMapMode": "light",
+       "keybindPlayPause": "",
+       "keybindSkipForward": "",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "15",
+       "keybindToggleDash": "",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": false,
+       "settingsMetricToggle": false,
+       "settingsDashboardToggle": true,
+       "settingsCompactDashboardFixed": true,
+       "settingsMapToggle": true,
+       "settingsMapLabels": true,
+       "settingsSentryCameraHighlight": true,
+       "settingsSavedCameraHighlight": true,
+       "settingsMirrorCameras": true,
+       "settingsHardwareVideoAccel": true,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 15s",
+       "skipBackwardLabel": "Skip Backward 15s",
+       "glassBlurValue": "7px",
+       "settingsCurrentVersion": "v2026.26.35 (web)",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Learn More",
+       "checkForUpdatesBtn": "Check Now",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Skip Backward 15 seconds",
+       "skipBackBtn.label": "15",
+       "skipForwardBtn.title": "Skip Forward 15 seconds",
+       "skipForwardBtn.label": "15"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": false,
+      "prereleaseWarning": false,
+      "glassBlur": "7px",
+      "noGlass": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsLayoutStyle",
+      true
+     ],
+     "log": [
+      [
+       "setLayoutStyle",
+       "classic"
+      ],
+      [
+       "setSetting",
+       "layoutStyle",
+       "classic"
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsLayoutStyle": true
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMetricToggle",
+      true
+     ],
+     "log": [
+      [
+       "metricToggle",
+       true
+      ],
+      [
+       "setSetting",
+       "useMetric",
+       true
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsMetricToggle": true
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsDateFormat",
+      "dmy"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "dateFormat",
+       "dmy"
+      ],
+      [
+       "dateFormatChanged",
+       "dmy"
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsDateFormat": "dmy"
+      }
+     }
+    },
+    {
+     "step": [
+      "input",
+      "#settingsGlassBlur",
+      "12"
+     ],
+     "log": [],
+     "view": {
+      "values": {
+       "settingsGlassBlur": "12"
+      },
+      "texts": {
+       "glassBlurValue": "12px"
+      },
+      "glassBlur": "12px"
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsGlassBlur",
+      "12"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "glassBlur",
+       12
+      ]
+     ],
+     "view": {}
+    },
+    {
+     "step": [
+      "slide",
+      "#settingsGlassBlur",
+      "0"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "glassBlur",
+       0
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsGlassBlur": "0"
+      },
+      "texts": {
+       "glassBlurValue": "0px"
+      },
+      "glassBlur": "0px",
+      "noGlass": true
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsLanguage",
+      "en"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "en"
+      ]
+     ],
+     "view": {
+      "texts": {
+       "skipForwardLabel": "Skip Forward",
+       "skipBackwardLabel": "Skip Backward",
+       "skipBackBtn.title": "Skip back 15 seconds",
+       "skipForwardBtn.title": "Skip forward 15 seconds"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"playback\"]"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "display": "",
+       "playback": "active"
+      },
+      "sections": {
+       "display": "",
+       "playback": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsDashboardToggle",
+      false
+     ],
+     "log": [
+      [
+       "dashboardToggle",
+       false
+      ],
+      [
+       "setSetting",
+       "dashboardEnabled",
+       false
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsDashboardToggle": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsDashboardLayout",
+      "compact"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "dashboardLayout",
+       "compact"
+      ],
+      [
+       "updateDashboardLayout",
+       "compact"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsCompactDashboardFixedRow": false
+      },
+      "values": {
+       "settingsDashboardLayout": "compact"
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsCompactDashboardFixed",
+      false
+     ],
+     "log": [
+      [
+       "setSetting",
+       "compactDashboardFixed",
+       false
+      ],
+      [
+       "updateCompactDashboardPositioning",
+       false
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsCompactDashboardFixed": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsDashboardLayout",
+      "default"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "dashboardLayout",
+       "default"
+      ],
+      [
+       "updateDashboardLayout",
+       "default"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsCompactDashboardFixedRow": true
+      },
+      "values": {
+       "settingsDashboardLayout": "default"
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsAccelPedMode",
+      "sidebar"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "accelPedMode",
+       "sidebar"
+      ],
+      [
+       "updateAccelPedMode",
+       "sidebar"
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsAccelPedMode": "sidebar"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-subtab-btn[data-subtab=\"map\"]"
+     ],
+     "log": [],
+     "view": {
+      "subtab": "map",
+      "panel": "map"
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMapToggle",
+      false
+     ],
+     "log": [
+      [
+       "mapToggle",
+       false
+      ],
+      [
+       "setSetting",
+       "mapEnabled",
+       false
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsMapToggle": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMapProvider",
+      "osm"
+     ],
+     "log": [
+      [
+       "setMapTileProvider",
+       "osm"
+      ],
+      [
+       "setSetting",
+       "mapTileProvider",
+       "osm"
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsMapProvider": "osm"
+      },
+      "satelliteHidden": true
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMapMode",
+      "dark"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "mapDarkMode",
+       true
+      ],
+      [
+       "applyMapDarkMode",
+       true
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsMapMode": "dark"
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMapLabels",
+      false
+     ],
+     "log": [
+      [
+       "setMapLabels",
+       false
+      ],
+      [
+       "setSetting",
+       "mapLabels",
+       false
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsMapLabels": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMapProvider",
+      "google"
+     ],
+     "log": [
+      [
+       "setMapTileProvider",
+       "google"
+      ],
+      [
+       "setSetting",
+       "mapTileProvider",
+       "google"
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsMapProvider": "google"
+      },
+      "satelliteHidden": false
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMapMode",
+      "satellite"
+     ],
+     "log": [
+      [
+       "setMapTileProvider",
+       "google-satellite"
+      ],
+      [
+       "setSetting",
+       "mapTileProvider",
+       "google-satellite"
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsMapMode": "satellite"
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMapMode",
+      "light"
+     ],
+     "log": [
+      [
+       "setMapTileProvider",
+       "google"
+      ],
+      [
+       "setSetting",
+       "mapTileProvider",
+       "google"
+      ],
+      [
+       "setSetting",
+       "mapDarkMode",
+       false
+      ],
+      [
+       "applyMapDarkMode",
+       false
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsMapMode": "light"
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMapMode",
+      "satellite"
+     ],
+     "log": [
+      [
+       "setMapTileProvider",
+       "google-satellite"
+      ],
+      [
+       "setSetting",
+       "mapTileProvider",
+       "google-satellite"
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsMapMode": "satellite"
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMapProvider",
+      "osm"
+     ],
+     "log": [
+      [
+       "setMapTileProvider",
+       "osm"
+      ],
+      [
+       "setSetting",
+       "mapTileProvider",
+       "osm"
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsMapProvider": "osm",
+       "settingsMapMode": "light"
+      },
+      "satelliteHidden": true
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-subtab-btn[data-subtab=\"cameras\"]"
+     ],
+     "log": [],
+     "view": {
+      "subtab": "cameras",
+      "panel": "cameras"
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsSentryCameraHighlight",
+      false
+     ],
+     "log": [
+      [
+       "setSetting",
+       "sentryCameraHighlight",
+       false
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsSentryCameraHighlight": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsSavedCameraHighlight",
+      false
+     ],
+     "log": [
+      [
+       "setSetting",
+       "savedCameraHighlight",
+       false
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsSavedCameraHighlight": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMirrorCameras",
+      false
+     ],
+     "log": [
+      [
+       "setSetting",
+       "mirrorCameras",
+       false
+      ],
+      [
+       "mirrorCamerasChanged",
+       false
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsMirrorCameras": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsHardwareVideoAccel",
+      false
+     ],
+     "log": [
+      [
+       "setSetting",
+       "hardwareVideoAcceleration",
+       false
+      ],
+      [
+       "confirm",
+       "Hardware video acceleration will be turned off (software video decoding).\n\nThis change takes effect after a restart. Restart now?"
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsHardwareVideoAccel": false
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#resetCameraOrderBtn"
+     ],
+     "log": [
+      [
+       "resetCameraOrder"
+      ]
+     ],
+     "view": {}
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"shortcuts\"]"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "featureSeen_clipNavPreview",
+       true
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "shortcutsNavNewBadge": true
+      },
+      "nav": {
+       "playback": "",
+       "shortcuts": "active"
+      },
+      "sections": {
+       "playback": "",
+       "shortcuts": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsSkipDuration",
+      "5"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "skipDuration",
+       5
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsSkipDuration": "5"
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 5s",
+       "skipBackwardLabel": "Skip Backward 5s",
+       "skipBackBtn.title": "Skip Backward 5 seconds",
+       "skipBackBtn.label": "5",
+       "skipForwardBtn.title": "Skip Forward 5 seconds",
+       "skipForwardBtn.label": "5"
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsSkipDuration",
+      "1"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "skipDuration",
+       1
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsSkipDuration": "1"
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 1s",
+       "skipBackwardLabel": "Skip Backward 1s",
+       "skipBackBtn.title": "Skip Backward 1 seconds",
+       "skipBackBtn.label": "1",
+       "skipForwardBtn.title": "Skip Forward 1 seconds",
+       "skipForwardBtn.label": "1"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#closeSettingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": true
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsLayoutStyle",
+      false
+     ],
+     "log": [
+      [
+       "setLayoutStyle",
+       "modern"
+      ],
+      [
+       "setSetting",
+       "layoutStyle",
+       "modern"
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsLayoutStyle": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMetricToggle",
+      false
+     ],
+     "log": [
+      [
+       "metricToggle",
+       false
+      ],
+      [
+       "setSetting",
+       "useMetric",
+       false
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsMetricToggle": false
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "saved settings",
+   "foreign": false,
+   "settings": {
+    "timeFormat": "12h",
+    "language": "en",
+    "layoutStyle": "classic",
+    "useMetric": true,
+    "dateFormat": "dmy",
+    "glassBlur": 0,
+    "dashboardEnabled": false,
+    "dashboardLayout": "compact",
+    "compactDashboardFixed": false,
+    "accelPedMode": "solid",
+    "mapEnabled": false,
+    "mapTileProvider": "osm",
+    "mapDarkMode": true,
+    "mapLabels": false,
+    "sentryCameraHighlight": false,
+    "savedCameraHighlight": false,
+    "mirrorCameras": false,
+    "hardwareVideoAcceleration": false,
+    "skipDuration": 5,
+    "keybinds": {
+     "playPause": {
+      "display": "Space",
+      "identifier": "space"
+     },
+     "skipForward": {
+      "display": "→",
+      "identifier": "arrowright"
+     },
+     "toggleDash": {
+      "display": "Ctrl + D",
+      "identifier": "ctrl+keyd"
+     },
+     "bogus": {
+      "display": "X",
+      "identifier": "keyx"
+     }
+    },
+    "featureSeen_clipNavPreview": true
+   },
+   "context": {
+    "version": "2026.26.35 (web)"
+   },
+   "languages": [
+    "en-US"
+   ],
+   "confirm": false,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "updateAccelPedMode",
+       "solid"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": false,
+       "shortcutsNavNewBadge": true,
+       "shortcutsNewBadge": true,
+       "nextClipNewDot": true,
+       "prevClipNewDot": true
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "en",
+       "settingsDateFormat": "dmy",
+       "settingsGlassBlur": "0",
+       "settingsDashboardLayout": "compact",
+       "settingsAccelPedMode": "solid",
+       "settingsMapProvider": "osm",
+       "settingsMapMode": "dark",
+       "keybindPlayPause": "Space",
+       "keybindSkipForward": "→",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "5",
+       "keybindToggleDash": "Ctrl + D",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": true,
+       "settingsMetricToggle": true,
+       "settingsDashboardToggle": false,
+       "settingsCompactDashboardFixed": false,
+       "settingsMapToggle": false,
+       "settingsMapLabels": false,
+       "settingsSentryCameraHighlight": false,
+       "settingsSavedCameraHighlight": false,
+       "settingsMirrorCameras": false,
+       "settingsHardwareVideoAccel": false,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 5s",
+       "skipBackwardLabel": "Skip Backward 5s",
+       "glassBlurValue": "0px",
+       "settingsCurrentVersion": "v2026.26.35 (web)",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Learn More",
+       "checkForUpdatesBtn": "Check Now",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Skip Backward 5 seconds",
+       "skipBackBtn.label": "5",
+       "skipForwardBtn.title": "Skip Forward 5 seconds",
+       "skipForwardBtn.label": "5"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": true,
+      "prereleaseWarning": false,
+      "glassBlur": "0px",
+      "noGlass": true
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"playback\"]"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "display": "",
+       "playback": "active"
+      },
+      "sections": {
+       "display": "",
+       "playback": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-subtab-btn[data-subtab=\"map\"]"
+     ],
+     "log": [],
+     "view": {
+      "subtab": "map",
+      "panel": "map"
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"shortcuts\"]"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "playback": "",
+       "shortcuts": "active"
+      },
+      "sections": {
+       "playback": "",
+       "shortcuts": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "karte"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsNoResults": false,
+       "settingsSearchClear": false
+      },
+      "sections": {
+       "display": "search-hidden",
+       "playback": "search-hidden",
+       "shortcuts": "search-hidden",
+       "storage": "search-hidden",
+       "sentryusb": "search-hidden",
+       "about": "search-hidden"
+      },
+      "searching": true,
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsMapToggle",
+       "settingsMapProvider",
+       "settingsMapMode",
+       "settingsMapLabels",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMap",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsShowFsdEvents",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "karte"
+      }
+     }
+    },
+    {
+     "step": [
+      "fill",
+      "#settingsSearchInput",
+      "map"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsNoResults": true
+      },
+      "nav": {
+       "playback": "search-highlight",
+       "shortcuts": "active search-highlight",
+       "sentryusb": "search-highlight"
+      },
+      "sections": {
+       "playback": "open search-match",
+       "shortcuts": "open search-match",
+       "sentryusb": "open search-match"
+      },
+      "searchHidden": [
+       "settingsLanguage",
+       "settingsLayoutStyle",
+       "settingsMetricToggle",
+       "settingsDateFormat",
+       "settingsGlassBlur",
+       "settingsDashboardToggle",
+       "settingsDashboardLayout",
+       "settingsCompactDashboardFixed",
+       "settingsAccelPedMode",
+       "settingsSentryCameraHighlight",
+       "settingsSavedCameraHighlight",
+       "settingsMirrorCameras",
+       "settingsHardwareVideoAccel",
+       "resetCameraOrderBtn",
+       "keybindPlayPause",
+       "keybindSkipForward",
+       "keybindSkipBackward",
+       "settingsSkipDuration",
+       "keybindToggleDash",
+       "keybindToggleMetric",
+       "keybindToggleClips",
+       "keybindSetMarkerIn",
+       "keybindSetMarkerOut",
+       "keybindNextClip",
+       "keybindPrevClip",
+       "keybindSpeedUp",
+       "keybindSpeedDown",
+       "keybindSpeedReset",
+       "keybindSpeedMax",
+       "defaultFolderPath",
+       "driveDataFilePath",
+       "settingsShowDriveStats",
+       "settingsPrereleaseUpdates",
+       "checkForUpdatesBtn"
+      ],
+      "values": {
+       "settingsSearchInput": "map"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "odd saved values",
+   "foreign": false,
+   "settings": {
+    "timeFormat": "12h",
+    "language": "xx",
+    "layoutStyle": "weird",
+    "dateFormat": "xyz",
+    "accelPedMode": "weird",
+    "dashboardLayout": "nope",
+    "skipDuration": 30,
+    "glassBlur": 45,
+    "mapTileProvider": "google-satellite",
+    "mapDarkMode": "yes",
+    "keybinds": {
+     "playPause": {
+      "display": "",
+      "identifier": "space"
+     }
+    }
+   },
+   "context": {
+    "version": "2026.26.35 (web)"
+   },
+   "languages": [
+    "zz-ZZ",
+    "en-GB",
+    "fr"
+   ],
+   "confirm": false,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "en"
+      ],
+      [
+       "updateAccelPedMode",
+       "weird"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": true,
+       "shortcutsNavNewBadge": false,
+       "shortcutsNewBadge": false,
+       "nextClipNewDot": false,
+       "prevClipNewDot": false
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "en",
+       "settingsDateFormat": "",
+       "settingsGlassBlur": "30",
+       "settingsDashboardLayout": "",
+       "settingsAccelPedMode": "",
+       "settingsMapProvider": "google",
+       "settingsMapMode": "satellite",
+       "keybindPlayPause": "",
+       "keybindSkipForward": "",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "",
+       "keybindToggleDash": "",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": false,
+       "settingsMetricToggle": false,
+       "settingsDashboardToggle": true,
+       "settingsCompactDashboardFixed": true,
+       "settingsMapToggle": true,
+       "settingsMapLabels": true,
+       "settingsSentryCameraHighlight": true,
+       "settingsSavedCameraHighlight": true,
+       "settingsMirrorCameras": true,
+       "settingsHardwareVideoAccel": true,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 30s",
+       "skipBackwardLabel": "Skip Backward 30s",
+       "glassBlurValue": "45px",
+       "settingsCurrentVersion": "v2026.26.35 (web)",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Learn More",
+       "checkForUpdatesBtn": "Check Now",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Skip Backward 30 seconds",
+       "skipBackBtn.label": "30",
+       "skipForwardBtn.title": "Skip Forward 30 seconds",
+       "skipForwardBtn.label": "30"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": false,
+      "prereleaseWarning": false,
+      "glassBlur": "45px",
+      "noGlass": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"playback\"]"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "display": "",
+       "playback": "active"
+      },
+      "sections": {
+       "display": "",
+       "playback": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-subtab-btn[data-subtab=\"map\"]"
+     ],
+     "log": [],
+     "view": {
+      "subtab": "map",
+      "panel": "map"
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMapMode",
+      "dark"
+     ],
+     "log": [
+      [
+       "setMapTileProvider",
+       "google"
+      ],
+      [
+       "setSetting",
+       "mapTileProvider",
+       "google"
+      ],
+      [
+       "setSetting",
+       "mapDarkMode",
+       true
+      ],
+      [
+       "applyMapDarkMode",
+       true
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsMapMode": "dark"
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMapProvider",
+      "osm"
+     ],
+     "log": [
+      [
+       "setMapTileProvider",
+       "osm"
+      ],
+      [
+       "setSetting",
+       "mapTileProvider",
+       "osm"
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsMapProvider": "osm"
+      },
+      "satelliteHidden": true
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsMapProvider",
+      "google"
+     ],
+     "log": [
+      [
+       "setMapTileProvider",
+       "google"
+      ],
+      [
+       "setSetting",
+       "mapTileProvider",
+       "google"
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsMapProvider": "google"
+      },
+      "satelliteHidden": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"shortcuts\"]"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "featureSeen_clipNavPreview",
+       true
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "shortcutsNavNewBadge": true
+      },
+      "nav": {
+       "playback": "",
+       "shortcuts": "active"
+      },
+      "sections": {
+       "playback": "",
+       "shortcuts": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsSkipDuration",
+      "15"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "skipDuration",
+       15
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsSkipDuration": "15"
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 15s",
+       "skipBackwardLabel": "Skip Backward 15s",
+       "skipBackBtn.title": "Skip Backward 15 seconds",
+       "skipBackBtn.label": "15",
+       "skipForwardBtn.title": "Skip Forward 15 seconds",
+       "skipForwardBtn.label": "15"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "glass blur 7.5",
+   "foreign": false,
+   "settings": {
+    "timeFormat": "12h",
+    "glassBlur": 7.5,
+    "skipDuration": "abc",
+    "mapTileProvider": "bogus"
+   },
+   "context": {
+    "version": "2026.26.35 (web)"
+   },
+   "languages": [
+    "zz"
+   ],
+   "confirm": false,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "en"
+      ],
+      [
+       "updateAccelPedMode",
+       "iconbar"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": true,
+       "shortcutsNavNewBadge": false,
+       "shortcutsNewBadge": false,
+       "nextClipNewDot": false,
+       "prevClipNewDot": false
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "en",
+       "settingsDateFormat": "ymd",
+       "settingsGlassBlur": "8",
+       "settingsDashboardLayout": "default",
+       "settingsAccelPedMode": "iconbar",
+       "settingsMapProvider": "google",
+       "settingsMapMode": "light",
+       "keybindPlayPause": "",
+       "keybindSkipForward": "",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "",
+       "keybindToggleDash": "",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": false,
+       "settingsMetricToggle": false,
+       "settingsDashboardToggle": true,
+       "settingsCompactDashboardFixed": true,
+       "settingsMapToggle": true,
+       "settingsMapLabels": true,
+       "settingsSentryCameraHighlight": true,
+       "settingsSavedCameraHighlight": true,
+       "settingsMirrorCameras": true,
+       "settingsHardwareVideoAccel": true,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward abcs",
+       "skipBackwardLabel": "Skip Backward abcs",
+       "glassBlurValue": "7.5px",
+       "settingsCurrentVersion": "v2026.26.35 (web)",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Learn More",
+       "checkForUpdatesBtn": "Check Now",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Skip Backward abc seconds",
+       "skipBackBtn.label": "abc",
+       "skipForwardBtn.title": "Skip Forward abc seconds",
+       "skipForwardBtn.label": "abc"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": false,
+      "prereleaseWarning": false,
+      "glassBlur": "7.5px",
+      "noGlass": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "slide",
+      "#settingsGlassBlur",
+      "30"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "glassBlur",
+       30
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsGlassBlur": "30"
+      },
+      "texts": {
+       "glassBlurValue": "30px"
+      },
+      "glassBlur": "30px"
+     }
+    },
+    {
+     "step": [
+      "slide",
+      "#settingsGlassBlur",
+      "-4"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "glassBlur",
+       0
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsGlassBlur": "0"
+      },
+      "texts": {
+       "glassBlurValue": "0px"
+      },
+      "glassBlur": "0px",
+      "noGlass": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "glass blur null",
+   "foreign": false,
+   "settings": {
+    "timeFormat": "12h",
+    "glassBlur": null,
+    "skipDuration": 0,
+    "language": "en"
+   },
+   "context": {
+    "version": "2026.26.35 (web)"
+   },
+   "languages": [
+    "en-US"
+   ],
+   "confirm": false,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "updateAccelPedMode",
+       "iconbar"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": true,
+       "shortcutsNavNewBadge": false,
+       "shortcutsNewBadge": false,
+       "nextClipNewDot": false,
+       "prevClipNewDot": false
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "en",
+       "settingsDateFormat": "ymd",
+       "settingsGlassBlur": "15",
+       "settingsDashboardLayout": "default",
+       "settingsAccelPedMode": "iconbar",
+       "settingsMapProvider": "google",
+       "settingsMapMode": "light",
+       "keybindPlayPause": "",
+       "keybindSkipForward": "",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "15",
+       "keybindToggleDash": "",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": false,
+       "settingsMetricToggle": false,
+       "settingsDashboardToggle": true,
+       "settingsCompactDashboardFixed": true,
+       "settingsMapToggle": true,
+       "settingsMapLabels": true,
+       "settingsSentryCameraHighlight": true,
+       "settingsSavedCameraHighlight": true,
+       "settingsMirrorCameras": true,
+       "settingsHardwareVideoAccel": true,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 15s",
+       "skipBackwardLabel": "Skip Backward 15s",
+       "glassBlurValue": "nullpx",
+       "settingsCurrentVersion": "v2026.26.35 (web)",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Learn More",
+       "checkForUpdatesBtn": "Check Now",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Skip Backward 15 seconds",
+       "skipBackBtn.label": "15",
+       "skipForwardBtn.title": "Skip Forward 15 seconds",
+       "skipForwardBtn.label": "15"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": false,
+      "prereleaseWarning": false,
+      "glassBlur": "nullpx",
+      "noGlass": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "saved language",
+   "foreign": true,
+   "settings": {
+    "timeFormat": "12h",
+    "language": "de"
+   },
+   "context": {
+    "version": "2026.26.35 (web)"
+   },
+   "languages": [
+    "en-US"
+   ],
+   "confirm": false,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "updateAccelPedMode",
+       "iconbar"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": true,
+       "shortcutsNavNewBadge": false,
+       "shortcutsNewBadge": false,
+       "nextClipNewDot": false,
+       "prevClipNewDot": false
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "de",
+       "settingsDateFormat": "ymd",
+       "settingsGlassBlur": "7",
+       "settingsDashboardLayout": "default",
+       "settingsAccelPedMode": "iconbar",
+       "settingsMapProvider": "google",
+       "settingsMapMode": "light",
+       "keybindPlayPause": "",
+       "keybindSkipForward": "",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "15",
+       "keybindToggleDash": "",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": false,
+       "settingsMetricToggle": false,
+       "settingsDashboardToggle": true,
+       "settingsCompactDashboardFixed": true,
+       "settingsMapToggle": true,
+       "settingsMapLabels": true,
+       "settingsSentryCameraHighlight": true,
+       "settingsSavedCameraHighlight": true,
+       "settingsMirrorCameras": true,
+       "settingsHardwareVideoAccel": true,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Vorwärts springen 15s",
+       "skipBackwardLabel": "Rückwärts springen 15s",
+       "glassBlurValue": "7px",
+       "settingsCurrentVersion": "v2026.26.35 (web)",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Mehr Erfahren",
+       "checkForUpdatesBtn": "Jetzt prüfen",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Rückwärts springen 15 Sekunden",
+       "skipBackBtn.label": "15",
+       "skipForwardBtn.title": "Vorwärts springen 15 Sekunden",
+       "skipForwardBtn.label": "15"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": false,
+      "prereleaseWarning": false,
+      "glassBlur": "7px",
+      "noGlass": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsLanguage",
+      "ja"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "ja"
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsLanguage": "ja"
+      },
+      "texts": {
+       "skipForwardLabel": "前にスキップ",
+       "skipBackwardLabel": "後ろにスキップ",
+       "securityLearnMoreLink": "詳細を見る",
+       "checkForUpdatesBtn": "今すぐ確認",
+       "skipBackBtn.title": "15秒戻る",
+       "skipForwardBtn.title": "15秒進む"
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsLanguage",
+      "en"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "en"
+      ]
+     ],
+     "view": {
+      "values": {
+       "settingsLanguage": "en"
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward",
+       "skipBackwardLabel": "Skip Backward",
+       "securityLearnMoreLink": "Learn More",
+       "checkForUpdatesBtn": "Check Now",
+       "skipBackBtn.title": "Skip back 15 seconds",
+       "skipForwardBtn.title": "Skip forward 15 seconds"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "detected language",
+   "foreign": true,
+   "settings": {
+    "timeFormat": "12h"
+   },
+   "context": {
+    "version": "2026.26.35 (web)"
+   },
+   "languages": [
+    "pt-BR"
+   ],
+   "confirm": false,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "pt"
+      ],
+      [
+       "updateAccelPedMode",
+       "iconbar"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": true,
+       "shortcutsNavNewBadge": false,
+       "shortcutsNewBadge": false,
+       "nextClipNewDot": false,
+       "prevClipNewDot": false
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "pt",
+       "settingsDateFormat": "ymd",
+       "settingsGlassBlur": "7",
+       "settingsDashboardLayout": "default",
+       "settingsAccelPedMode": "iconbar",
+       "settingsMapProvider": "google",
+       "settingsMapMode": "light",
+       "keybindPlayPause": "",
+       "keybindSkipForward": "",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "15",
+       "keybindToggleDash": "",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": false,
+       "settingsMetricToggle": false,
+       "settingsDashboardToggle": true,
+       "settingsCompactDashboardFixed": true,
+       "settingsMapToggle": true,
+       "settingsMapLabels": true,
+       "settingsSentryCameraHighlight": true,
+       "settingsSavedCameraHighlight": true,
+       "settingsMirrorCameras": true,
+       "settingsHardwareVideoAccel": true,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Avançar 15s",
+       "skipBackwardLabel": "Retroceder 15s",
+       "glassBlurValue": "7px",
+       "settingsCurrentVersion": "v2026.26.35 (web)",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Saiba Mais",
+       "checkForUpdatesBtn": "Verificar Agora",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Retroceder 15 segundos",
+       "skipBackBtn.label": "15",
+       "skipForwardBtn.title": "Avançar 15 segundos",
+       "skipForwardBtn.label": "15"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": false,
+      "prereleaseWarning": false,
+      "glassBlur": "7px",
+      "noGlass": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "glass blur text",
+   "foreign": false,
+   "settings": {
+    "timeFormat": "12h",
+    "glassBlur": "12",
+    "skipDuration": 1
+   },
+   "context": {},
+   "languages": [
+    "en-US"
+   ],
+   "confirm": false,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "en"
+      ],
+      [
+       "updateAccelPedMode",
+       "iconbar"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": true,
+       "shortcutsNavNewBadge": false,
+       "shortcutsNewBadge": false,
+       "nextClipNewDot": false,
+       "prevClipNewDot": false
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "en",
+       "settingsDateFormat": "ymd",
+       "settingsGlassBlur": "12",
+       "settingsDashboardLayout": "default",
+       "settingsAccelPedMode": "iconbar",
+       "settingsMapProvider": "google",
+       "settingsMapMode": "light",
+       "keybindPlayPause": "",
+       "keybindSkipForward": "",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "1",
+       "keybindToggleDash": "",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": false,
+       "settingsMetricToggle": false,
+       "settingsDashboardToggle": true,
+       "settingsCompactDashboardFixed": true,
+       "settingsMapToggle": true,
+       "settingsMapLabels": true,
+       "settingsSentryCameraHighlight": true,
+       "settingsSavedCameraHighlight": true,
+       "settingsMirrorCameras": true,
+       "settingsHardwareVideoAccel": true,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 1s",
+       "skipBackwardLabel": "Skip Backward 1s",
+       "glassBlurValue": "12px",
+       "settingsCurrentVersion": "vweb",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Learn More",
+       "checkForUpdatesBtn": "Check Now",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Skip Backward 1 seconds",
+       "skipBackBtn.label": "1",
+       "skipForwardBtn.title": "Skip Forward 1 seconds",
+       "skipForwardBtn.label": "1"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": false,
+      "prereleaseWarning": false,
+      "glassBlur": "12px",
+      "noGlass": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "system and updates",
+   "foreign": false,
+   "settings": {
+    "timeFormat": "12h"
+   },
+   "context": {
+    "version": "2026.26.35 (web)"
+   },
+   "languages": [
+    "en-US"
+   ],
+   "confirm": false,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "en"
+      ],
+      [
+       "updateAccelPedMode",
+       "iconbar"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": true,
+       "shortcutsNavNewBadge": false,
+       "shortcutsNewBadge": false,
+       "nextClipNewDot": false,
+       "prevClipNewDot": false
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "en",
+       "settingsDateFormat": "ymd",
+       "settingsGlassBlur": "7",
+       "settingsDashboardLayout": "default",
+       "settingsAccelPedMode": "iconbar",
+       "settingsMapProvider": "google",
+       "settingsMapMode": "light",
+       "keybindPlayPause": "",
+       "keybindSkipForward": "",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "15",
+       "keybindToggleDash": "",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": false,
+       "settingsMetricToggle": false,
+       "settingsDashboardToggle": true,
+       "settingsCompactDashboardFixed": true,
+       "settingsMapToggle": true,
+       "settingsMapLabels": true,
+       "settingsSentryCameraHighlight": true,
+       "settingsSavedCameraHighlight": true,
+       "settingsMirrorCameras": true,
+       "settingsHardwareVideoAccel": true,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 15s",
+       "skipBackwardLabel": "Skip Backward 15s",
+       "glassBlurValue": "7px",
+       "settingsCurrentVersion": "v2026.26.35 (web)",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Learn More",
+       "checkForUpdatesBtn": "Check Now",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Skip Backward 15 seconds",
+       "skipBackBtn.label": "15",
+       "skipForwardBtn.title": "Skip Forward 15 seconds",
+       "skipForwardBtn.label": "15"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": false,
+      "prereleaseWarning": false,
+      "glassBlur": "7px",
+      "noGlass": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"about\"]"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "display": "",
+       "about": "active"
+      },
+      "sections": {
+       "display": "",
+       "about": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#securityLearnMoreLink"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "securityLearnMoreDetails": false
+      },
+      "texts": {
+       "securityLearnMoreLink": "Hide Details"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#securityLearnMoreLink"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "securityLearnMoreDetails": true
+      },
+      "texts": {
+       "securityLearnMoreLink": "Learn More"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#checkForUpdatesBtn"
+     ],
+     "log": [
+      [
+       "checkForUpdates"
+      ]
+     ],
+     "view": {
+      "disabled": {
+       "checkForUpdatesBtn": true
+      },
+      "texts": {
+       "checkForUpdatesBtn": "Up to Date ✓"
+      },
+      "checkBackground": "rgba(76, 175, 80, 0.3)"
+     }
+    },
+    {
+     "step": [
+      "clock",
+      2999
+     ],
+     "log": [],
+     "view": {}
+    },
+    {
+     "step": [
+      "clock",
+      1
+     ],
+     "log": [],
+     "view": {
+      "disabled": {
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "checkForUpdatesBtn": "Check Now"
+      },
+      "checkBackground": ""
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#checkForUpdatesBtn"
+     ],
+     "log": [
+      [
+       "checkForUpdates"
+      ]
+     ],
+     "view": {
+      "disabled": {
+       "checkForUpdatesBtn": true
+      },
+      "texts": {
+       "checkForUpdatesBtn": "Up to Date ✓"
+      },
+      "checkBackground": "rgba(76, 175, 80, 0.3)"
+     }
+    },
+    {
+     "step": [
+      "clock",
+      1000
+     ],
+     "log": [],
+     "view": {}
+    },
+    {
+     "step": [
+      "click",
+      "#checkForUpdatesBtn"
+     ],
+     "log": [],
+     "view": {}
+    },
+    {
+     "step": [
+      "clock",
+      2500
+     ],
+     "log": [],
+     "view": {
+      "disabled": {
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "checkForUpdatesBtn": "Check Now"
+      },
+      "checkBackground": ""
+     }
+    },
+    {
+     "step": [
+      "clock",
+      600
+     ],
+     "log": [],
+     "view": {}
+    },
+    {
+     "step": [
+      "change",
+      "#settingsPrereleaseUpdates",
+      true
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "prereleaseWarnModal": false
+      },
+      "checked": {
+       "settingsPrereleaseUpdates": true
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": true
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#dismissPrereleaseBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "prereleaseWarnModal": true
+      },
+      "checked": {
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsPrereleaseUpdates",
+      true
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "prereleaseWarnModal": false
+      },
+      "checked": {
+       "settingsPrereleaseUpdates": true
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": true
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#prereleaseWarnModal"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "prereleaseWarnModal": true
+      },
+      "checked": {
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsPrereleaseUpdates",
+      true
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "prereleaseWarnModal": false
+      },
+      "checked": {
+       "settingsPrereleaseUpdates": true
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": true
+      }
+     }
+    },
+    {
+     "step": [
+      "key",
+      "document",
+      "Escape"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "prereleaseWarnModal": true
+      },
+      "checked": {
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsPrereleaseUpdates",
+      true
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "prereleaseWarnModal": false
+      },
+      "checked": {
+       "settingsPrereleaseUpdates": true
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": true
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#closePrereleaseWarnModal"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "prereleaseWarnModal": true
+      },
+      "checked": {
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false
+      }
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsPrereleaseUpdates",
+      true
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "prereleaseWarnModal": false
+      },
+      "checked": {
+       "settingsPrereleaseUpdates": true
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": true
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#confirmPrereleaseBtn"
+     ],
+     "log": [
+      [
+       "setUpdateChannel",
+       "prerelease"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "prereleaseWarnModal": true
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false
+      },
+      "prereleaseWarning": true
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsPrereleaseUpdates",
+      false
+     ],
+     "log": [
+      [
+       "setUpdateChannel",
+       "stable"
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsPrereleaseUpdates": false
+      },
+      "prereleaseWarning": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#viewChangelogBtn"
+     ],
+     "log": [
+      [
+       "getChangelog"
+      ],
+      [
+       "pageError"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "changelogModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#closeChangelogBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "changelogModal": true
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#viewChangelogBtn"
+     ],
+     "log": [
+      [
+       "getChangelog"
+      ],
+      [
+       "pageError"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "changelogModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#changelogModal"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "changelogModal": true
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#viewChangelogBtn"
+     ],
+     "log": [
+      [
+       "getChangelog"
+      ],
+      [
+       "pageError"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "changelogModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#closeChangelogModal"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "changelogModal": true
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#openPrivacyPolicy"
+     ],
+     "log": [
+      [
+       "openExternal",
+       "https://sentry-six.com/privacy"
+      ]
+     ],
+     "view": {}
+    },
+    {
+     "step": [
+      "click",
+      "#openTermsOfService"
+     ],
+     "log": [
+      [
+       "openExternal",
+       "https://sentry-six.com/terms"
+      ]
+     ],
+     "view": {}
+    }
+   ]
+  },
+  {
+   "name": "hardware restart yes",
+   "foreign": false,
+   "settings": {
+    "timeFormat": "12h",
+    "hardwareVideoAcceleration": false
+   },
+   "context": {
+    "version": "2026.26.35 (web)"
+   },
+   "languages": [
+    "en-US"
+   ],
+   "confirm": true,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "en"
+      ],
+      [
+       "updateAccelPedMode",
+       "iconbar"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": true,
+       "shortcutsNavNewBadge": false,
+       "shortcutsNewBadge": false,
+       "nextClipNewDot": false,
+       "prevClipNewDot": false
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "en",
+       "settingsDateFormat": "ymd",
+       "settingsGlassBlur": "7",
+       "settingsDashboardLayout": "default",
+       "settingsAccelPedMode": "iconbar",
+       "settingsMapProvider": "google",
+       "settingsMapMode": "light",
+       "keybindPlayPause": "",
+       "keybindSkipForward": "",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "15",
+       "keybindToggleDash": "",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": false,
+       "settingsMetricToggle": false,
+       "settingsDashboardToggle": true,
+       "settingsCompactDashboardFixed": true,
+       "settingsMapToggle": true,
+       "settingsMapLabels": true,
+       "settingsSentryCameraHighlight": true,
+       "settingsSavedCameraHighlight": true,
+       "settingsMirrorCameras": true,
+       "settingsHardwareVideoAccel": false,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 15s",
+       "skipBackwardLabel": "Skip Backward 15s",
+       "glassBlurValue": "7px",
+       "settingsCurrentVersion": "v2026.26.35 (web)",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Learn More",
+       "checkForUpdatesBtn": "Check Now",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Skip Backward 15 seconds",
+       "skipBackBtn.label": "15",
+       "skipForwardBtn.title": "Skip Forward 15 seconds",
+       "skipForwardBtn.label": "15"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": false,
+      "prereleaseWarning": false,
+      "glassBlur": "7px",
+      "noGlass": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"playback\"]"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "display": "",
+       "playback": "active"
+      },
+      "sections": {
+       "display": "",
+       "playback": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-subtab-btn[data-subtab=\"cameras\"]"
+     ],
+     "log": [],
+     "view": {
+      "subtab": "cameras",
+      "panel": "cameras"
+     }
+    },
+    {
+     "step": [
+      "change",
+      "#settingsHardwareVideoAccel",
+      true
+     ],
+     "log": [
+      [
+       "setSetting",
+       "hardwareVideoAcceleration",
+       true
+      ],
+      [
+       "confirm",
+       "Hardware video acceleration will be turned on.\n\nThis change takes effect after a restart. Restart now?"
+      ],
+      [
+       "relaunchApp"
+      ]
+     ],
+     "view": {
+      "checked": {
+       "settingsHardwareVideoAccel": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "keybinds",
+   "foreign": false,
+   "settings": {
+    "timeFormat": "12h",
+    "keybinds": {
+     "playPause": {
+      "display": "Space",
+      "identifier": "space"
+     },
+     "skipForward": {
+      "display": "→",
+      "identifier": "arrowright"
+     },
+     "toggleDash": {
+      "display": "Ctrl + D",
+      "identifier": "ctrl+keyd"
+     },
+     "bogus": {
+      "display": "X",
+      "identifier": "keyx"
+     }
+    }
+   },
+   "context": {
+    "version": "2026.26.35 (web)"
+   },
+   "languages": [
+    "en-US"
+   ],
+   "confirm": false,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "en"
+      ],
+      [
+       "updateAccelPedMode",
+       "iconbar"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": true,
+       "shortcutsNavNewBadge": false,
+       "shortcutsNewBadge": false,
+       "nextClipNewDot": false,
+       "prevClipNewDot": false
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "en",
+       "settingsDateFormat": "ymd",
+       "settingsGlassBlur": "7",
+       "settingsDashboardLayout": "default",
+       "settingsAccelPedMode": "iconbar",
+       "settingsMapProvider": "google",
+       "settingsMapMode": "light",
+       "keybindPlayPause": "Space",
+       "keybindSkipForward": "→",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "15",
+       "keybindToggleDash": "Ctrl + D",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": false,
+       "settingsMetricToggle": false,
+       "settingsDashboardToggle": true,
+       "settingsCompactDashboardFixed": true,
+       "settingsMapToggle": true,
+       "settingsMapLabels": true,
+       "settingsSentryCameraHighlight": true,
+       "settingsSavedCameraHighlight": true,
+       "settingsMirrorCameras": true,
+       "settingsHardwareVideoAccel": true,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 15s",
+       "skipBackwardLabel": "Skip Backward 15s",
+       "glassBlurValue": "7px",
+       "settingsCurrentVersion": "v2026.26.35 (web)",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Learn More",
+       "checkForUpdatesBtn": "Check Now",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Skip Backward 15 seconds",
+       "skipBackBtn.label": "15",
+       "skipForwardBtn.title": "Skip Forward 15 seconds",
+       "skipForwardBtn.label": "15"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": false,
+      "prereleaseWarning": false,
+      "glassBlur": "7px",
+      "noGlass": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"shortcuts\"]"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "featureSeen_clipNavPreview",
+       true
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "shortcutsNavNewBadge": true
+      },
+      "nav": {
+       "display": "",
+       "shortcuts": "active"
+      },
+      "sections": {
+       "display": "",
+       "shortcuts": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".keybind-clear[data-action=\"playPause\"]"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "keybinds",
+       {
+        "skipForward": {
+         "display": "→",
+         "identifier": "arrowright"
+        },
+        "toggleDash": {
+         "display": "Ctrl + D",
+         "identifier": "ctrl+keyd"
+        },
+        "bogus": {
+         "display": "X",
+         "identifier": "keyx"
+        }
+       }
+      ]
+     ],
+     "view": {
+      "values": {
+       "keybindPlayPause": ""
+      }
+     }
+    },
+    {
+     "step": [
+      "focus",
+      "#keybindToggleMap"
+     ],
+     "log": [],
+     "view": {
+      "values": {
+       "keybindToggleMap": "Press a key or mouse button..."
+      },
+      "recording": [
+       "keybindToggleMap"
+      ]
+     }
+    },
+    {
+     "step": [
+      "focus",
+      "#keybindToggleDash"
+     ],
+     "log": [],
+     "view": {
+      "values": {
+       "keybindToggleDash": "Press a key or mouse button...",
+       "keybindToggleMap": ""
+      },
+      "recording": [
+       "keybindToggleDash"
+      ]
+     }
+    },
+    {
+     "step": [
+      "blur",
+      "#keybindToggleDash"
+     ],
+     "log": [],
+     "view": {
+      "values": {
+       "keybindToggleDash": "Ctrl + D"
+      },
+      "recording": []
+     }
+    },
+    {
+     "step": [
+      "focus",
+      "#keybindNextClip"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "featureSeen_clipNavPreview",
+       true
+      ],
+      [
+       "setSetting",
+       "featureSeen_clipNavPreview",
+       true
+      ],
+      [
+       "setSetting",
+       "featureSeen_clipNavPreview",
+       true
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "shortcutsNewBadge": true,
+       "nextClipNewDot": true,
+       "prevClipNewDot": true
+      },
+      "values": {
+       "keybindNextClip": "Press a key or mouse button..."
+      },
+      "recording": [
+       "keybindNextClip"
+      ]
+     }
+    },
+    {
+     "step": [
+      "blur",
+      "#keybindNextClip"
+     ],
+     "log": [],
+     "view": {
+      "values": {
+       "keybindNextClip": ""
+      },
+      "recording": []
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".keybind-clear[data-action=\"skipForward\"]"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "keybinds",
+       {
+        "toggleDash": {
+         "display": "Ctrl + D",
+         "identifier": "ctrl+keyd"
+        },
+        "bogus": {
+         "display": "X",
+         "identifier": "keyx"
+        }
+       }
+      ]
+     ],
+     "view": {
+      "values": {
+       "keybindSkipForward": ""
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".keybind-clear[data-action=\"speedMax\"]"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "keybinds",
+       {
+        "toggleDash": {
+         "display": "Ctrl + D",
+         "identifier": "ctrl+keyd"
+        },
+        "bogus": {
+         "display": "X",
+         "identifier": "keyx"
+        }
+       }
+      ]
+     ],
+     "view": {}
+    }
+   ]
+  },
+  {
+   "name": "badges",
+   "foreign": false,
+   "settings": {
+    "timeFormat": "12h"
+   },
+   "context": {
+    "version": "2026.26.35 (web)"
+   },
+   "languages": [
+    "en-US"
+   ],
+   "confirm": false,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "en"
+      ],
+      [
+       "updateAccelPedMode",
+       "iconbar"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": true,
+       "shortcutsNavNewBadge": false,
+       "shortcutsNewBadge": false,
+       "nextClipNewDot": false,
+       "prevClipNewDot": false
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "en",
+       "settingsDateFormat": "ymd",
+       "settingsGlassBlur": "7",
+       "settingsDashboardLayout": "default",
+       "settingsAccelPedMode": "iconbar",
+       "settingsMapProvider": "google",
+       "settingsMapMode": "light",
+       "keybindPlayPause": "",
+       "keybindSkipForward": "",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "15",
+       "keybindToggleDash": "",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": false,
+       "settingsMetricToggle": false,
+       "settingsDashboardToggle": true,
+       "settingsCompactDashboardFixed": true,
+       "settingsMapToggle": true,
+       "settingsMapLabels": true,
+       "settingsSentryCameraHighlight": true,
+       "settingsSavedCameraHighlight": true,
+       "settingsMirrorCameras": true,
+       "settingsHardwareVideoAccel": true,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 15s",
+       "skipBackwardLabel": "Skip Backward 15s",
+       "glassBlurValue": "7px",
+       "settingsCurrentVersion": "v2026.26.35 (web)",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Learn More",
+       "checkForUpdatesBtn": "Check Now",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Skip Backward 15 seconds",
+       "skipBackBtn.label": "15",
+       "skipForwardBtn.title": "Skip Forward 15 seconds",
+       "skipForwardBtn.label": "15"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": false,
+      "prereleaseWarning": false,
+      "glassBlur": "7px",
+      "noGlass": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"shortcuts\"]"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "featureSeen_clipNavPreview",
+       true
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "shortcutsNavNewBadge": true
+      },
+      "nav": {
+       "display": "",
+       "shortcuts": "active"
+      },
+      "sections": {
+       "display": "",
+       "shortcuts": "open"
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".settings-nav-item[data-target=\"display\"]"
+     ],
+     "log": [],
+     "view": {
+      "nav": {
+       "display": "active",
+       "shortcuts": ""
+      },
+      "sections": {
+       "display": "open",
+       "shortcuts": ""
+      }
+     }
+    },
+    {
+     "step": [
+      "focus",
+      "#keybindPrevClip"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "featureSeen_clipNavPreview",
+       true
+      ],
+      [
+       "setSetting",
+       "featureSeen_clipNavPreview",
+       true
+      ],
+      [
+       "setSetting",
+       "featureSeen_clipNavPreview",
+       true
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "shortcutsNewBadge": true,
+       "nextClipNewDot": true,
+       "prevClipNewDot": true
+      },
+      "values": {
+       "keybindPrevClip": "Press a key or mouse button..."
+      },
+      "recording": [
+       "keybindPrevClip"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "title clicks",
+   "foreign": false,
+   "settings": {
+    "timeFormat": "12h"
+   },
+   "context": {
+    "version": "2026.26.35 (web)"
+   },
+   "languages": [
+    "en-US"
+   ],
+   "confirm": false,
+   "steps": [
+    {
+     "step": [
+      "start"
+     ],
+     "log": [
+      [
+       "setSetting",
+       "language",
+       "en"
+      ],
+      [
+       "updateAccelPedMode",
+       "iconbar"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ],
+      [
+       "updateEventCameraHighlight"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true,
+       "prereleaseWarnModal": true,
+       "changelogModal": true,
+       "securityLearnMoreDetails": true,
+       "settingsNoResults": true,
+       "settingsSearchClear": true,
+       "settingsCompactDashboardFixedRow": true,
+       "shortcutsNavNewBadge": false,
+       "shortcutsNewBadge": false,
+       "nextClipNewDot": false,
+       "prevClipNewDot": false
+      },
+      "nav": {
+       "display": "active",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "sections": {
+       "display": "open",
+       "playback": "",
+       "shortcuts": "",
+       "storage": "",
+       "sentryusb": "",
+       "about": ""
+      },
+      "subtab": "dashboard",
+      "panel": "dashboard",
+      "searching": false,
+      "searchHidden": [],
+      "values": {
+       "settingsSearchInput": "",
+       "settingsLanguage": "en",
+       "settingsDateFormat": "ymd",
+       "settingsGlassBlur": "7",
+       "settingsDashboardLayout": "default",
+       "settingsAccelPedMode": "iconbar",
+       "settingsMapProvider": "google",
+       "settingsMapMode": "light",
+       "keybindPlayPause": "",
+       "keybindSkipForward": "",
+       "keybindSkipBackward": "",
+       "settingsSkipDuration": "15",
+       "keybindToggleDash": "",
+       "keybindToggleMap": "",
+       "keybindToggleMetric": "",
+       "keybindToggleClips": "",
+       "keybindSetMarkerIn": "",
+       "keybindSetMarkerOut": "",
+       "keybindNextClip": "",
+       "keybindPrevClip": "",
+       "keybindSpeedUp": "",
+       "keybindSpeedDown": "",
+       "keybindSpeedReset": "",
+       "keybindSpeedMax": "",
+       "defaultFolderPath": "/srv/footage/TeslaCam",
+       "driveDataFilePath": ""
+      },
+      "checked": {
+       "settingsLayoutStyle": false,
+       "settingsMetricToggle": false,
+       "settingsDashboardToggle": true,
+       "settingsCompactDashboardFixed": true,
+       "settingsMapToggle": true,
+       "settingsMapLabels": true,
+       "settingsSentryCameraHighlight": true,
+       "settingsSavedCameraHighlight": true,
+       "settingsMirrorCameras": true,
+       "settingsHardwareVideoAccel": true,
+       "settingsShowDriveStats": true,
+       "settingsShowFsdEvents": true,
+       "settingsPrereleaseUpdates": false
+      },
+      "disabled": {
+       "settingsPrereleaseUpdates": false,
+       "checkForUpdatesBtn": false
+      },
+      "texts": {
+       "skipForwardLabel": "Skip Forward 15s",
+       "skipBackwardLabel": "Skip Backward 15s",
+       "glassBlurValue": "7px",
+       "settingsCurrentVersion": "v2026.26.35 (web)",
+       "securityDetailOS": "---",
+       "securityDetailArch": "---",
+       "securityLearnMoreLink": "Learn More",
+       "checkForUpdatesBtn": "Check Now",
+       "fullChangelogContent": "Loading changelog...",
+       "skipBackBtn.title": "Skip Backward 15 seconds",
+       "skipBackBtn.label": "15",
+       "skipForwardBtn.title": "Skip Forward 15 seconds",
+       "skipForwardBtn.label": "15"
+      },
+      "recording": [],
+      "checkBackground": "",
+      "satelliteHidden": false,
+      "prereleaseWarning": false,
+      "glassBlur": "7px",
+      "noGlass": false
+     }
+    },
+    {
+     "step": [
+      "click",
+      "#settingsBtn"
+     ],
+     "log": [],
+     "view": {
+      "hidden": {
+       "settingsModal": false
+      }
+     }
+    },
+    {
+     "step": [
+      "click",
+      ".modal-header h2"
+     ],
+     "log": [],
+     "view": {}
+    },
+    {
+     "step": [
+      "click",
+      ".modal-header h2"
+     ],
+     "log": [],
+     "view": {}
+    },
+    {
+     "step": [
+      "click",
+      ".modal-header h2"
+     ],
+     "log": [],
+     "view": {}
+    },
+    {
+     "step": [
+      "click",
+      ".modal-header h2"
+     ],
+     "log": [],
+     "view": {}
+    },
+    {
+     "step": [
+      "clock",
+      10000
+     ],
+     "log": [],
+     "view": {}
+    },
+    {
+     "step": [
+      "click",
+      ".modal-header h2"
+     ],
+     "log": [],
+     "view": {}
+    },
+    {
+     "step": [
+      "click",
+      ".modal-header h2"
+     ],
+     "log": [],
+     "view": {}
+    },
+    {
+     "step": [
+      "click",
+      ".modal-header h2"
+     ],
+     "log": [],
+     "view": {}
+    },
+    {
+     "step": [
+      "click",
+      ".modal-header h2"
+     ],
+     "log": [],
+     "view": {}
+    },
+    {
+     "step": [
+      "click",
+      ".modal-header h2"
+     ],
+     "log": [
+      [
+       "openDevSettings"
+      ]
+     ],
+     "view": {
+      "hidden": {
+       "settingsModal": true
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

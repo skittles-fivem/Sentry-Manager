@@ -366,6 +366,30 @@ brightness(0.85) contrast(1.2). viewer-map-off: Settings > GPS Map off
 (mapEnabled false): no map. The hint and the two buttons show only under
 the pointer (capture.js moves it off), so no picture has them.
 
+The settings modal (part 11): the new states click the controls bar's gear
+and then take capture.js's SETTINGS_STEPS in Studio's frame (the native
+render replays the same steps from the variant's `viewerSettings`):
+viewer-settings: the modal as it opens (Display: Language English, Classic
+Sidebar and Metric Units off, Date Format YYYY-MM-DD, Glass Blur 7px; the
+Keyboard Shortcuts nav item's NEW badge). viewer-settings-playback:
+Playback & Overlays' Dashboard sub-tab (Dashboard Overlay on, Default,
+Icon Bar). viewer-settings-map: its Map sub-tab (GPS Map on, Google Maps,
+Light, Map Labels on). viewer-settings-cameras: its Cameras sub-tab (the
+two glows, Mirror Cameras and Hardware Video Acceleration on, with its
+words, and Reset Camera Order). viewer-settings-shortcuts: Keyboard
+Shortcuts with three keys saved (keybinds: Space, →, Ctrl + D; the nav
+item's badge gone, as the click dismisses it; Skip Forward / Backward 15s,
+Skip Duration 15s, the Next / Previous Clip dots). viewer-settings-about:
+System & Security with Learn More's table open ("Hide Details"; OS and
+Architecture ---, App Version v plus GET /api/studio/context's version).
+viewer-settings-search: "map" typed in the search box (focused): Playback
+& Overlays, Keyboard Shortcuts and SentryUSB highlighted, Playback's rows
+with "map" (GPS Map, Map Provider, Map Style, Map Labels) and Reset Camera
+Order (action rows stay when search-hidden, as style.css hides only toggle
+and select rows), then every Shortcuts row (keybind rows stay too).
+viewer-settings-none: "zzz": No matching settings found. The Viewer
+behind the dim is the default day as in viewer.
+
 - builtin overview
 - builtin overview-off
 - builtin overview-logs
@@ -450,6 +474,14 @@ the pointer (capture.js moves it off), so no picture has them.
 - builtin viewer-map-north
 - builtin viewer-map-dark
 - builtin viewer-map-off
+- builtin viewer-settings
+- builtin viewer-settings-playback
+- builtin viewer-settings-map
+- builtin viewer-settings-cameras
+- builtin viewer-settings-shortcuts
+- builtin viewer-settings-about
+- builtin viewer-settings-search
+- builtin viewer-settings-none
 
 ## The UI packs' pages (phases 4-7)
 

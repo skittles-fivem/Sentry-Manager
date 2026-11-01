@@ -71,6 +71,28 @@ const FOCUS_STEPS = [['tile-click', 'tc']];
 const ZOOM_STEPS = [['tile-click', 'bc'], ['tile-wheel', 'bc', -4], ['tile-pan', 'bc', [-150, -80]]];
 const tileSteps = (steps) => steps.map(([kind, slot, value]) => [kind, `.multi-tile[data-slot="${slot}"]`, value]);
 
+// The settings modal's states (Viewer part 11): the steps taken in Studio's frame after the gear
+// is clicked, as [kind, selector, value] (click, fill). Display (the modal as it opens), Playback's
+// three sub-tabs, Shortcuts with three keys saved, System with Learn More's table, a search that
+// finds rows in three sections and one that finds nothing.
+const SETTINGS_NAV = (target) => ['click', `.settings-nav-item[data-target="${target}"]`];
+const SETTINGS_SUBTAB = (id) => ['click', `.settings-subtab-btn[data-subtab="${id}"]`];
+const SETTINGS_STEPS = {
+  'viewer-settings': [],
+  'viewer-settings-playback': [SETTINGS_NAV('playback')],
+  'viewer-settings-map': [SETTINGS_NAV('playback'), SETTINGS_SUBTAB('map')],
+  'viewer-settings-cameras': [SETTINGS_NAV('playback'), SETTINGS_SUBTAB('cameras')],
+  'viewer-settings-shortcuts': [SETTINGS_NAV('shortcuts')],
+  'viewer-settings-about': [SETTINGS_NAV('about'), ['click', '#securityLearnMoreLink']],
+  'viewer-settings-search': [['fill', '#settingsSearchInput', 'map']],
+  'viewer-settings-none': [['fill', '#settingsSearchInput', 'zzz']]
+};
+const SETTINGS_KEYBINDS = {
+  playPause: { display: 'Space', identifier: 'space' },
+  skipForward: { display: '→', identifier: 'arrowright' },
+  toggleDash: { display: 'Ctrl + D', identifier: 'ctrl+keyd' }
+};
+
 const PAGES = {
   login: { signedIn: false, path: '/login' },
   shell: { signedIn: true, path: '/' },
@@ -197,7 +219,10 @@ const PAGES = {
   'viewer-map': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] },
   'viewer-map-north': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['click', '#mapOrientationBtn'], ['event', 'video', 'timeupdate']] },
   'viewer-map-dark': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] },
-  'viewer-map-off': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] }
+  'viewer-map-off': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] },
+  // the settings modal (part 11): the gear on the controls bar, then each SETTINGS_STEPS state's
+  // clicks and typing in the modal (the native render replays the same steps: viewerSettings)
+  ...Object.fromEntries(Object.entries(SETTINGS_STEPS).map(([k, steps]) => [k, { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['click', '#settingsBtn'], ...steps] }]))
 };
 
 // each pack page module's pages, as "<pack>:<name>" (the picture is <pack>-<name>-<w>x<h>.png)
@@ -369,6 +394,8 @@ const VARIANTS = {
   'viewer-map-north': (api) => ({ route: 'viewer', viewerTimeupdate: true, viewerMapNorth: true, api: telemetryOf(api, routeFrames()) }),
   'viewer-map-dark': (api) => ({ route: 'viewer', viewerTimeupdate: true, api: { ...telemetryOf(api, routeFrames()), ...studioSettings(api, { mapTileProvider: 'osm', mapDarkMode: true }) } }),
   'viewer-map-off': (api) => ({ route: 'viewer', viewerTimeupdate: true, api: { ...telemetryOf(api, routeFrames()), ...studioSettings(api, { mapEnabled: false }) } }),
+  // (viewerSettings: the native render replays the same steps on its settings modal)
+  ...Object.fromEntries(Object.entries(SETTINGS_STEPS).map(([k, steps]) => [k, (api) => ({ route: 'viewer', viewerSettings: [['click', '#settingsBtn'], ...steps], ...(k === 'viewer-settings-shortcuts' ? { api: studioSettings(api, { keybinds: SETTINGS_KEYBINDS }) } : {}) })])),
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },
@@ -640,7 +667,9 @@ function fixturePaths(vehicle, days) {
     ...days.map((d) => `/api/vehicles/${v}/recordings?${new URLSearchParams({ category: 'all', date: d, limit: '500' })}`),
     '/api/stats', '/api/stats/history?range=24h', '/api/logs?level=problems', '/api/logs?level=all', '/api/logs/archive',
     '/api/security', '/api/system', '/api/system/volumes', '/api/updates', '/api/ui-packs', '/api/speeds/status', '/api/settings/network',
-    '/api/studio/settings'
+    '/api/studio/settings',
+    // (the settings modal's App Version)
+    '/api/studio/context'
   ];
   const posts = ['getAuto', 'getCapabilities', 'devices'].map((n) => `/api/converter/invoke/${n}`);
   return { gets, posts };
@@ -841,6 +870,8 @@ async function shoot(browser, base, ui, pageName, size, file, vehicle, fixture) 
       const studio = page.frameLocator('iframe[title^="Sentry Studio"]');
       for (const [kind, sel, value] of spec.frame) {
         if (kind === 'select') await studio.locator(sel).first().selectOption(value);
+        // (typing in a field: the settings search)
+        else if (kind === 'fill') await studio.locator(sel).first().fill(value);
         // (an event sent to every element the selector finds, e.g. the videos' timeupdate)
         else if (kind === 'event') await studio.locator(sel).evaluateAll((els, type) => { for (const el of els) el.dispatchEvent(new Event(type)); }, value);
         else if (kind.startsWith('tile-')) {

@@ -1218,6 +1218,62 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   double click, right-button drag while turned, the buttons on hover,
   the panel's drag, the fallback toast with Google blocked.
 
+### Phase 2: Viewer part 11, the settings modal (2026-11-01)
+
+- `Core/ViewerSettings.cs` (C# 5): `SettingsLayout` (the modal's markup in
+  English: nav, sections, rows, options, the NEW badges and their
+  featureSeen_* keys, the prompt's and changelog's words),
+  `IViewerSettingsHost` (what script.js and mapTiles.js give the modal:
+  the toggles' state, the layout style, the map provider and labels; each
+  call it makes as a JSON array; window.confirm) and `ViewerSettingsModal`
+  (the page's state: hidden flags, nav and section classes, sub-tab,
+  search-hidden rows, values, checks, words, timers; `Load` = initI18n +
+  initSettingsModal's reads; `Step(kind, selector, value)` = a click,
+  change, input, fill, slide, focus, blur, key or clock; `Snapshot` = what
+  the parity test reads).
+- `Ui/Builtin/ViewerSettings.cs`: `StudioSettingsModal` (binders redraw
+  from the model on each change; its timer follows `NextTimer`;
+  `LookFocused` for the render test mode's typed search). `StudioSelect`
+  (ViewerClips.cs) got `LabelFont` (the settings' selects use Arial as
+  Chrome does).
+- `StudioViewer`: `Settings`, `SettingsView`, the gear opens it;
+  `ReadSettings` is a Task now, also reads GET /api/studio/context and
+  loads the modal; `SettingsHost` applies the calls (the dashboard's
+  setters run without their own save where script.js saves nothing:
+  updateDashboardLayout, updateCompactDashboardPositioning,
+  updateAccelPedMode); Hardware Video Acceleration goes to
+  `Player.Hardware` when the Player is made; Restart now is
+  `ViewerSlot.Reload` and back to the Viewer.
+- Render test mode: variants viewer-settings, -playback, -map, -cameras,
+  -shortcuts (keybinds saved), -about, -search, -none with `viewerSettings`
+  (the same steps capture.js takes after the gear; `fill` draws the search
+  box focused). `Shell/RenderFixture.json`: those variants and GET
+  /api/studio/context injected from a capture run; capture.js: frame step
+  kind `fill`, SETTINGS_STEPS, SETTINGS_KEYBINDS, '/api/studio/context' in
+  the fixture's GETs. The web pictures were taken here (Playwright from
+  /opt/node-tools, Chromium from /opt/pw-browsers); sizes were read from
+  them with getComputedStyle (the modal is 700 x 657 at every size: the
+  phone draws the 900 px frame scaled).
+- test/windowsNativeViewerSettings.test.js: index.html's three modals
+  parsed into a pretend DOM (classes, values, range sanitising, select
+  value rules, events with bubbling, focus and blur), the web's i18n.js,
+  settingsModal.js, keybinds.js and exportVideo.js's badge code, the
+  shim's own getSetting / setSetting and update lines; 14 sessions;
+  each step's view stored as what changed. Studio's own quirks are kept
+  on both sides: the changelog's TypeError (getChangelog answers null),
+  the pre-release toggle left on after the shim refuses, the language
+  change wiping the skip labels' length, "nullpx" for a null Glass Blur,
+  untranslated keys in German. Sessions in another language
+  (`foreign`) are compared without their words.
+- Part 15's notes: `ViewerPage.Complete` stays false (keys, export and
+  phone layout are not in), so the browser fallback stays; Footage's Play
+  day / Play recording already go through `ViewerSlot.Open`.
+- To check on Windows: the dotnet build; viewer-settings* against the
+  web's (the selects' widths and arrow, the nav's wrapped words and the
+  badge running past the sidebar, the table's columns); by hand: each
+  switch, select and the slider, the search, Done / × / the dim, the
+  Restart question, the prompt's Escape.
+
 ## UI packs, phases 4-7 (the packs session, 2026-10-31)
 
 A separate session builds the four packs' pages natively while the other

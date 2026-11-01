@@ -13763,6 +13763,21 @@
      "IBc="
     ]
    ]
+  },
+  "GET /api/studio/context": {
+   "version": "2026.26.35 (web)",
+   "deployment": "linux",
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3",
+     "root": "/srv/sentry-parity/footage",
+     "timezone": "UTC"
+    }
+   ],
+   "outputRoots": [
+    "/srv/sentry-parity/data/converted"
+   ]
   }
  },
  "variants": {
@@ -18991,6 +19006,139 @@
      "mapEnabled": false
     }
    }
+  },
+  "viewer-settings": {
+   "route": "viewer",
+   "viewerSettings": [
+    [
+     "click",
+     "#settingsBtn"
+    ]
+   ]
+  },
+  "viewer-settings-playback": {
+   "route": "viewer",
+   "viewerSettings": [
+    [
+     "click",
+     "#settingsBtn"
+    ],
+    [
+     "click",
+     ".settings-nav-item[data-target=\"playback\"]"
+    ]
+   ]
+  },
+  "viewer-settings-map": {
+   "route": "viewer",
+   "viewerSettings": [
+    [
+     "click",
+     "#settingsBtn"
+    ],
+    [
+     "click",
+     ".settings-nav-item[data-target=\"playback\"]"
+    ],
+    [
+     "click",
+     ".settings-subtab-btn[data-subtab=\"map\"]"
+    ]
+   ]
+  },
+  "viewer-settings-cameras": {
+   "route": "viewer",
+   "viewerSettings": [
+    [
+     "click",
+     "#settingsBtn"
+    ],
+    [
+     "click",
+     ".settings-nav-item[data-target=\"playback\"]"
+    ],
+    [
+     "click",
+     ".settings-subtab-btn[data-subtab=\"cameras\"]"
+    ]
+   ]
+  },
+  "viewer-settings-shortcuts": {
+   "route": "viewer",
+   "viewerSettings": [
+    [
+     "click",
+     "#settingsBtn"
+    ],
+    [
+     "click",
+     ".settings-nav-item[data-target=\"shortcuts\"]"
+    ]
+   ],
+   "api": {
+    "GET /api/studio/settings": {
+     "timeFormat": "12h",
+     "keybinds": {
+      "playPause": {
+       "display": "Space",
+       "identifier": "space"
+      },
+      "skipForward": {
+       "display": "→",
+       "identifier": "arrowright"
+      },
+      "toggleDash": {
+       "display": "Ctrl + D",
+       "identifier": "ctrl+keyd"
+      }
+     }
+    }
+   }
+  },
+  "viewer-settings-about": {
+   "route": "viewer",
+   "viewerSettings": [
+    [
+     "click",
+     "#settingsBtn"
+    ],
+    [
+     "click",
+     ".settings-nav-item[data-target=\"about\"]"
+    ],
+    [
+     "click",
+     "#securityLearnMoreLink"
+    ]
+   ]
+  },
+  "viewer-settings-search": {
+   "route": "viewer",
+   "viewerSettings": [
+    [
+     "click",
+     "#settingsBtn"
+    ],
+    [
+     "fill",
+     "#settingsSearchInput",
+     "map"
+    ]
+   ]
+  },
+  "viewer-settings-none": {
+   "route": "viewer",
+   "viewerSettings": [
+    [
+     "click",
+     "#settingsBtn"
+    ],
+    [
+     "fill",
+     "#settingsSearchInput",
+     "zzz"
+    ]
+   ]
   }
  },
  "prefs": {}

@@ -350,6 +350,10 @@ namespace SentrySix.Ui.Builtin
         DispatcherTimer mapSettle, mapResize;
         readonly JsonValue renderDash;
         bool stillPlaysOn;
+        readonly ViewerSettingsModal settings;
+        readonly StudioSettingsModal settingsView;
+        Task settingsRead;
+        bool hardware = true;
 
         public StudioViewer(ShellModel shell, IJsonApi api, ViewerStart start, bool still)
             : this(shell, api, start, still, null)
@@ -484,6 +488,12 @@ namespace SentrySix.Ui.Builtin
                 // (the render test mode: updateMapVisibility's settle comes before the still's tick)
                 if (still) map.Settle();
             };
+            // the settings modal (part 11): the gear on the controls bar opens it
+            settings = new ViewerSettingsModal(new SettingsHost(this));
+            settings.Changed += SettingsChanged;
+            settingsView = new StudioSettingsModal(settings, still);
+            root.Children.Add(settingsView);
+            controls.SettingsPressed += () => settings.Step("click", "#settingsBtn", null);
             root.SizeChanged += delegate
             {
                 mapPanel.KeepInView();
@@ -493,7 +503,7 @@ namespace SentrySix.Ui.Builtin
                 if (dash.Settings.CompactFixed) PlaceCompact();
                 else dash.Compact.FitFree(new Point(dash.Compact.Margin.Left, dash.Compact.Margin.Top), root.ActualHeight);
             };
-            ReadSettings();
+            settingsRead = ReadSettings();
 
             if (Start.StartFolder == null)
             {
@@ -562,6 +572,7 @@ namespace SentrySix.Ui.Builtin
             if (disposed) return;
             if (own) HideLoading();
             if (still) Settle();
+            if (still) await ReplaySettings();
             if (still && renderOpen != null)
             {
                 ClipListItem first = clips.FirstDeletable();
@@ -579,9 +590,10 @@ namespace SentrySix.Ui.Builtin
         /// The Studio settings the clip list uses (GET /api/studio/settings, as
         /// the shim's getSetting reads them; {} when it fails): layoutStyle and
         /// sidebarWidth for the panel's mode (with this PC's remembered one),
-        /// dateFormat for the day list.
+        /// dateFormat for the day list; then the settings modal's own reads
+        /// (with GET /api/studio/context for its App Version).
         /// </summary>
-        async void ReadSettings()
+        async Task ReadSettings()
         {
             JsonValue all;
             try { all = await api.Get("/api/studio/settings", life.Token); }
@@ -610,6 +622,134 @@ namespace SentrySix.Ui.Builtin
             {
                 library.DateFormat = dateFormat;
                 clips.SetDays(library);
+            }
+            // Settings > Hardware Video Acceleration (read at start: a change asks to restart)
+            JsonValue hw = all["hardwareVideoAcceleration"];
+            hardware = !(hw.IsBool && !hw.Bool);
+            Player made = Player;
+            if (made != null) made.Hardware = hardware;
+            JsonValue context;
+            try { context = await api.Get("/api/studio/context", life.Token); }
+            catch (Exception) { context = JsonValue.Object(); }
+            if (disposed) return;
+            if (context == null || !context.IsObject) context = JsonValue.Object();
+            // (navigator.languages: this PC's display language; the render test mode's browser is en-US)
+            string lang = still ? "en-US" : System.Globalization.CultureInfo.CurrentUICulture.Name;
+            settings.Load(all, context, Start.StartFolder, new[] { lang });
+        }
+
+        // ---- the settings modal (part 11) -------------------------------------------------
+
+        /// <summary>The settings modal's state (the keys of part 12 leave the page alone while it is open).</summary>
+        public ViewerSettingsModal Settings { get { return settings; } }
+
+        /// <summary>#settingsModal's view.</summary>
+        public StudioSettingsModal SettingsView { get { return settingsView; } }
+
+        /// <summary>Skip Duration changed (window._skipDuration): the skip buttons' length, numbers and titles.</summary>
+        void SettingsChanged()
+        {
+            JsonValue d = settings.SkipDuration;
+            if (d.ToJson() == skipLength.ToJson()) return;
+            skipLength = d;
+            controls.SetSkip(skipLength);
+        }
+
+        /// <summary>The render test mode: the variant's steps in the settings modal (viewerSettings: capture.js's clicks and typing after the gear).</summary>
+        async Task ReplaySettings()
+        {
+            JsonValue steps = renderDash != null ? renderDash["viewerSettings"] : JsonValue.Null;
+            if (!steps.IsArray) return;
+            try { await settingsRead; }
+            catch (Exception) { }
+            if (disposed) return;
+            foreach (JsonValue st in steps.Items)
+            {
+                string kind = st[0].Str;
+                settings.Step(kind, st[1].Str, st.Count > 2 ? st[2] : null);
+                if (kind == "fill") settingsView.LookFocused("settingsSearchInput");
+            }
+        }
+
+        /// <summary>What the settings modal asks of the Viewer (script.js's handlers and mapTiles.js, natively).</summary>
+        sealed class SettingsHost : IViewerSettingsHost
+        {
+            readonly StudioViewer v;
+            public SettingsHost(StudioViewer v) { this.v = v; }
+
+            public bool DashboardEnabled { get { return v.dash.Settings.Enabled; } }
+            public bool MapEnabled { get { return v.map.Enabled; } }
+            public bool UseMetric { get { return v.dash.Settings.Metric; } }
+            public string LayoutStyle { get { string l = v.clips.Mode.Layout; return string.IsNullOrEmpty(l) ? "modern" : l; } }
+            public string MapProvider { get { return v.map.Tiles.SelectedId; } }
+            public bool MapLabels { get { return v.map.Tiles.Labels; } }
+
+            /// <summary>The dashboard's setters without their own save (updateDashboardLayout and the like save nothing: the modal saved first).</summary>
+            void Quiet(Action a)
+            {
+                Action<string, JsonValue> keep = v.dash.Save;
+                v.dash.Save = null;
+                try { a(); }
+                finally { v.dash.Save = keep; }
+            }
+
+            public void Call(JsonValue call)
+            {
+                if (v.disposed) return;
+                string name = call[0].Str;
+                JsonValue a = call[1];
+                switch (name)
+                {
+                    case "setSetting": v.SaveSetting(a.Str, call[2]); break;
+                    // the hidden toggles' handlers (they save dashboardEnabled, mapEnabled, useMetric)
+                    case "dashboardToggle": v.DashboardEnabled = a.Bool; break;
+                    case "mapToggle": v.MapEnabled = a.Bool; break;
+                    case "metricToggle": v.dash.SetMetric(a.Bool); break;
+                    case "updateDashboardLayout": Quiet(() => v.dash.SetLayout(a.Str)); break;
+                    case "updateCompactDashboardPositioning": Quiet(() => v.dash.SetCompactFixed(a.Bool)); break;
+                    case "updateAccelPedMode": Quiet(() => v.dash.SetAccelMode(a.Str)); break;
+                    // mapTiles.js (saves mapTileProvider, mapLabels)
+                    case "setMapTileProvider": v.mapPanel.SetProvider(a.Str); break;
+                    case "setMapLabels": v.mapPanel.SetLabels(a.Bool); break;
+                    case "applyMapDarkMode": v.map.Tiles.SetDark(a.Bool); v.mapPanel.Draw(); break;
+                    case "dateFormatChanged":
+                        v.dateFormat = a.Str;
+                        if (v.library != null) { v.library.DateFormat = v.dateFormat; v.clips.SetDays(v.library); }
+                        break;
+                    case "mirrorCamerasChanged": v.grid.SetMirror(a.Bool); break;
+                    case "updateEventCameraHighlight":
+                        v.grid.SetGlow(v.settings.Checked("settingsSentryCameraHighlight"), v.settings.Checked("settingsSavedCameraHighlight"));
+                        if (v.library != null && v.library.Active != null) v.grid.UpdateGlow(v.library.Active, v.library);
+                        break;
+                    case "resetCameraOrder": v.grid.ResetOrder(v.Notify, v.library != null ? v.library.Active : null, v.library); break;
+                    // panelMode.js's setLayoutStyle (saves layoutStyle)
+                    case "setLayoutStyle":
+                        v.SaveSetting("layoutStyle", a);
+                        v.clips.SetLayout(a.Str);
+                        v.VideoMoved();
+                        break;
+                    // relaunchApp (the web reloads the page): this Viewer made again at the same address
+                    case "relaunchApp":
+                        ViewerSlot.Of(v.shell).Reload(v);
+                        v.shell.Navigate(ViewerSlot.Key);
+                        break;
+                    case "openExternal":
+                        if (v.still) break;
+                        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(a.Str) { UseShellExecute = true }); }
+                        catch (Exception) { }
+                        break;
+                    // (checkForUpdates, setUpdateChannel, getChangelog: the web has none of them either;
+                    // openDevSettings: Studio's developer settings are not in the manager's Viewer)
+                }
+            }
+
+            /// <summary>window.confirm: OK and Cancel over the window (the render test mode answers Cancel).</summary>
+            public bool Confirm(string text)
+            {
+                if (v.still) return false;
+                Window w = Window.GetWindow(v.root);
+                MessageBoxResult r = w != null ? MessageBox.Show(w, text, "Sentry Six Manager", MessageBoxButton.OKCancel) : MessageBox.Show(text, "Sentry Six Manager", MessageBoxButton.OKCancel);
+                return r == MessageBoxResult.OK;
             }
         }
 
@@ -1222,6 +1362,7 @@ namespace SentrySix.Ui.Builtin
             if (disposed) return null;
             relay = new MediaRelay(real);
             Player p = new Player(relay, ff, fp, paths);
+            p.Hardware = hardware;
             p.SetRate(playbackRate);
             p.Tick += OnTick;
             p.PreloadStarted += PrefetchTelemetry;
