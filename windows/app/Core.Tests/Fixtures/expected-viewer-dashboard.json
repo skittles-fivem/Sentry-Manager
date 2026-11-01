@@ -1,0 +1,6637 @@
+{
+ "records": {
+  "empty": "",
+  "drive": "CAEQARiSISUAAIhBLWZm5j41AAAMwjgBUAJZv30dOGdEPkBhFmpN845vWMBpAAAAAADwYEBxhetRuB6FB0B5AAAAAAAADMCBAZqZmZmZmbk/",
+  "drive2": "CAEQARiTISWamYlBLQAAAD81AAD0wTgBQAFQAlkGKuPfZ0Q+QGEo1T4dj29YwGnhehSuR/FgQHGF61G4HoUHQHkAAAAAAAAMwA==",
+  "reverse": "EAIYgICAgICAgBAlAAAgwC0AABRCNQAgzkNIAVADWW7P4ns170DAYWb2eYyy5mJAaQAAAAAAgEbAcSUGgZVDiyfAeQAAAAAAADlA",
+  "odd": "EAclzcxMPi0AABZDUAFZje21oPfGoD5hVOQQcXMqub5pj8L1KFx/dkBxAAAAAAAAFkB5AAAAAAAA4D8=",
+  "neutral": "EAMtCtcjPTUK1yM9UAVpAAAAAACANkB5zczMzMzMCEA=",
+  "nan": "JQAAwH8tAADAfzUAAMB/WQAAAAAAAPh/aQAAAAAAAPh/cQAAAAAAAPh/"
+ },
+ "steps": [
+  {
+   "op": "resetAll",
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     null,
+     null
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "empty",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "0",
+     "speedUnit": "MPH",
+     "speedValueCompact": "0",
+     "speedUnitCompact": "MPH",
+     "gearState": "Park",
+     "gearStateCompact": "Park",
+     "apText": "Manual",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.0",
+     "gforceY": "+0.0",
+     "compassValue": "0° N",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(100% 0 0 0)",
+     "inset(100% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "frames",
+   "frames": [
+    16,
+    16
+   ],
+   "rate": 1,
+   "after": {
+    "texts": {
+     "speedValue": "0",
+     "speedUnit": "MPH",
+     "speedValueCompact": "0",
+     "speedUnitCompact": "MPH",
+     "gearState": "Park",
+     "gearStateCompact": "Park",
+     "apText": "Manual",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.0",
+     "gforceY": "+0.0",
+     "compassValue": "0° N",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(100% 0 0 0)",
+     "inset(100% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "drive",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     0,
+     1,
+     0
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "frames",
+   "frames": [
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16
+   ],
+   "rate": 1,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     0,
+     1,
+     0
+    ],
+    "steering": [
+     "rotate(-35deg)",
+     "rotate(-35deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "drive",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     0,
+     1,
+     0
+    ],
+    "steering": [
+     "rotate(-35deg)",
+     "rotate(-35deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "drive",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     0,
+     1,
+     0
+    ],
+    "steering": [
+     "rotate(-35deg)",
+     "rotate(-35deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "drive",
+   "playing": false,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active",
+      "paused"
+     ],
+     "blinkRight": [
+      "paused"
+     ],
+     "blinkLeftCompact": [
+      "active",
+      "paused"
+     ],
+     "blinkRightCompact": [
+      "paused"
+     ],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     0,
+     1,
+     0
+    ],
+    "steering": [
+     "rotate(-35deg)",
+     "rotate(-35deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "drive2",
+   "playing": false,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active",
+      "paused"
+     ],
+     "blinkRight": [
+      "active",
+      "paused"
+     ],
+     "blinkLeftCompact": [
+      "active",
+      "paused"
+     ],
+     "blinkRightCompact": [
+      "active",
+      "paused"
+     ],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(-35deg)",
+     "rotate(-35deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "frames",
+   "frames": [
+    33,
+    33
+   ],
+   "rate": 2,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active",
+      "paused"
+     ],
+     "blinkRight": [
+      "active",
+      "paused"
+     ],
+     "blinkLeftCompact": [
+      "active",
+      "paused"
+     ],
+     "blinkRightCompact": [
+      "active",
+      "paused"
+     ],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(-30.5deg)",
+     "rotate(-30.5deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "stop",
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active",
+      "paused"
+     ],
+     "blinkRight": [
+      "active",
+      "paused"
+     ],
+     "blinkLeftCompact": [
+      "active",
+      "paused"
+     ],
+     "blinkRightCompact": [
+      "active",
+      "paused"
+     ],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(-30.5deg)",
+     "rotate(-30.5deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "frames",
+   "frames": [
+    16
+   ],
+   "rate": 1,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active",
+      "paused"
+     ],
+     "blinkRight": [
+      "active",
+      "paused"
+     ],
+     "blinkLeftCompact": [
+      "active",
+      "paused"
+     ],
+     "blinkRightCompact": [
+      "active",
+      "paused"
+     ],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(-30.5deg)",
+     "rotate(-30.5deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "drive2",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [
+      "active"
+     ],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [
+      "active"
+     ],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(-30.5deg)",
+     "rotate(-30.5deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "frames",
+   "frames": [
+    16,
+    200,
+    16,
+    16,
+    16
+   ],
+   "rate": 0.5,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [
+      "active"
+     ],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [
+      "active"
+     ],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(-30.5deg)",
+     "rotate(-30.5deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "extra",
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [
+      "active"
+     ],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [
+      "active"
+     ],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(-30.5deg)",
+     "rotate(-30.5deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "drive2",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "4243",
+     "valLat": "30.267210",
+     "valLon": "-97.743110",
+     "valHeading": "135.5°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [
+      "active"
+     ],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [
+      "active"
+     ],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(-30.5deg)",
+     "rotate(-30.5deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "sei",
+   "record": "drive",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "4242",
+     "valLat": "30.267200",
+     "valLon": "-97.743100",
+     "valHeading": "135.5°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(-30.5deg)",
+     "rotate(-30.5deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "metric",
+   "metric": true,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "4242",
+     "valLat": "30.267200",
+     "valLon": "-97.743100",
+     "valHeading": "135.5°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(-30.5deg)",
+     "rotate(-30.5deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "sei",
+   "record": "drive",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "61",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "61",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "4242",
+     "valLat": "30.267200",
+     "valLon": "-97.743100",
+     "valHeading": "135.5°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(-30.5deg)",
+     "rotate(-30.5deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "sei",
+   "record": "reverse",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "9",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "9",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Reverse",
+     "gearStateCompact": "Reverse",
+     "apText": "TACC",
+     "apTextCompact": "TACC",
+     "valSeq": "9007199254740992",
+     "valLat": "-33.868820",
+     "valLon": "151.209295",
+     "valHeading": "-45.0°",
+     "gforceX": "-1.2",
+     "gforceY": "+2.5",
+     "compassValue": "315° NW",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [
+      "active"
+     ],
+     "brakeIconCompact": [
+      "active"
+     ],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "accelerating"
+     ],
+     "gforceX": [
+      "high"
+     ],
+     "gforceY": [
+      "high"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(-30.5deg)",
+     "rotate(-30.5deg)"
+    ],
+    "accelFill": [
+     "inset(63% 0 0 0)",
+     "inset(63% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "0",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(315 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "frames",
+   "frames": [
+    16,
+    16
+   ],
+   "rate": 1,
+   "after": {
+    "texts": {
+     "speedValue": "9",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "9",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Reverse",
+     "gearStateCompact": "Reverse",
+     "apText": "TACC",
+     "apTextCompact": "TACC",
+     "valSeq": "9007199254740992",
+     "valLat": "-33.868820",
+     "valLon": "151.209295",
+     "valHeading": "-45.0°",
+     "gforceX": "-1.2",
+     "gforceY": "+2.5",
+     "compassValue": "315° NW",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [
+      "active"
+     ],
+     "brakeIconCompact": [
+      "active"
+     ],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "accelerating"
+     ],
+     "gforceX": [
+      "high"
+     ],
+     "gforceY": [
+      "high"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(307.4deg)",
+     "rotate(307.4deg)"
+    ],
+    "accelFill": [
+     "inset(63% 0 0 0)",
+     "inset(63% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "0",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(315 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "frames",
+   "frames": [
+    16,
+    16,
+    16,
+    16
+   ],
+   "rate": 1,
+   "after": {
+    "texts": {
+     "speedValue": "9",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "9",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Reverse",
+     "gearStateCompact": "Reverse",
+     "apText": "TACC",
+     "apTextCompact": "TACC",
+     "valSeq": "9007199254740992",
+     "valLat": "-33.868820",
+     "valLon": "151.209295",
+     "valHeading": "-45.0°",
+     "gforceX": "-1.2",
+     "gforceY": "+2.5",
+     "compassValue": "315° NW",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [
+      "active"
+     ],
+     "brakeIconCompact": [
+      "active"
+     ],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "accelerating"
+     ],
+     "gforceX": [
+      "high"
+     ],
+     "gforceY": [
+      "high"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(406.4deg)",
+     "rotate(406.4deg)"
+    ],
+    "accelFill": [
+     "inset(63% 0 0 0)",
+     "inset(63% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "0",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(315 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "frames",
+   "frames": [
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16
+   ],
+   "rate": 1,
+   "after": {
+    "texts": {
+     "speedValue": "9",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "9",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Reverse",
+     "gearStateCompact": "Reverse",
+     "apText": "TACC",
+     "apTextCompact": "TACC",
+     "valSeq": "9007199254740992",
+     "valLat": "-33.868820",
+     "valLon": "151.209295",
+     "valHeading": "-45.0°",
+     "gforceX": "-1.2",
+     "gforceY": "+2.5",
+     "compassValue": "315° NW",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [
+      "active"
+     ],
+     "brakeIconCompact": [
+      "active"
+     ],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "accelerating"
+     ],
+     "gforceX": [
+      "high"
+     ],
+     "gforceY": [
+      "high"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(412.3deg)",
+     "rotate(412.3deg)"
+    ],
+    "accelFill": [
+     "inset(63% 0 0 0)",
+     "inset(63% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "0",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(315 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "reverse",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "9",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "9",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Reverse",
+     "gearStateCompact": "Reverse",
+     "apText": "TACC",
+     "apTextCompact": "TACC",
+     "valSeq": "9007199254740992",
+     "valLat": "-33.868820",
+     "valLon": "151.209295",
+     "valHeading": "-45.0°",
+     "gforceX": "-1.2",
+     "gforceY": "+2.5",
+     "compassValue": "315° NW",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [
+      "active"
+     ],
+     "brakeIconCompact": [
+      "active"
+     ],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "accelerating"
+     ],
+     "gforceX": [
+      "high"
+     ],
+     "gforceY": [
+      "high"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(412.3deg)",
+     "rotate(412.3deg)"
+    ],
+    "accelFill": [
+     "inset(63% 0 0 0)",
+     "inset(63% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "0",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ]
+    ],
+    "needle": "rotate(315 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "reverse",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "9",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "9",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Reverse",
+     "gearStateCompact": "Reverse",
+     "apText": "TACC",
+     "apTextCompact": "TACC",
+     "valSeq": "9007199254740992",
+     "valLat": "-33.868820",
+     "valLon": "151.209295",
+     "valHeading": "-45.0°",
+     "gforceX": "-1.2",
+     "gforceY": "+2.5",
+     "compassValue": "315° NW",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [
+      "active"
+     ],
+     "brakeIconCompact": [
+      "active"
+     ],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "accelerating"
+     ],
+     "gforceX": [
+      "high"
+     ],
+     "gforceY": [
+      "high"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(412.3deg)",
+     "rotate(412.3deg)"
+    ],
+    "accelFill": [
+     "inset(63% 0 0 0)",
+     "inset(63% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "0",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ]
+    ],
+    "needle": "rotate(315 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "reverse",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "9",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "9",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Reverse",
+     "gearStateCompact": "Reverse",
+     "apText": "TACC",
+     "apTextCompact": "TACC",
+     "valSeq": "9007199254740992",
+     "valLat": "-33.868820",
+     "valLon": "151.209295",
+     "valHeading": "-45.0°",
+     "gforceX": "-1.2",
+     "gforceY": "+2.5",
+     "compassValue": "315° NW",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [
+      "active"
+     ],
+     "brakeIconCompact": [
+      "active"
+     ],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "accelerating"
+     ],
+     "gforceX": [
+      "high"
+     ],
+     "gforceY": [
+      "high"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(412.3deg)",
+     "rotate(412.3deg)"
+    ],
+    "accelFill": [
+     "inset(63% 0 0 0)",
+     "inset(63% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "0",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ]
+    ],
+    "needle": "rotate(315 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "parked",
+   "parked": true,
+   "after": {
+    "texts": {
+     "speedValue": "9",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "9",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Reverse",
+     "gearStateCompact": "Reverse",
+     "apText": "TACC",
+     "apTextCompact": "TACC",
+     "valSeq": "9007199254740992",
+     "valLat": "-33.868820",
+     "valLon": "151.209295",
+     "valHeading": "-45.0°",
+     "gforceX": "-1.2",
+     "gforceY": "+2.5",
+     "compassValue": "315° NW",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [
+      "active"
+     ],
+     "brakeIconCompact": [
+      "active"
+     ],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "telemetry-parked",
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "telemetry-parked"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "accelerating"
+     ],
+     "gforceX": [
+      "high"
+     ],
+     "gforceY": [
+      "high"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(412.3deg)",
+     "rotate(412.3deg)"
+    ],
+    "accelFill": [
+     "inset(63% 0 0 0)",
+     "inset(63% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "0",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ]
+    ],
+    "needle": "rotate(315 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "parked",
+   "parked": true,
+   "after": {
+    "texts": {
+     "speedValue": "9",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "9",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Reverse",
+     "gearStateCompact": "Reverse",
+     "apText": "TACC",
+     "apTextCompact": "TACC",
+     "valSeq": "9007199254740992",
+     "valLat": "-33.868820",
+     "valLon": "151.209295",
+     "valHeading": "-45.0°",
+     "gforceX": "-1.2",
+     "gforceY": "+2.5",
+     "compassValue": "315° NW",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [
+      "active"
+     ],
+     "brakeIconCompact": [
+      "active"
+     ],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "telemetry-parked",
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "telemetry-parked"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "accelerating"
+     ],
+     "gforceX": [
+      "high"
+     ],
+     "gforceY": [
+      "high"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(412.3deg)",
+     "rotate(412.3deg)"
+    ],
+    "accelFill": [
+     "inset(63% 0 0 0)",
+     "inset(63% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "0",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ],
+     [
+      "30",
+      "-20"
+     ]
+    ],
+    "needle": "rotate(315 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "reset",
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "KM/H",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "telemetry-parked",
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "telemetry-parked"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(63% 0 0 0)",
+     "inset(63% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "odd",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "1",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "1",
+     "speedUnitCompact": "KM/H",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "Self Driving",
+     "apTextCompact": "Self Driving",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "-0.000002",
+     "valHeading": "360.0°",
+     "gforceX": "+0.6",
+     "gforceY": "+0.1",
+     "compassValue": "360° N",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "telemetry-parked",
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "telemetry-parked"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "cornering-hard"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(0% 0 0 0)",
+     "inset(0% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "44.016309887869525",
+      "28.72579001019368"
+     ],
+     [
+      "44.016309887869525",
+      "28.72579001019368"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(359.96000000000004 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "parked",
+   "parked": false,
+   "after": {
+    "texts": {
+     "speedValue": "1",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "1",
+     "speedUnitCompact": "KM/H",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "Self Driving",
+     "apTextCompact": "Self Driving",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "-0.000002",
+     "valHeading": "360.0°",
+     "gforceX": "+0.6",
+     "gforceY": "+0.1",
+     "compassValue": "360° N",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "cornering-hard"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(0% 0 0 0)",
+     "inset(0% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "44.016309887869525",
+      "28.72579001019368"
+     ],
+     [
+      "44.016309887869525",
+      "28.72579001019368"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(359.96000000000004 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "sei",
+   "record": "neutral",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "0",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "0",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Neutral",
+     "gearStateCompact": "Neutral",
+     "apText": "Manual",
+     "apTextCompact": "Manual",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "22.5°",
+     "gforceX": "+0.0",
+     "gforceY": "+0.3",
+     "compassValue": "23° NE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "accelerating"
+     ],
+     "gforceX": [],
+     "gforceY": [
+      "positive"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(96.00000008940697% 0 0 0)",
+     "inset(96.00000008940697% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "22.09989806320082"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ],
+     [
+      "44.016309887869525",
+      "28.72579001019368"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(22.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "frames",
+   "frames": [
+    16,
+    16
+   ],
+   "rate": 1,
+   "after": {
+    "texts": {
+     "speedValue": "0",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "0",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Neutral",
+     "gearStateCompact": "Neutral",
+     "apText": "Manual",
+     "apTextCompact": "Manual",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "22.5°",
+     "gforceX": "+0.0",
+     "gforceY": "+0.3",
+     "compassValue": "23° NE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [
+      "accelerating"
+     ],
+     "gforceX": [],
+     "gforceY": [
+      "positive"
+     ]
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(96.00000008940697% 0 0 0)",
+     "inset(96.00000008940697% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "22.09989806320082"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ],
+     [
+      "44.016309887869525",
+      "28.72579001019368"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(22.5 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "nan",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "0",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "0",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Park",
+     "gearStateCompact": "Park",
+     "apText": "Manual",
+     "apTextCompact": "Manual",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "0.0°",
+     "gforceX": "NaN",
+     "gforceY": "+0.0",
+     "compassValue": "0° N",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(100% 0 0 0)",
+     "inset(100% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "NaN",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ],
+     [
+      "44.016309887869525",
+      "28.72579001019368"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "frames",
+   "frames": [
+    16,
+    16,
+    16
+   ],
+   "rate": 1,
+   "after": {
+    "texts": {
+     "speedValue": "0",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "0",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Park",
+     "gearStateCompact": "Park",
+     "apText": "Manual",
+     "apTextCompact": "Manual",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "0.0°",
+     "gforceX": "NaN",
+     "gforceY": "+0.0",
+     "compassValue": "0° N",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [
+      "expanded"
+     ],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(100% 0 0 0)",
+     "inset(100% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "NaN",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ],
+     [
+      "44.016309887869525",
+      "28.72579001019368"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "extra",
+   "after": {
+    "texts": {
+     "speedValue": "0",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "0",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Park",
+     "gearStateCompact": "Park",
+     "apText": "Manual",
+     "apTextCompact": "Manual",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "0.0°",
+     "gforceX": "NaN",
+     "gforceY": "+0.0",
+     "compassValue": "0° N",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(100% 0 0 0)",
+     "inset(100% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "NaN",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ],
+     [
+      "44.016309887869525",
+      "28.72579001019368"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "sei",
+   "record": "drive",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "61",
+     "speedUnit": "KM/H",
+     "speedValueCompact": "61",
+     "speedUnitCompact": "KM/H",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "0.0°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "metric",
+   "metric": false,
+   "after": {
+    "texts": {
+     "speedValue": "61",
+     "speedUnit": "MPH",
+     "speedValueCompact": "61",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "0.0°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "settings",
+   "dashboard": false,
+   "map": true,
+   "telemetry": true,
+   "after": {
+    "texts": {
+     "speedValue": "61",
+     "speedUnit": "MPH",
+     "speedValueCompact": "61",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "0.0°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "sei",
+   "record": "reverse",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "61",
+     "speedUnit": "MPH",
+     "speedValueCompact": "61",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "0.0°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "settings",
+   "dashboard": false,
+   "map": false,
+   "telemetry": true,
+   "after": {
+    "texts": {
+     "speedValue": "61",
+     "speedUnit": "MPH",
+     "speedValueCompact": "61",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "0.0°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "sei",
+   "record": "drive2",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "61",
+     "speedUnit": "MPH",
+     "speedValueCompact": "61",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "0.0°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "settings",
+   "dashboard": true,
+   "map": true,
+   "telemetry": false,
+   "after": {
+    "texts": {
+     "speedValue": "61",
+     "speedUnit": "MPH",
+     "speedValueCompact": "61",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "0.0°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "sei",
+   "record": "drive2",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "61",
+     "speedUnit": "MPH",
+     "speedValueCompact": "61",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "0.0°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "settings",
+   "dashboard": true,
+   "map": false,
+   "telemetry": true,
+   "after": {
+    "texts": {
+     "speedValue": "61",
+     "speedUnit": "MPH",
+     "speedValueCompact": "61",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "0.0°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(55.000001192092896% 0 0 0)",
+     "inset(55.000001192092896% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "22.09989806320082"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "sei",
+   "record": "drive2",
+   "playing": true,
+   "after": {
+    "texts": {
+     "speedValue": "38",
+     "speedUnit": "MPH",
+     "speedValueCompact": "38",
+     "speedUnitCompact": "MPH",
+     "gearState": "Drive",
+     "gearStateCompact": "Drive",
+     "apText": "Autosteer",
+     "apTextCompact": "Autosteer",
+     "valSeq": "0",
+     "valLat": "0.000000",
+     "valLon": "0.000000",
+     "valHeading": "0.0°",
+     "gforceX": "+0.3",
+     "gforceY": "-0.4",
+     "compassValue": "136° SE",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [
+      "active"
+     ],
+     "gearStateCompact": [
+      "active"
+     ],
+     "blinkLeft": [
+      "active"
+     ],
+     "blinkRight": [
+      "active"
+     ],
+     "blinkLeftCompact": [
+      "active"
+     ],
+     "blinkRightCompact": [
+      "active"
+     ],
+     "autosteerIcon": [
+      "active"
+     ],
+     "autosteerIconCompact": [
+      "active"
+     ],
+     "apText": [
+      "active"
+     ],
+     "apTextCompact": [
+      "active"
+     ],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [
+      "active"
+     ],
+     "accelPedalCompact": [
+      "active"
+     ],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [
+      "braking"
+     ],
+     "gforceX": [
+      "positive"
+     ],
+     "gforceY": [
+      "negative"
+     ]
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "37.49235474006116",
+      "38.91946992864424"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(135.5 30 30)"
+   },
+   "wheelRunning": true
+  },
+  {
+   "op": "resetAll",
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "parked",
+   "parked": false,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "parked",
+   "parked": true,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "telemetry-parked",
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "telemetry-parked"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "resetAll",
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "visibility",
+   "layout": "default",
+   "dashboard": true,
+   "capability": true,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "visibility",
+   "layout": "default",
+   "dashboard": false,
+   "capability": true,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "user-hidden",
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "visibility",
+   "layout": "compact",
+   "dashboard": true,
+   "capability": true,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "user-hidden",
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "visible"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "visibility",
+   "layout": "compact",
+   "dashboard": false,
+   "capability": true,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "user-hidden",
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "visibility",
+   "layout": "compact",
+   "dashboard": true,
+   "capability": false,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "user-hidden",
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "visibility",
+   "layout": "default",
+   "dashboard": true,
+   "capability": false,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "user-hidden",
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "visibility",
+   "layout": "default",
+   "dashboard": true,
+   "capability": true,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "--:--",
+     "recordingTimeTextCompact": "--:--"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "recording",
+   "file": "2026-10-20_08-00-00-front.mp4",
+   "sec": 0,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "8:00:00 AM",
+     "recordingTimeTextCompact": "8:00:00 AM"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "recording",
+   "file": "2026-10-20_08-00-00-front.mp4",
+   "sec": 59.99,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "8:00:59 AM",
+     "recordingTimeTextCompact": "8:00:59 AM"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "recording",
+   "file": "2026-10-19_22-13-02-back.mp4",
+   "sec": 61.5,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "10:14:03 PM",
+     "recordingTimeTextCompact": "10:14:03 PM"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "recording",
+   "file": "2026-10-19_12-59-59-front.mp4",
+   "sec": 1,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "1:00:00 PM",
+     "recordingTimeTextCompact": "1:00:00 PM"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "recording",
+   "file": "2026-10-19_00-00-00-front.mp4",
+   "sec": 0,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "12:00:00 AM",
+     "recordingTimeTextCompact": "12:00:00 AM"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "recording",
+   "file": "2026-10-19_23-59-30-front.mp4",
+   "sec": 45,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "12:00:15 AM",
+     "recordingTimeTextCompact": "12:00:15 AM"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "recording",
+   "file": "clip.mp4",
+   "sec": 3,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "12:00:15 AM",
+     "recordingTimeTextCompact": "12:00:15 AM"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  },
+  {
+   "op": "recording",
+   "file": "2026-10-19_11-59-59-front.mp4",
+   "sec": 0.5,
+   "after": {
+    "texts": {
+     "speedValue": "--",
+     "speedUnit": "MPH",
+     "speedValueCompact": "--",
+     "speedUnitCompact": "MPH",
+     "gearState": "--",
+     "gearStateCompact": "--",
+     "apText": "No Data",
+     "apTextCompact": "Manual",
+     "valSeq": "--",
+     "valLat": "--",
+     "valLon": "--",
+     "valHeading": "--",
+     "gforceX": "0.0",
+     "gforceY": "0.0",
+     "compassValue": "--",
+     "recordingTimeText": "11:59:59 AM",
+     "recordingTimeTextCompact": "11:59:59 AM"
+    },
+    "classes": {
+     "gearState": [],
+     "gearStateCompact": [],
+     "blinkLeft": [],
+     "blinkRight": [],
+     "blinkLeftCompact": [],
+     "blinkRightCompact": [],
+     "autosteerIcon": [],
+     "autosteerIconCompact": [],
+     "apText": [],
+     "apTextCompact": [],
+     "brakeIcon": [],
+     "brakeIconCompact": [],
+     "accelPedal": [],
+     "accelPedalCompact": [],
+     "dashboardVis": [
+      "visible"
+     ],
+     "dashboardVisCompact": [
+      "hidden",
+      "user-hidden"
+     ],
+     "extraData": [],
+     "gforceDot": [],
+     "gforceX": [],
+     "gforceY": []
+    },
+    "blinkRestarts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "steering": [
+     "rotate(0deg)",
+     "rotate(0deg)"
+    ],
+    "accelFill": [
+     "inset(50% 0 0 0)",
+     "inset(50% 0 0 0)"
+    ],
+    "gforce": [
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ],
+     [
+      "30",
+      "30"
+     ]
+    ],
+    "needle": "rotate(0 30 30)"
+   },
+   "wheelRunning": false
+  }
+ ]
+}

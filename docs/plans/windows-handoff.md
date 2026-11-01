@@ -1094,6 +1094,67 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   by hand with real Tesla clips: the feed's record follows the video
   (a breakpoint or the timing log), parked footage, a segment switch.
 
+### Phase 2: Viewer part 9, telemetry dashboard (2026-11-01)
+
+- `Core/TelemetryDashboard.cs` (C# 5): `DashboardView` keeps what
+  #dashboardVis and #dashboardVisCompact show (texts, classes, the
+  accelerator's clip inset, the G-force dot and trail, the compass needle,
+  the recording time) as script.js's updateVisualization (with its
+  telemetryDirty checks), resetDashboardElements, resetDashboardAndMap's
+  parked reset, the #toggleExtra click and the metric toggle,
+  gforceMeter.js, compass.js, dashboardVisibility.js and timeDisplay.js's
+  updateRecordingTime leave them; `Apply(TelemetryStep)` takes part 8's
+  ticks. `SteeringWheel` is steeringWheel.js (45/s tracking times the
+  playback rate, a tenth of a degree, settled within 0.05, stopped on
+  pause); `BlinkClock` the 0.7 s blink-signal cycle. `DashboardSettings`
+  reads dashboardEnabled, mapEnabled, useMetric, dashboardLayout,
+  compactDashboardFixed and accelPedMode as getSetting does. Studio's
+  page has no #settingsTimeFormat, so window._timeFormat is never set and
+  the recording time is always 12 h (the web shows the same).
+- `Ui/Builtin/ViewerDashboard.cs`: `StudioFloatingDashboard` (480 x 200,
+  260 with the details, top right of the frame at z 101, dragged within the
+  frame above the controls bar, put back in view on a resize as
+  draggablePanels.js does) laid out from style.css's numbers (the negative
+  margins put every part on the line 52.5 px down; the centre cluster and
+  the right cluster are sized from their texts); `StudioCompactDashboard`
+  (in the front camera's tile through `StudioCameraGrid.SetDashOverlay`,
+  98 % wide, clamp(50px, 8%, 90px) tall, its em sizes from
+  clamp(10px, 1.2vh, 16px) and the tile's container-query zoom; movable:
+  480 x 56 over the frame); `StudioDashboard` ties both to one view, the
+  settings and each frame. Icons: assets/*.png copied to
+  `Ui/Builtin/Images` (a Content item, beside the exe); the CSS filters
+  were checked against the web's pixels (the inactive gray 86,88,91 on the
+  panel, the accelerator's 28,145,255). Fonts: Inter-Light.ttf added
+  (make-fonts.py with 300), the speed is weight 300.
+- `StudioViewer`: owns the dashboard (`Dashboard`); `DashboardEnabled` is
+  now the setting; the floating panel shows once a segment has loaded
+  (loadNativeSegment's .visible); a collection opening resets it; each
+  tick applies the feed's step, writes the recording time from the
+  playing segment's first clip and runs the wheel and blinkers.
+- The render test mode: a collection whose clips play on (the web's
+  animation loop: RecentClips) ticks once at the still's time; one that
+  does not (the single-clip Sentry and Saved days, which the web's
+  Chromium fails to decode) keeps the reset gauges, as the web's pictures
+  show. A variant's `viewerTimeupdate` also writes the recording time (the
+  web: capture.js's new frame step `['event', 'video', 'timeupdate']`),
+  `viewerExtra` opens the details first (the web clicks #toggleExtra).
+  New states viewer-dash, -extra, -compact, -parked (capture.js's
+  DRIVE_SEI records for the RecentClips day's first front clip).
+- test/windowsNativeViewerDashboard.test.js runs the web's code (cut out of
+  script.js, and the ui modules as they are) on pretend elements, 65 steps,
+  and writes Core.Tests/Fixtures/expected-viewer-dashboard.json; Core.Tests
+  `ViewerDashboardTests` (2 tests) pass under mono, all 119 registered
+  tests of the stub runner pass.
+- Part 15's notes: `ViewerPage.Complete` stays false (the map, settings
+  modal, keys, export and phone layout are not in), so the browser fallback
+  stays; Footage's Play day / Play recording already land in the native
+  Viewer through `ViewerSlot.Open` once it is true.
+- To check on Windows: the dotnet build; viewer-dash* and every Viewer
+  render with a collection against the web's (the panel's place, the
+  texts' line boxes, the icon filters, the compact row's spacing); by hand
+  with real Tesla clips: the wheel turning smoothly, the blinkers blinking
+  and pausing, the details opening, dragging both panels.
+
 ## UI packs, phases 4-7 (the packs session, 2026-10-31)
 
 A separate session builds the four packs' pages natively while the other

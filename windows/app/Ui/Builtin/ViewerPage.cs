@@ -63,7 +63,7 @@ namespace SentrySix.Ui.Builtin
             JsonValue focus = fixture != null && fixture["viewerFocus"].IsArray ? fixture["viewerFocus"] : null;
             // (the fixture clips' length: the web probes it from the clips, the render test mode has none to probe)
             double clipSeconds = fixture != null && fixture["viewerClipSeconds"].IsNumber ? fixture["viewerClipSeconds"].Num : double.NaN;
-            slot.Show(shell, this, start => new StudioViewer(shell, api, start, still, open, focus, clipSeconds));
+            slot.Show(shell, this, start => new StudioViewer(shell, api, start, still, open, focus, clipSeconds, fixture));
             slot.Place(wrap);
             return Task.FromResult<FrameworkElement>(wrap);
         }
@@ -344,6 +344,9 @@ namespace SentrySix.Ui.Builtin
         readonly TelemetryFeed feed = new TelemetryFeed();
         TelemetryCache telemetryCache;
         TelemetryStep lastTelemetry = new TelemetryStep();
+        readonly StudioDashboard dash;
+        readonly JsonValue renderDash;
+        bool stillPlaysOn;
 
         public StudioViewer(ShellModel shell, IJsonApi api, ViewerStart start, bool still)
             : this(shell, api, start, still, null)
@@ -364,8 +367,15 @@ namespace SentrySix.Ui.Builtin
 
         /// <param name="renderClipSeconds">The render test mode: each fixture clip's length (the web probes it; NaN: the profile's estimate).</param>
         public StudioViewer(ShellModel shell, IJsonApi api, ViewerStart start, bool still, string renderOpen, JsonValue renderFocus, double renderClipSeconds)
+            : this(shell, api, start, still, renderOpen, renderFocus, renderClipSeconds, null)
+        {
+        }
+
+        /// <param name="renderDash">The render test mode: the fixture variant (viewerTimeupdate: the master's timeupdate at the still's time; viewerExtra: the dashboard's details opened first), or null.</param>
+        public StudioViewer(ShellModel shell, IJsonApi api, ViewerStart start, bool still, string renderOpen, JsonValue renderFocus, double renderClipSeconds, JsonValue renderDash)
         {
             this.renderClipSeconds = renderClipSeconds;
+            this.renderDash = renderDash;
             this.renderFocus = renderFocus;
             this.shell = shell;
             this.api = api;
@@ -454,6 +464,19 @@ namespace SentrySix.Ui.Builtin
             root.Children.Add(clips);
             root.Children.Add(clips.TipLayer);
             root.Children.Add(clips.ModalLayer);
+            // the telemetry dashboard (part 9): floating over the frame, or compact on the front camera
+            dash = new StudioDashboard(still);
+            dash.Save = SaveSetting;
+            root.Children.Add(dash.Floating);
+            dash.PlacementChanged += PlaceCompact;
+            PlaceCompact();
+            root.SizeChanged += delegate
+            {
+                dash.Floating.KeepInView();
+                // (the compact dashboard's font is clamp(10px, 1.2vh, 16px) of the frame)
+                if (dash.Settings.CompactFixed) PlaceCompact();
+                else dash.Compact.FitFree(new Point(dash.Compact.Margin.Left, dash.Compact.Margin.Top), root.ActualHeight);
+            };
             ReadSettings();
 
             if (Start.StartFolder == null)
@@ -552,6 +575,8 @@ namespace SentrySix.Ui.Builtin
             string saved = shell.Prefs != null ? shell.Prefs.Get(ClipsPanelMode.StorageKey, null) : null;
             clips.InitMode(all, saved);
             grid.Settings(all, SaveSetting);
+            // the dashboard's settings: Dashboard Overlay, Metric Units, Dashboard Style, Fixed to Front Camera, Accelerator Display
+            dash.ApplySettings(DashboardSettings.From(all));
             // Settings > Skip Duration (getSetting('skipDuration') || 15): the skip buttons' length and titles
             skipLength = SkipLength.Of(JsJson.Get(all, "skipDuration"));
             controls.SetSkip(skipLength);
@@ -711,6 +736,9 @@ namespace SentrySix.Ui.Builtin
             // resetDashboardAndMap: no telemetry from the last collection; the profile's capability
             feed.Clear();
             feed.Enabled = library == null || Dashcam.Get(library.ProfileId).Capabilities.Telemetry;
+            dash.TelemetryCapability = feed.Enabled;
+            dash.Capability = library == null || Dashcam.Get(library.ProfileId).Capabilities.Dashboard;
+            dash.ResetAll();
             List<PlaybackSegment> segs = c.Segments();
             double fallback = Dashcam.Get(c.ProfileId ?? library.ProfileId).DefaultSegmentDurationSeconds;
             double start = StartOffset(c);
@@ -724,7 +752,14 @@ namespace SentrySix.Ui.Builtin
             if (still)
             {
                 double shownAt = StillTimeline(segs.Count, fallback, start);
-                LoadTelemetry(segs, first, shownAt * 1000);
+                // the dashboard as the web's picture has it: a tick at the still's time while the clips play
+                // on (its animation loop), else the reset gauges; the variant's timeupdate adds the
+                // recording time, its details click opens the details first
+                dash.Loaded = true;
+                bool timeupdate = renderDash != null && renderDash["viewerTimeupdate"].Bool;
+                if (renderDash != null && renderDash["viewerExtra"].Bool) dash.ToggleExtra();
+                LoadTelemetry(segs, first, stillPlaysOn || timeupdate ? shownAt * 1000 : double.NaN);
+                if (timeupdate) dash.RecordingTime(segs[first], shownAt);
                 SegmentView view = SegmentPlan.PlanSegment(segs[first], true, grid.PlayerSlots, "front", "front");
                 BitmapSource frame = RenderFrame();
                 foreach (SegmentTarget t in view.Targets)
@@ -758,8 +793,44 @@ namespace SentrySix.Ui.Builtin
         /// <summary>The last tick's outcome: the record shown (null: none near), PARKED, the gauges reset.</summary>
         public TelemetryStep LastTelemetry { get { return lastTelemetry; } }
 
-        /// <summary>state.ui.dashboardEnabled (Settings > Dashboard; on by default). PARKED and the reset only while it is on.</summary>
-        public bool DashboardEnabled = true;
+        /// <summary>state.ui.dashboardEnabled (Settings > Dashboard Overlay; on by default). PARKED and the reset only while it is on.</summary>
+        public bool DashboardEnabled
+        {
+            get { return dash.Settings.Enabled; }
+            set { dash.SetEnabled(value); }
+        }
+
+        /// <summary>The telemetry dashboard (part 9): its view, settings and the two panels.</summary>
+        public StudioDashboard Dashboard { get { return dash; } }
+
+        /// <summary>
+        /// updateCompactDashboardPositioning: the compact dashboard in the
+        /// front camera's tile (fixed), or over the frame at that tile's
+        /// bottom, 480 x 56, kept on screen (movable).
+        /// </summary>
+        void PlaceCompact()
+        {
+            StudioCompactDashboard c = dash.Compact;
+            if (dash.Settings.CompactFixed)
+            {
+                if (c.Parent == root) root.Children.Remove(c);
+                c.Fixed = true;
+                grid.SetDashOverlay(c, (w, h) => c.FitTile(w, h, root.ActualHeight));
+                return;
+            }
+            grid.SetDashOverlay(null, null);
+            c.Fixed = false;
+            if (c.Parent == null) root.Children.Add(c);
+            Panel.SetZIndex(c, 101);
+            Rect tile = grid.TileBounds(grid.DashboardSlot, root);
+            double top = 20, left = 20;
+            if (!tile.IsEmpty)
+            {
+                top = Math.Max(0, tile.Bottom - 56 - 8);
+                left = Math.Max(10, Math.Min(tile.Left + tile.Width / 2 - 240, root.ActualWidth - 480 - 10));
+            }
+            c.FitFree(new Point(left, top), root.ActualHeight);
+        }
 
         /// <summary>Each telemetry tick that ran (the dashboard draws the record, PARKED or the reset).</summary>
         public event Action<TelemetryStep> TelemetryTicked;
@@ -814,6 +885,9 @@ namespace SentrySix.Ui.Builtin
             TelemetryStep step = feed.Tick(videoMs, DashboardEnabled, transitioning);
             if (!step.Ran) return;
             lastTelemetry = step;
+            Player pl = Player;
+            dash.Apply(step, still ? stillPlaysOn : pl != null && pl.Playing);
+            if (still) dash.Settle();
             Action<TelemetryStep> h = TelemetryTicked;
             if (h != null) h(step);
         }
@@ -954,6 +1028,9 @@ namespace SentrySix.Ui.Builtin
             ShowPlaying();
             // telemetryAnimationLoop / onMasterTimeUpdate: the master's time in its segment (none while a segment switch is under way)
             TickTelemetry(p.LocalTime * 1000, p.SegmentIndex < 0);
+            // onMasterTimeUpdate's updateRecordingTime (not during a segment switch); the wheel's and blinkers' frame
+            if (p.SegmentIndex >= 0 && p.SegmentIndex < p.Segments.Count) dash.RecordingTime(p.Segments[p.SegmentIndex], p.LocalTime);
+            dash.Frame(p.Playing, playbackRate);
         }
 
         void ShowTimes()
@@ -992,6 +1069,7 @@ namespace SentrySix.Ui.Builtin
             timeline.Tick(at, plan.Total);
             if (firstLoad.Opened()) RaiseControls();
             controls.SetPlaying(at < plan.Total, true);
+            stillPlaysOn = at < plan.Total;
             ShowTimes();
             return Math.Min(local, plan.Duration(seg));
         }
@@ -1189,6 +1267,8 @@ namespace SentrySix.Ui.Builtin
         void OnSegmentOpened(int index)
         {
             if (firstLoad.Opened()) RaiseControls();
+            // loadNativeSegment: dashboardVis.classList.add('visible')
+            dash.Loaded = true;
             Player pl = Player;
             if (pl != null) LoadTelemetry(pl.Segments, index, double.NaN);
             // #autoplayToggle (checked): the collection plays once its first segment is in (paused again while put away)

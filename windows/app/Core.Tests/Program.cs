@@ -45,6 +45,7 @@ namespace SentrySix.Core.Tests
             ViewerTimelineTests.Register(Test);
             ViewerEventMarkerTests.Register(Test);
             ViewerTelemetryTests.Register(Test);
+            ViewerDashboardTests.Register(Test);
             PlaybackTests.Register(Test, Test);
             PackTests.Register(Test, Test);
             ServerTests.Register(Test);

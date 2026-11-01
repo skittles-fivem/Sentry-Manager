@@ -180,7 +180,16 @@ const PAGES = {
   'viewer-skip': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
   // the event marker (part 7): the Sentry day with its event.json time half way through its
   // minute, so the marker sits in the middle of the timeline (the fixture's own sit at the end)
-  'viewer-event': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19']] }
+  'viewer-event': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19']] },
+  // the telemetry dashboard (part 9): the RecentClips day's first clip answering a drive's records
+  // (DRIVE_SEI), then the master video's timeupdate (onMasterTimeUpdate: the record at its time and
+  // the recording time) - the default floating dashboard; with its details open, km/h and the
+  // Side Bar accelerator; the compact one on the front camera; the compact one with no records
+  // (PARKED)
+  'viewer-dash': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] },
+  'viewer-dash-extra': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['click', '#toggleExtra'], ['event', 'video', 'timeupdate']] },
+  'viewer-dash-compact': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] },
+  'viewer-dash-parked': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] }
 };
 
 // each pack page module's pages, as "<pack>:<name>" (the picture is <pack>-<name>-<w>x<h>.png)
@@ -251,6 +260,32 @@ function sentryEventAt(api, timestamp) {
   return { [key]: { ...api[key], text: JSON.stringify({ ...JSON.parse(api[key].text), timestamp }) } };
 }
 
+// the telemetry dashboard's records (part 9): a SeiMetadata record (src/renderer/proto/dashcam.proto)
+// encoded as the car writes it, base64 as GET /api/telemetry answers it
+function seiRecord(f) {
+  const out = [];
+  const varint = (n) => { let v = BigInt(n); do { let b = Number(v & 0x7fn); v >>= 7n; if (v) b |= 0x80; out.push(b); } while (v); };
+  const key = (field, wire) => varint((field << 3) | wire);
+  const float = (field, x) => { key(field, 5); const b = Buffer.alloc(4); b.writeFloatLE(x); out.push(...b); };
+  const double = (field, x) => { key(field, 1); const b = Buffer.alloc(8); b.writeDoubleLE(x); out.push(...b); };
+  key(1, 0); varint(f.version); key(2, 0); varint(f.gear); key(3, 0); varint(f.seq);
+  float(4, f.speed); float(5, f.accel); float(6, f.steering);
+  key(7, 0); varint(f.left ? 1 : 0); key(8, 0); varint(f.right ? 1 : 0); key(9, 0); varint(f.brake ? 1 : 0);
+  key(10, 0); varint(f.autopilot);
+  double(11, f.lat); double(12, f.lon); double(13, f.heading); double(14, f.ax); double(15, f.ay); double(16, f.az);
+  return Buffer.from(out).toString('base64');
+}
+// Drive at 17 m/s (38 MPH, 61 KM/H) on Autosteer, the left blinker on, the pedal at 45 %, the
+// wheel 35 degrees left, heading 135.5 (SE), 0.3 G lateral and 0.36 G braking, at every frame of the
+// two seconds
+const DRIVE_SEI = { version: 1, gear: 1, seq: 4242, speed: 17, accel: 0.45, steering: -35, left: true, right: false, brake: false, autopilot: 2, lat: 30.2672, lon: -97.7431, heading: 135.5, ax: 2.94, ay: -3.5, az: 0.1 };
+function telemetryOf(api, frames) {
+  const key = Object.keys(api).find((k) => k.startsWith('GET /api/telemetry?') && k.includes(encodeURIComponent('/RecentClips/2026-10-20_08-00-00-front.mp4')));
+  return key ? { [key]: { v: 1, frames } } : {};
+}
+const driveFrames = () => Array.from({ length: 24 }, (_, i) => [i * 1000 / 12, seiRecord({ ...DRIVE_SEI, seq: DRIVE_SEI.seq + i })]);
+const studioSettings = (api, more) => ({ 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], ...more } });
+
 const VARIANTS = {
   'overview-off': { route: 'overview', prefs: { nerdStats: 'false' } },
   'overview-logs': { route: 'overview', sub: 'logs' },
@@ -309,6 +344,12 @@ const VARIANTS = {
   'viewer-speed': { route: 'viewer', prefs: { playbackRate: '2' } },
   'viewer-skip': (api) => ({ route: 'viewer', api: { 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], skipDuration: 10 } } }),
   'viewer-event': (api) => ({ route: 'viewer', state: { date: '2026-10-19' }, api: sentryEventAt(api, '2026-10-19T22:13:32') }),
+  // (viewerTimeupdate: the native render runs the master's timeupdate at its still's time;
+  // viewerExtra: the dashboard's details opened first, as the click on #toggleExtra does)
+  'viewer-dash': (api) => ({ route: 'viewer', viewerTimeupdate: true, api: telemetryOf(api, driveFrames()) }),
+  'viewer-dash-extra': (api) => ({ route: 'viewer', viewerTimeupdate: true, viewerExtra: true, api: { ...telemetryOf(api, driveFrames()), ...studioSettings(api, { useMetric: true, accelPedMode: 'sidebar' }) } }),
+  'viewer-dash-compact': (api) => ({ route: 'viewer', viewerTimeupdate: true, api: { ...telemetryOf(api, driveFrames()), ...studioSettings(api, { dashboardLayout: 'compact' }) } }),
+  'viewer-dash-parked': (api) => ({ route: 'viewer', viewerTimeupdate: true, api: { ...telemetryOf(api, []), ...studioSettings(api, { dashboardLayout: 'compact' }) } }),
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },
@@ -781,6 +822,8 @@ async function shoot(browser, base, ui, pageName, size, file, vehicle, fixture) 
       const studio = page.frameLocator('iframe[title^="Sentry Studio"]');
       for (const [kind, sel, value] of spec.frame) {
         if (kind === 'select') await studio.locator(sel).first().selectOption(value);
+        // (an event sent to every element the selector finds, e.g. the videos' timeupdate)
+        else if (kind === 'event') await studio.locator(sel).evaluateAll((els, type) => { for (const el of els) el.dispatchEvent(new Event(type)); }, value);
         else if (kind.startsWith('tile-')) {
           // (sent to the tile: the grid's click, wheel and mousedown listeners; mousemove and mouseup on the document)
           await studio.locator(sel).first().evaluate((el, [k, v]) => {

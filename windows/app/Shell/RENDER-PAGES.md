@@ -312,6 +312,36 @@ PARKED). The native render loads the first segment's answer and ticks
 once at the still's time, so a Viewer render with the dashboard has the
 same record the web's has.
 
+The telemetry dashboard (part 9): every Viewer render with a collection
+now has Studio's floating #dashboardVis 20 px from the frame's top right
+(480 x 200, over the clip list). Where the web's clips play on (RecentClips:
+the pause button) its animation loop shows the record at the start: PARK,
+0, MPH, Manual, +0.0 / +0.0, 0° N, the recording time still --:--
+(only the master's timeupdate writes it); where they do not (viewer-sentry,
+-saved and the other single-clip days: the play button, the web's video
+failed to decode) the gauges are reset: --, No Data, the compass --. The
+native render ticks once at the still's time in the first case and not in
+the second. The new states answer the RecentClips day's first front clip
+with a drive's records (capture.js DRIVE_SEI: Drive, 17 m/s, Autosteer,
+the left blinker, the pedal at 45 %, the wheel 35° left, heading 135.5,
+0.3 G lateral and 0.36 G braking) and then send the master video's
+timeupdate in Studio's frame (the native render: the variant's
+`viewerTimeupdate`, the record and the recording time at the still's
+time). viewer-dash: DRIVE, 38 MPH, the wheel turned and lit blue, the left
+arrow green, Autosteer, the accelerator filled to 45 %, 8:00:00 AM, the
+G-force dot down right in red, 136° SE. viewer-dash-extra: the
+details opened first (a click on #toggleExtra; the native `viewerExtra`),
+the panel 260 tall with Lat 30.267200, Lon -97.743100, Head 135.5° and
+Seq 4242, with Metric Units (61 KM/H) and the Side Bar accelerator
+(useMetric, accelPedMode sidebar). viewer-dash-compact: Dashboard Style
+compact (dashboardLayout compact): the compact row on the front camera's
+tile (zoomed to 0.75 on a 376 px tile). viewer-dash-parked: compact, the
+clip answering no records: PARKED left of 8:00:00 AM. The blinkers blink
+on both sides; Playwright's screenshot stops the CSS animation at its
+start (lit), as the native still draws it. Studio has no time format
+control (#settingsTimeFormat is not in its page), so the recording time
+is 12 h whatever the timeFormat setting says.
+
 - builtin overview
 - builtin overview-off
 - builtin overview-logs
@@ -388,6 +418,10 @@ same record the web's has.
 - builtin viewer-speed
 - builtin viewer-skip
 - builtin viewer-event
+- builtin viewer-dash
+- builtin viewer-dash-extra
+- builtin viewer-dash-compact
+- builtin viewer-dash-parked
 
 ## The UI packs' pages (phases 4-7)
 

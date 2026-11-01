@@ -299,10 +299,42 @@ namespace SentrySix.Ui.Builtin
             MultiSlot front = Effective.FirstOrDefault(s => s.Camera == "front" && (s.Raw == null || s.Raw.IsString));
             if (front != null) dashSlot = front.Slot;
             foreach (StudioTile t in tiles.Values) t.HoldsDashboard = t.Slot == dashSlot;
+            PlaceDashOverlay();
         }
 
         /// <summary>The front camera's tile (where the compact dashboard sits).</summary>
         public string DashboardSlot { get { return dashSlot; } }
+
+        /// <summary>A tile's box in another element's coordinates (Rect.Empty before it is laid out).</summary>
+        public Rect TileBounds(string slot, UIElement relativeTo)
+        {
+            StudioTile t;
+            if (slot == null || !tiles.TryGetValue(slot, out t) || t.ActualWidth <= 0 || relativeTo == null) return Rect.Empty;
+            Point p = t.TranslatePoint(new Point(0, 0), relativeTo);
+            return new Rect(p, new Size(t.ActualWidth, t.ActualHeight));
+        }
+
+        FrameworkElement dashOverlay;
+        Action<double, double> dashSized;
+
+        /// <summary>
+        /// The compact dashboard fixed to the front camera (null: none in a
+        /// tile): it moves with the front camera's tile and is told the
+        /// tile's size (its own sizes are the tile's percentages).
+        /// </summary>
+        public void SetDashOverlay(FrameworkElement overlay, Action<double, double> sized)
+        {
+            dashOverlay = overlay;
+            dashSized = sized;
+            PlaceDashOverlay();
+        }
+
+        void PlaceDashOverlay()
+        {
+            foreach (StudioTile t in tiles.Values) if (t.Slot != dashSlot) t.Hold(null, null);
+            StudioTile front;
+            if (tiles.TryGetValue(dashSlot, out front)) front.Hold(dashOverlay, dashSized);
+        }
 
         // ------------------------------------------------------------ sizes and the free layout
 
@@ -910,6 +942,7 @@ namespace SentrySix.Ui.Builtin
             outline.IsHitTestVisible = false;
             Children.Add(outline);
             content.SizeChanged += delegate { ClipRound(); };
+            SizeChanged += delegate { FitOverlay(); };
             Cursor = Cursors.Hand;
             Hook(resize, true);
             Hook(move, false);
@@ -939,6 +972,28 @@ namespace SentrySix.Ui.Builtin
                 halo.Visibility = !value && glow != null && !gridFocused ? Visibility.Visible : Visibility.Collapsed;
                 IsHitTestVisible = !value;
             }
+        }
+
+        FrameworkElement overlay;
+        Action<double, double> overlaySized;
+
+        /// <summary>The compact dashboard in this tile (over everything in it, at its bottom), or none.</summary>
+        internal void Hold(FrameworkElement e, Action<double, double> sized)
+        {
+            if (overlay == e) { overlaySized = sized; FitOverlay(); return; }
+            if (overlay != null) Children.Remove(overlay);
+            overlay = e;
+            overlaySized = sized;
+            if (e == null) return;
+            Panel parent = e.Parent as Panel;
+            if (parent != null) parent.Children.Remove(e);
+            Children.Add(e);
+            FitOverlay();
+        }
+
+        void FitOverlay()
+        {
+            if (overlay != null && overlaySized != null) overlaySized(ActualWidth, ActualHeight);
         }
 
         /// <summary>The compact dashboard is in this tile (its picture is not clipped round).</summary>

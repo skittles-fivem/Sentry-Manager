@@ -5,7 +5,7 @@
 # Both fonts are SIL Open Font License 1.1, as shipped with the web pages.
 #
 #   pip install fonttools brotli
-#   python make-fonts.py ../../../../web/fonts/inter-latin.woff2 Inter . 400,500,600,700
+#   python make-fonts.py ../../../../web/fonts/inter-latin.woff2 Inter . 300,400,500,600,700
 #   python make-fonts.py ../../../../web/fonts/jetbrains-mono-latin.woff2 "JetBrains Mono" . 400,600
 import sys
 from fontTools.ttLib import TTFont

@@ -250,8 +250,8 @@ is done when every item is ticked in both. Run on the owner's PC runner.
 - Phase 2 (built-in Viewer): in progress. The playback engine, the
   telemetry, the clip library (scan and grouping, part 2), the clip
   browser (the clip list panel, part 3), the six-camera grid on the
-  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6), the event marker on the timeline (part 7) and the telemetry feed (part 8) are written; the rest of the Viewer page (Studio's
-  dashboard, map, settings modal, keys, export, phone layout:
+  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6), the event marker on the timeline (part 7), the telemetry feed (part 8) and the telemetry dashboard (part 9) are written; the rest of the Viewer page (Studio's
+  map, settings modal, keys, export, phone layout:
   `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
   still opens in the browser (`ViewerPage.Complete` stays false until it
   is all there; then its browser fallback goes and Footage's Play day /
@@ -567,8 +567,35 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   ViewerTelemetryTests (3 tests, passing under mono). The render fixture
   now answers GET /api/telemetry for the four front clips; no render
   state of its own (no picture until the dashboard).
+  Viewer part 9, the telemetry dashboard (type-checked with mcs, not yet
+  built or run on Windows): `Core/TelemetryDashboard.cs` (`DashboardView`:
+  updateVisualization with telemetryDirty, resetDashboardElements,
+  resetDashboardAndMap's parked reset, setDashboardParked, the details
+  toggle, the metric toggle, gforceMeter.js, compass.js and
+  updateRecordingTime; `SteeringWheel` (steeringWheel.js's tracking);
+  `BlinkClock` (the blink-signal animation, restarted and paused as the
+  CSS is); `DashboardSettings` (dashboardEnabled, mapEnabled, useMetric,
+  dashboardLayout, compactDashboardFixed, accelPedMode as getSetting reads
+  them, and updateDashboardVisibility's rule)) and
+  `Ui/Builtin/ViewerDashboard.cs` (`StudioFloatingDashboard`, #dashboardVis
+  at the frame's top right, dragged within the frame; `StudioCompactDashboard`,
+  #dashboardVisCompact on the front camera's tile or movable; the PNG icons
+  in `Ui/Builtin/Images` with style.css's filters worked out per pixel;
+  Inter Light added to the fonts for the 36 px speed). For reuse (the
+  packs' Viewer pages, the settings modal and keys of parts 11 and 12):
+  `StudioViewer.Dashboard` (`StudioDashboard`: `View`, `Settings`,
+  `SetEnabled`, `SetMetric`, `SetLayout`, `SetCompactFixed`,
+  `SetAccelMode`, each saved with setSetting), `StudioViewer.DashboardEnabled`
+  now reads and writes that setting, and `DashboardView` can drive any
+  other drawing of the same gauges. test/windowsNativeViewerDashboard.test.js
+  runs the web's code on pretend elements and writes
+  Core.Tests/Fixtures/expected-viewer-dashboard.json; Core.Tests
+  ViewerDashboardTests (2 tests, passing under mono). Render list:
+  viewer-dash, viewer-dash-extra, viewer-dash-compact, viewer-dash-parked;
+  every other Viewer render with a collection now has the floating
+  dashboard too.
   Phase 2 is not finished: `ViewerPage.Complete` stays false until parts
-  9-14 are in.
+  10-14 are in.
 - Phase 3 (Encoder): not started; its page opens in the browser.
 - Phases 4-7 (the packs): in progress on wip, one pack at a time (this
   session works in its own files: `Core/Horizon/`, `Ui/Horizon/Hz*.cs`,
