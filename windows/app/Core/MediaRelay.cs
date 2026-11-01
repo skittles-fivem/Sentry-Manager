@@ -132,23 +132,11 @@ namespace SentrySix.Core
                 c.NoDelay = true;
                 using (NetworkStream ns = c.GetStream())
                 {
-                    byte[] buffer = new byte[BufferSize];
-                    MemoryStream pending = new MemoryStream();
-                    while (!stop.IsCancellationRequested)
-                    {
-                        Request req = await ReadRequest(ns, pending).ConfigureAwait(false);
-                        if (req == null) return;
-                        Note(req.Method + " " + req.Target + " range " + (req.Range ?? "-") + (req.KeepAlive ? "" : " (close)"));
-                        bool keep;
-                        // per request: cancelled when the relay stops or the request ends (a write to an
-                        // ffmpeg that was killed throws), so the server's response and its connection go at once
-                        using (CancellationTokenSource gone = CancellationTokenSource.CreateLinkedTokenSource(stop.Token))
-                        {
-                            try { keep = await Answer(ns, req, buffer, gone.Token).ConfigureAwait(false); }
-                            finally { gone.Cancel(); }
-                        }
-                        if (!keep || !req.KeepAlive) return;
-                    }
+                    bool ended = await Requests(ns).ConfigureAwait(false);
+                    // a connection that ends after its answer ends gently: the send side shut, then
+                    // what the client still sends read until it hangs up (2 s at most), so Windows
+                    // does not reset it while the client still reads the body (ffprobe's moov at the end)
+                    if (ended) await CloseGently(c, ns).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -161,6 +149,46 @@ namespace SentrySix.Core
                 lock (gate) clients.Remove(c);
                 c.Close();
             }
+        }
+
+        static async Task CloseGently(TcpClient c, NetworkStream ns)
+        {
+            try
+            {
+                c.Client.Shutdown(SocketShutdown.Send);
+                byte[] sink = new byte[4096];
+                Task timeout = Task.Delay(2000);
+                while (true)
+                {
+                    Task<int> r = ns.ReadAsync(sink, 0, sink.Length);
+                    if (await Task.WhenAny(r, timeout).ConfigureAwait(false) != r) break;
+                    if (r.Result <= 0) break;
+                }
+            }
+            catch (Exception) { }
+        }
+
+        /// <summary>The connection's requests answered in turn; true when it ended after an answer (not the client gone).</summary>
+        async Task<bool> Requests(NetworkStream ns)
+        {
+            byte[] buffer = new byte[BufferSize];
+            MemoryStream pending = new MemoryStream();
+            while (!stop.IsCancellationRequested)
+            {
+                Request req = await ReadRequest(ns, pending).ConfigureAwait(false);
+                if (req == null) return false;
+                Note(req.Method + " " + req.Target + " range " + (req.Range ?? "-") + (req.KeepAlive ? "" : " (close)"));
+                bool keep;
+                // per request: cancelled when the relay stops or the request ends (a write to an
+                // ffmpeg that was killed throws), so the server's response and its connection go at once
+                using (CancellationTokenSource gone = CancellationTokenSource.CreateLinkedTokenSource(stop.Token))
+                {
+                    try { keep = await Answer(ns, req, buffer, gone.Token).ConfigureAwait(false); }
+                    finally { gone.Cancel(); }
+                }
+                if (!keep || !req.KeepAlive) return true;
+            }
+            return false;
         }
 
         static async Task<Request> ReadRequest(NetworkStream ns, MemoryStream pending)
