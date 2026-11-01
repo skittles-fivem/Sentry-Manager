@@ -808,7 +808,7 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   its own thread), puts restarted followers ahead by the start-up time
   and scales the restart limit with the rate, and reuses frame buffers
   (`FrameBuffers`, by size, 192 MB at most). The Api allows 64
-  connections and the relay cancels a request whose ffmpeg went away; the
+  connections and each relay request has its own cancellation; the
   first-run decode-path probe is in the kill-on-close job. Studio's
   languages: `Core/StudioI18n.cs` (i18n.js t() with its English fallback
   and {param} replacement, the saved or detected language, `Word(lang,

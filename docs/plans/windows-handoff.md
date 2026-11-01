@@ -1420,8 +1420,10 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   release, the scrub preview waiting for its frame, first-picture probes
   first and on their own threads, followers restarted ahead by 0.5 s x the
   rate and checked only once they have a frame), `Core/Api.cs` (64
-  connections), `Core/MediaRelay.cs` (a request is cancelled when its
-  ffmpeg hangs up), `ViewerPage.MakePlayer` (the job before the probe).
+  connections), `Core/MediaRelay.cs` (each request's own token, linked to the
+  relay's stop and cancelled when it ends; polling the socket for a hang-up
+  while waiting broke ffprobe on Windows, so a request still waiting for a
+  connection ends only with the relay), `ViewerPage.MakePlayer` (the job before the probe).
 - Languages: `Core/StudioI18n.cs`, `Core/StudioWords.Data.cs` (generated:
   `UPDATE_NATIVE_PARITY=1 node --test test/windowsNativeViewerI18n.test.js`),
   `Ui/Builtin/ViewerI18n.cs`, Core.Tests `ViewerI18nTests` (3 tests); the

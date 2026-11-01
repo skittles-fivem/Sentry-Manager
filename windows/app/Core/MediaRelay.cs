@@ -129,14 +129,12 @@ namespace SentrySix.Core
                         Request req = await ReadRequest(ns, pending).ConfigureAwait(false);
                         if (req == null) return;
                         bool keep;
-                        // per request: cancelled when the relay stops or ffmpeg hangs up (a seek killed it),
-                        // so a request still waiting for one of the Api's connections lets it go at once
+                        // per request: cancelled when the relay stops or the request ends (a write to an
+                        // ffmpeg that was killed throws), so the server's response and its connection go at once
                         using (CancellationTokenSource gone = CancellationTokenSource.CreateLinkedTokenSource(stop.Token))
                         {
-                            Task watch = WatchHangUp(c, gone);
                             try { keep = await Answer(ns, req, buffer, gone.Token).ConfigureAwait(false); }
                             finally { gone.Cancel(); }
-                            await watch.ConfigureAwait(false);
                         }
                         if (!keep || !req.KeepAlive) return;
                     }
@@ -151,25 +149,6 @@ namespace SentrySix.Core
                 lock (gate) clients.Remove(c);
                 c.Close();
             }
-        }
-
-        /// <summary>Cancels <paramref name="gone"/> once the client closed its end (polled; ends when gone is cancelled).</summary>
-        static async Task WatchHangUp(TcpClient c, CancellationTokenSource gone)
-        {
-            try
-            {
-                while (!gone.IsCancellationRequested)
-                {
-                    await Task.Delay(250, gone.Token).ConfigureAwait(false);
-                    Socket sock = c.Client;
-                    if (sock == null || (sock.Poll(0, SelectMode.SelectRead) && sock.Available == 0))
-                    {
-                        gone.Cancel();
-                        return;
-                    }
-                }
-            }
-            catch (Exception) { }
         }
 
         static async Task<Request> ReadRequest(NetworkStream ns, MemoryStream pending)
