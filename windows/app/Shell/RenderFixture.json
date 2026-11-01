@@ -19211,6 +19211,42 @@
      }
     }
    }
+  },
+  "viewer-export": {
+   "route": "viewer",
+   "viewerKeys": [
+    [
+     "key",
+     "KeyI"
+    ],
+    [
+     "key",
+     "KeyL"
+    ],
+    [
+     "key",
+     "KeyO"
+    ]
+   ],
+   "api": {
+    "GET /api/studio/settings": {
+     "timeFormat": "12h",
+     "keybinds": {
+      "setMarkerIn": {
+       "display": "I",
+       "identifier": "keyi"
+      },
+      "skipForward": {
+       "display": "L",
+       "identifier": "keyl"
+      },
+      "setMarkerOut": {
+       "display": "O",
+       "identifier": "keyo"
+      }
+     }
+    }
+   }
   }
  },
  "prefs": {}

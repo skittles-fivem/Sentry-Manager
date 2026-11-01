@@ -1326,6 +1326,39 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   Viewer focused, none while the settings are open, a marker's drag and
   ×, and a binding made in the browser's Studio used in the app.
 
+### Phase 2: Viewer part 13, export (2026-11-01)
+
+- Nothing to draw: the web Viewer has no export (studioEmbed.css hides
+  #setStartMarkerBtn, #setEndMarkerBtn, #exportBtn, #mySharedClipsBtn;
+  the shim refuses startExport / reserveShareCode / uploadShareClip /
+  deleteSharedClip, checkFFmpeg says { available: false, webVersion:
+  true }, saveFile is null, and nothing reaches the server). The native
+  controls bar (part 6) never drew those buttons. The export modal,
+  advanced editor, blur zones, timelapse, shared clips and minimap
+  renderer stay out. If the owner wants export later, it is a new server
+  feature, not parity.
+- `Core/ViewerExport.cs` (C# 5): `StudioExport` with the hidden ids, the
+  ten calls and the shim's answers. Nothing in the Viewer calls it yet;
+  it is the place to look before adding any export-like control.
+- test/windowsNativeViewerExport.test.js checks studioEmbed.css's rule
+  against index.html's .export-group and script.js's openers (only those
+  buttons open the export modal and shared clips; no keybind action
+  does). It runs the shim's ten calls in a vm with a recording fetch and
+  writes Core.Tests/Fixtures/expected-viewer-export.json. Core.Tests
+  ViewerExportTests (2 tests, passing under mono with the stub runner).
+- Render test mode: variant viewer-export (`viewerKeys` I, L, O with
+  those keybinds in GET /api/studio/settings); capture.js: EXPORT_STEPS,
+  EXPORT_KEYBINDS. Not captured here yet: its web picture. The end marker
+  needs Skip Forward to move the still's time in the render test mode.
+  If the native picture shows both markers on one spot, that is where to
+  look.
+- Part 15's notes: `ViewerPage.Complete` stays false (part 14, the phone
+  layout, is not in), so the browser fallback stays. Footage's Play day /
+  Play recording already call `ViewerSlot.Open` (date / folder) and will
+  land in the native Viewer once `Complete` is true; until then the
+  browser opens at #/viewer without the date or folder.
+- To check on Windows: the dotnet build; viewer-export against the web's.
+
 ## UI packs, phases 4-7 (the packs session, 2026-10-31)
 
 A separate session builds the four packs' pages natively while the other

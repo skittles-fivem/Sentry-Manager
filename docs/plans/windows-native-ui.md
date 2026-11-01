@@ -250,8 +250,8 @@ is done when every item is ticked in both. Run on the owner's PC runner.
 - Phase 2 (built-in Viewer): in progress. The playback engine, the
   telemetry, the clip library (scan and grouping, part 2), the clip
   browser (the clip list panel, part 3), the six-camera grid on the
-  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6), the event marker on the timeline (part 7), the telemetry feed (part 8), the telemetry dashboard (part 9), the map (part 10), the settings modal (part 11) and the keyboard and mouse shortcuts (part 12) are written; the rest of the Viewer page (Studio's
-  export, phone layout:
+  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6), the event marker on the timeline (part 7), the telemetry feed (part 8), the telemetry dashboard (part 9), the map (part 10), the settings modal (part 11), the keyboard and mouse shortcuts (part 12) and export (part 13: none, as in the web Viewer) are written; the rest of the Viewer page (Studio's
+  phone layout:
   `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
   still opens in the browser (`ViewerPage.Complete` stays false until it
   is all there; then its browser fallback goes and Footage's Play day /
@@ -728,8 +728,34 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   viewer-keys-marker (I: the start marker and its toast); capture.js's
   frame step kind `key`. Not done: AltGr's own e.key on European layouts
   (the identifier, from the key's place, is the same).
-  Phase 2 is not finished: `ViewerPage.Complete` stays false until parts
-  13-14 (export, phone layout) are in; until then the Viewer's
+  Viewer part 13, export (type-checked with mcs, not yet built or run on
+  Windows): the web Viewer has no export, so the native one has none
+  (1:1). web/studioEmbed.css hides the controls bar's #setStartMarkerBtn,
+  #setEndMarkerBtn, #exportBtn and #mySharedClipsBtn, which are the only
+  ways into Studio's export modal, advanced editor, blur zones, timelapse
+  and shared clips. Studio's export calls get the shim's refusals, and
+  nothing export-related reaches the server. The native controls bar never
+  drew those buttons, and the export modal, advanced editor, blur zones,
+  timelapse, shared clips and minimap renderer stay out. Only the export
+  markers that the setMarkerIn / setMarkerOut keys set are left (part 12).
+  `Core/ViewerExport.cs` (`StudioExport`: `HiddenButtons`, `Shows(id)`,
+  the shim's ten export and sharing calls and their answers (`Answer(call)`,
+  `NotAvailable(what)`), `ServerPaths` empty) is there for any native
+  caller that asks what Studio asks. For reuse (the packs' Viewer pages):
+  the packs' Viewers show no export either; `StudioExport.Shows(id)`
+  tells which of Studio's controls bar buttons the web shows.
+  test/windowsNativeViewerExport.test.js reads studioEmbed.css's rule
+  against index.html's .export-group and script.js's openers (no
+  keybind action opens the export). It runs the shim's ten calls with
+  Studio's arguments: their answers, and no request sent. It writes
+  Core.Tests/Fixtures/expected-viewer-export.json, and checks that
+  ViewerControls.cs draws no export button. Core.Tests ViewerExportTests
+  (2 tests, passing under mono). Render list: viewer-export (I, L, O:
+  both export markers and the range between them, the "End marker set"
+  toast, and the controls bar without the hidden buttons; capture.js's
+  EXPORT_STEPS).
+  Phase 2 is not finished: `ViewerPage.Complete` stays false until part
+  14 (the phone-width layout) is in; until then the Viewer's
   browser fallback stays, and Footage's Play day / Play recording keep
   going through `ViewerSlot.Open`, which lands in the native Viewer the
   moment `Complete` is true.

@@ -1,0 +1,71 @@
+{
+ "about": "Written by test/windowsNativeViewerExport.test.js from web/studioEmbed.css (the hidden export buttons) and web/electronApiShim.js (the export and clip sharing calls); checked by windows/app/Core.Tests (ViewerExportTests.cs, SentrySix.Core.StudioExport).",
+ "hidden": [
+  "setStartMarkerBtn",
+  "setEndMarkerBtn",
+  "exportBtn",
+  "mySharedClipsBtn"
+ ],
+ "calls": [
+  {
+   "call": "saveFile",
+   "answer": null
+  },
+  {
+   "call": "startExport",
+   "answer": {
+    "success": false,
+    "error": "Export is not available in the web version."
+   }
+  },
+  {
+   "call": "cancelExport",
+   "answer": {
+    "success": true
+   }
+  },
+  {
+   "call": "checkFFmpeg",
+   "answer": {
+    "available": false,
+    "webVersion": true
+   }
+  },
+  {
+   "call": "getShareConfig",
+   "answer": {
+    "enabled": false
+   }
+  },
+  {
+   "call": "reserveShareCode",
+   "answer": {
+    "success": false,
+    "error": "Clip sharing is not available in the web version."
+   }
+  },
+  {
+   "call": "uploadShareClip",
+   "answer": {
+    "success": false,
+    "error": "Clip sharing is not available in the web version."
+   }
+  },
+  {
+   "call": "getSharedClips",
+   "answer": []
+  },
+  {
+   "call": "syncSharedClips",
+   "answer": []
+  },
+  {
+   "call": "deleteSharedClip",
+   "answer": {
+    "success": false,
+    "error": "Clip sharing is not available in the web version."
+   }
+  }
+ ],
+ "serverPaths": []
+}

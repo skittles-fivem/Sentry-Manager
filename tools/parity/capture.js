@@ -108,6 +108,17 @@ const KEYS_KEYBINDS = {
   setMarkerIn: { display: 'I', identifier: 'keyi' }
 };
 
+// Export (Viewer part 13): the web Viewer has none (studioEmbed.css hides the export markers'
+// buttons, Export and My Shared Clips), only the export markers its keys set. viewer-export: Export
+// Marker Start, Skip Forward, Export Marker End: both markers and the range between them on the
+// timeline, and a controls bar without the hidden buttons (the native render presses the same keys).
+const EXPORT_STEPS = { 'viewer-export': ['KeyI', 'KeyL', 'KeyO'] };
+const EXPORT_KEYBINDS = {
+  setMarkerIn: { display: 'I', identifier: 'keyi' },
+  skipForward: { display: 'L', identifier: 'keyl' },
+  setMarkerOut: { display: 'O', identifier: 'keyo' }
+};
+
 const PAGES = {
   login: { signedIn: false, path: '/login' },
   shell: { signedIn: true, path: '/' },
@@ -239,7 +250,9 @@ const PAGES = {
   // clicks and typing in the modal (the native render replays the same steps: viewerSettings)
   ...Object.fromEntries(Object.entries(SETTINGS_STEPS).map(([k, steps]) => [k, { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['click', '#settingsBtn'], ...steps] }])),
   // the keyboard shortcuts (part 12): each KEY_STEPS key pressed in Studio's frame
-  ...Object.fromEntries(Object.entries(KEY_STEPS).map(([k, keys]) => [k, { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: keys.map((key) => ['key', 'body', key]) }]))
+  ...Object.fromEntries(Object.entries(KEY_STEPS).map(([k, keys]) => [k, { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: keys.map((key) => ['key', 'body', key]) }])),
+  // export (part 13): the export markers set by EXPORT_STEPS' keys, no export buttons
+  ...Object.fromEntries(Object.entries(EXPORT_STEPS).map(([k, keys]) => [k, { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: keys.map((key) => ['key', 'body', key]) }]))
 };
 
 // each pack page module's pages, as "<pack>:<name>" (the picture is <pack>-<name>-<w>x<h>.png)
@@ -415,6 +428,7 @@ const VARIANTS = {
   ...Object.fromEntries(Object.entries(SETTINGS_STEPS).map(([k, steps]) => [k, (api) => ({ route: 'viewer', viewerSettings: [['click', '#settingsBtn'], ...steps], ...(k === 'viewer-settings-shortcuts' ? { api: studioSettings(api, { keybinds: SETTINGS_KEYBINDS }) } : {}) })])),
   // (viewerKeys: the native render presses the same keys)
   ...Object.fromEntries(Object.entries(KEY_STEPS).map(([k, keys]) => [k, (api) => ({ route: 'viewer', viewerKeys: keys.map((key) => ['key', key]), api: studioSettings(api, { keybinds: KEYS_KEYBINDS }) })])),
+  ...Object.fromEntries(Object.entries(EXPORT_STEPS).map(([k, keys]) => [k, (api) => ({ route: 'viewer', viewerKeys: keys.map((key) => ['key', key]), api: studioSettings(api, { keybinds: EXPORT_KEYBINDS }) })])),
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },

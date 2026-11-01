@@ -400,6 +400,17 @@ start marker on the timeline at the playhead (the web's picture comes
 after its clips have played a few seconds, so its marker sits a little
 right of the native one) and the "Start marker set" toast.
 
+Export (part 13): the web Viewer has none, so the native one has none
+(studioEmbed.css hides #setStartMarkerBtn, #setEndMarkerBtn, #exportBtn
+and #mySharedClipsBtn; Core/ViewerExport.cs). What is left is the export
+markers the keys set (keybinds: I Export Marker Start, L Skip Forward,
+O Export Marker End; capture.js's EXPORT_STEPS, the native render presses
+the same through `viewerKeys`). viewer-export: I, L, O: the green start
+marker, the red end marker one skip later and the range between them on
+the timeline, the "End marker set" toast, and a controls bar with only
+HW4 / HW3 and the gear right of the timeline (no Start / End, Export or
+share buttons).
+
 - builtin overview
 - builtin overview-off
 - builtin overview-logs
@@ -494,6 +505,7 @@ right of the native one) and the "Start marker set" toast.
 - builtin viewer-settings-none
 - builtin viewer-keys
 - builtin viewer-keys-marker
+- builtin viewer-export
 
 ## The UI packs' pages (phases 4-7)
 
