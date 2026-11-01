@@ -1,0 +1,2703 @@
+{
+ "about": "Written by test/windowsNativeHorizonAlerts.test.js from examples/ui-packs/horizon/web/hz/pages/alerts.js; checked by windows/app/Core.Tests (HorizonAlertsTests.cs, SentrySix.Core.Horizon.HzAlerts).",
+ "now": 1793459402000,
+ "sessions": [
+  {
+   "name": "alerts",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": 11,
+       "level": "critical",
+       "kind": "share_down",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793452202000,
+       "updatedAt": 1793452202000,
+       "readAt": null,
+       "resolvedAt": null
+      },
+      {
+       "id": 12,
+       "level": "warning",
+       "kind": "low_space",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "updatedAt": 1793351402000,
+       "readAt": 1793355002000,
+       "resolvedAt": null
+      },
+      {
+       "id": 13,
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793171402000,
+       "updatedAt": 1793175002000,
+       "readAt": 1793175002000,
+       "resolvedAt": 1793175002000
+      },
+      {
+       "id": 14,
+       "level": "warning",
+       "title": "A notification with a title that is far too long to fit on one line of the list at all",
+       "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+       "createdAt": 1792019402000,
+       "updatedAt": 1792019402000,
+       "readAt": null,
+       "resolvedAt": null
+      }
+     ]
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "show": "unread"
+     },
+     "asked": [],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg]",
+      "Open",
+      "[seg on]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "show": "all"
+     },
+     "asked": [],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg on]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert info done]",
+      "Update installed",
+      "[pill cyan]",
+      "info",
+      "Sentry Six Manager is up to date.",
+      "Oct 28, 2026, 7:10:02 AM · 3 d ago · resolved 3 d ago",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "show": "open"
+     },
+     "asked": [],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-24h",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": 11,
+       "level": "critical",
+       "kind": "share_down",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793452202000,
+       "updatedAt": 1793452202000,
+       "readAt": null,
+       "resolvedAt": null
+      },
+      {
+       "id": 12,
+       "level": "warning",
+       "kind": "low_space",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "updatedAt": 1793351402000,
+       "readAt": 1793355002000,
+       "resolvedAt": null
+      },
+      {
+       "id": 13,
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793171402000,
+       "updatedAt": 1793175002000,
+       "readAt": 1793175002000,
+       "resolvedAt": 1793175002000
+      },
+      {
+       "id": 14,
+       "level": "warning",
+       "title": "A notification with a title that is far too long to fit on one line of the list at all",
+       "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+       "createdAt": 1792019402000,
+       "updatedAt": 1792019402000,
+       "readAt": null,
+       "resolvedAt": null
+      }
+     ]
+    }
+   },
+   "h24": true,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 13:10:02 · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 09:10:02 · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 23:10:02 · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "show": "all"
+     },
+     "asked": [],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg on]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 13:10:02 · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 09:10:02 · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert info done]",
+      "Update installed",
+      "[pill cyan]",
+      "info",
+      "Sentry Six Manager is up to date.",
+      "Oct 28, 2026, 07:10:02 · 3 d ago · resolved 3 d ago",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 23:10:02 · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-empty",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": []
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "0 open · 0 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "0 open · 0 unread · 0 notifications kept",
+      "[btn disabled]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[blank]",
+      "No open notifications. All lights are off."
+     ]
+    },
+    {
+     "step": {
+      "show": "unread"
+     },
+     "asked": [],
+     "toasts": [],
+     "status": "0 open · 0 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "0 open · 0 unread · 0 notifications kept",
+      "[btn disabled]",
+      "Mark all read",
+      "[segs as]",
+      "[seg]",
+      "Open",
+      "[seg on]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[blank]",
+      "Nothing here."
+     ]
+    },
+    {
+     "step": {
+      "show": "all"
+     },
+     "asked": [],
+     "toasts": [],
+     "status": "0 open · 0 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "0 open · 0 unread · 0 notifications kept",
+      "[btn disabled]",
+      "Mark all read",
+      "[segs as]",
+      "[seg]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg on]",
+      "All, with resolved",
+      "[list]",
+      "[blank]",
+      "Nothing here."
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-resolved",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": 13,
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793171402000,
+       "updatedAt": 1793175002000,
+       "readAt": 1793175002000,
+       "resolvedAt": 1793175002000
+      },
+      {
+       "id": 15,
+       "level": "critical",
+       "title": "The share came back",
+       "createdAt": 1793441402000,
+       "updatedAt": 1793459332000,
+       "readAt": null,
+       "resolvedAt": 1793459399000
+      }
+     ]
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "0 open · 0 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "0 open · 0 unread · 2 notifications kept",
+      "[btn disabled]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[blank]",
+      "No open notifications. All lights are off."
+     ]
+    },
+    {
+     "step": {
+      "show": "unread"
+     },
+     "asked": [],
+     "toasts": [],
+     "status": "0 open · 0 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "0 open · 0 unread · 2 notifications kept",
+      "[btn disabled]",
+      "Mark all read",
+      "[segs as]",
+      "[seg]",
+      "Open",
+      "[seg on]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[blank]",
+      "Nothing here."
+     ]
+    },
+    {
+     "step": {
+      "show": "all"
+     },
+     "asked": [],
+     "toasts": [],
+     "status": "0 open · 0 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "0 open · 0 unread · 2 notifications kept",
+      "[btn disabled]",
+      "Mark all read",
+      "[segs as]",
+      "[seg]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg on]",
+      "All, with resolved",
+      "[list]",
+      "[alert info done]",
+      "Update installed",
+      "[pill cyan]",
+      "info",
+      "Sentry Six Manager is up to date.",
+      "Oct 28, 2026, 7:10:02 AM · 3 d ago · resolved 3 d ago",
+      "[alert critical unread done]",
+      "The share came back",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "Oct 31, 2026, 10:10:02 AM · 1 min ago · resolved just now",
+      "[btn sm read]",
+      "Mark read"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-long",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": 14,
+       "level": "warning",
+       "title": "A notification with a title that is far too long to fit on one line of the list at all",
+       "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+       "createdAt": 1792019402000,
+       "updatedAt": 1792019402000,
+       "readAt": null,
+       "resolvedAt": null
+      },
+      {
+       "id": 11,
+       "level": "critical",
+       "kind": "share_down",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793452202000,
+       "updatedAt": 1793452202000,
+       "readAt": null,
+       "resolvedAt": null
+      }
+     ]
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "2 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "2 open · 2 unread · 2 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-error",
+   "answers": {
+    "GET /api/notifications": {
+     "$error": "The notifications could not be read."
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "0 open · 0 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "0 open · 0 unread · 0 notifications kept",
+      "[btn disabled]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[blank]",
+      "No open notifications. All lights are off."
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-odd",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": "n1",
+       "level": "debug",
+       "title": "A string id",
+       "createdAt": 1793459341000
+      },
+      {
+       "level": null,
+       "title": null,
+       "message": 0,
+       "createdAt": null,
+       "updatedAt": null
+      },
+      {
+       "id": 16,
+       "level": "info",
+       "title": "Old",
+       "createdAt": 1790867402000,
+       "updatedAt": 0,
+       "readAt": 1,
+       "kind": ""
+      }
+     ]
+    },
+    "POST /api/notifications/read": {
+     "ok": true
+    },
+    "POST /api/notifications/NaN/dismiss": {
+     "ok": true
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 3 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert debug unread]",
+      "A string id",
+      "[pill]",
+      "debug",
+      "[pill mag]",
+      "new",
+      "Oct 31, 2026, 3:09:01 PM · 1 min ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert unread]",
+      "[pill]",
+      "[pill mag]",
+      "new",
+      "— · never",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert info]",
+      "Old",
+      "[pill cyan]",
+      "info",
+      "Oct 1, 2026, 3:10:02 PM · 30 d ago",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "show": "all"
+     },
+     "asked": [],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 3 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg on]",
+      "All, with resolved",
+      "[list]",
+      "[alert debug unread]",
+      "A string id",
+      "[pill]",
+      "debug",
+      "[pill mag]",
+      "new",
+      "Oct 31, 2026, 3:09:01 PM · 1 min ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert unread]",
+      "[pill]",
+      "[pill mag]",
+      "new",
+      "— · never",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert info]",
+      "Old",
+      "[pill cyan]",
+      "info",
+      "Oct 1, 2026, 3:10:02 PM · 30 d ago",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "read": "n1"
+     },
+     "asked": [
+      "POST /api/notifications/read {\"ids\":[null]}",
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 3 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg on]",
+      "All, with resolved",
+      "[list]",
+      "[alert debug unread]",
+      "A string id",
+      "[pill]",
+      "debug",
+      "[pill mag]",
+      "new",
+      "Oct 31, 2026, 3:09:01 PM · 1 min ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert unread]",
+      "[pill]",
+      "[pill mag]",
+      "new",
+      "— · never",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert info]",
+      "Old",
+      "[pill cyan]",
+      "info",
+      "Oct 1, 2026, 3:10:02 PM · 30 d ago",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "dismiss": "undefined"
+     },
+     "asked": [
+      "POST /api/notifications/NaN/dismiss {}",
+      "GET /api/notifications"
+     ],
+     "toasts": [
+      {
+       "text": "Dismissed.",
+       "tone": "ok"
+      }
+     ],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 3 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg on]",
+      "All, with resolved",
+      "[list]",
+      "[alert debug unread]",
+      "A string id",
+      "[pill]",
+      "debug",
+      "[pill mag]",
+      "new",
+      "Oct 31, 2026, 3:09:01 PM · 1 min ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert unread]",
+      "[pill]",
+      "[pill mag]",
+      "new",
+      "— · never",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert info]",
+      "Old",
+      "[pill cyan]",
+      "info",
+      "Oct 1, 2026, 3:10:02 PM · 30 d ago",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-read",
+   "answers": {
+    "GET /api/notifications": {
+     "$seq": [
+      {
+       "notifications": [
+        {
+         "id": 11,
+         "level": "critical",
+         "kind": "share_down",
+         "title": "The share is not reachable",
+         "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+         "createdAt": 1793452202000,
+         "updatedAt": 1793452202000,
+         "readAt": null,
+         "resolvedAt": null
+        },
+        {
+         "id": 12,
+         "level": "warning",
+         "kind": "low_space",
+         "title": "Disk almost full",
+         "message": "The archive has 4.1 GiB left.",
+         "createdAt": 1793351402000,
+         "updatedAt": 1793351402000,
+         "readAt": 1793355002000,
+         "resolvedAt": null
+        },
+        {
+         "id": 13,
+         "level": "info",
+         "title": "Update installed",
+         "message": "Sentry Six Manager is up to date.",
+         "createdAt": 1793171402000,
+         "updatedAt": 1793175002000,
+         "readAt": 1793175002000,
+         "resolvedAt": 1793175002000
+        },
+        {
+         "id": 14,
+         "level": "warning",
+         "title": "A notification with a title that is far too long to fit on one line of the list at all",
+         "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+         "createdAt": 1792019402000,
+         "updatedAt": 1792019402000,
+         "readAt": null,
+         "resolvedAt": null
+        }
+       ]
+      },
+      {
+       "notifications": [
+        {
+         "id": 11,
+         "level": "critical",
+         "kind": "share_down",
+         "title": "The share is not reachable",
+         "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+         "createdAt": 1793452202000,
+         "updatedAt": 1793452202000,
+         "readAt": 1793459402000,
+         "resolvedAt": null
+        },
+        {
+         "id": 12,
+         "level": "warning",
+         "kind": "low_space",
+         "title": "Disk almost full",
+         "message": "The archive has 4.1 GiB left.",
+         "createdAt": 1793351402000,
+         "updatedAt": 1793351402000,
+         "readAt": 1793355002000,
+         "resolvedAt": null
+        },
+        {
+         "id": 13,
+         "level": "info",
+         "title": "Update installed",
+         "message": "Sentry Six Manager is up to date.",
+         "createdAt": 1793171402000,
+         "updatedAt": 1793175002000,
+         "readAt": 1793175002000,
+         "resolvedAt": 1793175002000
+        },
+        {
+         "id": 14,
+         "level": "warning",
+         "title": "A notification with a title that is far too long to fit on one line of the list at all",
+         "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+         "createdAt": 1792019402000,
+         "updatedAt": 1792019402000,
+         "readAt": null,
+         "resolvedAt": null
+        }
+       ]
+      }
+     ]
+    },
+    "POST /api/notifications/read": {
+     "ok": true
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "read": "11"
+     },
+     "asked": [
+      "POST /api/notifications/read {\"ids\":[11]}",
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "3 open · 1 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 1 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-read-failed",
+   "answers": {
+    "GET /api/notifications": {
+     "notifications": [
+      {
+       "id": 11,
+       "level": "critical",
+       "kind": "share_down",
+       "title": "The share is not reachable",
+       "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+       "createdAt": 1793452202000,
+       "updatedAt": 1793452202000,
+       "readAt": null,
+       "resolvedAt": null
+      },
+      {
+       "id": 12,
+       "level": "warning",
+       "kind": "low_space",
+       "title": "Disk almost full",
+       "message": "The archive has 4.1 GiB left.",
+       "createdAt": 1793351402000,
+       "updatedAt": 1793351402000,
+       "readAt": 1793355002000,
+       "resolvedAt": null
+      },
+      {
+       "id": 13,
+       "level": "info",
+       "title": "Update installed",
+       "message": "Sentry Six Manager is up to date.",
+       "createdAt": 1793171402000,
+       "updatedAt": 1793175002000,
+       "readAt": 1793175002000,
+       "resolvedAt": 1793175002000
+      },
+      {
+       "id": 14,
+       "level": "warning",
+       "title": "A notification with a title that is far too long to fit on one line of the list at all",
+       "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+       "createdAt": 1792019402000,
+       "updatedAt": 1792019402000,
+       "readAt": null,
+       "resolvedAt": null
+      }
+     ]
+    },
+    "POST /api/notifications/read": {
+     "$error": "The server stopped."
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "read": "14"
+     },
+     "asked": [
+      "POST /api/notifications/read {\"ids\":[14]}",
+      "GET /api/notifications"
+     ],
+     "toasts": [
+      {
+       "text": "The server stopped.",
+       "tone": "bad"
+      }
+     ],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-dismiss",
+   "answers": {
+    "GET /api/notifications": {
+     "$seq": [
+      {
+       "notifications": [
+        {
+         "id": 11,
+         "level": "critical",
+         "kind": "share_down",
+         "title": "The share is not reachable",
+         "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+         "createdAt": 1793452202000,
+         "updatedAt": 1793452202000,
+         "readAt": null,
+         "resolvedAt": null
+        },
+        {
+         "id": 12,
+         "level": "warning",
+         "kind": "low_space",
+         "title": "Disk almost full",
+         "message": "The archive has 4.1 GiB left.",
+         "createdAt": 1793351402000,
+         "updatedAt": 1793351402000,
+         "readAt": 1793355002000,
+         "resolvedAt": null
+        },
+        {
+         "id": 13,
+         "level": "info",
+         "title": "Update installed",
+         "message": "Sentry Six Manager is up to date.",
+         "createdAt": 1793171402000,
+         "updatedAt": 1793175002000,
+         "readAt": 1793175002000,
+         "resolvedAt": 1793175002000
+        },
+        {
+         "id": 14,
+         "level": "warning",
+         "title": "A notification with a title that is far too long to fit on one line of the list at all",
+         "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+         "createdAt": 1792019402000,
+         "updatedAt": 1792019402000,
+         "readAt": null,
+         "resolvedAt": null
+        }
+       ]
+      },
+      {
+       "notifications": [
+        {
+         "id": 11,
+         "level": "critical",
+         "kind": "share_down",
+         "title": "The share is not reachable",
+         "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+         "createdAt": 1793452202000,
+         "updatedAt": 1793452202000,
+         "readAt": null,
+         "resolvedAt": null
+        },
+        {
+         "id": 12,
+         "level": "warning",
+         "kind": "low_space",
+         "title": "Disk almost full",
+         "message": "The archive has 4.1 GiB left.",
+         "createdAt": 1793351402000,
+         "updatedAt": 1793351402000,
+         "readAt": 1793355002000,
+         "resolvedAt": 1793459402000
+        },
+        {
+         "id": 13,
+         "level": "info",
+         "title": "Update installed",
+         "message": "Sentry Six Manager is up to date.",
+         "createdAt": 1793171402000,
+         "updatedAt": 1793175002000,
+         "readAt": 1793175002000,
+         "resolvedAt": 1793175002000
+        },
+        {
+         "id": 14,
+         "level": "warning",
+         "title": "A notification with a title that is far too long to fit on one line of the list at all",
+         "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+         "createdAt": 1792019402000,
+         "updatedAt": 1792019402000,
+         "readAt": null,
+         "resolvedAt": null
+        }
+       ]
+      }
+     ]
+    },
+    "POST /api/notifications/12/dismiss": {
+     "ok": true
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "dismiss": "12"
+     },
+     "asked": [
+      "POST /api/notifications/12/dismiss {}",
+      "GET /api/notifications"
+     ],
+     "toasts": [
+      {
+       "text": "Dismissed.",
+       "tone": "ok"
+      }
+     ],
+     "status": "2 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "2 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "show": "all"
+     },
+     "asked": [],
+     "toasts": [],
+     "status": "2 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "2 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg on]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning done]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago · resolved just now",
+      "[alert info done]",
+      "Update installed",
+      "[pill cyan]",
+      "info",
+      "Sentry Six Manager is up to date.",
+      "Oct 28, 2026, 7:10:02 AM · 3 d ago · resolved 3 d ago",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-dismiss-failed",
+   "answers": {
+    "GET /api/notifications": {
+     "$seq": [
+      {
+       "notifications": [
+        {
+         "id": 11,
+         "level": "critical",
+         "kind": "share_down",
+         "title": "The share is not reachable",
+         "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+         "createdAt": 1793452202000,
+         "updatedAt": 1793452202000,
+         "readAt": null,
+         "resolvedAt": null
+        },
+        {
+         "id": 12,
+         "level": "warning",
+         "kind": "low_space",
+         "title": "Disk almost full",
+         "message": "The archive has 4.1 GiB left.",
+         "createdAt": 1793351402000,
+         "updatedAt": 1793351402000,
+         "readAt": 1793355002000,
+         "resolvedAt": null
+        },
+        {
+         "id": 13,
+         "level": "info",
+         "title": "Update installed",
+         "message": "Sentry Six Manager is up to date.",
+         "createdAt": 1793171402000,
+         "updatedAt": 1793175002000,
+         "readAt": 1793175002000,
+         "resolvedAt": 1793175002000
+        },
+        {
+         "id": 14,
+         "level": "warning",
+         "title": "A notification with a title that is far too long to fit on one line of the list at all",
+         "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+         "createdAt": 1792019402000,
+         "updatedAt": 1792019402000,
+         "readAt": null,
+         "resolvedAt": null
+        }
+       ]
+      },
+      {
+       "$error": "gone"
+      }
+     ]
+    },
+    "POST /api/notifications/11/dismiss": {
+     "$error": "No such notification."
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "dismiss": "11"
+     },
+     "asked": [
+      "POST /api/notifications/11/dismiss {}",
+      "GET /api/notifications"
+     ],
+     "toasts": [
+      {
+       "text": "No such notification.",
+       "tone": "bad"
+      }
+     ],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-read-all",
+   "answers": {
+    "GET /api/notifications": {
+     "$seq": [
+      {
+       "notifications": [
+        {
+         "id": 11,
+         "level": "critical",
+         "kind": "share_down",
+         "title": "The share is not reachable",
+         "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+         "createdAt": 1793452202000,
+         "updatedAt": 1793452202000,
+         "readAt": null,
+         "resolvedAt": null
+        },
+        {
+         "id": 12,
+         "level": "warning",
+         "kind": "low_space",
+         "title": "Disk almost full",
+         "message": "The archive has 4.1 GiB left.",
+         "createdAt": 1793351402000,
+         "updatedAt": 1793351402000,
+         "readAt": 1793355002000,
+         "resolvedAt": null
+        },
+        {
+         "id": 13,
+         "level": "info",
+         "title": "Update installed",
+         "message": "Sentry Six Manager is up to date.",
+         "createdAt": 1793171402000,
+         "updatedAt": 1793175002000,
+         "readAt": 1793175002000,
+         "resolvedAt": 1793175002000
+        },
+        {
+         "id": 14,
+         "level": "warning",
+         "title": "A notification with a title that is far too long to fit on one line of the list at all",
+         "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+         "createdAt": 1792019402000,
+         "updatedAt": 1792019402000,
+         "readAt": null,
+         "resolvedAt": null
+        }
+       ]
+      },
+      {
+       "notifications": [
+        {
+         "id": 11,
+         "level": "critical",
+         "kind": "share_down",
+         "title": "The share is not reachable",
+         "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+         "createdAt": 1793452202000,
+         "updatedAt": 1793452202000,
+         "readAt": 1793459402000,
+         "resolvedAt": null
+        },
+        {
+         "id": 12,
+         "level": "warning",
+         "kind": "low_space",
+         "title": "Disk almost full",
+         "message": "The archive has 4.1 GiB left.",
+         "createdAt": 1793351402000,
+         "updatedAt": 1793351402000,
+         "readAt": 1793355002000,
+         "resolvedAt": null
+        },
+        {
+         "id": 13,
+         "level": "info",
+         "title": "Update installed",
+         "message": "Sentry Six Manager is up to date.",
+         "createdAt": 1793171402000,
+         "updatedAt": 1793175002000,
+         "readAt": 1793175002000,
+         "resolvedAt": 1793175002000
+        },
+        {
+         "id": 14,
+         "level": "warning",
+         "title": "A notification with a title that is far too long to fit on one line of the list at all",
+         "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+         "createdAt": 1792019402000,
+         "updatedAt": 1792019402000,
+         "readAt": 1793459402000,
+         "resolvedAt": null
+        }
+       ]
+      }
+     ]
+    },
+    "POST /api/notifications/read": {
+     "ok": true
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "readAll": true
+     },
+     "asked": [
+      "POST /api/notifications/read {\"ids\":[11,14]}",
+      "GET /api/notifications"
+     ],
+     "toasts": [
+      {
+       "text": "Marked 2 notifications read.",
+       "tone": "ok"
+      }
+     ],
+     "status": "3 open · 0 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 0 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-read-all-resolved",
+   "answers": {
+    "GET /api/notifications": {
+     "$seq": [
+      {
+       "notifications": [
+        {
+         "id": 11,
+         "level": "critical",
+         "kind": "share_down",
+         "title": "The share is not reachable",
+         "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+         "createdAt": 1793452202000,
+         "updatedAt": 1793452202000,
+         "readAt": null,
+         "resolvedAt": null
+        },
+        {
+         "id": 15,
+         "level": "critical",
+         "title": "The share came back",
+         "createdAt": 1793441402000,
+         "updatedAt": 1793459332000,
+         "readAt": null,
+         "resolvedAt": 1793459399000
+        }
+       ]
+      },
+      {
+       "notifications": []
+      }
+     ]
+    },
+    "POST /api/notifications/read": {
+     "ok": true
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "1 open · 1 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "1 open · 1 unread · 2 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "readAll": true
+     },
+     "asked": [
+      "POST /api/notifications/read {\"ids\":[11,15]}",
+      "GET /api/notifications"
+     ],
+     "toasts": [
+      {
+       "text": "Marked 2 notifications read.",
+       "tone": "ok"
+      }
+     ],
+     "status": "0 open · 0 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "0 open · 0 unread · 0 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[blank]",
+      "No open notifications. All lights are off."
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-read-all-failed",
+   "answers": {
+    "GET /api/notifications": {
+     "$seq": [
+      {
+       "notifications": [
+        {
+         "id": 11,
+         "level": "critical",
+         "kind": "share_down",
+         "title": "The share is not reachable",
+         "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+         "createdAt": 1793452202000,
+         "updatedAt": 1793452202000,
+         "readAt": null,
+         "resolvedAt": null
+        },
+        {
+         "id": 12,
+         "level": "warning",
+         "kind": "low_space",
+         "title": "Disk almost full",
+         "message": "The archive has 4.1 GiB left.",
+         "createdAt": 1793351402000,
+         "updatedAt": 1793351402000,
+         "readAt": 1793355002000,
+         "resolvedAt": null
+        },
+        {
+         "id": 13,
+         "level": "info",
+         "title": "Update installed",
+         "message": "Sentry Six Manager is up to date.",
+         "createdAt": 1793171402000,
+         "updatedAt": 1793175002000,
+         "readAt": 1793175002000,
+         "resolvedAt": 1793175002000
+        },
+        {
+         "id": 14,
+         "level": "warning",
+         "title": "A notification with a title that is far too long to fit on one line of the list at all",
+         "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+         "createdAt": 1792019402000,
+         "updatedAt": 1792019402000,
+         "readAt": null,
+         "resolvedAt": null
+        }
+       ]
+      },
+      {
+       "$error": "The list could not be read again."
+      }
+     ]
+    },
+    "POST /api/notifications/read": {
+     "ok": true
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "readAll": true
+     },
+     "asked": [
+      "POST /api/notifications/read {\"ids\":[11,14]}",
+      "GET /api/notifications"
+     ],
+     "toasts": [
+      {
+       "text": "The list could not be read again.",
+       "tone": "bad"
+      }
+     ],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "alerts-topics",
+   "answers": {
+    "GET /api/notifications": {
+     "$seq": [
+      {
+       "notifications": [
+        {
+         "id": 11,
+         "level": "critical",
+         "kind": "share_down",
+         "title": "The share is not reachable",
+         "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+         "createdAt": 1793452202000,
+         "updatedAt": 1793452202000,
+         "readAt": null,
+         "resolvedAt": null
+        },
+        {
+         "id": 12,
+         "level": "warning",
+         "kind": "low_space",
+         "title": "Disk almost full",
+         "message": "The archive has 4.1 GiB left.",
+         "createdAt": 1793351402000,
+         "updatedAt": 1793351402000,
+         "readAt": 1793355002000,
+         "resolvedAt": null
+        },
+        {
+         "id": 13,
+         "level": "info",
+         "title": "Update installed",
+         "message": "Sentry Six Manager is up to date.",
+         "createdAt": 1793171402000,
+         "updatedAt": 1793175002000,
+         "readAt": 1793175002000,
+         "resolvedAt": 1793175002000
+        },
+        {
+         "id": 14,
+         "level": "warning",
+         "title": "A notification with a title that is far too long to fit on one line of the list at all",
+         "message": "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+         "createdAt": 1792019402000,
+         "updatedAt": 1792019402000,
+         "readAt": null,
+         "resolvedAt": null
+        }
+       ]
+      },
+      {
+       "notifications": [
+        {
+         "id": 11,
+         "level": "critical",
+         "kind": "share_down",
+         "title": "The share is not reachable",
+         "message": "Model 3: //nas/teslacam could not be mounted (permission denied).",
+         "createdAt": 1793452202000,
+         "updatedAt": 1793452202000,
+         "readAt": null,
+         "resolvedAt": null
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "h24": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "topics": [
+       "jobs"
+      ]
+     },
+     "asked": [],
+     "toasts": [],
+     "status": "3 open · 2 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "3 open · 2 unread · 4 notifications kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning]",
+      "Disk almost full",
+      "[pill org]",
+      "warning",
+      "[kind]",
+      "low_space",
+      "The archive has 4.1 GiB left.",
+      "Oct 30, 2026, 9:10:02 AM · 1 d ago",
+      "[btn sm dismiss]",
+      "Dismiss",
+      "[alert warning unread]",
+      "A notification with a title that is far too long to fit on one line of the list at all",
+      "[pill org]",
+      "warning",
+      "[pill mag]",
+      "new",
+      "A message that goes on and on, far longer than one line of the list, so that it wraps under the title and pushes the times down below it.",
+      "Oct 14, 2026, 11:10:02 PM · 17 d ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    },
+    {
+     "step": {
+      "topics": [
+       "notifications"
+      ]
+     },
+     "asked": [
+      "GET /api/notifications"
+     ],
+     "toasts": [],
+     "status": "1 open · 1 unread",
+     "outline": [
+      "[title]",
+      "Notifications",
+      "1 open · 1 unread · 1 notification kept",
+      "[btn]",
+      "Mark all read",
+      "[segs as]",
+      "[seg on]",
+      "Open",
+      "[seg]",
+      "Unread",
+      "[seg]",
+      "All, with resolved",
+      "[list]",
+      "[alert critical unread]",
+      "The share is not reachable",
+      "[pill red]",
+      "critical",
+      "[pill mag]",
+      "new",
+      "[kind]",
+      "share_down",
+      "Model 3: //nas/teslacam could not be mounted (permission denied).",
+      "Oct 31, 2026, 1:10:02 PM · 2 h ago",
+      "[btn sm read]",
+      "Mark read",
+      "[btn sm dismiss]",
+      "Dismiss"
+     ]
+    }
+   ]
+  }
+ ]
+}

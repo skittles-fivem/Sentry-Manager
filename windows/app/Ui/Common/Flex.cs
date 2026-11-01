@@ -37,6 +37,13 @@ namespace SentrySix.Ui
         /// keep their arrangement).
         /// </summary>
         public bool GrowOnLines;
+        /// <summary>CSS overflow: visible with min-width 0: items that do not fit are drawn past the panel's edge instead of cut off.</summary>
+        public bool Overflow;
+
+        protected override System.Windows.Media.Geometry GetLayoutClip(Size layoutSlotSize)
+        {
+            return Overflow ? null : base.GetLayoutClip(layoutSlotSize);
+        }
 
         public Flex() { }
 

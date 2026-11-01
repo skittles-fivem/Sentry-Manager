@@ -1,0 +1,1545 @@
+{
+ "about": "Written by tools/parity/packFixtures.js from tools/parity/packs/horizon-settings.js and Shell/RenderFixture.json: the horizon pages' states for SentrySix.exe --render (RENDER-PAGES.md).",
+ "variants": {
+  "horizon:settings": {
+   "route": "settings",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "timezone": "America/Chicago",
+       "source": {
+        "type": "smb",
+        "share": "//192.168.1.50/TeslaCam",
+        "username": "tesla",
+        "domain": "",
+        "version": "3.1.1",
+        "encrypt": true,
+        "port": null,
+        "passwordSet": true
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": "SMB 3.1.1 · signed and encrypted",
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y",
+       "timezone": "Europe/Berlin",
+       "source": {
+        "type": "path",
+        "path": "/footage/model-y"
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": false,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": "Nothing is mounted at /footage/model-y.",
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      }
+     ]
+    },
+    "GET /api/system": {
+     "version": {},
+     "deployment": "docker",
+     "converter": {
+      "ready": true,
+      "capabilities": {
+       "separatePublication": "native-atomic",
+       "ownershipCleanup": "atomic-expected-ownership",
+       "replacement": "available",
+       "privateTempCleanup": "identity",
+       "splitSave": true,
+       "destinationContainment": "pathname-revalidated-non-atomic"
+      }
+     },
+     "nativeHelper": true,
+     "gpu": {
+      "gpus": [
+       {
+        "vendor": "intel",
+        "name": "Intel UHD Graphics 770",
+        "node": "/dev/dri/renderD128",
+        "passedThrough": true,
+        "encodes": {
+         "h264": true,
+         "hevc": true,
+         "av1": true
+        }
+       }
+      ],
+      "nvidia": [
+       {
+        "name": "GeForce RTX 3060",
+        "driver": "550.54.14"
+       }
+      ],
+      "hints": []
+     },
+     "replacementRoots": [],
+     "dataFree": 29717635072,
+     "timezone": "UTC",
+     "security": {
+      "https": true,
+      "tlsMode": "auto",
+      "supervised": false,
+      "runningAsRoot": true,
+      "uid": 0
+     },
+     "smbVersions": {
+      "3": "SMB 3.0 or newer (best the server offers)",
+      "3.1.1": "SMB 3.1.1 (recommended)",
+      "3.02": "SMB 3.02",
+      "3.0": "SMB 3.0"
+     },
+     "smbDefaultVersion": "3.1.1"
+    },
+    "GET /api/updates": {
+     "enabled": true,
+     "image": "ghcr.io/skittles-fivem/sentry-manager",
+     "tag": "latest",
+     "current": {
+      "sha": "4d97dd6a1b2c3d4e5f60718293a4b5c6d7e8f901",
+      "builtAt": "2026-10-30T12:00:00Z"
+     },
+     "latest": {
+      "revision": "9f290a4c0ffee1234567890abcdef1234567890",
+      "created": "2026-10-31T08:00:00Z"
+     },
+     "checkedAt": 1793454666000,
+     "error": null,
+     "updateAvailable": true
+    },
+    "GET /api/ui-packs": {
+     "active": "night-drive",
+     "packs": [
+      {
+       "id": "aurora",
+       "name": "Aurora",
+       "description": "A night sky with drifting northern lights behind a frosted-glass, spatial interface: a floating dock, glass windows, a Sky home with a glowing storage ring, a filmstrip of days, a cockpit-style six-camera Viewer and an orbiting Encoder.",
+       "author": "Aurora",
+       "files": 24,
+       "bytes": 365986,
+       "replaces": [
+        "web"
+       ],
+       "uploadedAt": null,
+       "builtin": true
+      },
+      {
+       "id": "daylight",
+       "name": "Daylight",
+       "description": "A calm, friendly interface: a Today page that answers your questions first, a calendar of footage, a big six-camera Viewer, guided conversions, light and dark looks.",
+       "author": "Daylight pack",
+       "files": 25,
+       "bytes": 351176,
+       "replaces": [
+        "web"
+       ],
+       "uploadedAt": null,
+       "builtin": true
+      },
+      {
+       "id": "flux",
+       "name": "Flux",
+       "description": "A dense, dark control console for people who want every number: live canvas telemetry, a command palette (Ctrl/Cmd+K), keyboard shortcuts everywhere, sortable tables, a six-camera synced viewer with telemetry and a lane-level encoder view.",
+       "author": "Flux",
+       "files": 22,
+       "bytes": 365198,
+       "replaces": [
+        "web"
+       ],
+       "uploadedAt": null,
+       "builtin": true
+      },
+      {
+       "id": "horizon",
+       "name": "Horizon",
+       "description": "Retro-futuristic synthwave cockpit: neon HUD panels over an endless grid that runs toward a setting sun. Dashboard instrument cluster, track-list footage, heads-up Viewer and a dyno-room Encoder.",
+       "author": "Sentry Six Manager examples",
+       "files": 21,
+       "bytes": 370157,
+       "replaces": [
+        "web"
+       ],
+       "uploadedAt": null,
+       "builtin": true
+      },
+      {
+       "id": "night-drive",
+       "name": "Night drive",
+       "description": "Darker cards and a red accent.",
+       "author": "Sam",
+       "files": 3,
+       "bytes": 20480,
+       "replaces": [
+        "web"
+       ],
+       "uploadedAt": "2026-10-29T18:04:11.000Z",
+       "builtin": false
+      }
+     ],
+     "original": false
+    }
+   }
+  },
+  "horizon:settings-vehicle": {
+   "route": "settings",
+   "sub": "vehicles?edit=model-3",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "timezone": "America/Chicago",
+       "source": {
+        "type": "smb",
+        "share": "//192.168.1.50/TeslaCam",
+        "username": "tesla",
+        "domain": "",
+        "version": "3.1.1",
+        "encrypt": true,
+        "port": null,
+        "passwordSet": true
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": "SMB 3.1.1 · signed and encrypted",
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y",
+       "timezone": "Europe/Berlin",
+       "source": {
+        "type": "path",
+        "path": "/footage/model-y"
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": false,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": "Nothing is mounted at /footage/model-y.",
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      }
+     ]
+    },
+    "GET /api/system": {
+     "version": {},
+     "deployment": "docker",
+     "converter": {
+      "ready": true,
+      "capabilities": {
+       "separatePublication": "native-atomic",
+       "ownershipCleanup": "atomic-expected-ownership",
+       "replacement": "available",
+       "privateTempCleanup": "identity",
+       "splitSave": true,
+       "destinationContainment": "pathname-revalidated-non-atomic"
+      }
+     },
+     "nativeHelper": true,
+     "gpu": {
+      "gpus": [
+       {
+        "vendor": "intel",
+        "name": "Intel UHD Graphics 770",
+        "node": "/dev/dri/renderD128",
+        "passedThrough": true,
+        "encodes": {
+         "h264": true,
+         "hevc": true,
+         "av1": true
+        }
+       }
+      ],
+      "nvidia": [
+       {
+        "name": "GeForce RTX 3060",
+        "driver": "550.54.14"
+       }
+      ],
+      "hints": []
+     },
+     "replacementRoots": [],
+     "dataFree": 29717635072,
+     "timezone": "UTC",
+     "security": {
+      "https": true,
+      "tlsMode": "auto",
+      "supervised": false,
+      "runningAsRoot": true,
+      "uid": 0
+     },
+     "smbVersions": {
+      "3": "SMB 3.0 or newer (best the server offers)",
+      "3.1.1": "SMB 3.1.1 (recommended)",
+      "3.02": "SMB 3.02",
+      "3.0": "SMB 3.0"
+     },
+     "smbDefaultVersion": "3.1.1"
+    }
+   }
+  },
+  "horizon:settings-vehicle-new": {
+   "route": "settings",
+   "sub": "vehicles?add=1",
+   "state": {
+    "sourceType": "path"
+   },
+   "api": {
+    "GET /api/system": {
+     "version": {},
+     "deployment": "windows",
+     "converter": {
+      "ready": true,
+      "capabilities": {
+       "separatePublication": "native-atomic",
+       "ownershipCleanup": "atomic-expected-ownership",
+       "replacement": "available",
+       "privateTempCleanup": "identity",
+       "splitSave": true,
+       "destinationContainment": "pathname-revalidated-non-atomic"
+      }
+     },
+     "nativeHelper": true,
+     "gpu": {
+      "gpus": [],
+      "nvidia": [
+       {
+        "name": "NVIDIA GeForce RTX 4070",
+        "driver": "566.36"
+       }
+      ],
+      "hints": []
+     },
+     "replacementRoots": [],
+     "dataFree": 29717635072,
+     "timezone": "UTC",
+     "security": {
+      "https": true,
+      "tlsMode": "auto",
+      "supervised": false,
+      "runningAsRoot": true,
+      "uid": 0
+     },
+     "smbVersions": {
+      "3": "SMB 3.0 or newer (best the server offers)",
+      "3.1.1": "SMB 3.1.1 (recommended)",
+      "3.02": "SMB 3.02",
+      "3.0": "SMB 3.0"
+     },
+     "smbDefaultVersion": "3.1.1"
+    },
+    "GET /api/updates": {
+     "enabled": true,
+     "image": null,
+     "tag": null,
+     "current": {
+      "sha": "4d97dd6a1b2c3d4e5f60718293a4b5c6d7e8f901",
+      "builtAt": "2026-10-30T12:00:00Z"
+     },
+     "latest": null,
+     "checkedAt": null,
+     "error": null,
+     "updateAvailable": false
+    },
+    "GET /api/settings/network": {
+     "available": true,
+     "otherDevices": false,
+     "fixedHost": null,
+     "addresses": [],
+     "port": 9000
+    },
+    "GET /api/info": {
+     "deployment": "windows"
+    },
+    "GET /api/auth/me": {
+     "user": "admin",
+     "needsSetup": false,
+     "setupCodeRequired": true,
+     "secure": true,
+     "fingerprint": "2E:BF:D0:55:D7:9B:8A:12:09:BF:B5:6D:17:A9:AD:6F:A3:1D:FE:0B:BF:28:0A:FB:E2:C4:2B:53:00:8F:24:BB",
+     "deployment": "windows"
+    }
+   }
+  },
+  "horizon:settings-account": {
+   "route": "settings",
+   "sub": "account"
+  },
+  "horizon:settings-interface": {
+   "route": "settings",
+   "sub": "interface",
+   "api": {
+    "GET /api/ui-packs": {
+     "active": "night-drive",
+     "packs": [
+      {
+       "id": "aurora",
+       "name": "Aurora",
+       "description": "A night sky with drifting northern lights behind a frosted-glass, spatial interface: a floating dock, glass windows, a Sky home with a glowing storage ring, a filmstrip of days, a cockpit-style six-camera Viewer and an orbiting Encoder.",
+       "author": "Aurora",
+       "files": 24,
+       "bytes": 365986,
+       "replaces": [
+        "web"
+       ],
+       "uploadedAt": null,
+       "builtin": true
+      },
+      {
+       "id": "daylight",
+       "name": "Daylight",
+       "description": "A calm, friendly interface: a Today page that answers your questions first, a calendar of footage, a big six-camera Viewer, guided conversions, light and dark looks.",
+       "author": "Daylight pack",
+       "files": 25,
+       "bytes": 351176,
+       "replaces": [
+        "web"
+       ],
+       "uploadedAt": null,
+       "builtin": true
+      },
+      {
+       "id": "flux",
+       "name": "Flux",
+       "description": "A dense, dark control console for people who want every number: live canvas telemetry, a command palette (Ctrl/Cmd+K), keyboard shortcuts everywhere, sortable tables, a six-camera synced viewer with telemetry and a lane-level encoder view.",
+       "author": "Flux",
+       "files": 22,
+       "bytes": 365198,
+       "replaces": [
+        "web"
+       ],
+       "uploadedAt": null,
+       "builtin": true
+      },
+      {
+       "id": "horizon",
+       "name": "Horizon",
+       "description": "Retro-futuristic synthwave cockpit: neon HUD panels over an endless grid that runs toward a setting sun. Dashboard instrument cluster, track-list footage, heads-up Viewer and a dyno-room Encoder.",
+       "author": "Sentry Six Manager examples",
+       "files": 21,
+       "bytes": 370157,
+       "replaces": [
+        "web"
+       ],
+       "uploadedAt": null,
+       "builtin": true
+      },
+      {
+       "id": "night-drive",
+       "name": "Night drive",
+       "description": "Darker cards and a red accent.",
+       "author": "Sam",
+       "files": 3,
+       "bytes": 20480,
+       "replaces": [
+        "web"
+       ],
+       "uploadedAt": "2026-10-29T18:04:11.000Z",
+       "builtin": false
+      }
+     ],
+     "original": false
+    }
+   }
+  },
+  "horizon:settings-display": {
+   "route": "settings",
+   "sub": "display"
+  },
+  "horizon:settings-updates": {
+   "route": "settings",
+   "sub": "updates",
+   "api": {
+    "GET /api/updates": {
+     "enabled": true,
+     "image": "ghcr.io/skittles-fivem/sentry-manager",
+     "tag": "latest",
+     "current": {
+      "sha": "4d97dd6a1b2c3d4e5f60718293a4b5c6d7e8f901",
+      "builtAt": "2026-10-30T12:00:00Z"
+     },
+     "latest": {
+      "revision": "9f290a4c0ffee1234567890abcdef1234567890",
+      "created": "2026-10-31T08:00:00Z"
+     },
+     "checkedAt": 1793454666000,
+     "error": null,
+     "updateAvailable": true
+    }
+   }
+  },
+  "horizon:settings-security": {
+   "route": "settings",
+   "sub": "security",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "timezone": "America/Chicago",
+       "source": {
+        "type": "smb",
+        "share": "//192.168.1.50/TeslaCam",
+        "username": "tesla",
+        "domain": "",
+        "version": "3.1.1",
+        "encrypt": true,
+        "port": null,
+        "passwordSet": true
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": "SMB 3.1.1 · signed and encrypted",
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y",
+       "timezone": "Europe/Berlin",
+       "source": {
+        "type": "path",
+        "path": "/footage/model-y"
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": false,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": "Nothing is mounted at /footage/model-y.",
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      }
+     ]
+    },
+    "GET /api/security": {
+     "https": true,
+     "tlsMode": "auto",
+     "trustProxy": false,
+     "tls": {
+      "mode": "local-ca",
+      "ca": {
+       "fingerprint": "04:46:1E:53:B2:C8:53:3B:6A:B9:8B:B6:14:5C:48:C5:95:E4:2E:43:FF:0F:0C:33:C3:13:25:C8:52:BB:0F:B5",
+       "validFrom": "Oct 31 15:51:05 2026 GMT",
+       "validTo": "Oct 28 15:51:05 2036 GMT",
+       "expiresAt": 2108821865000,
+       "subject": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 1aee959b",
+       "issuer": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 1aee959b",
+       "names": []
+      },
+      "certificate": {
+       "fingerprint": "2E:BF:D0:55:D7:9B:8A:12:09:BF:B5:6D:17:A9:AD:6F:A3:1D:FE:0B:BF:28:0A:FB:E2:C4:2B:53:00:8F:24:BB",
+       "validFrom": "Oct 31 15:51:05 2026 GMT",
+       "validTo": "Feb  2 15:51:05 2029 GMT",
+       "expiresAt": 1864741865000,
+       "subject": "O=Sentry Six Manager\nCN=localhost",
+       "issuer": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 1aee959b",
+       "names": [
+        "localhost",
+        "127.0.0.1",
+        "0:0:0:0:0:0:0:1"
+       ]
+      },
+      "hostnames": [
+       "localhost",
+       "127.0.0.1",
+       "::1",
+       "nas.local"
+      ],
+      "editable": [
+       "nas.local"
+      ],
+      "fromEnv": [],
+      "containerHostname": "vm"
+     },
+     "supervised": false,
+     "runningAsRoot": true,
+     "currentHost": "192.168.1.20:9000",
+     "confirmed": true
+    }
+   }
+  },
+  "horizon:settings-system": {
+   "route": "settings",
+   "sub": "system",
+   "api": {
+    "GET /api/system": {
+     "version": {},
+     "deployment": "docker",
+     "converter": {
+      "ready": true,
+      "capabilities": {
+       "separatePublication": "native-atomic",
+       "ownershipCleanup": "atomic-expected-ownership",
+       "replacement": "available",
+       "privateTempCleanup": "identity",
+       "splitSave": true,
+       "destinationContainment": "pathname-revalidated-non-atomic"
+      }
+     },
+     "nativeHelper": true,
+     "gpu": {
+      "gpus": [
+       {
+        "vendor": "intel",
+        "name": "Intel UHD Graphics 770",
+        "node": "/dev/dri/renderD128",
+        "passedThrough": true,
+        "encodes": {
+         "h264": true,
+         "hevc": true,
+         "av1": true
+        }
+       }
+      ],
+      "nvidia": [
+       {
+        "name": "GeForce RTX 3060",
+        "driver": "550.54.14"
+       }
+      ],
+      "hints": []
+     },
+     "replacementRoots": [],
+     "dataFree": 29717635072,
+     "timezone": "UTC",
+     "security": {
+      "https": true,
+      "tlsMode": "auto",
+      "supervised": false,
+      "runningAsRoot": true,
+      "uid": 0
+     },
+     "smbVersions": {
+      "3": "SMB 3.0 or newer (best the server offers)",
+      "3.1.1": "SMB 3.1.1 (recommended)",
+      "3.02": "SMB 3.02",
+      "3.0": "SMB 3.0"
+     },
+     "smbDefaultVersion": "3.1.1"
+    }
+   }
+  },
+  "horizon:settings-power": {
+   "route": "settings",
+   "sub": "power",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "timezone": "America/Chicago",
+       "source": {
+        "type": "smb",
+        "share": "//192.168.1.50/TeslaCam",
+        "username": "tesla",
+        "domain": "",
+        "version": "3.1.1",
+        "encrypt": true,
+        "port": null,
+        "passwordSet": true
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": "SMB 3.1.1 · signed and encrypted",
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y",
+       "timezone": "Europe/Berlin",
+       "source": {
+        "type": "path",
+        "path": "/footage/model-y"
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": false,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": "Nothing is mounted at /footage/model-y.",
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      }
+     ]
+    },
+    "GET /api/settings": {
+     "appearance": {
+      "reduceEffects": false,
+      "clock24": false
+     },
+     "power": {
+      "currency": "$",
+      "mode": "tou",
+      "pricePerKwh": 0.15,
+      "defaultPrice": 0.25,
+      "rates": [
+       {
+        "label": "Off-peak",
+        "price": 0.12,
+        "from": "23:00",
+        "to": "07:00",
+        "days": [
+         0,
+         1,
+         2,
+         3,
+         4,
+         5,
+         6
+        ]
+       },
+       {
+        "label": "Peak",
+        "price": 0.38,
+        "from": "16:00",
+        "to": "21:00",
+        "days": [
+         1,
+         2,
+         3,
+         4,
+         5
+        ]
+       }
+      ]
+     }
+    },
+    "GET /api/system": {
+     "version": {},
+     "deployment": "docker",
+     "converter": {
+      "ready": true,
+      "capabilities": {
+       "separatePublication": "native-atomic",
+       "ownershipCleanup": "atomic-expected-ownership",
+       "replacement": "available",
+       "privateTempCleanup": "identity",
+       "splitSave": true,
+       "destinationContainment": "pathname-revalidated-non-atomic"
+      }
+     },
+     "nativeHelper": true,
+     "gpu": {
+      "gpus": [
+       {
+        "vendor": "intel",
+        "name": "Intel UHD Graphics 770",
+        "node": "/dev/dri/renderD128",
+        "passedThrough": true,
+        "encodes": {
+         "h264": true,
+         "hevc": true,
+         "av1": true
+        }
+       }
+      ],
+      "nvidia": [
+       {
+        "name": "GeForce RTX 3060",
+        "driver": "550.54.14"
+       }
+      ],
+      "hints": []
+     },
+     "replacementRoots": [],
+     "dataFree": 29717635072,
+     "timezone": "UTC",
+     "security": {
+      "https": true,
+      "tlsMode": "auto",
+      "supervised": false,
+      "runningAsRoot": true,
+      "uid": 0
+     },
+     "smbVersions": {
+      "3": "SMB 3.0 or newer (best the server offers)",
+      "3.1.1": "SMB 3.1.1 (recommended)",
+      "3.02": "SMB 3.02",
+      "3.0": "SMB 3.0"
+     },
+     "smbDefaultVersion": "3.1.1"
+    }
+   }
+  },
+  "horizon:settings-windows": {
+   "route": "settings",
+   "sub": "updates",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "timezone": "America/Chicago",
+       "source": {
+        "type": "smb",
+        "share": "//192.168.1.50/TeslaCam",
+        "username": "tesla",
+        "domain": "",
+        "version": "3.1.1",
+        "encrypt": true,
+        "port": null,
+        "passwordSet": true
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": "SMB 3.1.1 · signed and encrypted",
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      },
+      {
+       "id": "model-y",
+       "name": "Model Y",
+       "timezone": "Europe/Berlin",
+       "source": {
+        "type": "path",
+        "path": "/footage/model-y"
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": false,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": "Nothing is mounted at /footage/model-y.",
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      }
+     ]
+    },
+    "GET /api/system": {
+     "version": {},
+     "deployment": "windows",
+     "converter": {
+      "ready": true,
+      "capabilities": {
+       "separatePublication": "native-atomic",
+       "ownershipCleanup": "atomic-expected-ownership",
+       "replacement": "available",
+       "privateTempCleanup": "identity",
+       "splitSave": true,
+       "destinationContainment": "pathname-revalidated-non-atomic"
+      }
+     },
+     "nativeHelper": true,
+     "gpu": {
+      "gpus": [],
+      "nvidia": [
+       {
+        "name": "NVIDIA GeForce RTX 4070",
+        "driver": "566.36"
+       }
+      ],
+      "hints": []
+     },
+     "replacementRoots": [],
+     "dataFree": 29717635072,
+     "timezone": "UTC",
+     "security": {
+      "https": true,
+      "tlsMode": "auto",
+      "supervised": false,
+      "runningAsRoot": true,
+      "uid": 0
+     },
+     "smbVersions": {
+      "3": "SMB 3.0 or newer (best the server offers)",
+      "3.1.1": "SMB 3.1.1 (recommended)",
+      "3.02": "SMB 3.02",
+      "3.0": "SMB 3.0"
+     },
+     "smbDefaultVersion": "3.1.1"
+    },
+    "GET /api/updates": {
+     "enabled": true,
+     "image": null,
+     "tag": null,
+     "current": {
+      "sha": "4d97dd6a1b2c3d4e5f60718293a4b5c6d7e8f901",
+      "builtAt": "2026-10-30T12:00:00Z"
+     },
+     "latest": null,
+     "checkedAt": null,
+     "error": null,
+     "updateAvailable": false
+    },
+    "GET /api/security": {
+     "https": true,
+     "tlsMode": "auto",
+     "trustProxy": false,
+     "tls": {
+      "mode": "local-ca",
+      "ca": {
+       "fingerprint": "04:46:1E:53:B2:C8:53:3B:6A:B9:8B:B6:14:5C:48:C5:95:E4:2E:43:FF:0F:0C:33:C3:13:25:C8:52:BB:0F:B5",
+       "validFrom": "Oct 31 15:51:05 2026 GMT",
+       "validTo": "Oct 28 15:51:05 2036 GMT",
+       "expiresAt": 2108821865000,
+       "subject": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 1aee959b",
+       "issuer": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 1aee959b",
+       "names": []
+      },
+      "certificate": {
+       "fingerprint": "2E:BF:D0:55:D7:9B:8A:12:09:BF:B5:6D:17:A9:AD:6F:A3:1D:FE:0B:BF:28:0A:FB:E2:C4:2B:53:00:8F:24:BB",
+       "validFrom": "Oct 31 15:51:05 2026 GMT",
+       "validTo": "Feb  2 15:51:05 2029 GMT",
+       "expiresAt": 1864741865000,
+       "subject": "O=Sentry Six Manager\nCN=localhost",
+       "issuer": "O=Sentry Six Manager\nCN=Sentry Six Manager local CA 1aee959b",
+       "names": [
+        "localhost",
+        "127.0.0.1",
+        "0:0:0:0:0:0:0:1"
+       ]
+      },
+      "hostnames": [
+       "localhost",
+       "127.0.0.1",
+       "::1"
+      ],
+      "editable": [],
+      "fromEnv": [],
+      "containerHostname": "vm"
+     },
+     "supervised": false,
+     "runningAsRoot": true,
+     "currentHost": "127.0.0.1:45119",
+     "confirmed": true,
+     "account": "NT SERVICE\\SentrySixManager",
+     "elevated": false
+    },
+    "GET /api/settings/network": {
+     "available": true,
+     "otherDevices": true,
+     "fixedHost": null,
+     "addresses": [
+      "192.168.1.20",
+      "garage-pc.local"
+     ],
+     "port": 9000
+    },
+    "GET /api/info": {
+     "deployment": "windows"
+    },
+    "GET /api/auth/me": {
+     "user": "admin",
+     "needsSetup": false,
+     "setupCodeRequired": true,
+     "secure": true,
+     "fingerprint": "2E:BF:D0:55:D7:9B:8A:12:09:BF:B5:6D:17:A9:AD:6F:A3:1D:FE:0B:BF:28:0A:FB:E2:C4:2B:53:00:8F:24:BB",
+     "deployment": "windows"
+    }
+   }
+  },
+  "horizon:settings-novehicles": {
+   "route": "settings",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": []
+    },
+    "GET /api/system": {
+     "$error": "Not available.",
+     "$status": 500
+    },
+    "GET /api/security": {
+     "$error": "Not available.",
+     "$status": 500
+    },
+    "GET /api/ui-packs": {
+     "$error": "Not available.",
+     "$status": 500
+    }
+   }
+  },
+  "horizon:settings-error": {
+   "route": "settings",
+   "sub": "power",
+   "api": {
+    "GET /api/settings": {
+     "$error": "The settings could not be read.",
+     "$status": 500
+    }
+   }
+  }
+ }
+}

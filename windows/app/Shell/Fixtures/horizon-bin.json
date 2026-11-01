@@ -1,0 +1,456 @@
+{
+ "about": "Written by tools/parity/packFixtures.js from tools/parity/packs/horizon-bin.js and Shell/RenderFixture.json: the horizon pages' states for SentrySix.exe --render (RENDER-PAGES.md).",
+ "variants": {
+  "horizon:bin": {
+   "route": "bin",
+   "api": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "2026-10-29_18-04-11-front.mp4"
+        },
+        {
+         "name": "2026-10-29_18-04-11-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793454666000,
+       "reason": "manual"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "2026-10-20_00-front.mp4"
+        },
+        {
+         "name": "2026-10-20_01-front.mp4"
+        },
+        {
+         "name": "2026-10-20_02-front.mp4"
+        },
+        {
+         "name": "2026-10-20_03-front.mp4"
+        },
+        {
+         "name": "2026-10-20_04-front.mp4"
+        },
+        {
+         "name": "2026-10-20_05-front.mp4"
+        },
+        {
+         "name": "2026-10-20_06-front.mp4"
+        },
+        {
+         "name": "2026-10-20_07-front.mp4"
+        },
+        {
+         "name": "2026-10-20_08-front.mp4"
+        },
+        {
+         "name": "2026-10-20_09-front.mp4"
+        },
+        {
+         "name": "2026-10-20_10-front.mp4"
+        },
+        {
+         "name": "2026-10-20_11-front.mp4"
+        },
+        {
+         "name": "2026-10-20_12-front.mp4"
+        },
+        {
+         "name": "2026-10-20_13-front.mp4"
+        },
+        {
+         "name": "2026-10-20_14-front.mp4"
+        },
+        {
+         "name": "2026-10-20_15-front.mp4"
+        },
+        {
+         "name": "2026-10-20_16-front.mp4"
+        },
+        {
+         "name": "2026-10-20_17-front.mp4"
+        },
+        {
+         "name": "2026-10-20_18-front.mp4"
+        },
+        {
+         "name": "2026-10-20_19-front.mp4"
+        },
+        {
+         "name": "2026-10-20_20-front.mp4"
+        },
+        {
+         "name": "2026-10-20_21-front.mp4"
+        },
+        {
+         "name": "2026-10-20_22-front.mp4"
+        },
+        {
+         "name": "2026-10-20_23-front.mp4"
+        },
+        {
+         "name": "2026-10-20_24-front.mp4"
+        },
+        {
+         "name": "2026-10-20_25-front.mp4"
+        },
+        {
+         "name": "2026-10-20_26-front.mp4"
+        },
+        {
+         "name": "2026-10-20_27-front.mp4"
+        },
+        {
+         "name": "2026-10-20_28-front.mp4"
+        },
+        {
+         "name": "2026-10-20_29-front.mp4"
+        },
+        {
+         "name": "2026-10-20_30-front.mp4"
+        },
+        {
+         "name": "2026-10-20_31-front.mp4"
+        },
+        {
+         "name": "2026-10-20_32-front.mp4"
+        },
+        {
+         "name": "2026-10-20_33-front.mp4"
+        },
+        {
+         "name": "2026-10-20_34-front.mp4"
+        },
+        {
+         "name": "2026-10-20_35-front.mp4"
+        },
+        {
+         "name": "2026-10-20_36-front.mp4"
+        },
+        {
+         "name": "2026-10-20_37-front.mp4"
+        },
+        {
+         "name": "2026-10-20_38-front.mp4"
+        },
+        {
+         "name": "2026-10-20_39-front.mp4"
+        },
+        {
+         "name": "2026-10-20_40-front.mp4"
+        },
+        {
+         "name": "2026-10-20_41-front.mp4"
+        },
+        {
+         "name": "2026-10-20_42-front.mp4"
+        },
+        {
+         "name": "2026-10-20_43-front.mp4"
+        },
+        {
+         "name": "2026-10-20_44-front.mp4"
+        },
+        {
+         "name": "2026-10-20_45-front.mp4"
+        },
+        {
+         "name": "2026-10-20_46-front.mp4"
+        },
+        {
+         "name": "2026-10-20_47-front.mp4"
+        }
+       ],
+       "trashedAt": 1793353866000,
+       "reason": "policy"
+      },
+      {
+       "id": "b3",
+       "label": "SentryClips/2026-10-18_22-41-07",
+       "bytes": 100663296,
+       "files": [
+        {
+         "name": "2026-10-18_22-41-07-front.mp4",
+         "conflict": true
+        },
+        {
+         "name": "2026-10-18_22-41-07-back.mp4"
+        }
+       ],
+       "trashedAt": 1793173866000,
+       "reason": "manual"
+      }
+     ]
+    }
+   }
+  },
+  "horizon:bin-empty": {
+   "route": "bin"
+  },
+  "horizon:bin-long": {
+   "route": "bin",
+   "api": {
+    "GET /api/bin?vehicle=model-3": {
+     "items": [
+      {
+       "id": "b4",
+       "label": "SavedClips/2026-10-27_18-04-11/a-folder-name-that-is-far-too-long-to-fit-on-one-line-of-the-table",
+       "bytes": 5497558138880,
+       "files": [
+        {
+         "name": "x.mp4"
+        }
+       ],
+       "trashedAt": 1792021866000,
+       "reason": "policy"
+      },
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "2026-10-29_18-04-11-front.mp4"
+        },
+        {
+         "name": "2026-10-29_18-04-11-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793454666000,
+       "reason": "manual"
+      }
+     ]
+    }
+   }
+  },
+  "horizon:bin-error": {
+   "route": "bin",
+   "api": {
+    "GET /api/bin?vehicle=model-3": {
+     "$error": "The Recycle Bin could not be read.",
+     "$status": 500
+    }
+   }
+  },
+  "horizon:bin-every-vehicle": {
+   "route": "bin",
+   "state": {
+    "bin": {
+     "scope": "all"
+    }
+   },
+   "api": {
+    "GET /api/bin": {
+     "items": [
+      {
+       "id": "b1",
+       "label": "SavedClips/2026-10-29_18-04-11",
+       "bytes": 432136768,
+       "files": [
+        {
+         "name": "2026-10-29_18-04-11-front.mp4"
+        },
+        {
+         "name": "2026-10-29_18-04-11-back.mp4"
+        },
+        {
+         "name": "event.json"
+        }
+       ],
+       "trashedAt": 1793454666000,
+       "reason": "manual",
+       "vehicleId": "model-3"
+      },
+      {
+       "id": "b2",
+       "label": "RecentClips/2026-10-20",
+       "bytes": 3435973836.8,
+       "files": [
+        {
+         "name": "2026-10-20_00-front.mp4"
+        },
+        {
+         "name": "2026-10-20_01-front.mp4"
+        },
+        {
+         "name": "2026-10-20_02-front.mp4"
+        },
+        {
+         "name": "2026-10-20_03-front.mp4"
+        },
+        {
+         "name": "2026-10-20_04-front.mp4"
+        },
+        {
+         "name": "2026-10-20_05-front.mp4"
+        },
+        {
+         "name": "2026-10-20_06-front.mp4"
+        },
+        {
+         "name": "2026-10-20_07-front.mp4"
+        },
+        {
+         "name": "2026-10-20_08-front.mp4"
+        },
+        {
+         "name": "2026-10-20_09-front.mp4"
+        },
+        {
+         "name": "2026-10-20_10-front.mp4"
+        },
+        {
+         "name": "2026-10-20_11-front.mp4"
+        },
+        {
+         "name": "2026-10-20_12-front.mp4"
+        },
+        {
+         "name": "2026-10-20_13-front.mp4"
+        },
+        {
+         "name": "2026-10-20_14-front.mp4"
+        },
+        {
+         "name": "2026-10-20_15-front.mp4"
+        },
+        {
+         "name": "2026-10-20_16-front.mp4"
+        },
+        {
+         "name": "2026-10-20_17-front.mp4"
+        },
+        {
+         "name": "2026-10-20_18-front.mp4"
+        },
+        {
+         "name": "2026-10-20_19-front.mp4"
+        },
+        {
+         "name": "2026-10-20_20-front.mp4"
+        },
+        {
+         "name": "2026-10-20_21-front.mp4"
+        },
+        {
+         "name": "2026-10-20_22-front.mp4"
+        },
+        {
+         "name": "2026-10-20_23-front.mp4"
+        },
+        {
+         "name": "2026-10-20_24-front.mp4"
+        },
+        {
+         "name": "2026-10-20_25-front.mp4"
+        },
+        {
+         "name": "2026-10-20_26-front.mp4"
+        },
+        {
+         "name": "2026-10-20_27-front.mp4"
+        },
+        {
+         "name": "2026-10-20_28-front.mp4"
+        },
+        {
+         "name": "2026-10-20_29-front.mp4"
+        },
+        {
+         "name": "2026-10-20_30-front.mp4"
+        },
+        {
+         "name": "2026-10-20_31-front.mp4"
+        },
+        {
+         "name": "2026-10-20_32-front.mp4"
+        },
+        {
+         "name": "2026-10-20_33-front.mp4"
+        },
+        {
+         "name": "2026-10-20_34-front.mp4"
+        },
+        {
+         "name": "2026-10-20_35-front.mp4"
+        },
+        {
+         "name": "2026-10-20_36-front.mp4"
+        },
+        {
+         "name": "2026-10-20_37-front.mp4"
+        },
+        {
+         "name": "2026-10-20_38-front.mp4"
+        },
+        {
+         "name": "2026-10-20_39-front.mp4"
+        },
+        {
+         "name": "2026-10-20_40-front.mp4"
+        },
+        {
+         "name": "2026-10-20_41-front.mp4"
+        },
+        {
+         "name": "2026-10-20_42-front.mp4"
+        },
+        {
+         "name": "2026-10-20_43-front.mp4"
+        },
+        {
+         "name": "2026-10-20_44-front.mp4"
+        },
+        {
+         "name": "2026-10-20_45-front.mp4"
+        },
+        {
+         "name": "2026-10-20_46-front.mp4"
+        },
+        {
+         "name": "2026-10-20_47-front.mp4"
+        }
+       ],
+       "trashedAt": 1793353866000,
+       "reason": "policy",
+       "vehicleId": "model-y"
+      },
+      {
+       "id": "b3",
+       "label": "SentryClips/2026-10-18_22-41-07",
+       "bytes": 100663296,
+       "files": [
+        {
+         "name": "2026-10-18_22-41-07-front.mp4",
+         "conflict": true
+        },
+        {
+         "name": "2026-10-18_22-41-07-back.mp4"
+        }
+       ],
+       "trashedAt": 1793173866000,
+       "reason": "manual",
+       "vehicleId": "model-3"
+      }
+     ]
+    }
+   }
+  }
+ }
+}

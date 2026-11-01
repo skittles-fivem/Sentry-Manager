@@ -268,12 +268,49 @@ is done when every item is ticked in both. Run on the owner's PC runner.
       typing and 11 clears (test/windowsNativeHorizonJobs.test.js,
       Core.Tests HorizonJobsTests). Render list: horizon jobs, -empty,
       -running-only, -long, -error.
-    - Dashboard, Footage, Nodes, Policies, Recycle Bin, Notifications,
-      Encoding per vehicle, Settings: in progress.
+    - Nodes: native (`Ui/Horizon/HzNodesPage.cs`, `HzKitNodes.cs`,
+      `Core/Horizon/HzNodes.cs`; `HzNodeLanes.cs` ports hz/nodelanes.js for
+      the Encoder). Compared with hz/nodes.js and nodelanes.js on 56
+      sessions, 105 steps (test/windowsNativeHorizonNodes.test.js, Core.Tests
+      HorizonNodesTests). Use N at once writes the pack's own
+      `horizon.enc.form`. Render list: horizon nodes-empty, nodes,
+      -running, -noworker, -closed.
+    - Settings: native (`HzSettingsPage.cs`, `HzKitSettings.cs`,
+      `Core/Horizon/HzSettings.cs`): all eight tabs, the pack's own
+      "Password check" for the server's re-check while the page is open.
+      74 sessions, 151 steps against hz/pages/settings.js. Render list: 13
+      pages (one per tab, vehicle, new vehicle, windows, no vehicles, error).
+    - Footage: native (`HzFootagePage.cs`, `HzKitFootage.cs`,
+      `Core/Horizon/HzFootage.cs`, reusing Core/Footage.cs's paths, bodies
+      and Index speeds): albums, playlist, tracks, selection bar, details
+      sheet, the page's keys. 29 sessions, 119 steps. Render list: footage,
+      -empty, -scanning, -error, -novehicle, -long, -selected.
+    - Policies, Recycle Bin, Notifications ("alerts"), Encoding per vehicle
+      ("vehicles", on Core/VehicleEncoding.cs with the pack's options):
+      native (`HzPoliciesPage.cs`, `HzBinPage.cs`, `HzAlertsPage.cs`,
+      `HzVehiclesPage.cs`, `HzKitFields.cs`; models in `Core/Horizon/`).
+      19/25/15/31 sessions. Render list: 4-5 states each.
+    - Dashboard: native (`HzDashPage.cs`, `HzGauges.cs`: the dials and
+      fuel gauge on gauges.js's SVG coordinates, sparklines;
+      `Core/Horizon/HzDash.cs`): the cluster, meters, car cards, the server
+      log with its level, filter, scope, Follow, Clear and archives, polls
+      every 2 s and 5 s (stopped while minimised). 22 sessions, 54 steps
+      against hz/pages/dashboard.js, including every needle, arc and spark
+      path. Render list: dashboard, -novehicle, -error, -long, -idle,
+      -logs-all.
     - Viewer (with the speed graph) and Encoder: after phases 2 and 3 land;
       the browser until then.
   - Phases 5-7 (Flux, Aurora, Daylight): not started; their pages open in
     the browser.
+
+Horizon (known differences): text is not selectable, so live redraws do
+not wait for a highlight; the Footage albums column has its own scroll
+instead of staying put while the page scrolls; a page's own keys are not
+listed in the shell's shortcut sheet yet; Chrome's own required / minlength
+bubbles are drawn as text under the field; the time fields of Settings'
+electricity rates are plain text ("23:00"); the server's password re-check
+outside Settings is the built-in dialog; Notifications reads the full list
+itself (one more request than the web, the shell reads the open ones).
 
 Known differences so far (for the parity checklist): an unreachable
 server reads as the app's own "Can't reach Sentry Six Manager at …"

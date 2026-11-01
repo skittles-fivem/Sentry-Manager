@@ -180,7 +180,11 @@ class El {
 
   // ---- form values
   get checked() { return this._checked; }
-  set checked(on) { this._checked = Boolean(on); }
+  set checked(on) {
+    this._checked = Boolean(on);
+    // a radio button ticked unticks the others of its name (in its form)
+    if (on && this.tag === 'input' && this.type === 'radio' && this.name) for (const r of (this.closest('form') || this.doc.body).querySelectorAll('input[type="radio"]')) if (r !== this && r.name === this.name) r._checked = false;
+  }
   get options() { return this.all().filter((x) => x.tag === 'option'); }
   get selectedIndex() { const o = this.options; return o.indexOf(o.find((x) => x.value === this.value)); }
   set selectedIndex(i) { const o = this.options[i]; if (o) this.value = o.value; }
@@ -268,7 +272,8 @@ class El {
     return VOID.has(this.tag) ? `<${this.tag}${a}>` : `<${this.tag}${a}>${this.innerHTML}</${this.tag}>`;
   }
   insertAdjacentHTML(where, html) {
-    const ns = parse(html, this.doc, this);
+    // (no parent yet: append() adopts them, else they would be dropped)
+    const ns = parse(html, this.doc, null);
     if (where === 'beforeend') this.append(...ns);
     else if (where === 'afterbegin') this.prepend(...ns);
     else if (where === 'beforebegin') this.before(...ns);
@@ -396,6 +401,7 @@ function compound(n, c) {
       if (p === 'not' && matches(n, x[9], null)) return false;
       if (p === 'first-child' && n.parent && n.parent.elementKids[0] !== n) return false;
       if (p === 'last-child' && n.parent && n.parent.lastElementChild !== n) return false;
+      if (p === 'nth-child' && /^\d+$/.test(String(x[9]).trim()) && n.parent && n.parent.elementKids.indexOf(n) + 1 !== Number(x[9])) return false;
       if (p === 'scope') { /* the root of the search */ }
     }
   }
@@ -609,7 +615,9 @@ function loadPack(pack, o = {}) {
   const location = { hash: o.hash || '', pathname: '/', search: '', href: 'https://sentry.local:9443/', host: 'sentry.local:9443', hostname: 'sentry.local', protocol: 'https:', origin: 'https://sentry.local:9443', reload() { rec.navigations.push('reload'); }, assign(u) { rec.navigations.push(String(u)); }, replace(u) { rec.navigations.push(String(u)); } };
   const fetchFake = async (url, init = {}) => {
     const key = `${(init.method || 'GET').toUpperCase()} ${url}`;
-    const a = answerFor(key);
+    let a = answerFor(key);
+    // (a write nobody gave an answer for: { ok: true }, as the comment above says)
+    if (a === undefined && (init.method || 'GET').toUpperCase() !== 'GET') a = { ok: true };
     rec.asked.push(init.body !== undefined && init.body !== '' && typeof init.body === 'string' ? `${key} ${init.body}` : key);
     if (a === undefined || (a && a.$pending)) return new Promise(() => {});
     const status = a && a.$error ? a.$status || 500 : 200;

@@ -259,3 +259,138 @@ finished… disabled), jobs-long, jobs-error (the pack's ! box with Retry).
 - flux jobs-running-only
 - flux jobs-long
 - flux jobs-error
+### Horizon: Nodes
+
+The node blocks, Pair a node and "Let another server use this one"
+(hz/pages/nodes.js) on the same answers as the built-in Nodes page's
+states: nodes-empty (the fixture server's own answer: no nodes), nodes
+(an online node with its GPUs, a vehicle first and a finished dyno run;
+an offline one; a pairing code; a main server), nodes-running (a dyno run
+running: Stop, the Dyno run buttons waiting), nodes-noworker (TLS_MODE=off)
+and nodes-closed (no nodes, a pairing code).
+
+- horizon nodes-empty
+- horizon nodes
+- horizon nodes-running
+- horizon nodes-noworker
+- horizon nodes-closed
+### Horizon: Settings
+
+The settings tabs (hz/pages/settings.js), one page per tab, on the built-in
+Settings page's answers where the pack asks the same paths: settings (the
+Vehicles tab, two vehicles), settings-vehicle (the vehicle's form, an SMB
+share), settings-vehicle-new (a new vehicle on a Windows PC with "Folder on
+this PC" picked), settings-account, settings-interface, settings-display
+(Background), settings-updates, settings-security (a host the certificate does
+not cover), settings-system, settings-power (a time of use plan),
+settings-windows (the Updates tab on the Windows service), settings-novehicles
+and settings-error (the pack's "could not load" box with Try again).
+
+- horizon settings
+- horizon settings-vehicle
+- horizon settings-vehicle-new
+- horizon settings-account
+- horizon settings-interface
+- horizon settings-display
+- horizon settings-updates
+- horizon settings-security
+- horizon settings-system
+- horizon settings-power
+- horizon settings-windows
+- horizon settings-novehicles
+- horizon settings-error
+### Horizon: Policies
+
+A service schedule per vehicle (hz/pages/policies.js) on the same answers as
+the built-in Policies page's states: policies (on, two kinds kept, the next
+run moving something, a last run), policies-off (the fixture server's own
+answer), policies-novehicle ("Add a vehicle first."), policies-error (the
+panel is the message), policies-long (a second vehicle with a long name, a
+last run that failed).
+
+- horizon policies
+- horizon policies-off
+- horizon policies-novehicle
+- horizon policies-error
+- horizon policies-long
+
+### Horizon: Recycle Bin
+
+The Recycle Bin (hz/pages/bin.js) on the same answers as the built-in
+page's states: bin (one item of yours, one of the policy, one with a file
+left behind), bin-empty (the fixture server's own answer), bin-long,
+bin-error (the pack's "could not load" box with Try again), and
+bin-every-vehicle ("Every vehicle" picked: each item names its vehicle).
+
+- horizon bin
+- horizon bin-empty
+- horizon bin-long
+- horizon bin-error
+- horizon bin-every-vehicle
+
+### Horizon: Notifications
+
+The warning lights (hz/pages/alerts.js) on the same answers as the built-in
+Notifications page's states: alerts (two open and unread, critical and
+warning, one long; the resolved one hidden), alerts-empty (the fixture
+server's own answer: "All lights are off."), alerts-all ("All, with
+resolved" picked: the resolved one faded), alerts-error (the list not
+readable: the page shows none).
+
+- horizon alerts
+- horizon alerts-empty
+- horizon alerts-all
+- horizon alerts-error
+
+### Horizon: Encoding per vehicle
+
+web/vehicleEncoding.js in Horizon's look (hz/pages/vehicles.js) on the same
+answers as the built-in page's states: vehicles (three vehicles: automatic
+on, saved, not set up, one with a long name), vehicles-edit (?edit=<id>: the
+first one's editor open), vehicles-empty (no vehicles), vehicles-error (the
+Encoder still starting: the view is the message).
+
+- horizon vehicles
+- horizon vehicles-edit
+- horizon vehicles-empty
+- horizon vehicles-error
+### Horizon: Footage
+
+The track list (hz/pages/footage.js) on the recorded library, asked by the
+pack's own paths (tools/parity/packs/horizon-footage.js): footage (the
+first day open with its tracks, the thumbnails from the fixture's BYTES
+answers; the web clicks the day's album, the native side gets
+`?day=`), footage-empty, footage-scanning (an inventory scan running),
+footage-error (neither list readable), footage-novehicle (the blank with
+Add a vehicle), footage-long (a long vehicle name and track type,
+converted and protected tracks), footage-selected (every day, the two
+newest tracks ticked: the selection bar; the web clicks their boxes, the
+native side gets the variant's state `{ sel: [ids] }`).
+
+- horizon footage
+- horizon footage-empty
+- horizon footage-scanning
+- horizon footage-error
+- horizon footage-novehicle
+- horizon footage-long
+- horizon footage-selected
+### Horizon: Dashboard
+
+The instrument cluster and the server's telemetry (hz/pages/dashboard.js,
+hz/gauges.js) on test/fixtures/statsSample.json, with the pack's own
+requests answered by the module (the vehicle's days, 15 minutes of history
+for the sparklines, the log's lines): dashboard (two open notifications, a
+conversion running), dashboard-novehicle, dashboard-error (no numbers, so
+"Reading the server…" and empty boxes; the log's own error line),
+dashboard-long (long vehicle, host, process and storage names),
+dashboard-idle (no conversion: Start a conversion; a node's power: All
+servers), dashboard-logs-all (the log level Everything, stored on both
+sides). The sparklines take the live samples of a few polls on the web, so
+their right ends can differ by a sample or two.
+
+- horizon dashboard
+- horizon dashboard-novehicle
+- horizon dashboard-error
+- horizon dashboard-long
+- horizon dashboard-idle
+- horizon dashboard-logs-all

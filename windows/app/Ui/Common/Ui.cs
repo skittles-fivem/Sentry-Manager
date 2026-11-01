@@ -132,6 +132,9 @@ namespace SentrySix.Ui
         }
 
         /// <summary>The width of the whole window (or the render target) the element sits in: the viewport the media queries test.</summary>
+        /// <summary>The name of the render test mode's stage canvas (OnWindowWidth stops under it).</summary>
+        public const string RenderStage = "renderStage";
+
         public static void OnWindowWidth(FrameworkElement e, Action<double> apply)
         {
             FrameworkElement top = null;
@@ -143,6 +146,10 @@ namespace SentrySix.Ui
                 while (d != null)
                 {
                     if (d is Window) break;
+                    // (the render test mode's stage: a canvas as wide as the window Windows
+                    // clamped to the screen; the page itself is the size asked for)
+                    Canvas stage = d as Canvas;
+                    if (stage != null && stage.Name == RenderStage) break;
                     FrameworkElement fe = d as FrameworkElement;
                     if (fe != null) last = fe;
                     d = Up(d);
