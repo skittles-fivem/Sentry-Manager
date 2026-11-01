@@ -394,3 +394,18 @@ their right ends can differ by a sample or two.
 - horizon dashboard-long
 - horizon dashboard-idle
 - horizon dashboard-logs-all
+### Flux: Policies
+
+One card per vehicle (flux/pages/policies.js) on the built-in Policies
+page's states, asked by the pack's own paths
+(tools/parity/packs/flux-policies.js): policies (on, the next run moving
+seven recordings, a last run), policies-off (a new vehicle's policy),
+policies-novehicle (Add a vehicle first.), policies-error (the card is the
+message), policies-long (a second vehicle with a long name and a failed
+last run).
+
+- flux policies
+- flux policies-off
+- flux policies-novehicle
+- flux policies-error
+- flux policies-long
