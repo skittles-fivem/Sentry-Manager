@@ -250,7 +250,7 @@ is done when every item is ticked in both. Run on the owner's PC runner.
 - Phase 2 (built-in Viewer): in progress. The playback engine, the
   telemetry, the clip library (scan and grouping, part 2), the clip
   browser (the clip list panel, part 3), the six-camera grid on the
-  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6) and the event marker on the timeline (part 7) are written; the rest of the Viewer page (Studio's
+  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6), the event marker on the timeline (part 7) and the telemetry feed (part 8) are written; the rest of the Viewer page (Studio's
   dashboard, map, settings modal, keys, export, phone layout:
   `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
   still opens in the browser (`ViewerPage.Complete` stays false until it
@@ -259,8 +259,8 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   `ViewerSlot.Open`). Core (C# 5, tested
   under mono with a stub runner here, by Core.Tests on Windows):
   `Telemetry` (protobuf.js's SeiMetadata.decode step for step, atob,
-  collectSei, hasValidGps, findSeiAtTime, and an 8-clip cache asking
-  GET /api/telemetry again with its ETag), `PlaybackClock` (one clock,
+  collectSei, hasValidGps, findSeiAtTime, and an 8-clip cache of GET /api/telemetry
+  answered from memory as seiCache is), `PlaybackClock` (one clock,
   the master's newest frame holds it: buffering; followers drop frames
   past 0.15 s and restart past 1.5 s), `SegmentPlan` (cumulativeStarts,
   probed and opened durations, seek, skip, event start and marker,
@@ -548,8 +548,27 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   Core.Tests ViewerEventMarkerTests (1 test, passing under mono). Render
   list: viewer-event (the Sentry event half way through its minute); the
   marker also shows at the right end in viewer-sentry and viewer-saved.
+  Viewer part 8, telemetry (type-checked with mcs, not yet built or run
+  on Windows): `Core/TelemetryFeed.cs` (`TelemetryFeed`: telemetryEntryFor,
+  loadNativeSegment's reset and load token, the stale answer check,
+  applyDashcamProfile's clear, and each tick of telemetryAnimationLoop /
+  onMasterTimeUpdate: the record, PARKED, the gauges reset after 2 s
+  without one) and `TelemetryCache` on any `IJsonApi` (the 8-clip LRU
+  answered without a request, one request per clip, failures not kept).
+  The Viewer (`StudioViewer`) owns both: each opened segment asks for its
+  master camera's clip, the next segment's is fetched when its preload
+  starts (`Player.PreloadStarted`), every player tick runs the feed. For
+  reuse (parts 9 and 10, the packs' Viewer pages): `StudioViewer.Telemetry`
+  (Data, MapPath, LastSeiMs), `LastTelemetry`, `DashboardEnabled`,
+  `TelemetryTicked(TelemetryStep)`, `TelemetryLoaded(feed)`.
+  test/windowsNativeViewerTelemetry.test.js runs seiExtractor.js's
+  extractSeiFromEntry and script.js's telemetry code and writes
+  Core.Tests/Fixtures/expected-viewer-telemetry.json; Core.Tests
+  ViewerTelemetryTests (3 tests, passing under mono). The render fixture
+  now answers GET /api/telemetry for the four front clips; no render
+  state of its own (no picture until the dashboard).
   Phase 2 is not finished: `ViewerPage.Complete` stays false until parts
-  8-14 are in.
+  9-14 are in.
 - Phase 3 (Encoder): not started; its page opens in the browser.
 - Phases 4-7 (the packs): in progress on wip, one pack at a time (this
   session works in its own files: `Core/Horizon/`, `Ui/Horizon/Hz*.cs`,

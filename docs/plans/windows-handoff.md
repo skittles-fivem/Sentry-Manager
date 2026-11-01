@@ -1044,6 +1044,56 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
 - To check on Windows: viewer-event, viewer-sentry and viewer-saved against
   the web's; by hand: the tooltip, the hover growth, a click seeking.
 
+### Phase 2: Viewer part 8, telemetry (2026-11-01)
+
+- `Core/TelemetryFeed.cs` (C# 5): `TelemetryFeed` is script.js's
+  nativeVideo telemetry state: `EntryFor` (telemetryEntryFor: the master
+  camera's clip, else the group's first), `BeginSegment` (loadNativeSegment:
+  seiData / mapPath dropped, lastSeiTimeMs -Infinity, dashboardReset off,
+  a new load token), `Deliver` (the answer kept only for the same token
+  and segment), `Clear` (applyDashcamProfile / a new collection), `Tick`
+  (telemetryAnimationLoop and onMasterTimeUpdate's fallback: findSeiAtTime
+  at the master's time, setDashboardParked only while the dashboard is on,
+  resetDashboardElements once 2 s pass without a record; nothing while a
+  segment switch is under way or the profile has no telemetry), giving a
+  `TelemetryStep` (Sei, Parked, Reset).
+- `Core/Telemetry.cs`: `TelemetryCache` now takes any `IJsonApi` (the
+  render mode's fixture answers too) and behaves as seiCache: a clip in
+  the 8-clip LRU is answered without a request (it used to ask again with
+  If-None-Match), one request per clip at a time, failures (the server's
+  error, a reply that is not JSON, a record that is not base64) not kept.
+- `Ui/Common/Playback/Player.cs`: no telemetry of its own any more (the
+  constructor lost its TelemetryCache, `Telemetry` / `CurrentSei` went);
+  new `PreloadStarted(index)` event when the next segment starts loading.
+- `StudioViewer` (Ui/Builtin/ViewerPage.cs): owns the feed and cache;
+  `LoadTelemetry` on each `SegmentOpened` (and once in the render mode at
+  the still's time), `PrefetchTelemetry` on `PreloadStarted`, a tick on
+  each player tick; for parts 9 and 10: `Telemetry` (the feed: Data,
+  MapPath, LastSeiMs), `LastTelemetry`, `DashboardEnabled` (default true),
+  events `TelemetryTicked(TelemetryStep)` and `TelemetryLoaded(feed)`.
+- test/windowsNativeViewerTelemetry.test.js runs seiExtractor.js's
+  extractSeiFromEntry (with a counting fetch) and script.js's
+  telemetryEntryFor, loadNativeSegment's reset, the stale check,
+  applyDashcamProfile's clear, telemetryAnimationLoop and onMasterTimeUpdate
+  cut out of the file, and writes
+  Core.Tests/Fixtures/expected-viewer-telemetry.json; Core.Tests
+  `ViewerTelemetryTests` (3 tests, passing under mono; they fail when the
+  2 s reset or the cache hit is changed).
+- capture.js: after the folder walk it asks GET /api/telemetry for every
+  front clip (the encoded temp path is renamed too); RenderFixture.json
+  got the four answers (24 records each, every field at its default).
+  No new render state: telemetry has no picture until part 9.
+- Not here: SentryUSB's driveMapPath (the whole drive's route on the map)
+  has no data in the web, so the map path is always the segment's.
+- Part 15's notes: `ViewerPage.Complete` stays false (parts 9-14 are not
+  in), so the browser fallback stays; Footage's Play day / Play recording
+  already call `ViewerSlot.Open` and land in the native Viewer the moment
+  `Complete` is true (BuiltinInterface registers the page, AppController's
+  `NativePage` then stops opening the browser).
+- To check on Windows: the dotnet build (Player's constructor changed);
+  by hand with real Tesla clips: the feed's record follows the video
+  (a breakpoint or the timing log), parked footage, a segment switch.
+
 ## UI packs, phases 4-7 (the packs session, 2026-10-31)
 
 A separate session builds the four packs' pages natively while the other

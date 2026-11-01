@@ -302,6 +302,16 @@ timeline. The glow pulses every 2 s on both sides; the native render draws
 it at the start of the pulse, the web's picture where the pulse happens to
 be.
 
+Telemetry (part 8) adds no picture of its own: the dashboard (part 9) and
+the map (part 10) draw it. The fixture now answers GET /api/telemetry for
+the four front clips (capture.js asks the fixture server for them, as the
+web's Viewer does: 24 records at 12 fps, each the 2-byte [0x20, n] the
+fixture clips carry, which protobuf.js reads as a record with every field
+at its default, so the web's dashboard shows a car in Park at 0, not
+PARKED). The native render loads the first segment's answer and ticks
+once at the still's time, so a Viewer render with the dashboard has the
+same record the web's has.
+
 - builtin overview
 - builtin overview-off
 - builtin overview-logs

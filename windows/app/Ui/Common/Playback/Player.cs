@@ -59,13 +59,11 @@ namespace SentrySix.Ui.Playback
         readonly string ffmpeg;
         readonly string ffprobe;
         readonly DecodePaths paths;
-        readonly TelemetryCache telemetry;
         readonly Dispatcher ui;
         readonly PlaybackClock clock;
         readonly Dictionary<string, VideoSurface> surfaces = new Dictionary<string, VideoSurface>(StringComparer.Ordinal);
         readonly Dictionary<string, Task<ProbeResult>> probes = new Dictionary<string, Task<ProbeResult>>(StringComparer.Ordinal);
         readonly HashSet<string> hwFailed = new HashSet<string>(StringComparer.Ordinal);
-        readonly Dictionary<int, ClipTelemetry> telemetryBySegment = new Dictionary<int, ClipTelemetry>();
         readonly DispatcherTimer resizeTimer;
         readonly DispatcherTimer scrubTimer;
         readonly DispatcherTimer hiddenTimer;
@@ -88,15 +86,13 @@ namespace SentrySix.Ui.Playback
 
         /// <param name="relay">The clips' loopback relay (on the session's Api).</param>
         /// <param name="paths">The decode paths of this PC (null: the CPU for everything).</param>
-        /// <param name="telemetry">Telemetry for the master's clips (null: none).</param>
-        public Player(MediaRelay relay, string ffmpegPath, string ffprobePath, DecodePaths paths, TelemetryCache telemetry)
+        public Player(MediaRelay relay, string ffmpegPath, string ffprobePath, DecodePaths paths)
         {
             if (relay == null) throw new ArgumentNullException("relay");
             this.relay = relay;
             ffmpeg = ffmpegPath;
             ffprobe = ffprobePath;
             this.paths = paths;
-            this.telemetry = telemetry;
             ui = Dispatcher.CurrentDispatcher;
             clock = new PlaybackClock();
             PlaybackJob.Install();
@@ -134,6 +130,8 @@ namespace SentrySix.Ui.Playback
 
         /// <summary>A segment is now the one playing (index).</summary>
         public event Action<int> SegmentOpened;
+        /// <summary>The next segment started loading ahead (maybePreloadNextSegment): its index.</summary>
+        public event Action<int> PreloadStarted;
 
         /// <summary>A segment could not be played and was skipped (index, why).</summary>
         public event Action<int, string> SegmentFailed;
@@ -187,19 +185,6 @@ namespace SentrySix.Ui.Playback
             get { return current == null ? 0 : Math.Max(0, clock.Position - plan.Start(current.Index)); }
         }
 
-        /// <summary>The playing segment's telemetry (empty until it is in).</summary>
-        public ClipTelemetry Telemetry
-        {
-            get
-            {
-                ClipTelemetry t;
-                return current != null && telemetryBySegment.TryGetValue(current.Index, out t) ? t : ClipTelemetry.Empty;
-            }
-        }
-
-        /// <summary>findSeiAtTime(seiData, currentTime x 1000): the dashboard's record now, or null (parked).</summary>
-        public Sei CurrentSei { get { return Telemetry.At(LocalTime * 1000); } }
-
         /// <summary>For the timing log: frames shown and dropped, decoders restarted, each camera's decode path.</summary>
         public string Describe()
         {
@@ -225,7 +210,6 @@ namespace SentrySix.Ui.Playback
             collectionGeneration++;
             segments = collection == null ? new List<PlaybackSegment>() : collection.ToList();
             plan = new SegmentPlan(segments.Count, fallbackSeconds);
-            telemetryBySegment.Clear();
             clock.Pause();
             clock.End = plan.Total;
             Hook();
@@ -481,7 +465,6 @@ namespace SentrySix.Ui.Playback
             clock.MasterReady = plan.Start(set.Index) + set.Offset;
             foreach (KeyValuePair<string, VideoSurface> kv in surfaces)
                 if (!set.View.Targets.Any(t => t.Slot == kv.Key && t.File != null)) kv.Value.Clear();
-            LoadTelemetry(set);
             Action<int> h = SegmentOpened;
             if (h != null) h(set.Index);
         }
@@ -490,21 +473,6 @@ namespace SentrySix.Ui.Playback
         {
             SegmentTarget mt = set.View == null ? null : set.View.Targets.FirstOrDefault(x => x.Slot == set.MasterSlot);
             return mt == null ? null : mt.File;
-        }
-
-        void LoadTelemetry(SegmentSet set)
-        {
-            if (telemetry == null || telemetryBySegment.ContainsKey(set.Index)) return;
-            SegmentTarget mt = set.View.Targets.FirstOrDefault(x => x.Slot == set.MasterSlot);
-            string f = mt != null && mt.File != null ? mt.File : segments[set.Index].ProbeFile;
-            if (f == null) return;
-            int gen = collectionGeneration;
-            int idx = set.Index;
-            telemetry.Get(f, closing.Token).ContinueWith(t =>
-            {
-                if (t.Status != TaskStatus.RanToCompletion) return;
-                ui.BeginInvoke(new Action(() => { if (!disposed && gen == collectionGeneration) telemetryBySegment[idx] = t.Result; }));
-            });
         }
 
         DecodeRequest RequestFor(SegmentSet set, SegmentTarget t, double local, bool forceCpu)
@@ -747,6 +715,9 @@ namespace SentrySix.Ui.Playback
             {
                 preloading = set.Index + 1;
                 Prepare(preloading, 0, generation, true);
+                // (the page loads its telemetry into the cache, where the switch finds it)
+                Action<int> pre = PreloadStarted;
+                if (pre != null) pre(preloading);
             }
         }
 

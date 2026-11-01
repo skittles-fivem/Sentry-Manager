@@ -1,0 +1,1831 @@
+{
+ "bodies": {
+  "a": {
+   "v": 1,
+   "frames": [
+    [
+     0,
+     "CAEQARhkWQAAAAAAQD5AYQAAAAAAcFjA"
+    ],
+    [
+     83.33333333333333,
+     "CAEQARhlJQAAAD8tAACAP1nHuriNBkA+QGFO0ZFc/m9YwA=="
+    ],
+    [
+     166.66666666666666,
+     "CAEQARhmJQAAgD8tAAAAQFmOdXEbDUA+QGGcoiO5/G9YwA=="
+    ],
+    [
+     250,
+     "CAEQARhnJQAAwD8tAABAQFlVMCqpE0A+QGHrc7UV+29YwA=="
+    ],
+    [
+     416.6666666666667,
+     "CAEQARhpJQAAIEAtAACgQFnjpZvEIEA+QGGHFtnO929YwA=="
+    ],
+    [
+     333.3333333333333,
+     "CAEQARhoJQAAAEAtAACAQFkc6+I2GkA+QGE5RUdy+W9YwA=="
+    ],
+    [
+     500,
+     "CAEQARhqJQAAQEAtAADAQFmqYFRSJ0A+QGHV52or9m9YwA=="
+    ],
+    [
+     583.3333333333334,
+     "CAEQARhrJQAAYEAtAADgQFlxGw3gLUA+QGEkufyH9G9YwA=="
+    ],
+    [
+     666.6666666666666,
+     "CAEQARhsJQAAgEAtAAAAQVk51sVtNEA+QGFyio7k8m9YwA=="
+    ],
+    [
+     750,
+     "CAEQARhtJQAAkEAtAAAQQVkAkX77OkA+QGHAWyBB8W9YwA=="
+    ],
+    [
+     833.3333333333334,
+     "CAEQARhuJQAAoEAtAAAgQVnHSzeJQUA+QGEOLbKd729YwA=="
+    ],
+    [
+     916.6666666666666,
+     "CAEQARhvJQAAsEAtAAAwQVmOBvAWSEA+QGFd/kP67W9YwA=="
+    ],
+    [
+     1000,
+     "CAEQARhwJQAAwEAtAABAQVACWVXBqKROQD5AYavP1Vbsb1jA"
+    ],
+    [
+     1083.3333333333333,
+     "CAEQARhxJQAA0EAtAABQQVACWRx8YTJVQD5AYfmgZ7Pqb1jA"
+    ],
+    [
+     1166.6666666666667,
+     "CAEQARhyJQAA4EAtAABgQVACWeM2GsBbQD5AYUdy+Q/pb1jA"
+    ],
+    [
+     1250,
+     "CAEQARhzJQAA8EAtAABwQVACWarx0k1iQD5AYZZDi2znb1jA"
+    ],
+    [
+     1333.3333333333333,
+     "CAEQARh0JQAAAEEtAACAQVACWXGsi9toQD5AYeQUHcnlb1jA"
+    ],
+    [
+     1416.6666666666667,
+     "CAEQARh1JQAACEEtAACIQVACWThnRGlvQD5AYTLmriXkb1jA"
+    ],
+    [
+     1500,
+     "CAEQARh2JQAAEEEtAACQQVACWf8h/fZ1QD5AYYC3QILib1jA"
+    ],
+    [
+     1583.3333333333333,
+     "CAEQARh3JQAAGEEtAACYQVACWcbctYR8QD5AYc6I0t7gb1jA"
+    ],
+    [
+     1666.6666666666667,
+     "CAEQARh4JQAAIEEtAACgQVACWY2XbhKDQD5AYR1aZDvfb1jA"
+    ],
+    [
+     1750,
+     "CAEQARh5JQAAKEEtAACoQVACWVRSJ6CJQD5AYWsr9pfdb1jA"
+    ],
+    [
+     1833.3333333333333,
+     "CAEQARh6JQAAMEEtAACwQVACWRsN4C2QQD5AYbn8h/Tbb1jA"
+    ],
+    [
+     1916.6666666666667,
+     "CAEQARh7JQAAOEEtAAC4QVACWePHmLuWQD5AYQfOGVHab1jA"
+    ]
+   ]
+  },
+  "b": {
+   "v": 1,
+   "frames": [
+    [
+     0,
+     "CAEQARjIAVkAAAAAAEA+QGEAAAAAAHBYwA=="
+    ],
+    [
+     83.33333333333333,
+     "CAEQARjJASUAAAA/LQAAgD9Zx7q4jQZAPkBhTtGRXP5vWMA="
+    ],
+    [
+     166.66666666666666,
+     "CAEQARjKASUAAIA/LQAAAEBZjnVxGw1APkBhnKIjufxvWMA="
+    ],
+    [
+     250,
+     "CAEQARjLASUAAMA/LQAAQEBZVTAqqRNAPkBh63O1FftvWMA="
+    ],
+    [
+     416.6666666666667,
+     "CAEQARjNASUAACBALQAAoEBZ46WbxCBAPkBhhxbZzvdvWMA="
+    ],
+    [
+     333.3333333333333,
+     "CAEQARjMASUAAABALQAAgEBZHOviNhpAPkBhOUVHcvlvWMA="
+    ],
+    [
+     500,
+     "CAEQARjOASUAAEBALQAAwEBZqmBUUidAPkBh1edqK/ZvWMA="
+    ],
+    [
+     583.3333333333334,
+     "CAEQARjPASUAAGBALQAA4EBZcRsN4C1APkBhJLn8h/RvWMA="
+    ],
+    [
+     666.6666666666666,
+     "CAEQARjQASUAAIBALQAAAEFZOdbFbTRAPkBhcoqO5PJvWMA="
+    ],
+    [
+     750,
+     "CAEQARjRASUAAJBALQAAEEFZAJF++zpAPkBhwFsgQfFvWMA="
+    ],
+    [
+     833.3333333333334,
+     "CAEQARjSASUAAKBALQAAIEFZx0s3iUFAPkBhDi2yne9vWMA="
+    ],
+    [
+     916.6666666666666,
+     "CAEQARjTASUAALBALQAAMEFZjgbwFkhAPkBhXf5D+u1vWMA="
+    ],
+    [
+     1000,
+     "CAEQARjUASUAAMBALQAAQEFQAllVwaikTkA+QGGrz9VW7G9YwA=="
+    ],
+    [
+     1083.3333333333333,
+     "CAEQARjVASUAANBALQAAUEFQAlkcfGEyVUA+QGH5oGez6m9YwA=="
+    ],
+    [
+     1166.6666666666667,
+     "CAEQARjWASUAAOBALQAAYEFQAlnjNhrAW0A+QGFHcvkP6W9YwA=="
+    ],
+    [
+     1250,
+     "CAEQARjXASUAAPBALQAAcEFQAlmq8dJNYkA+QGGWQ4ts529YwA=="
+    ],
+    [
+     1333.3333333333333,
+     "CAEQARjYASUAAABBLQAAgEFQAllxrIvbaEA+QGHkFB3J5W9YwA=="
+    ],
+    [
+     1416.6666666666667,
+     "CAEQARjZASUAAAhBLQAAiEFQAlk4Z0Rpb0A+QGEy5q4l5G9YwA=="
+    ],
+    [
+     1500,
+     "CAEQARjaASUAABBBLQAAkEFQAln/If32dUA+QGGAt0CC4m9YwA=="
+    ],
+    [
+     1583.3333333333333,
+     "CAEQARjbASUAABhBLQAAmEFQAlnG3LWEfEA+QGHOiNLe4G9YwA=="
+    ],
+    [
+     1666.6666666666667,
+     "CAEQARjcASUAACBBLQAAoEFQAlmNl24Sg0A+QGEdWmQ7329YwA=="
+    ],
+    [
+     1750,
+     "CAEQARjdASUAAChBLQAAqEFQAllUUiegiUA+QGFrK/aX3W9YwA=="
+    ],
+    [
+     1833.3333333333333,
+     "CAEQARjeASUAADBBLQAAsEFQAlkbDeAtkEA+QGG5/If0229YwA=="
+    ],
+    [
+     1916.6666666666667,
+     "CAEQARjfASUAADhBLQAAuEFQAlnjx5i7lkA+QGEHzhlR2m9YwA=="
+    ]
+   ]
+  },
+  "sparse": {
+   "v": 1,
+   "frames": [
+    [
+     0,
+     "GAElAABAQA=="
+    ],
+    [
+     500,
+     "GAIlAACAQA=="
+    ],
+    [
+     1000,
+     "GAM="
+    ],
+    [
+     12000,
+     "GAQlAACAPw=="
+    ],
+    [
+     13000,
+     "GAU="
+    ]
+   ]
+  },
+  "empty": {
+   "v": 1,
+   "frames": []
+  },
+  "fail": {
+   "$status": 500
+  },
+  "bad": {
+   "v": 1,
+   "frames": [
+    [
+     0,
+     "###"
+    ]
+   ]
+  },
+  "noframes": {
+   "v": 1
+  }
+ },
+ "entries": [
+  {
+   "master": "front",
+   "cams": [
+    [
+     "back",
+     "/b.mp4"
+    ],
+    [
+     "front",
+     "/f.mp4"
+    ],
+    [
+     "left_repeater",
+     "/l.mp4"
+    ]
+   ],
+   "entry": "/f.mp4"
+  },
+  {
+   "master": "front",
+   "cams": [
+    [
+     "back",
+     "/b.mp4"
+    ],
+    [
+     "left_repeater",
+     "/l.mp4"
+    ]
+   ],
+   "entry": "/b.mp4"
+  },
+  {
+   "master": "front",
+   "cams": [],
+   "entry": null
+  },
+  {
+   "master": "back",
+   "cams": [
+    [
+     "front",
+     "/f.mp4"
+    ],
+    [
+     "back",
+     "/b.mp4"
+    ]
+   ],
+   "entry": "/b.mp4"
+  },
+  {
+   "master": "interior",
+   "cams": [
+    [
+     "left_pillar",
+     "/lp.mp4"
+    ],
+    [
+     "front",
+     "/f.mp4"
+    ]
+   ],
+   "entry": "/lp.mp4"
+  }
+ ],
+ "cache": [
+  {
+   "op": "get",
+   "path": "/c/1.mp4",
+   "answer": "a",
+   "requests": 1,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/1.mp4",
+   "answer": "a",
+   "requests": 0,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/2.mp4",
+   "answer": "b",
+   "requests": 1,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/1.mp4",
+   "answer": "a",
+   "requests": 0,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/3.mp4",
+   "answer": "fail",
+   "requests": 1,
+   "samples": [
+    0
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/3.mp4",
+   "answer": "a",
+   "requests": 1,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/3.mp4",
+   "answer": "a",
+   "requests": 0,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/4.mp4",
+   "answer": "bad",
+   "requests": 1,
+   "samples": [
+    0
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/4.mp4",
+   "answer": "b",
+   "requests": 1,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/5.mp4",
+   "answer": "empty",
+   "requests": 1,
+   "samples": [
+    0
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/5.mp4",
+   "answer": "a",
+   "requests": 0,
+   "samples": [
+    0
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/6.mp4",
+   "answer": "noframes",
+   "requests": 1,
+   "samples": [
+    0
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/6.mp4",
+   "answer": "a",
+   "requests": 0,
+   "samples": [
+    0
+   ]
+  },
+  {
+   "op": "pair",
+   "path": "/c/7.mp4",
+   "answer": "a",
+   "requests": 1,
+   "samples": [
+    24,
+    24
+   ]
+  },
+  {
+   "op": "pair",
+   "path": "/c/8.mp4",
+   "answer": "fail",
+   "requests": 1,
+   "samples": [
+    0,
+    0
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/9.mp4",
+   "answer": "a",
+   "requests": 1,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/10.mp4",
+   "answer": "a",
+   "requests": 1,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/11.mp4",
+   "answer": "a",
+   "requests": 1,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/2.mp4",
+   "answer": "b",
+   "requests": 1,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/1.mp4",
+   "answer": "a",
+   "requests": 1,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/12.mp4",
+   "answer": "a",
+   "requests": 1,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/1.mp4",
+   "answer": "a",
+   "requests": 0,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/3.mp4",
+   "answer": "a",
+   "requests": 1,
+   "samples": [
+    24
+   ]
+  },
+  {
+   "op": "get",
+   "path": "/c/9.mp4",
+   "answer": "a",
+   "requests": 0,
+   "samples": [
+    24
+   ]
+  }
+ ],
+ "feeds": [
+  {
+   "name": "one segment, dashboard on",
+   "steps": [
+    {
+     "op": "load",
+     "seg": 0,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.2,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "reset"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": true,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": true
+    },
+    {
+     "op": "tick",
+     "sec": 0.5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": true
+    },
+    {
+     "op": "tick",
+     "sec": 2.5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": true
+    },
+    {
+     "op": "answer",
+     "load": 0,
+     "clip": "a",
+     "kept": true,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": true
+    },
+    {
+     "op": "tick",
+     "sec": 0,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 0,
+     "seq": 100,
+     "parked": false,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 0,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.04,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 0,
+     "seq": 100,
+     "parked": false,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 40,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.0417,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 1,
+     "seq": 101,
+     "parked": false,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 41.7,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 1,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 12,
+     "seq": 112,
+     "parked": false,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 1000,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 1.9,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 23,
+     "seq": 123,
+     "parked": false,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 1900,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 4.9,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 23,
+     "seq": 123,
+     "parked": false,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 4900,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 4.92,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 4900,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 4900,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 6,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 4900,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 7,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "reset"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": true,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 4900,
+     "dashboardReset": true
+    },
+    {
+     "op": "tick",
+     "sec": 1.5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 18,
+     "seq": 118,
+     "parked": false,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 1500,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 8,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked",
+      "reset"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": true,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 1500,
+     "dashboardReset": true
+    }
+   ]
+  },
+  {
+   "name": "parked between records",
+   "steps": [
+    {
+     "op": "load",
+     "seg": 2,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "answer",
+     "load": 0,
+     "clip": "sparse",
+     "kept": true,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 0,
+     "seq": 1,
+     "parked": false,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 0,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.4,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 1,
+     "seq": 2,
+     "parked": false,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 400,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 3.9,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 2,
+     "seq": 3,
+     "parked": false,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 3900,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 4,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 2,
+     "seq": 3,
+     "parked": false,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 4000,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 4.01,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 4000,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 5.5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 4000,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 6,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 4000,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 6.02,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "reset"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": true,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 4000,
+     "dashboardReset": true
+    },
+    {
+     "op": "tick",
+     "sec": 7,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 4000,
+     "dashboardReset": true
+    },
+    {
+     "op": "tick",
+     "sec": 8.99,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 4000,
+     "dashboardReset": true
+    },
+    {
+     "op": "tick",
+     "sec": 9,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 3,
+     "seq": 4,
+     "parked": false,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 9000,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 9.5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 3,
+     "seq": 4,
+     "parked": false,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 9500,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 3,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 2,
+     "seq": 3,
+     "parked": false,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 3000,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 4.5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 3000,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 6.6,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked",
+      "reset"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": true,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 3000,
+     "dashboardReset": true
+    },
+    {
+     "op": "tick",
+     "sec": 6.7,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 3000,
+     "dashboardReset": true
+    },
+    {
+     "op": "tick",
+     "sec": 16,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 4,
+     "seq": 5,
+     "parked": false,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 16000,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 16.01,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 16000,
+     "dashboardReset": false
+    }
+   ]
+  },
+  {
+   "name": "dashboard off",
+   "steps": [
+    {
+     "op": "load",
+     "seg": 0,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0,
+     "dashboard": false,
+     "transitioning": false,
+     "raf": false,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "answer",
+     "load": 0,
+     "clip": "sparse",
+     "kept": true,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.5,
+     "dashboard": false,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "sei"
+     ],
+     "sei": 1,
+     "seq": 2,
+     "parked": null,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 500,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 4.5,
+     "dashboard": false,
+     "transitioning": false,
+     "raf": true,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 500,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 9,
+     "dashboard": false,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "sei"
+     ],
+     "sei": 3,
+     "seq": 4,
+     "parked": null,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 9000,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 4.5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 9000,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 4.6,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 5,
+     "mapPath": 0,
+     "lastSeiMs": 9000,
+     "dashboardReset": false
+    }
+   ]
+  },
+  {
+   "name": "segment switches and stale answers",
+   "steps": [
+    {
+     "op": "load",
+     "seg": 0,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "load",
+     "seg": 1,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "answer",
+     "load": 0,
+     "clip": "a",
+     "kept": false,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "reset"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": true,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": true
+    },
+    {
+     "op": "answer",
+     "load": 1,
+     "clip": "b",
+     "kept": true,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": true
+    },
+    {
+     "op": "tick",
+     "sec": 0.5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 6,
+     "seq": 206,
+     "parked": false,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 500,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.6,
+     "dashboard": true,
+     "transitioning": true,
+     "raf": true,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 500,
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.6,
+     "dashboard": true,
+     "transitioning": true,
+     "raf": false,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 500,
+     "dashboardReset": false
+    },
+    {
+     "op": "load",
+     "seg": 2,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.1,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked",
+      "reset"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": true,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": true
+    },
+    {
+     "op": "answer",
+     "load": 1,
+     "clip": "a",
+     "kept": false,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": true
+    },
+    {
+     "op": "tick",
+     "sec": 0.1,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": true
+    },
+    {
+     "op": "answer",
+     "load": 2,
+     "clip": "empty",
+     "kept": true,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": true
+    },
+    {
+     "op": "tick",
+     "sec": 0.2,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": true
+    },
+    {
+     "op": "load",
+     "seg": 3,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "profile",
+     "profile": "tesla",
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "answer",
+     "load": 3,
+     "clip": "a",
+     "kept": false,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.3,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked",
+      "reset"
+     ],
+     "sei": null,
+     "seq": null,
+     "parked": true,
+     "reset": true,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": true
+    },
+    {
+     "op": "load",
+     "seg": 3,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "answer",
+     "load": 4,
+     "clip": "b",
+     "kept": true,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.3,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 4,
+     "seq": 204,
+     "parked": false,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 300,
+     "dashboardReset": false
+    }
+   ]
+  },
+  {
+   "name": "no telemetry for this profile",
+   "steps": [
+    {
+     "op": "profile",
+     "profile": "gm",
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "load",
+     "seg": 0,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": true,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "profile",
+     "profile": "tesla",
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "load",
+     "seg": 0,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 0,
+     "mapPath": 0,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "answer",
+     "load": 1,
+     "clip": "a",
+     "kept": true,
+     "calls": [],
+     "sei": null,
+     "seq": null,
+     "parked": null,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": "-Infinity",
+     "dashboardReset": false
+    },
+    {
+     "op": "tick",
+     "sec": 0.5,
+     "dashboard": true,
+     "transitioning": false,
+     "raf": false,
+     "calls": [
+      "parked",
+      "sei"
+     ],
+     "sei": 6,
+     "seq": 106,
+     "parked": false,
+     "reset": false,
+     "samples": 24,
+     "mapPath": 24,
+     "lastSeiMs": 500,
+     "dashboardReset": false
+    }
+   ]
+  }
+ ]
+}

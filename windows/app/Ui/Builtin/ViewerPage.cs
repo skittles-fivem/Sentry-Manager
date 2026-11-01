@@ -341,6 +341,9 @@ namespace SentrySix.Ui.Builtin
         DayWish wish;
         ViewerLibrary library;
         bool disposed;
+        readonly TelemetryFeed feed = new TelemetryFeed();
+        TelemetryCache telemetryCache;
+        TelemetryStep lastTelemetry = new TelemetryStep();
 
         public StudioViewer(ShellModel shell, IJsonApi api, ViewerStart start, bool still)
             : this(shell, api, start, still, null)
@@ -705,6 +708,9 @@ namespace SentrySix.Ui.Builtin
             grid.AutoHardware(c.Groups);
             grid.UpdateGlow(c, library);
             UpdateEventMarker(c);
+            // resetDashboardAndMap: no telemetry from the last collection; the profile's capability
+            feed.Clear();
+            feed.Enabled = library == null || Dashcam.Get(library.ProfileId).Capabilities.Telemetry;
             List<PlaybackSegment> segs = c.Segments();
             double fallback = Dashcam.Get(c.ProfileId ?? library.ProfileId).DefaultSegmentDurationSeconds;
             double start = StartOffset(c);
@@ -717,7 +723,8 @@ namespace SentrySix.Ui.Builtin
             if (segs.Count == 0) return;
             if (still)
             {
-                StillTimeline(segs.Count, fallback, start);
+                double shownAt = StillTimeline(segs.Count, fallback, start);
+                LoadTelemetry(segs, first, shownAt * 1000);
                 SegmentView view = SegmentPlan.PlanSegment(segs[first], true, grid.PlayerSlots, "front", "front");
                 BitmapSource frame = RenderFrame();
                 foreach (SegmentTarget t in view.Targets)
@@ -737,6 +744,78 @@ namespace SentrySix.Ui.Builtin
                 p.SetLayout(grid.PlayerSlots);
                 p.Open(segs, fallback, start);
             }, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        // ---- telemetry (part 8) -----------------------------------------------------------
+
+        /// <summary>
+        /// The playing segment's telemetry (seiData, mapPath, the dashboard's
+        /// lastSeiTimeMs and reset flag): the dashboard (part 9) and the map
+        /// (part 10) read it, and <see cref="TelemetryTicked"/> on each tick.
+        /// </summary>
+        public TelemetryFeed Telemetry { get { return feed; } }
+
+        /// <summary>The last tick's outcome: the record shown (null: none near), PARKED, the gauges reset.</summary>
+        public TelemetryStep LastTelemetry { get { return lastTelemetry; } }
+
+        /// <summary>state.ui.dashboardEnabled (Settings > Dashboard; on by default). PARKED and the reset only while it is on.</summary>
+        public bool DashboardEnabled = true;
+
+        /// <summary>Each telemetry tick that ran (the dashboard draws the record, PARKED or the reset).</summary>
+        public event Action<TelemetryStep> TelemetryTicked;
+
+        /// <summary>A telemetry answer for the playing segment came in (the map draws its path: drawn once per segment).</summary>
+        public event Action<TelemetryFeed> TelemetryLoaded;
+
+        /// <summary>The clips' telemetry cache: GET /api/telemetry on the session's API (the render test mode's fixture answers there).</summary>
+        TelemetryCache TelemetryCacheFor()
+        {
+            if (telemetryCache == null) telemetryCache = new TelemetryCache(api);
+            return telemetryCache;
+        }
+
+        /// <summary>
+        /// loadNativeSegment's telemetry: the old segment's dropped, the
+        /// master camera's clip asked for (from the cache after a preload),
+        /// the answer kept if it is still this segment's load. The render
+        /// test mode ticks once at the still's time when it is in.
+        /// </summary>
+        void LoadTelemetry(IReadOnlyList<PlaybackSegment> segs, int index, double stillMs)
+        {
+            int token = feed.BeginSegment(index);
+            if (!feed.Enabled || segs == null || index < 0 || index >= segs.Count) { if (!double.IsNaN(stillMs)) TickTelemetry(stillMs, false); return; }
+            Player p = Player;
+            string entry = TelemetryFeed.EntryFor(segs[index], p != null ? p.MasterCamera : "front");
+            if (entry == null) { if (!double.IsNaN(stillMs)) TickTelemetry(stillMs, false); return; }
+            Task<ClipTelemetry> t = TelemetryCacheFor().Get(entry, life.Token);
+            Action<Task<ClipTelemetry>> done = r =>
+            {
+                if (disposed || r.Status != TaskStatus.RanToCompletion) return;
+                if (!feed.Deliver(token, index, r.Result)) return;
+                Action<TelemetryFeed> h = TelemetryLoaded;
+                if (h != null) h(feed);
+                if (!double.IsNaN(stillMs)) TickTelemetry(stillMs, false);
+            };
+            if (t.IsCompleted) done(t);
+            else t.ContinueWith(done, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        /// <summary>maybePreloadNextSegment: the next segment's telemetry into the cache (not tied to the preload: a switch may share it).</summary>
+        void PrefetchTelemetry(int index)
+        {
+            Player p = Player;
+            if (!feed.Enabled || p == null || index < 0 || index >= p.Segments.Count) return;
+            string entry = TelemetryFeed.EntryFor(p.Segments[index], p.MasterCamera);
+            if (entry != null) TelemetryCacheFor().Get(entry, System.Threading.CancellationToken.None);
+        }
+
+        void TickTelemetry(double videoMs, bool transitioning)
+        {
+            TelemetryStep step = feed.Tick(videoMs, DashboardEnabled, transitioning);
+            if (!step.Ran) return;
+            lastTelemetry = step;
+            Action<TelemetryStep> h = TelemetryTicked;
+            if (h != null) h(step);
         }
 
         // ---- the event marker (part 7) ----------------------------------------------------
@@ -873,6 +952,8 @@ namespace SentrySix.Ui.Builtin
             ShowTimes();
             if (p.Playing) everPlayed = true;
             ShowPlaying();
+            // telemetryAnimationLoop / onMasterTimeUpdate: the master's time in its segment (none while a segment switch is under way)
+            TickTelemetry(p.LocalTime * 1000, p.SegmentIndex < 0);
         }
 
         void ShowTimes()
@@ -895,7 +976,7 @@ namespace SentrySix.Ui.Builtin
         /// web's does: the pause button while there is more to play, the play
         /// button once that segment's end is the collection's end.
         /// </summary>
-        void StillTimeline(int count, double fallback, double startSec)
+        double StillTimeline(int count, double fallback, double startSec)
         {
             SegmentPlan plan = new SegmentPlan(count, fallback);
             if (!double.IsNaN(renderClipSeconds))
@@ -912,6 +993,7 @@ namespace SentrySix.Ui.Builtin
             if (firstLoad.Opened()) RaiseControls();
             controls.SetPlaying(at < plan.Total, true);
             ShowTimes();
+            return Math.Min(local, plan.Duration(seg));
         }
 
         /// <summary>selectDayCollection's startOffsetSec: 15 s before the event (its event.json read already), else 0.</summary>
@@ -972,9 +1054,10 @@ namespace SentrySix.Ui.Builtin
             }
             if (disposed) return null;
             relay = new MediaRelay(real);
-            Player p = new Player(relay, ff, fp, paths, new TelemetryCache(real));
+            Player p = new Player(relay, ff, fp, paths);
             p.SetRate(playbackRate);
             p.Tick += OnTick;
+            p.PreloadStarted += PrefetchTelemetry;
             foreach (string slot in GridGeometry.Slots) p.Attach(slot, grid.Surface(slot));
             p.SegmentOpened += i => grid.SegmentShown(p.View);
             if (grid.FocusSlot != null) p.SetFocus(grid.FocusSlot);
@@ -1106,6 +1189,8 @@ namespace SentrySix.Ui.Builtin
         void OnSegmentOpened(int index)
         {
             if (firstLoad.Opened()) RaiseControls();
+            Player pl = Player;
+            if (pl != null) LoadTelemetry(pl.Segments, index, double.NaN);
             // #autoplayToggle (checked): the collection plays once its first segment is in (paused again while put away)
             Player p = Player;
             if (autoplay && p != null)

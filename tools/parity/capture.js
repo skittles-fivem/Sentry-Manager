@@ -628,6 +628,14 @@ async function writeFixture(base, file, dir) {
     }
   };
   if (start) await walk(start, 0);
+  // each clip's telemetry the Viewer asks for (GET /api/telemetry of the master camera's clip,
+  // telemetryEntryFor: front for Tesla), as the server reads it from the fixture clips
+  const clips = Object.entries(api).filter(([k]) => k.startsWith('POST /api/studio/readDir ')).flatMap(([, v]) => (Array.isArray(v) ? v : []));
+  for (const e of clips) {
+    if (e.isDirectory || !/-front\.mp4$/i.test(String(e.name))) continue;
+    const p = `/api/telemetry?path=${encodeURIComponent(e.path)}`;
+    api[`GET ${p}`] = answer(await c.request('GET', p));
+  }
   const fill = (x) => JSON.parse(JSON.stringify(x).replace(/\{vehicle\}/g, vehicle));
   const fixture = {
     about: 'Written by tools/parity/capture.js from its fixture server: the answers the native pages get in SentrySix.exe --render (windows/app/Shell/RENDER-PAGES.md).',
@@ -645,6 +653,8 @@ async function writeFixture(base, file, dir) {
   // the run's temporary folder is a fixed name, so two runs write the same paths
   let text = JSON.stringify(fixture, null, 1);
   if (dir) text = text.split(JSON.stringify(dir).slice(1, -1)).join('/srv/sentry-parity');
+  // (and in the telemetry keys, where the path is URL-encoded)
+  if (dir) text = text.split(encodeURIComponent(dir)).join(encodeURIComponent('/srv/sentry-parity'));
   await fsp.writeFile(file, `${text}\n`);
   console.log(`fixture: ${Object.keys(api).length} answers in ${file}`);
   return fixture;

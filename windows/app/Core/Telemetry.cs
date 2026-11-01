@@ -529,9 +529,12 @@ namespace SentrySix.Core
 
     /// <summary>
     /// Clips' telemetry from GET /api/telemetry?path=, kept for the last
-    /// eight clips as the web viewer keeps them (SEI_CACHE_MAX), and asked
-    /// again with the server's ETag so an unchanged clip is not sent again.
-    /// One request per clip at a time (seiInFlight).
+    /// eight clips as the web viewer keeps them (seiCache, SEI_CACHE_MAX):
+    /// a clip in it is answered from it without asking the server, one
+    /// request per clip at a time (seiInFlight), and a failed read (the
+    /// server's error, a reply that is not JSON or a record that is not
+    /// base64) is no telemetry for now and is not kept, so the next visit
+    /// asks again.
     /// </summary>
     public sealed class TelemetryCache
     {
@@ -539,24 +542,38 @@ namespace SentrySix.Core
 
         sealed class Entry
         {
-            public string ETag;
             public ClipTelemetry Data;
         }
 
-        readonly Api api;
+        readonly IJsonApi api;
         readonly object gate = new object();
         readonly LinkedList<KeyValuePair<string, Entry>> lru = new LinkedList<KeyValuePair<string, Entry>>();
         readonly Dictionary<string, Task<ClipTelemetry>> inFlight = new Dictionary<string, Task<ClipTelemetry>>();
 
-        public TelemetryCache(Api api)
+        /// <param name="api">The real server's <see cref="Api"/>, or the render test mode's fixture answers.</param>
+        public TelemetryCache(IJsonApi api)
         {
             if (api == null) throw new ArgumentNullException("api");
             this.api = api;
         }
 
+        /// <summary>GET /api/telemetry's path for a clip.</summary>
+        public static string PathFor(string serverPath)
+        {
+            return "/api/telemetry?path=" + Uri.EscapeDataString(serverPath ?? "");
+        }
+
+        /// <summary>The clips kept, oldest first (the tests look).</summary>
+        public IList<string> Kept
+        {
+            get { lock (gate) return lru.Select(kv => kv.Key).ToList(); }
+        }
+
         /// <summary>The clip's telemetry; <see cref="ClipTelemetry.Empty"/> when the server cannot read it (not cached, as the web).</summary>
         public Task<ClipTelemetry> Get(string serverPath, CancellationToken ct)
         {
+            Entry hit = Find(serverPath);
+            if (hit != null) return Task.FromResult(hit.Data);
             Task<ClipTelemetry> running;
             lock (gate)
             {
@@ -569,15 +586,24 @@ namespace SentrySix.Core
 
         async Task<ClipTelemetry> Load(string serverPath, CancellationToken ct)
         {
-            await Task.Yield();
-            Entry cached = Find(serverPath);
             try
             {
-                Api.Conditional reply = await api.GetIfChanged("/api/telemetry?path=" + Uri.EscapeDataString(serverPath), cached == null ? null : cached.ETag, ct).ConfigureAwait(false);
-                if (reply.NotModified && cached != null) return cached.Data;
-                ClipTelemetry data = ClipTelemetry.FromServer(JsonValue.TryParse(reply.Text) ?? JsonValue.Object());
+                JsonValue reply;
+                Api real = api as Api;
+                if (real != null)
+                {
+                    await Task.Yield();
+                    Api.Conditional c = await real.GetIfChanged(PathFor(serverPath), null, ct).ConfigureAwait(false);
+                    reply = JsonValue.TryParse(c.Text);
+                    if (reply == null) return ClipTelemetry.Empty;
+                }
+                else reply = await api.Get(PathFor(serverPath), ct).ConfigureAwait(false);
+                // (a completed result may have landed after this caller's first look)
+                Entry again = Find(serverPath);
+                if (again != null) return again.Data;
+                ClipTelemetry data = ClipTelemetry.FromServer(reply ?? JsonValue.Object());
                 if (data == null) return ClipTelemetry.Empty;
-                Store(serverPath, new Entry { ETag = reply.ETag, Data = data });
+                Store(serverPath, new Entry { Data = data });
                 return data;
             }
             catch (OperationCanceledException)
