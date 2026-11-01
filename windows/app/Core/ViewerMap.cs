@@ -1049,6 +1049,22 @@ namespace SentrySix.Core
             Raise();
         }
 
+        /// <summary>
+        /// TouchZoom's end: two fingers pinched by <paramref name="scale"/> (their
+        /// distance now over at the start) around a container point: the zoom
+        /// at the start plus log2(scale), snapped to a whole level and kept
+        /// within the limits (_limitZoom), the point staying put.
+        /// </summary>
+        public void Pinch(double startZoom, double scale, PixelPoint at)
+        {
+            if (double.IsNaN(scale) || scale <= 0) return;
+            double z = View.LimitZoom(startZoom + Math.Log(scale) / LeafletView.Ln2);
+            if (z == View.Zoom) return;
+            View.SetZoomAround(at, z);
+            Marker.Zoomed(View.Zoom);
+            Raise();
+        }
+
         /// <summary>doubleClickZoom: one level in around the point (out with Shift).</summary>
         public void DoubleClick(PixelPoint at, bool shift)
         {

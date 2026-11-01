@@ -1875,8 +1875,10 @@
   {
    "event": {
     "kind": "key",
-    "key": "Tab",
-    "code": "Tab"
+    "key": "@",
+    "code": "KeyQ",
+    "ctrl": true,
+    "alt": true
    },
    "input": "keybindToggleClips",
    "prevented": true,
@@ -1907,8 +1909,8 @@
      "identifier": "minus"
     },
     "toggleClips": {
-     "display": "Tab",
-     "identifier": "tab"
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
     },
     "setMarkerIn": {
      "display": "Shift + !",
@@ -1950,7 +1952,7 @@
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
+    "keybindToggleClips": "Ctrl + Alt + @",
     "keybindSetMarkerIn": "Shift + !",
     "keybindSetMarkerOut": "1",
     "keybindNextClip": "1",
@@ -1964,8 +1966,8 @@
   {
    "event": {
     "kind": "key",
-    "key": "MediaPlayPause",
-    "code": "MediaPlayPause"
+    "key": "Tab",
+    "code": "Tab"
    },
    "input": "keybindSetMarkerIn",
    "prevented": true,
@@ -1996,12 +1998,12 @@
      "identifier": "minus"
     },
     "toggleClips": {
-     "display": "Tab",
-     "identifier": "tab"
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
     },
     "setMarkerIn": {
-     "display": "MediaPlayPause",
-     "identifier": "mediaplaypause"
+     "display": "Tab",
+     "identifier": "tab"
     },
     "setMarkerOut": {
      "display": "1",
@@ -2039,8 +2041,8 @@
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
     "keybindSetMarkerOut": "1",
     "keybindNextClip": "1",
     "keybindPrevClip": "Enter",
@@ -2053,8 +2055,8 @@
   {
    "event": {
     "kind": "key",
-    "key": "n",
-    "code": "KeyN"
+    "key": "MediaPlayPause",
+    "code": "MediaPlayPause"
    },
    "input": "keybindSetMarkerOut",
    "prevented": true,
@@ -2085,16 +2087,16 @@
      "identifier": "minus"
     },
     "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
      "display": "Tab",
      "identifier": "tab"
     },
-    "setMarkerIn": {
+    "setMarkerOut": {
      "display": "MediaPlayPause",
      "identifier": "mediaplaypause"
-    },
-    "setMarkerOut": {
-     "display": "N",
-     "identifier": "keyn"
     },
     "nextClip": {
      "display": "1",
@@ -2128,9 +2130,9 @@
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
     "keybindNextClip": "1",
     "keybindPrevClip": "Enter",
     "keybindSpeedUp": "Enter",
@@ -2143,8 +2145,7 @@
    "event": {
     "kind": "key",
     "key": "n",
-    "code": "KeyN",
-    "alt": true
+    "code": "KeyN"
    },
    "input": "keybindNextClip",
    "prevented": true,
@@ -2175,20 +2176,20 @@
      "identifier": "minus"
     },
     "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
      "display": "Tab",
      "identifier": "tab"
     },
-    "setMarkerIn": {
+    "setMarkerOut": {
      "display": "MediaPlayPause",
      "identifier": "mediaplaypause"
     },
-    "setMarkerOut": {
+    "nextClip": {
      "display": "N",
      "identifier": "keyn"
-    },
-    "nextClip": {
-     "display": "Alt + N",
-     "identifier": "alt+keyn"
     },
     "prevClip": {
      "display": "Enter",
@@ -2218,10 +2219,10 @@
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
-    "keybindNextClip": "Alt + N",
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
     "keybindPrevClip": "Enter",
     "keybindSpeedUp": "Enter",
     "keybindSpeedDown": "F5",
@@ -2232,8 +2233,9 @@
   {
    "event": {
     "kind": "key",
-    "key": " ",
-    "code": "Space"
+    "key": "n",
+    "code": "KeyN",
+    "alt": true
    },
    "input": "keybindPrevClip",
    "prevented": true,
@@ -2264,24 +2266,24 @@
      "identifier": "minus"
     },
     "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
      "display": "Tab",
      "identifier": "tab"
     },
-    "setMarkerIn": {
+    "setMarkerOut": {
      "display": "MediaPlayPause",
      "identifier": "mediaplaypause"
     },
-    "setMarkerOut": {
+    "nextClip": {
      "display": "N",
      "identifier": "keyn"
     },
-    "nextClip": {
+    "prevClip": {
      "display": "Alt + N",
      "identifier": "alt+keyn"
-    },
-    "prevClip": {
-     "display": "Space",
-     "identifier": "space"
     },
     "speedUp": {
      "display": "Enter",
@@ -2307,11 +2309,11 @@
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
-    "keybindNextClip": "Alt + N",
-    "keybindPrevClip": "Space",
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
+    "keybindPrevClip": "Alt + N",
     "keybindSpeedUp": "Enter",
     "keybindSpeedDown": "F5",
     "keybindSpeedReset": "Escape",
@@ -2320,98 +2322,9 @@
   },
   {
    "event": {
-    "kind": "mouse",
-    "button": 0
-   },
-   "input": "keybindSpeedUp",
-   "prevented": false,
-   "recording": [
-    "keybindSpeedUp"
-   ],
-   "keybinds": {
-    "playPause": {
-     "display": "Ctrl + Alt + Shift + Meta + A",
-     "identifier": "ctrl+alt+shift+meta+keya"
-    },
-    "skipForward": {
-     "display": "Dead",
-     "identifier": "bracketleft"
-    },
-    "skipBackward": {
-     "display": "Unidentified",
-     "identifier": "unidentified"
-    },
-    "toggleDash": {
-     "display": "/",
-     "identifier": "slash"
-    },
-    "toggleMap": {
-     "display": "Shift + >",
-     "identifier": "shift+period"
-    },
-    "toggleMetric": {
-     "display": "SS",
-     "identifier": "minus"
-    },
-    "toggleClips": {
-     "display": "Tab",
-     "identifier": "tab"
-    },
-    "setMarkerIn": {
-     "display": "MediaPlayPause",
-     "identifier": "mediaplaypause"
-    },
-    "setMarkerOut": {
-     "display": "N",
-     "identifier": "keyn"
-    },
-    "nextClip": {
-     "display": "Alt + N",
-     "identifier": "alt+keyn"
-    },
-    "prevClip": {
-     "display": "Space",
-     "identifier": "space"
-    },
-    "speedUp": {
-     "display": "Enter",
-     "identifier": "enter"
-    },
-    "speedDown": {
-     "display": "F5",
-     "identifier": "f5"
-    },
-    "speedReset": {
-     "display": "Escape",
-     "identifier": "escape"
-    },
-    "speedMax": {
-     "display": "A",
-     "identifier": "keyq"
-    }
-   },
-   "values": {
-    "keybindPlayPause": "Ctrl + Alt + Shift + Meta + A",
-    "keybindSkipForward": "Dead",
-    "keybindSkipBackward": "Unidentified",
-    "keybindToggleDash": "/",
-    "keybindToggleMap": "Shift + >",
-    "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
-    "keybindNextClip": "Alt + N",
-    "keybindPrevClip": "Space",
-    "keybindSpeedUp": "Press a key or mouse button...",
-    "keybindSpeedDown": "F5",
-    "keybindSpeedReset": "Escape",
-    "keybindSpeedMax": "A"
-   }
-  },
-  {
-   "event": {
-    "kind": "mouse",
-    "button": 1
+    "kind": "key",
+    "key": " ",
+    "code": "Space"
    },
    "input": "keybindSpeedUp",
    "prevented": true,
@@ -2442,28 +2355,28 @@
      "identifier": "minus"
     },
     "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
      "display": "Tab",
      "identifier": "tab"
     },
-    "setMarkerIn": {
+    "setMarkerOut": {
      "display": "MediaPlayPause",
      "identifier": "mediaplaypause"
     },
-    "setMarkerOut": {
+    "nextClip": {
      "display": "N",
      "identifier": "keyn"
     },
-    "nextClip": {
+    "prevClip": {
      "display": "Alt + N",
      "identifier": "alt+keyn"
     },
-    "prevClip": {
+    "speedUp": {
      "display": "Space",
      "identifier": "space"
-    },
-    "speedUp": {
-     "display": "Mouse Middle",
-     "identifier": "mouse1"
     },
     "speedDown": {
      "display": "F5",
@@ -2485,12 +2398,12 @@
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
-    "keybindNextClip": "Alt + N",
-    "keybindPrevClip": "Space",
-    "keybindSpeedUp": "Mouse Middle",
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
+    "keybindPrevClip": "Alt + N",
+    "keybindSpeedUp": "Space",
     "keybindSpeedDown": "F5",
     "keybindSpeedReset": "Escape",
     "keybindSpeedMax": "A"
@@ -2499,7 +2412,7 @@
   {
    "event": {
     "kind": "mouse",
-    "button": 2
+    "button": 0
    },
    "input": "keybindSpeedDown",
    "prevented": false,
@@ -2532,28 +2445,28 @@
      "identifier": "minus"
     },
     "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
      "display": "Tab",
      "identifier": "tab"
     },
-    "setMarkerIn": {
+    "setMarkerOut": {
      "display": "MediaPlayPause",
      "identifier": "mediaplaypause"
     },
-    "setMarkerOut": {
+    "nextClip": {
      "display": "N",
      "identifier": "keyn"
     },
-    "nextClip": {
+    "prevClip": {
      "display": "Alt + N",
      "identifier": "alt+keyn"
     },
-    "prevClip": {
+    "speedUp": {
      "display": "Space",
      "identifier": "space"
-    },
-    "speedUp": {
-     "display": "Mouse Middle",
-     "identifier": "mouse1"
     },
     "speedDown": {
      "display": "F5",
@@ -2575,12 +2488,12 @@
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
-    "keybindNextClip": "Alt + N",
-    "keybindPrevClip": "Space",
-    "keybindSpeedUp": "Mouse Middle",
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
+    "keybindPrevClip": "Alt + N",
+    "keybindSpeedUp": "Space",
     "keybindSpeedDown": "Press a key or mouse button...",
     "keybindSpeedReset": "Escape",
     "keybindSpeedMax": "A"
@@ -2589,7 +2502,7 @@
   {
    "event": {
     "kind": "mouse",
-    "button": 3
+    "button": 1
    },
    "input": "keybindSpeedDown",
    "prevented": true,
@@ -2620,32 +2533,32 @@
      "identifier": "minus"
     },
     "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
      "display": "Tab",
      "identifier": "tab"
     },
-    "setMarkerIn": {
+    "setMarkerOut": {
      "display": "MediaPlayPause",
      "identifier": "mediaplaypause"
     },
-    "setMarkerOut": {
+    "nextClip": {
      "display": "N",
      "identifier": "keyn"
     },
-    "nextClip": {
+    "prevClip": {
      "display": "Alt + N",
      "identifier": "alt+keyn"
     },
-    "prevClip": {
+    "speedUp": {
      "display": "Space",
      "identifier": "space"
     },
-    "speedUp": {
+    "speedDown": {
      "display": "Mouse Middle",
      "identifier": "mouse1"
-    },
-    "speedDown": {
-     "display": "Mouse Back",
-     "identifier": "mouse3"
     },
     "speedReset": {
      "display": "Escape",
@@ -2663,13 +2576,13 @@
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
-    "keybindNextClip": "Alt + N",
-    "keybindPrevClip": "Space",
-    "keybindSpeedUp": "Mouse Middle",
-    "keybindSpeedDown": "Mouse Back",
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
+    "keybindPrevClip": "Alt + N",
+    "keybindSpeedUp": "Space",
+    "keybindSpeedDown": "Mouse Middle",
     "keybindSpeedReset": "Escape",
     "keybindSpeedMax": "A"
    }
@@ -2677,7 +2590,97 @@
   {
    "event": {
     "kind": "mouse",
-    "button": 4
+    "button": 2
+   },
+   "input": "keybindSpeedReset",
+   "prevented": false,
+   "recording": [
+    "keybindSpeedReset"
+   ],
+   "keybinds": {
+    "playPause": {
+     "display": "Ctrl + Alt + Shift + Meta + A",
+     "identifier": "ctrl+alt+shift+meta+keya"
+    },
+    "skipForward": {
+     "display": "Dead",
+     "identifier": "bracketleft"
+    },
+    "skipBackward": {
+     "display": "Unidentified",
+     "identifier": "unidentified"
+    },
+    "toggleDash": {
+     "display": "/",
+     "identifier": "slash"
+    },
+    "toggleMap": {
+     "display": "Shift + >",
+     "identifier": "shift+period"
+    },
+    "toggleMetric": {
+     "display": "SS",
+     "identifier": "minus"
+    },
+    "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
+     "display": "Tab",
+     "identifier": "tab"
+    },
+    "setMarkerOut": {
+     "display": "MediaPlayPause",
+     "identifier": "mediaplaypause"
+    },
+    "nextClip": {
+     "display": "N",
+     "identifier": "keyn"
+    },
+    "prevClip": {
+     "display": "Alt + N",
+     "identifier": "alt+keyn"
+    },
+    "speedUp": {
+     "display": "Space",
+     "identifier": "space"
+    },
+    "speedDown": {
+     "display": "Mouse Middle",
+     "identifier": "mouse1"
+    },
+    "speedReset": {
+     "display": "Escape",
+     "identifier": "escape"
+    },
+    "speedMax": {
+     "display": "A",
+     "identifier": "keyq"
+    }
+   },
+   "values": {
+    "keybindPlayPause": "Ctrl + Alt + Shift + Meta + A",
+    "keybindSkipForward": "Dead",
+    "keybindSkipBackward": "Unidentified",
+    "keybindToggleDash": "/",
+    "keybindToggleMap": "Shift + >",
+    "keybindToggleMetric": "SS",
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
+    "keybindPrevClip": "Alt + N",
+    "keybindSpeedUp": "Space",
+    "keybindSpeedDown": "Mouse Middle",
+    "keybindSpeedReset": "Press a key or mouse button...",
+    "keybindSpeedMax": "A"
+   }
+  },
+  {
+   "event": {
+    "kind": "mouse",
+    "button": 3
    },
    "input": "keybindSpeedReset",
    "prevented": true,
@@ -2708,36 +2711,36 @@
      "identifier": "minus"
     },
     "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
      "display": "Tab",
      "identifier": "tab"
     },
-    "setMarkerIn": {
+    "setMarkerOut": {
      "display": "MediaPlayPause",
      "identifier": "mediaplaypause"
     },
-    "setMarkerOut": {
+    "nextClip": {
      "display": "N",
      "identifier": "keyn"
     },
-    "nextClip": {
+    "prevClip": {
      "display": "Alt + N",
      "identifier": "alt+keyn"
     },
-    "prevClip": {
+    "speedUp": {
      "display": "Space",
      "identifier": "space"
     },
-    "speedUp": {
+    "speedDown": {
      "display": "Mouse Middle",
      "identifier": "mouse1"
     },
-    "speedDown": {
+    "speedReset": {
      "display": "Mouse Back",
      "identifier": "mouse3"
-    },
-    "speedReset": {
-     "display": "Mouse Forward",
-     "identifier": "mouse4"
     },
     "speedMax": {
      "display": "A",
@@ -2751,22 +2754,21 @@
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
-    "keybindNextClip": "Alt + N",
-    "keybindPrevClip": "Space",
-    "keybindSpeedUp": "Mouse Middle",
-    "keybindSpeedDown": "Mouse Back",
-    "keybindSpeedReset": "Mouse Forward",
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
+    "keybindPrevClip": "Alt + N",
+    "keybindSpeedUp": "Space",
+    "keybindSpeedDown": "Mouse Middle",
+    "keybindSpeedReset": "Mouse Back",
     "keybindSpeedMax": "A"
    }
   },
   {
    "event": {
     "kind": "mouse",
-    "button": 1,
-    "ctrl": true
+    "button": 4
    },
    "input": "keybindSpeedMax",
    "prevented": true,
@@ -2797,40 +2799,40 @@
      "identifier": "minus"
     },
     "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
      "display": "Tab",
      "identifier": "tab"
     },
-    "setMarkerIn": {
+    "setMarkerOut": {
      "display": "MediaPlayPause",
      "identifier": "mediaplaypause"
     },
-    "setMarkerOut": {
+    "nextClip": {
      "display": "N",
      "identifier": "keyn"
     },
-    "nextClip": {
+    "prevClip": {
      "display": "Alt + N",
      "identifier": "alt+keyn"
     },
-    "prevClip": {
+    "speedUp": {
      "display": "Space",
      "identifier": "space"
     },
-    "speedUp": {
+    "speedDown": {
      "display": "Mouse Middle",
      "identifier": "mouse1"
     },
-    "speedDown": {
+    "speedReset": {
      "display": "Mouse Back",
      "identifier": "mouse3"
     },
-    "speedReset": {
+    "speedMax": {
      "display": "Mouse Forward",
      "identifier": "mouse4"
-    },
-    "speedMax": {
-     "display": "Ctrl + Mouse Middle",
-     "identifier": "ctrl+mouse1"
     }
    },
    "values": {
@@ -2840,15 +2842,104 @@
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
-    "keybindNextClip": "Alt + N",
-    "keybindPrevClip": "Space",
-    "keybindSpeedUp": "Mouse Middle",
-    "keybindSpeedDown": "Mouse Back",
-    "keybindSpeedReset": "Mouse Forward",
-    "keybindSpeedMax": "Ctrl + Mouse Middle"
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
+    "keybindPrevClip": "Alt + N",
+    "keybindSpeedUp": "Space",
+    "keybindSpeedDown": "Mouse Middle",
+    "keybindSpeedReset": "Mouse Back",
+    "keybindSpeedMax": "Mouse Forward"
+   }
+  },
+  {
+   "event": {
+    "kind": "mouse",
+    "button": 1,
+    "ctrl": true
+   },
+   "input": "keybindPlayPause",
+   "prevented": true,
+   "recording": [],
+   "keybinds": {
+    "playPause": {
+     "display": "Ctrl + Mouse Middle",
+     "identifier": "ctrl+mouse1"
+    },
+    "skipForward": {
+     "display": "Dead",
+     "identifier": "bracketleft"
+    },
+    "skipBackward": {
+     "display": "Unidentified",
+     "identifier": "unidentified"
+    },
+    "toggleDash": {
+     "display": "/",
+     "identifier": "slash"
+    },
+    "toggleMap": {
+     "display": "Shift + >",
+     "identifier": "shift+period"
+    },
+    "toggleMetric": {
+     "display": "SS",
+     "identifier": "minus"
+    },
+    "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
+     "display": "Tab",
+     "identifier": "tab"
+    },
+    "setMarkerOut": {
+     "display": "MediaPlayPause",
+     "identifier": "mediaplaypause"
+    },
+    "nextClip": {
+     "display": "N",
+     "identifier": "keyn"
+    },
+    "prevClip": {
+     "display": "Alt + N",
+     "identifier": "alt+keyn"
+    },
+    "speedUp": {
+     "display": "Space",
+     "identifier": "space"
+    },
+    "speedDown": {
+     "display": "Mouse Middle",
+     "identifier": "mouse1"
+    },
+    "speedReset": {
+     "display": "Mouse Back",
+     "identifier": "mouse3"
+    },
+    "speedMax": {
+     "display": "Mouse Forward",
+     "identifier": "mouse4"
+    }
+   },
+   "values": {
+    "keybindPlayPause": "Ctrl + Mouse Middle",
+    "keybindSkipForward": "Dead",
+    "keybindSkipBackward": "Unidentified",
+    "keybindToggleDash": "/",
+    "keybindToggleMap": "Shift + >",
+    "keybindToggleMetric": "SS",
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
+    "keybindPrevClip": "Alt + N",
+    "keybindSpeedUp": "Space",
+    "keybindSpeedDown": "Mouse Middle",
+    "keybindSpeedReset": "Mouse Back",
+    "keybindSpeedMax": "Mouse Forward"
    }
   },
   {
@@ -2858,17 +2949,17 @@
     "shift": true,
     "alt": true
    },
-   "input": "keybindPlayPause",
+   "input": "keybindSkipForward",
    "prevented": true,
    "recording": [],
    "keybinds": {
     "playPause": {
-     "display": "Alt + Shift + Mouse Forward",
-     "identifier": "alt+shift+mouse4"
+     "display": "Ctrl + Mouse Middle",
+     "identifier": "ctrl+mouse1"
     },
     "skipForward": {
-     "display": "Dead",
-     "identifier": "bracketleft"
+     "display": "Alt + Shift + Mouse Forward",
+     "identifier": "alt+shift+mouse4"
     },
     "skipBackward": {
      "display": "Unidentified",
@@ -2887,58 +2978,58 @@
      "identifier": "minus"
     },
     "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
      "display": "Tab",
      "identifier": "tab"
     },
-    "setMarkerIn": {
+    "setMarkerOut": {
      "display": "MediaPlayPause",
      "identifier": "mediaplaypause"
     },
-    "setMarkerOut": {
+    "nextClip": {
      "display": "N",
      "identifier": "keyn"
     },
-    "nextClip": {
+    "prevClip": {
      "display": "Alt + N",
      "identifier": "alt+keyn"
     },
-    "prevClip": {
+    "speedUp": {
      "display": "Space",
      "identifier": "space"
     },
-    "speedUp": {
+    "speedDown": {
      "display": "Mouse Middle",
      "identifier": "mouse1"
     },
-    "speedDown": {
+    "speedReset": {
      "display": "Mouse Back",
      "identifier": "mouse3"
     },
-    "speedReset": {
+    "speedMax": {
      "display": "Mouse Forward",
      "identifier": "mouse4"
-    },
-    "speedMax": {
-     "display": "Ctrl + Mouse Middle",
-     "identifier": "ctrl+mouse1"
     }
    },
    "values": {
-    "keybindPlayPause": "Alt + Shift + Mouse Forward",
-    "keybindSkipForward": "Dead",
+    "keybindPlayPause": "Ctrl + Mouse Middle",
+    "keybindSkipForward": "Alt + Shift + Mouse Forward",
     "keybindSkipBackward": "Unidentified",
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
-    "keybindNextClip": "Alt + N",
-    "keybindPrevClip": "Space",
-    "keybindSpeedUp": "Mouse Middle",
-    "keybindSpeedDown": "Mouse Back",
-    "keybindSpeedReset": "Mouse Forward",
-    "keybindSpeedMax": "Ctrl + Mouse Middle"
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
+    "keybindPrevClip": "Alt + N",
+    "keybindSpeedUp": "Space",
+    "keybindSpeedDown": "Mouse Middle",
+    "keybindSpeedReset": "Mouse Back",
+    "keybindSpeedMax": "Mouse Forward"
    }
   },
   {
@@ -2947,19 +3038,19 @@
     "button": 0,
     "ctrl": true
    },
-   "input": "keybindSkipForward",
+   "input": "keybindSkipBackward",
    "prevented": true,
    "recording": [
-    "keybindSkipForward"
+    "keybindSkipBackward"
    ],
    "keybinds": {
     "playPause": {
-     "display": "Alt + Shift + Mouse Forward",
-     "identifier": "alt+shift+mouse4"
+     "display": "Ctrl + Mouse Middle",
+     "identifier": "ctrl+mouse1"
     },
     "skipForward": {
-     "display": "Dead",
-     "identifier": "bracketleft"
+     "display": "Alt + Shift + Mouse Forward",
+     "identifier": "alt+shift+mouse4"
     },
     "skipBackward": {
      "display": "Unidentified",
@@ -2978,58 +3069,58 @@
      "identifier": "minus"
     },
     "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
      "display": "Tab",
      "identifier": "tab"
     },
-    "setMarkerIn": {
+    "setMarkerOut": {
      "display": "MediaPlayPause",
      "identifier": "mediaplaypause"
     },
-    "setMarkerOut": {
+    "nextClip": {
      "display": "N",
      "identifier": "keyn"
     },
-    "nextClip": {
+    "prevClip": {
      "display": "Alt + N",
      "identifier": "alt+keyn"
     },
-    "prevClip": {
+    "speedUp": {
      "display": "Space",
      "identifier": "space"
     },
-    "speedUp": {
+    "speedDown": {
      "display": "Mouse Middle",
      "identifier": "mouse1"
     },
-    "speedDown": {
+    "speedReset": {
      "display": "Mouse Back",
      "identifier": "mouse3"
     },
-    "speedReset": {
+    "speedMax": {
      "display": "Mouse Forward",
      "identifier": "mouse4"
-    },
-    "speedMax": {
-     "display": "Ctrl + Mouse Middle",
-     "identifier": "ctrl+mouse1"
     }
    },
    "values": {
-    "keybindPlayPause": "Alt + Shift + Mouse Forward",
-    "keybindSkipForward": "Press a key or mouse button...",
-    "keybindSkipBackward": "Unidentified",
+    "keybindPlayPause": "Ctrl + Mouse Middle",
+    "keybindSkipForward": "Alt + Shift + Mouse Forward",
+    "keybindSkipBackward": "Press a key or mouse button...",
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
-    "keybindNextClip": "Alt + N",
-    "keybindPrevClip": "Space",
-    "keybindSpeedUp": "Mouse Middle",
-    "keybindSpeedDown": "Mouse Back",
-    "keybindSpeedReset": "Mouse Forward",
-    "keybindSpeedMax": "Ctrl + Mouse Middle"
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
+    "keybindPrevClip": "Alt + N",
+    "keybindSpeedUp": "Space",
+    "keybindSpeedDown": "Mouse Middle",
+    "keybindSpeedReset": "Mouse Back",
+    "keybindSpeedMax": "Mouse Forward"
    }
   },
   {
@@ -3037,21 +3128,21 @@
     "kind": "mouse",
     "button": 3
    },
-   "input": "keybindSkipForward",
+   "input": "keybindSkipBackward",
    "prevented": true,
    "recording": [],
    "keybinds": {
     "playPause": {
+     "display": "Ctrl + Mouse Middle",
+     "identifier": "ctrl+mouse1"
+    },
+    "skipForward": {
      "display": "Alt + Shift + Mouse Forward",
      "identifier": "alt+shift+mouse4"
     },
-    "skipForward": {
+    "skipBackward": {
      "display": "Mouse Back",
      "identifier": "mouse3"
-    },
-    "skipBackward": {
-     "display": "Unidentified",
-     "identifier": "unidentified"
     },
     "toggleDash": {
      "display": "/",
@@ -3066,54 +3157,54 @@
      "identifier": "minus"
     },
     "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
      "display": "Tab",
      "identifier": "tab"
     },
-    "setMarkerIn": {
+    "setMarkerOut": {
      "display": "MediaPlayPause",
      "identifier": "mediaplaypause"
     },
-    "setMarkerOut": {
+    "nextClip": {
      "display": "N",
      "identifier": "keyn"
     },
-    "nextClip": {
+    "prevClip": {
      "display": "Alt + N",
      "identifier": "alt+keyn"
     },
-    "prevClip": {
+    "speedUp": {
      "display": "Space",
      "identifier": "space"
     },
-    "speedUp": {
+    "speedDown": {
      "display": "Mouse Middle",
      "identifier": "mouse1"
     },
-    "speedReset": {
+    "speedMax": {
      "display": "Mouse Forward",
      "identifier": "mouse4"
-    },
-    "speedMax": {
-     "display": "Ctrl + Mouse Middle",
-     "identifier": "ctrl+mouse1"
     }
    },
    "values": {
-    "keybindPlayPause": "Alt + Shift + Mouse Forward",
-    "keybindSkipForward": "Mouse Back",
-    "keybindSkipBackward": "Unidentified",
+    "keybindPlayPause": "Ctrl + Mouse Middle",
+    "keybindSkipForward": "Alt + Shift + Mouse Forward",
+    "keybindSkipBackward": "Mouse Back",
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
-    "keybindNextClip": "Alt + N",
-    "keybindPrevClip": "Space",
-    "keybindSpeedUp": "Mouse Middle",
-    "keybindSpeedDown": "",
-    "keybindSpeedReset": "Mouse Forward",
-    "keybindSpeedMax": "Ctrl + Mouse Middle"
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
+    "keybindPrevClip": "Alt + N",
+    "keybindSpeedUp": "Space",
+    "keybindSpeedDown": "Mouse Middle",
+    "keybindSpeedReset": "",
+    "keybindSpeedMax": "Mouse Forward"
    }
   },
   {
@@ -3123,12 +3214,12 @@
    },
    "keybinds": {
     "skipForward": {
-     "display": "Mouse Back",
-     "identifier": "mouse3"
+     "display": "Alt + Shift + Mouse Forward",
+     "identifier": "alt+shift+mouse4"
     },
     "skipBackward": {
-     "display": "Unidentified",
-     "identifier": "unidentified"
+     "display": "Mouse Back",
+     "identifier": "mouse3"
     },
     "toggleDash": {
      "display": "/",
@@ -3143,54 +3234,54 @@
      "identifier": "minus"
     },
     "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
      "display": "Tab",
      "identifier": "tab"
     },
-    "setMarkerIn": {
+    "setMarkerOut": {
      "display": "MediaPlayPause",
      "identifier": "mediaplaypause"
     },
-    "setMarkerOut": {
+    "nextClip": {
      "display": "N",
      "identifier": "keyn"
     },
-    "nextClip": {
+    "prevClip": {
      "display": "Alt + N",
      "identifier": "alt+keyn"
     },
-    "prevClip": {
+    "speedUp": {
      "display": "Space",
      "identifier": "space"
     },
-    "speedUp": {
+    "speedDown": {
      "display": "Mouse Middle",
      "identifier": "mouse1"
     },
-    "speedReset": {
+    "speedMax": {
      "display": "Mouse Forward",
      "identifier": "mouse4"
-    },
-    "speedMax": {
-     "display": "Ctrl + Mouse Middle",
-     "identifier": "ctrl+mouse1"
     }
    },
    "values": {
     "keybindPlayPause": "",
-    "keybindSkipForward": "Mouse Back",
-    "keybindSkipBackward": "Unidentified",
+    "keybindSkipForward": "Alt + Shift + Mouse Forward",
+    "keybindSkipBackward": "Mouse Back",
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
-    "keybindNextClip": "Alt + N",
-    "keybindPrevClip": "Space",
-    "keybindSpeedUp": "Mouse Middle",
-    "keybindSpeedDown": "",
-    "keybindSpeedReset": "Mouse Forward",
-    "keybindSpeedMax": "Ctrl + Mouse Middle"
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
+    "keybindPrevClip": "Alt + N",
+    "keybindSpeedUp": "Space",
+    "keybindSpeedDown": "Mouse Middle",
+    "keybindSpeedReset": "",
+    "keybindSpeedMax": "Mouse Forward"
    },
    "recording": []
   },
@@ -3201,12 +3292,12 @@
    },
    "keybinds": {
     "skipForward": {
-     "display": "Mouse Back",
-     "identifier": "mouse3"
+     "display": "Alt + Shift + Mouse Forward",
+     "identifier": "alt+shift+mouse4"
     },
     "skipBackward": {
-     "display": "Unidentified",
-     "identifier": "unidentified"
+     "display": "Mouse Back",
+     "identifier": "mouse3"
     },
     "toggleDash": {
      "display": "/",
@@ -3221,54 +3312,54 @@
      "identifier": "minus"
     },
     "toggleClips": {
+     "display": "Ctrl + Alt + @",
+     "identifier": "ctrl+alt+keyq"
+    },
+    "setMarkerIn": {
      "display": "Tab",
      "identifier": "tab"
     },
-    "setMarkerIn": {
+    "setMarkerOut": {
      "display": "MediaPlayPause",
      "identifier": "mediaplaypause"
     },
-    "setMarkerOut": {
+    "nextClip": {
      "display": "N",
      "identifier": "keyn"
     },
-    "nextClip": {
+    "prevClip": {
      "display": "Alt + N",
      "identifier": "alt+keyn"
     },
-    "prevClip": {
+    "speedUp": {
      "display": "Space",
      "identifier": "space"
     },
-    "speedUp": {
+    "speedDown": {
      "display": "Mouse Middle",
      "identifier": "mouse1"
     },
-    "speedReset": {
+    "speedMax": {
      "display": "Mouse Forward",
      "identifier": "mouse4"
-    },
-    "speedMax": {
-     "display": "Ctrl + Mouse Middle",
-     "identifier": "ctrl+mouse1"
     }
    },
    "values": {
     "keybindPlayPause": "",
-    "keybindSkipForward": "Mouse Back",
-    "keybindSkipBackward": "Unidentified",
+    "keybindSkipForward": "Alt + Shift + Mouse Forward",
+    "keybindSkipBackward": "Mouse Back",
     "keybindToggleDash": "/",
     "keybindToggleMap": "Shift + >",
     "keybindToggleMetric": "SS",
-    "keybindToggleClips": "Tab",
-    "keybindSetMarkerIn": "MediaPlayPause",
-    "keybindSetMarkerOut": "N",
-    "keybindNextClip": "Alt + N",
-    "keybindPrevClip": "Space",
-    "keybindSpeedUp": "Mouse Middle",
-    "keybindSpeedDown": "",
-    "keybindSpeedReset": "Mouse Forward",
-    "keybindSpeedMax": "Ctrl + Mouse Middle"
+    "keybindToggleClips": "Ctrl + Alt + @",
+    "keybindSetMarkerIn": "Tab",
+    "keybindSetMarkerOut": "MediaPlayPause",
+    "keybindNextClip": "N",
+    "keybindPrevClip": "Alt + N",
+    "keybindSpeedUp": "Space",
+    "keybindSpeedDown": "Mouse Middle",
+    "keybindSpeedReset": "",
+    "keybindSpeedMax": "Mouse Forward"
    },
    "recording": []
   }
@@ -3505,6 +3596,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -3841,6 +3942,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -4167,6 +4278,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -4487,6 +4608,16 @@
       "kind": "key",
       "key": "ß",
       "code": "Minus"
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
      },
      "fired": []
     },
@@ -4825,6 +4956,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -5145,6 +5286,16 @@
       "kind": "key",
       "key": "ß",
       "code": "Minus"
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
      },
      "fired": []
     },
@@ -5489,6 +5640,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -5825,6 +5986,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -6151,6 +6322,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -6471,6 +6652,16 @@
       "kind": "key",
       "key": "ß",
       "code": "Minus"
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
      },
      "fired": []
     },
@@ -6809,6 +7000,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -7135,6 +7336,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -7455,6 +7666,16 @@
       "kind": "key",
       "key": "ß",
       "code": "Minus"
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
      },
      "fired": []
     },
@@ -7793,6 +8014,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -8113,6 +8344,16 @@
       "kind": "key",
       "key": "ß",
       "code": "Minus"
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
      },
      "fired": []
     },
@@ -8457,6 +8698,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -8793,6 +9044,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -9113,6 +9374,16 @@
       "kind": "key",
       "key": "ß",
       "code": "Minus"
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
      },
      "fired": []
     },
@@ -9457,6 +9728,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -9793,6 +10074,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -10119,6 +10410,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -10439,6 +10740,16 @@
       "kind": "key",
       "key": "ß",
       "code": "Minus"
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
      },
      "fired": []
     },
@@ -10777,6 +11088,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -11097,6 +11418,16 @@
       "kind": "key",
       "key": "ß",
       "code": "Minus"
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
      },
      "fired": []
     },
@@ -11429,6 +11760,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -11755,6 +12096,16 @@
     {
      "event": {
       "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
       "key": "Tab",
       "code": "Tab"
      },
@@ -12075,6 +12426,16 @@
       "kind": "key",
       "key": "ß",
       "code": "Minus"
+     },
+     "fired": []
+    },
+    {
+     "event": {
+      "kind": "key",
+      "key": "@",
+      "code": "KeyQ",
+      "ctrl": true,
+      "alt": true
      },
      "fired": []
     },

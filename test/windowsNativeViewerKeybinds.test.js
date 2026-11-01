@@ -248,6 +248,8 @@ const KEYS = [
   { key: '/', code: 'Slash' },
   { key: '>', code: 'Period', shift: true },
   { key: 'ß', code: 'Minus' },
+  // a German layout's AltGr+Q (Chrome holds ctrl and alt for AltGr and gives the third level's '@')
+  { key: '@', code: 'KeyQ', ctrl: true, alt: true },
   { key: 'Tab', code: 'Tab' },
   { key: 'MediaPlayPause', code: 'MediaPlayPause' },
   { key: 'n', code: 'KeyN' },

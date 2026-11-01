@@ -96,9 +96,23 @@ namespace SentrySix.Ui.Builtin
                 byte[] state = new byte[256];
                 if ((GetKeyState(0x10) & 0x8000) != 0) state[0x10] = 0x80;
                 if ((GetKeyState(0x14) & 1) != 0) state[0x14] = 1;
+                // Ctrl and Alt as they are too: AltGr (Ctrl+Alt) gives the layout's third
+                // level, '@' for AltGr+Q on German, as Chromium's e.key does
+                bool mods = false;
+                foreach (int m in new[] { 0x11, 0xA2, 0xA3, 0x12, 0xA4, 0xA5 })
+                    if ((GetKeyState(m) & 0x8000) != 0) { state[m] = 0x80; mods = true; }
                 StringBuilder buf = new StringBuilder(8);
+                IntPtr layout = GetKeyboardLayout(0);
                 // (flag 4: the keyboard's dead-key state is left as it is)
-                int n = ToUnicodeEx((uint)vk, (uint)scan, state, buf, buf.Capacity, 4, GetKeyboardLayout(0));
+                int n = ToUnicodeEx((uint)vk, (uint)scan, state, buf, buf.Capacity, 4, layout);
+                if (mods && (n == 0 || (n > 0 && buf[0] < 0x20)))
+                {
+                    // no AltGr character (Ctrl+letter, or a control code): the letter, as the browser reads it
+                    for (int m = 0x11; m <= 0x12; m++) state[m] = 0;
+                    for (int m = 0xA2; m <= 0xA5; m++) state[m] = 0;
+                    buf.Clear();
+                    n = ToUnicodeEx((uint)vk, (uint)scan, state, buf, buf.Capacity, 4, layout);
+                }
                 if (n < 0) dead = true;
                 else if (n > 0) ch = buf.ToString(0, n);
             }

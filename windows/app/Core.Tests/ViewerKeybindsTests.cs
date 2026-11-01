@@ -301,6 +301,9 @@ namespace SentrySix.Core.Tests
             Assert.Equal("F5", KeyCodes.KeyOf(0x74, null, false), "VK_F5");
             Assert.Equal("Dead", KeyCodes.KeyOf(0xDB, null, true), "a dead key");
             Assert.Equal("a", KeyCodes.KeyOf(0x41, "a", false), "VK_A");
+            Assert.Equal("@", KeyCodes.KeyOf(0x51, "@", false), "VK_Q with AltGr on de-DE (ToUnicodeEx with Ctrl+Alt held)");
+            KeyPress altGr = new KeyPress { Key = "@", Code = "KeyQ", Ctrl = true, Alt = true };
+            Assert.Equal("ctrl+alt+keyq", Keybinds.Identifier(altGr), "AltGr+Q's identifier");
             Assert.Equal("Unidentified", KeyCodes.KeyOf(0xFF, "", false), "nothing");
             KeyPress p = KeyCodes.Playwright("Shift+Period");
             Assert.Equal("shift+period", Keybinds.Identifier(p), "Shift+Period");

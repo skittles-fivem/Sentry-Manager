@@ -46,6 +46,25 @@ namespace SentrySix.Core.Tests
 
         public static void Register(Action<string, Action> test)
         {
+            test("viewer map: a two-finger pinch zooms by log2 of its scale, snapped and kept within the limits, about its centre", () =>
+            {
+                ViewerMap map = new ViewerMap();
+                map.View.SetView(new GeoPoint(37.77, -122.42), 12);
+                PixelPoint c = new PixelPoint(129, 129);
+                GeoPoint before = map.View.ContainerToLatLng(c);
+                map.Pinch(12, 2.2, c);
+                Assert.Equal(13.0, map.View.Zoom, "2.2x: one level in");
+                map.Pinch(13, 0.2, c);
+                Assert.Equal(11.0, map.View.Zoom, "0.2x: log2 -2.3 snaps to two out");
+                map.Pinch(11, 1.3, c);
+                Assert.Equal(11.0, map.View.Zoom, "1.3x: less than half a level, no change");
+                GeoPoint after = map.View.ContainerToLatLng(c);
+                Assert.True(Math.Abs(after.Lat - before.Lat) < 1e-3 && Math.Abs(after.Lng - before.Lng) < 1e-3, "the centre stays put");
+                map.View.SetMaxZoom(18);
+                map.Pinch(11, 1e6, c);
+                Assert.Equal(18.0, map.View.Zoom, "at most the layer's max zoom");
+            });
+
             test("viewer map: providers, templates and tile URLs as mapProviders.js builds them", () =>
             {
                 foreach (JsonValue r in Expected()["providers"].Items)

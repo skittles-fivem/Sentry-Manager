@@ -461,6 +461,14 @@ namespace SentrySix.Ui.Builtin
             // studioTouch.js: one finger moves the panel, as the mouse does (the buttons keep their taps)
             StudioTouchLayer.SetDrag(this, this);
             mapHost.MouseWheel += OnWheel;
+            // TouchZoom: two fingers on the map pinch it (studioEmbed.css: #mapVis touch-action none, so
+            // Leaflet gets the pinch); one finger stays the touch layer's panel drag
+            AddHandler(PreviewTouchDownEvent, new EventHandler<TouchEventArgs>(OnPinchDown), true);
+            AddHandler(PreviewTouchMoveEvent, new EventHandler<TouchEventArgs>(OnPinchMove), true);
+            AddHandler(PreviewTouchUpEvent, new EventHandler<TouchEventArgs>(OnPinchUp), true);
+            AddHandler(LostTouchCaptureEvent, new EventHandler<TouchEventArgs>(OnPinchUp), true);
+            pinchGroup.Children.Add(pinchScale);
+            pinchGroup.Children.Add(pinchMove);
             wheelTimer.Interval = TimeSpan.FromMilliseconds(40);
             wheelTimer.Tick += delegate
             {
@@ -730,6 +738,86 @@ namespace SentrySix.Ui.Builtin
             dragging = false;
             ReleaseMouseCapture();
             Cursor = Cursors.Hand;
+        }
+
+        // ---- pinch zoom (Leaflet's TouchZoom) ------------------------------------------------
+
+        readonly List<TouchDevice> fingers = new List<TouchDevice>();
+        readonly TransformGroup pinchGroup = new TransformGroup();
+        readonly ScaleTransform pinchScale = new ScaleTransform();
+        readonly TranslateTransform pinchMove = new TranslateTransform();
+        bool pinching;
+        double pinchStartDist, pinchStartZoom, pinchNow = 1;
+        Point pinchStartAt, pinchStartFrame;
+
+        Point MapPoint(TouchDevice t) { return t.GetTouchPoint(mapHost).Position; }
+
+        void OnPinchDown(object sender, TouchEventArgs e)
+        {
+            if (!fingers.Contains(e.TouchDevice)) fingers.Add(e.TouchDevice);
+            if (fingers.Count != 2 || pinching || !map.Shown) return;
+            Point a = MapPoint(fingers[0]), b = MapPoint(fingers[1]);
+            Point inMap = new Point((a.X + b.X) / 2, (a.Y + b.Y) / 2);
+            if (inMap.X < 0 || inMap.Y < 0 || inMap.X > Inner || inMap.Y > Inner) return;
+            double d = (a - b).Length;
+            if (d < 1) return;
+            // (the second finger ends the touch layer's panel drag: the pinch is the map's)
+            dragging = false;
+            pinching = true;
+            pinchStartDist = d;
+            pinchStartZoom = map.View.Zoom;
+            pinchStartAt = inMap;
+            pinchStartFrame = FrameCentre();
+            pinchNow = 1;
+            pinchScale.CenterX = inMap.X;
+            pinchScale.CenterY = inMap.Y;
+            pinchScale.ScaleX = pinchScale.ScaleY = 1;
+            pinchMove.X = pinchMove.Y = 0;
+            foreach (UIElement pane in new UIElement[] { tilePane, overlayPane, markerPane }) pane.RenderTransform = pinchGroup;
+            foreach (TouchDevice t in fingers) CaptureTouch(t);
+            e.Handled = true;
+        }
+
+        Point FrameCentre()
+        {
+            IInputElement frame = Parent as IInputElement;
+            Point a = fingers[0].GetTouchPoint(frame).Position, b = fingers[1].GetTouchPoint(frame).Position;
+            return new Point((a.X + b.X) / 2, (a.Y + b.Y) / 2);
+        }
+
+        void OnPinchMove(object sender, TouchEventArgs e)
+        {
+            if (!pinching || !fingers.Contains(e.TouchDevice) || fingers.Count < 2) return;
+            Point a = MapPoint(fingers[0]), b = MapPoint(fingers[1]);
+            double d = (a - b).Length;
+            // the fractional zoom while pinching (zoomSnap applies on the release), within the limits
+            double z = pinchStartZoom + Math.Log(Math.Max(1e-6, d / pinchStartDist)) / LeafletView.Ln2;
+            z = Math.Max(map.View.MinZoom, Math.Min(map.View.MaxZoom, z));
+            pinchNow = Math.Pow(2, z - pinchStartZoom);
+            pinchScale.ScaleX = pinchScale.ScaleY = pinchNow;
+            Point c = new Point((a.X + b.X) / 2, (a.Y + b.Y) / 2);
+            pinchMove.X = c.X - pinchStartAt.X;
+            pinchMove.Y = c.Y - pinchStartAt.Y;
+            e.Handled = true;
+        }
+
+        void OnPinchUp(object sender, TouchEventArgs e)
+        {
+            bool was = pinching && fingers.Contains(e.TouchDevice);
+            Point frameNow = was && fingers.Count == 2 ? FrameCentre() : pinchStartFrame;
+            fingers.Remove(e.TouchDevice);
+            if (!was) return;
+            pinching = false;
+            foreach (UIElement pane in new UIElement[] { tilePane, overlayPane, markerPane }) pane.RenderTransform = null;
+            foreach (TouchDevice t in fingers.ToArray()) if (t.Captured == this) ReleaseTouchCapture(t);
+            if (e.TouchDevice.Captured == this) ReleaseTouchCapture(e.TouchDevice);
+            fingers.Clear();
+            e.Handled = true;
+            // the zoom about where the pinch started, then the map moved with the fingers' centre
+            map.Pinch(pinchStartZoom, pinchNow, new PixelPoint(pinchStartAt.X, pinchStartAt.Y));
+            double dx = frameNow.X - pinchStartFrame.X, dy = frameNow.Y - pinchStartFrame.Y;
+            if (Math.Abs(dx) >= 1 || Math.Abs(dy) >= 1) map.DragTo(map.View.Center, dx, dy);
+            Draw();
         }
 
         void OnWheel(object sender, MouseWheelEventArgs e)
