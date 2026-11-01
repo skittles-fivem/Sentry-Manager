@@ -394,3 +394,30 @@ their right ends can differ by a sample or two.
 - horizon dashboard-long
 - horizon dashboard-idle
 - horizon dashboard-logs-all
+### Flux: Settings
+
+The settings tabs (flux/pages/settings.js), one page per tab, on the built-in
+Settings page's answers where the pack asks the same paths: settings (the
+Vehicles tab, two vehicles; labelled blocks on a phone), settings-vehicle (the
+vehicle's form, an SMB share), settings-vehicle-new (a new vehicle on a Windows
+PC with "Folder on this PC" picked), settings-account, settings-interface,
+settings-updates, settings-security (a host the certificate does not cover),
+settings-system, settings-power (a time of use plan with two rates),
+settings-appearance, settings-windows (the Updates tab on the Windows service:
+the release wording), settings-novehicles and settings-error (main.js's "!" box
+with Retry). The web's time fields are the browser's own (12-hour on an en-US
+machine); the native ones follow the PC's clock setting the same way.
+
+- flux settings
+- flux settings-vehicle
+- flux settings-vehicle-new
+- flux settings-account
+- flux settings-interface
+- flux settings-updates
+- flux settings-security
+- flux settings-system
+- flux settings-power
+- flux settings-appearance
+- flux settings-windows
+- flux settings-novehicles
+- flux settings-error
