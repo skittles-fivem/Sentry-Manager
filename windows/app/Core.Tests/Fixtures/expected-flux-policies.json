@@ -1,0 +1,3673 @@
+{
+ "about": "Written by test/windowsNativeFluxPolicies.test.js from examples/ui-packs/flux/web/flux/pages/policies.js; checked by windows/app/Core.Tests (FluxPoliciesTests.cs, SentrySix.Core.Flux.FxPolicies).",
+ "now": 1793459402000,
+ "sessions": [
+  {
+   "name": "policies",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "ok": true
+    },
+    "PUT /api/vehicles/model-y/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-y/policy/run": {
+     "ok": true
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "04:15",
+      "keepDays": {
+       "Recent": 30,
+       "Sentry": 90,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": 1793373002000,
+      "lastResult": {
+       "moved": 12,
+       "skipped": 3
+      }
+     },
+     "preview": {
+      "recordings": 7,
+      "bytes": 3435973836.8,
+      "byCategory": {
+       "Recent": 5,
+       "Sentry": 2
+      },
+      "ids": []
+     }
+    },
+    "GET /api/vehicles/model-y/policy": {
+     "policy": {
+      "enabled": false,
+      "runAt": "03:30",
+      "keepDays": {
+       "Recent": null,
+       "Sentry": null,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": null,
+      "lastResult": null
+     },
+     "preview": {
+      "recordings": 0,
+      "bytes": 0
+     }
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    },
+    {
+     "id": "model-y",
+     "name": "Model Y"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": null,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy",
+      "GET /api/vehicles/model-y/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-24h",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "ok": true
+    },
+    "PUT /api/vehicles/model-y/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-y/policy/run": {
+     "ok": true
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "04:15",
+      "keepDays": {
+       "Recent": 30,
+       "Sentry": 90,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": 1793373002000,
+      "lastResult": {
+       "moved": 12,
+       "skipped": 3
+      }
+     },
+     "preview": {
+      "recordings": 7,
+      "bytes": 3435973836.8,
+      "byCategory": {
+       "Recent": 5,
+       "Sentry": 2
+      },
+      "ids": []
+     }
+    },
+    "GET /api/vehicles/model-y/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "23:05",
+      "keepDays": {
+       "Recent": 1,
+       "Sentry": 3650,
+       "Saved": 365,
+       "Other": 7
+      },
+      "lastRunAt": 1793448602000,
+      "lastResult": {
+       "error": "The share is not reachable <now>"
+      }
+     },
+     "preview": {
+      "recordings": 1,
+      "bytes": 1536
+     }
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    },
+    {
+     "id": "model-y",
+     "name": "Model Y"
+    }
+   ],
+   "current": "model-y",
+   "h24": true,
+   "confirm": null,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy",
+      "GET /api/vehicles/model-y/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 15:10:02: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol current]",
+      "Model Y",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=1]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=3650]",
+      "Keep Saved (days)",
+      "[input keep-Saved=365]",
+      "Keep Other (days)",
+      "[input keep-Other=7]",
+      "Run at (server time)",
+      "[input runAt=23:05]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "1 recording",
+      "(",
+      "1.5 KB",
+      ") to the Recycle Bin.",
+      "Last run Oct 31, 2026, 12:10:02: The share is not reachable <now>.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-off",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "ok": true
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "policy": {
+      "enabled": false,
+      "runAt": "03:30",
+      "keepDays": {
+       "Recent": null,
+       "Sentry": null,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": null,
+      "lastResult": null
+     },
+     "preview": {
+      "recordings": 0,
+      "bytes": 0
+     }
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": null,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-novehicle",
+   "answers": {},
+   "vehicles": [],
+   "current": null,
+   "h24": false,
+   "confirm": null,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "[empty]",
+      "Add a vehicle first.",
+      "[link #/settings/vehicles?add=1]",
+      "Add a vehicle"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-error",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "ok": true
+    },
+    "PUT /api/vehicles/model-y/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-y/policy/run": {
+     "ok": true
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "$error": "The policy could not be read."
+    },
+    "GET /api/vehicles/model-y/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "04:15",
+      "keepDays": {
+       "Recent": 30,
+       "Sentry": 90,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": 1793373002000,
+      "lastResult": {
+       "moved": 12,
+       "skipped": 3
+      }
+     },
+     "preview": {
+      "recordings": 7,
+      "bytes": 3435973836.8,
+      "byCategory": {
+       "Recent": 5,
+       "Sentry": 2
+      },
+      "ids": []
+     }
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    },
+    {
+     "id": "model-y",
+     "name": "Model Y"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": null,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy",
+      "GET /api/vehicles/model-y/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[card]",
+      "Model 3",
+      "[bad]",
+      "The policy could not be read.",
+      "[pol]",
+      "Model Y",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-long",
+   "answers": {
+    "PUT /api/vehicles/long/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/long/policy/run": {
+     "ok": true
+    },
+    "PUT /api/vehicles/a%20b%26c/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/a%20b%26c/policy/run": {
+     "ok": true
+    },
+    "GET /api/vehicles/long/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "23:05",
+      "keepDays": {
+       "Recent": 1,
+       "Sentry": 3650,
+       "Saved": 365,
+       "Other": 7
+      },
+      "lastRunAt": 1793448602000,
+      "lastResult": {
+       "error": "The share is not reachable <now>"
+      }
+     },
+     "preview": {
+      "recordings": 1,
+      "bytes": 1536
+     }
+    },
+    "GET /api/vehicles/a%20b%26c/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "04:15",
+      "keepDays": {
+       "Recent": 30,
+       "Sentry": 90,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": 1793373002000,
+      "lastResult": {
+       "moved": 12,
+       "skipped": 3
+      }
+     },
+     "preview": {
+      "recordings": 7,
+      "bytes": 3435973836.8,
+      "byCategory": {
+       "Recent": 5,
+       "Sentry": 2
+      },
+      "ids": []
+     }
+    }
+   },
+   "vehicles": [
+    {
+     "id": "long",
+     "name": "Model S Plaid with a name far too long for one line of a panel head at all"
+    },
+    {
+     "id": "a b&c",
+     "name": "A <car> & co"
+    }
+   ],
+   "current": "a b&c",
+   "h24": false,
+   "confirm": null,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/long/policy",
+      "GET /api/vehicles/a%20b%26c/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol]",
+      "Model S Plaid with a name far too long for one line of a panel head at all",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=1]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=3650]",
+      "Keep Saved (days)",
+      "[input keep-Saved=365]",
+      "Keep Other (days)",
+      "[input keep-Other=7]",
+      "Run at (server time)",
+      "[input runAt=23:05]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "1 recording",
+      "(",
+      "1.5 KB",
+      ") to the Recycle Bin.",
+      "Last run Oct 31, 2026, 12:10:02 PM: The share is not reachable <now>.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol current]",
+      "A <car> & co",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-odd",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "ok": true
+    },
+    "PUT /api/vehicles/model-y/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-y/policy/run": {
+     "ok": true
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "policy": {
+      "enabled": 1,
+      "runAt": "",
+      "lastRunAt": 1792019402000,
+      "lastResult": {
+       "moved": "4"
+      }
+     }
+    },
+    "GET /api/vehicles/model-y/policy": {
+     "policy": {
+      "enabled": 0,
+      "keepDays": {
+       "Recent": 0
+      },
+      "lastRunAt": 1793457602000
+     }
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    },
+    {
+     "id": "model-y",
+     "name": "Model Y"
+    }
+   ],
+   "current": "gone",
+   "h24": false,
+   "confirm": null,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy",
+      "GET /api/vehicles/model-y/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "Last run Oct 14, 2026, 11:10:02 PM: 4 moved, 0 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=0]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "Last run Oct 31, 2026, 2:40:02 PM: 0 moved, 0 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-edit",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "ok": true
+    },
+    "PUT /api/vehicles/model-y/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-y/policy/run": {
+     "ok": true
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "04:15",
+      "keepDays": {
+       "Recent": 30,
+       "Sentry": 90,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": 1793373002000,
+      "lastResult": {
+       "moved": 12,
+       "skipped": 3
+      }
+     },
+     "preview": {
+      "recordings": 7,
+      "bytes": 3435973836.8,
+      "byCategory": {
+       "Recent": 5,
+       "Sentry": 2
+      },
+      "ids": []
+     }
+    },
+    "GET /api/vehicles/model-y/policy": {
+     "policy": {
+      "enabled": false,
+      "runAt": "03:30",
+      "keepDays": {
+       "Recent": null,
+       "Sentry": null,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": null,
+      "lastResult": null
+     },
+     "preview": {
+      "recordings": 0,
+      "bytes": 0
+     }
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    },
+    {
+     "id": "model-y",
+     "name": "Model Y"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": null,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy",
+      "GET /api/vehicles/model-y/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "tick": "model-y"
+     },
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "set": [
+       "model-y",
+       "keep-Recent",
+       "45"
+      ]
+     },
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=45]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "set": [
+       "model-y",
+       "keep-Saved",
+       "1e2"
+      ]
+     },
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=45]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=1e2]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "set": [
+       "model-y",
+       "runAt",
+       "05:45"
+      ]
+     },
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=45]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=1e2]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=05:45]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "set": [
+       "model-3",
+       "keep-Sentry",
+       ""
+      ]
+     },
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=45]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=1e2]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=05:45]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "tick": "model-3"
+     },
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=45]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=1e2]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=05:45]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "topics": [
+       "jobs"
+      ]
+     },
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=45]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=1e2]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=05:45]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "topics": [
+       "inventory"
+      ]
+     },
+     "asked": [
+      "GET /api/vehicles/model-3/policy",
+      "GET /api/vehicles/model-y/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-save",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "ok": true
+    },
+    "PUT /api/vehicles/model-y/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-y/policy/run": {
+     "ok": true
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "$seq": [
+      {
+       "policy": {
+        "enabled": true,
+        "runAt": "04:15",
+        "keepDays": {
+         "Recent": 30,
+         "Sentry": 90,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": 1793373002000,
+        "lastResult": {
+         "moved": 12,
+         "skipped": 3
+        }
+       },
+       "preview": {
+        "recordings": 7,
+        "bytes": 3435973836.8,
+        "byCategory": {
+         "Recent": 5,
+         "Sentry": 2
+        },
+        "ids": []
+       }
+      },
+      {
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "preview": {
+        "recordings": 0,
+        "bytes": 0
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-y/policy": {
+     "policy": {
+      "enabled": false,
+      "runAt": "03:30",
+      "keepDays": {
+       "Recent": null,
+       "Sentry": null,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": null,
+      "lastResult": null
+     },
+     "preview": {
+      "recordings": 0,
+      "bytes": 0
+     }
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    },
+    {
+     "id": "model-y",
+     "name": "Model Y"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": null,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy",
+      "GET /api/vehicles/model-y/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "set": [
+       "model-3",
+       "keep-Recent",
+       "030"
+      ]
+     },
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=030]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "set": [
+       "model-3",
+       "runAt",
+       ""
+      ]
+     },
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=030]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "tick": "model-3"
+     },
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=030]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "save": "model-3"
+     },
+     "asked": [
+      "PUT /api/vehicles/model-3/policy {\"enabled\":false,\"runAt\":\"03:30\",\"keepDays\":{\"Recent\":30,\"Sentry\":90,\"Saved\":null,\"Other\":null}}",
+      "GET /api/vehicles/model-3/policy",
+      "GET /api/vehicles/model-y/policy"
+     ],
+     "toasts": [
+      {
+       "text": "Policy saved.",
+       "tone": "ok"
+      }
+     ],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy",
+      "[pol]",
+      "Model Y",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-save-failed",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "$error": "Keep days must be from 1 to 3650."
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "ok": true
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "04:15",
+      "keepDays": {
+       "Recent": 30,
+       "Sentry": 90,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": 1793373002000,
+      "lastResult": {
+       "moved": 12,
+       "skipped": 3
+      }
+     },
+     "preview": {
+      "recordings": 7,
+      "bytes": 3435973836.8,
+      "byCategory": {
+       "Recent": 5,
+       "Sentry": 2
+      },
+      "ids": []
+     }
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": null,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "set": [
+       "model-3",
+       "keep-Other",
+       "7"
+      ]
+     },
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=7]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "save": "model-3"
+     },
+     "asked": [
+      "PUT /api/vehicles/model-3/policy {\"enabled\":true,\"runAt\":\"04:15\",\"keepDays\":{\"Recent\":30,\"Sentry\":90,\"Saved\":null,\"Other\":7}}"
+     ],
+     "toasts": [
+      {
+       "text": "Keep days must be from 1 to 3650.",
+       "tone": "bad"
+      }
+     ],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=7]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-run",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "moved": [
+      "r1",
+      "r2",
+      "r3",
+      "r4",
+      "r5",
+      "r6",
+      "r7"
+     ],
+     "skipped": []
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "$seq": [
+      {
+       "policy": {
+        "enabled": true,
+        "runAt": "04:15",
+        "keepDays": {
+         "Recent": 30,
+         "Sentry": 90,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": 1793373002000,
+        "lastResult": {
+         "moved": 12,
+         "skipped": 3
+        }
+       },
+       "preview": {
+        "recordings": 7,
+        "bytes": 3435973836.8,
+        "byCategory": {
+         "Recent": 5,
+         "Sentry": 2
+        },
+        "ids": []
+       }
+      },
+      {
+       "policy": {
+        "enabled": true,
+        "runAt": "04:15",
+        "keepDays": {
+         "Recent": 30,
+         "Sentry": 90,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": 1793373002000,
+        "lastResult": {
+         "moved": 12,
+         "skipped": 3
+        }
+       },
+       "preview": {
+        "recordings": 7,
+        "bytes": 3435973836.8,
+        "byCategory": {
+         "Recent": 5,
+         "Sentry": 2
+        },
+        "ids": []
+       }
+      },
+      {
+       "policy": {
+        "enabled": true,
+        "runAt": "23:05",
+        "keepDays": {
+         "Recent": 1,
+         "Sentry": 3650,
+         "Saved": 365,
+         "Other": 7
+        },
+        "lastRunAt": 1793448602000,
+        "lastResult": {
+         "error": "The share is not reachable <now>"
+        }
+       },
+       "preview": {
+        "recordings": 1,
+        "bytes": 1536
+       }
+      }
+     ]
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": true,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "set": [
+       "model-3",
+       "keep-Recent",
+       "10"
+      ]
+     },
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=10]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "run": "model-3"
+     },
+     "asked": [
+      "PUT /api/vehicles/model-3/policy {\"enabled\":true,\"runAt\":\"04:15\",\"keepDays\":{\"Recent\":10,\"Sentry\":90,\"Saved\":null,\"Other\":null}}",
+      "GET /api/vehicles/model-3/policy",
+      "POST /api/vehicles/model-3/policy/run {}",
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [
+      {
+       "text": "7 recordings moved to the Recycle Bin.",
+       "tone": "ok"
+      }
+     ],
+     "dialogs": [
+      {
+       "text": [
+        "Run the policy now?",
+        "7 recordings (",
+        "3.2 GB",
+        ") move to the Recycle Bin. You can restore them from there.",
+        "[btn cancel]",
+        "Cancel",
+        "[btn ok primary]",
+        "Run now"
+       ],
+       "answer": "yes"
+      }
+     ],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=1]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=3650]",
+      "Keep Saved (days)",
+      "[input keep-Saved=365]",
+      "Keep Other (days)",
+      "[input keep-Other=7]",
+      "Run at (server time)",
+      "[input runAt=23:05]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "1 recording",
+      "(",
+      "1.5 KB",
+      ") to the Recycle Bin.",
+      "Last run Oct 31, 2026, 12:10:02 PM: The share is not reachable <now>.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-run-one",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "moved": [
+      "r1"
+     ]
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "$seq": [
+      {
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "preview": {
+        "recordings": 0,
+        "bytes": 0
+       }
+      },
+      {
+       "policy": {
+        "enabled": true,
+        "runAt": "23:05",
+        "keepDays": {
+         "Recent": 1,
+         "Sentry": 3650,
+         "Saved": 365,
+         "Other": 7
+        },
+        "lastRunAt": 1793448602000,
+        "lastResult": {
+         "error": "The share is not reachable <now>"
+        }
+       },
+       "preview": {
+        "recordings": 1,
+        "bytes": 1536
+       }
+      },
+      {
+       "policy": {
+        "enabled": true,
+        "runAt": "23:05",
+        "keepDays": {
+         "Recent": 1,
+         "Sentry": 3650,
+         "Saved": 365,
+         "Other": 7
+        },
+        "lastRunAt": 1793448602000,
+        "lastResult": {
+         "error": "The share is not reachable <now>"
+        }
+       },
+       "preview": {
+        "recordings": 1,
+        "bytes": 1536
+       }
+      }
+     ]
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": true,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "run": "model-3"
+     },
+     "asked": [
+      "PUT /api/vehicles/model-3/policy {\"enabled\":false,\"runAt\":\"03:30\",\"keepDays\":{\"Recent\":null,\"Sentry\":null,\"Saved\":null,\"Other\":null}}",
+      "GET /api/vehicles/model-3/policy",
+      "POST /api/vehicles/model-3/policy/run {}",
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [
+      {
+       "text": "1 recording moved to the Recycle Bin.",
+       "tone": "ok"
+      }
+     ],
+     "dialogs": [
+      {
+       "text": [
+        "Run the policy now?",
+        "1 recording (",
+        "1.5 KB",
+        ") move to the Recycle Bin. You can restore them from there.",
+        "[btn cancel]",
+        "Cancel",
+        "[btn ok primary]",
+        "Run now"
+       ],
+       "answer": "yes"
+      }
+     ],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=1]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=3650]",
+      "Keep Saved (days)",
+      "[input keep-Saved=365]",
+      "Keep Other (days)",
+      "[input keep-Other=7]",
+      "Run at (server time)",
+      "[input runAt=23:05]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "1 recording",
+      "(",
+      "1.5 KB",
+      ") to the Recycle Bin.",
+      "Last run Oct 31, 2026, 12:10:02 PM: The share is not reachable <now>.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-run-no",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "ok": true
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "04:15",
+      "keepDays": {
+       "Recent": 30,
+       "Sentry": 90,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": 1793373002000,
+      "lastResult": {
+       "moved": 12,
+       "skipped": 3
+      }
+     },
+     "preview": {
+      "recordings": 7,
+      "bytes": 3435973836.8,
+      "byCategory": {
+       "Recent": 5,
+       "Sentry": 2
+      },
+      "ids": []
+     }
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": false,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "set": [
+       "model-3",
+       "keep-Recent",
+       "12"
+      ]
+     },
+     "asked": [],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=12]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "run": "model-3"
+     },
+     "asked": [
+      "PUT /api/vehicles/model-3/policy {\"enabled\":true,\"runAt\":\"04:15\",\"keepDays\":{\"Recent\":12,\"Sentry\":90,\"Saved\":null,\"Other\":null}}",
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [],
+     "dialogs": [
+      {
+       "text": [
+        "Run the policy now?",
+        "7 recordings (",
+        "3.2 GB",
+        ") move to the Recycle Bin. You can restore them from there.",
+        "[btn cancel]",
+        "Cancel",
+        "[btn ok primary]",
+        "Run now"
+       ],
+       "answer": "no"
+      }
+     ],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=12]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-run-nothing",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "ok": true
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "$seq": [
+      {
+       "policy": {
+        "enabled": true,
+        "runAt": "04:15",
+        "keepDays": {
+         "Recent": 30,
+         "Sentry": 90,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": 1793373002000,
+        "lastResult": {
+         "moved": 12,
+         "skipped": 3
+        }
+       },
+       "preview": {
+        "recordings": 7,
+        "bytes": 3435973836.8,
+        "byCategory": {
+         "Recent": 5,
+         "Sentry": 2
+        },
+        "ids": []
+       }
+      },
+      {
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "preview": {
+        "recordings": 0,
+        "bytes": 0
+       }
+      },
+      {
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "preview": {
+        "recordings": 0,
+        "bytes": 0
+       }
+      }
+     ]
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": true,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "run": "model-3"
+     },
+     "asked": [
+      "PUT /api/vehicles/model-3/policy {\"enabled\":true,\"runAt\":\"04:15\",\"keepDays\":{\"Recent\":30,\"Sentry\":90,\"Saved\":null,\"Other\":null}}",
+      "GET /api/vehicles/model-3/policy",
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [
+      {
+       "text": "Nothing to move right now.",
+       "tone": "ok"
+      }
+     ],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-run-oddmoved",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "moved": "abc"
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "04:15",
+      "keepDays": {
+       "Recent": 30,
+       "Sentry": 90,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": 1793373002000,
+      "lastResult": {
+       "moved": 12,
+       "skipped": 3
+      }
+     },
+     "preview": {
+      "recordings": 7,
+      "bytes": 3435973836.8,
+      "byCategory": {
+       "Recent": 5,
+       "Sentry": 2
+      },
+      "ids": []
+     }
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": true,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "run": "model-3"
+     },
+     "asked": [
+      "PUT /api/vehicles/model-3/policy {\"enabled\":true,\"runAt\":\"04:15\",\"keepDays\":{\"Recent\":30,\"Sentry\":90,\"Saved\":null,\"Other\":null}}",
+      "GET /api/vehicles/model-3/policy",
+      "POST /api/vehicles/model-3/policy/run {}",
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [
+      {
+       "text": "3 recordings moved to the Recycle Bin.",
+       "tone": "ok"
+      }
+     ],
+     "dialogs": [
+      {
+       "text": [
+        "Run the policy now?",
+        "7 recordings (",
+        "3.2 GB",
+        ") move to the Recycle Bin. You can restore them from there.",
+        "[btn cancel]",
+        "Cancel",
+        "[btn ok primary]",
+        "Run now"
+       ],
+       "answer": "yes"
+      }
+     ],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-run-nomoved",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {},
+    "GET /api/vehicles/model-3/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "04:15",
+      "keepDays": {
+       "Recent": 30,
+       "Sentry": 90,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": 1793373002000,
+      "lastResult": {
+       "moved": 12,
+       "skipped": 3
+      }
+     },
+     "preview": {
+      "recordings": 7,
+      "bytes": 3435973836.8,
+      "byCategory": {
+       "Recent": 5,
+       "Sentry": 2
+      },
+      "ids": []
+     }
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": true,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "run": "model-3"
+     },
+     "asked": [
+      "PUT /api/vehicles/model-3/policy {\"enabled\":true,\"runAt\":\"04:15\",\"keepDays\":{\"Recent\":30,\"Sentry\":90,\"Saved\":null,\"Other\":null}}",
+      "GET /api/vehicles/model-3/policy",
+      "POST /api/vehicles/model-3/policy/run {}",
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [
+      {
+       "text": "0 recordings moved to the Recycle Bin.",
+       "tone": "ok"
+      }
+     ],
+     "dialogs": [
+      {
+       "text": [
+        "Run the policy now?",
+        "7 recordings (",
+        "3.2 GB",
+        ") move to the Recycle Bin. You can restore them from there.",
+        "[btn cancel]",
+        "Cancel",
+        "[btn ok primary]",
+        "Run now"
+       ],
+       "answer": "yes"
+      }
+     ],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-run-failed",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "$error": "A policy run is already going."
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "04:15",
+      "keepDays": {
+       "Recent": 30,
+       "Sentry": 90,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": 1793373002000,
+      "lastResult": {
+       "moved": 12,
+       "skipped": 3
+      }
+     },
+     "preview": {
+      "recordings": 7,
+      "bytes": 3435973836.8,
+      "byCategory": {
+       "Recent": 5,
+       "Sentry": 2
+      },
+      "ids": []
+     }
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": true,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "run": "model-3"
+     },
+     "asked": [
+      "PUT /api/vehicles/model-3/policy {\"enabled\":true,\"runAt\":\"04:15\",\"keepDays\":{\"Recent\":30,\"Sentry\":90,\"Saved\":null,\"Other\":null}}",
+      "GET /api/vehicles/model-3/policy",
+      "POST /api/vehicles/model-3/policy/run {}"
+     ],
+     "toasts": [
+      {
+       "text": "A policy run is already going.",
+       "tone": "bad"
+      }
+     ],
+     "dialogs": [
+      {
+       "text": [
+        "Run the policy now?",
+        "7 recordings (",
+        "3.2 GB",
+        ") move to the Recycle Bin. You can restore them from there.",
+        "[btn cancel]",
+        "Cancel",
+        "[btn ok primary]",
+        "Run now"
+       ],
+       "answer": "yes"
+      }
+     ],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-run-getfailed",
+   "answers": {
+    "PUT /api/vehicles/model-3/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/model-3/policy/run": {
+     "ok": true
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "$seq": [
+      {
+       "policy": {
+        "enabled": true,
+        "runAt": "04:15",
+        "keepDays": {
+         "Recent": 30,
+         "Sentry": 90,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": 1793373002000,
+        "lastResult": {
+         "moved": 12,
+         "skipped": 3
+        }
+       },
+       "preview": {
+        "recordings": 7,
+        "bytes": 3435973836.8,
+        "byCategory": {
+         "Recent": 5,
+         "Sentry": 2
+        },
+        "ids": []
+       }
+      },
+      {
+       "$error": "The server stopped."
+      }
+     ]
+    }
+   },
+   "vehicles": [
+    {
+     "id": "model-3",
+     "name": "Model 3"
+    }
+   ],
+   "current": "model-3",
+   "h24": false,
+   "confirm": true,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "run": "model-3"
+     },
+     "asked": [
+      "PUT /api/vehicles/model-3/policy {\"enabled\":true,\"runAt\":\"04:15\",\"keepDays\":{\"Recent\":30,\"Sentry\":90,\"Saved\":null,\"Other\":null}}",
+      "GET /api/vehicles/model-3/policy"
+     ],
+     "toasts": [
+      {
+       "text": "The server stopped.",
+       "tone": "bad"
+      }
+     ],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "Model 3",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "policies-encoded",
+   "answers": {
+    "PUT /api/vehicles/a%20b%26c/policy": {
+     "ok": true
+    },
+    "POST /api/vehicles/a%20b%26c/policy/run": {
+     "moved": [
+      1,
+      2
+     ]
+    },
+    "GET /api/vehicles/a%20b%26c/policy": {
+     "$seq": [
+      {
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "preview": {
+        "recordings": 0,
+        "bytes": 0
+       }
+      },
+      {
+       "policy": {
+        "enabled": true,
+        "runAt": "04:15",
+        "keepDays": {
+         "Recent": 30,
+         "Sentry": 90,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": 1793373002000,
+        "lastResult": {
+         "moved": 12,
+         "skipped": 3
+        }
+       },
+       "preview": {
+        "recordings": 7,
+        "bytes": 3435973836.8,
+        "byCategory": {
+         "Recent": 5,
+         "Sentry": 2
+        },
+        "ids": []
+       }
+      },
+      {
+       "policy": {
+        "enabled": true,
+        "runAt": "04:15",
+        "keepDays": {
+         "Recent": 30,
+         "Sentry": 90,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": 1793373002000,
+        "lastResult": {
+         "moved": 12,
+         "skipped": 3
+        }
+       },
+       "preview": {
+        "recordings": 7,
+        "bytes": 3435973836.8,
+        "byCategory": {
+         "Recent": 5,
+         "Sentry": 2
+        },
+        "ids": []
+       }
+      }
+     ]
+    }
+   },
+   "vehicles": [
+    {
+     "id": "a b&c",
+     "name": "A <car> & co"
+    }
+   ],
+   "current": "a b&c",
+   "h24": false,
+   "confirm": true,
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/vehicles/a%20b%26c/policy"
+     ],
+     "toasts": [],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "A <car> & co",
+      "[chip]",
+      "off",
+      "[check enabled]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=03:30]",
+      "[note]",
+      "With the saved settings nothing would move right now.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "save": "a b&c"
+     },
+     "asked": [
+      "PUT /api/vehicles/a%20b%26c/policy {\"enabled\":false,\"runAt\":\"03:30\",\"keepDays\":{\"Recent\":null,\"Sentry\":null,\"Saved\":null,\"Other\":null}}",
+      "GET /api/vehicles/a%20b%26c/policy"
+     ],
+     "toasts": [
+      {
+       "text": "Policy saved.",
+       "tone": "ok"
+      }
+     ],
+     "dialogs": [],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "A <car> & co",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    },
+    {
+     "step": {
+      "run": "a b&c"
+     },
+     "asked": [
+      "PUT /api/vehicles/a%20b%26c/policy {\"enabled\":true,\"runAt\":\"04:15\",\"keepDays\":{\"Recent\":30,\"Sentry\":90,\"Saved\":null,\"Other\":null}}",
+      "GET /api/vehicles/a%20b%26c/policy",
+      "POST /api/vehicles/a%20b%26c/policy/run {}",
+      "GET /api/vehicles/a%20b%26c/policy"
+     ],
+     "toasts": [
+      {
+       "text": "2 recordings moved to the Recycle Bin.",
+       "tone": "ok"
+      }
+     ],
+     "dialogs": [
+      {
+       "text": [
+        "Run the policy now?",
+        "7 recordings (",
+        "3.2 GB",
+        ") move to the Recycle Bin. You can restore them from there.",
+        "[btn cancel]",
+        "Cancel",
+        "[btn ok primary]",
+        "Run now"
+       ],
+       "answer": "yes"
+      }
+     ],
+     "outline": [
+      "[head]",
+      "Policies",
+      "Recordings older than the days you set move to the Recycle Bin once a day. Nothing is ever deleted by a policy, and protected recordings are always skipped. Empty means keep forever.",
+      "[pol current]",
+      "A <car> & co",
+      "[chip green]",
+      "runs daily",
+      "[check enabled on]",
+      "Run this policy every day",
+      "Keep Recent (days)",
+      "[input keep-Recent=30]",
+      "Keep Sentry (days)",
+      "[input keep-Sentry=90]",
+      "Keep Saved (days)",
+      "[input keep-Saved=]",
+      "Keep Other (days)",
+      "[input keep-Other=]",
+      "Run at (server time)",
+      "[input runAt=04:15]",
+      "[note amber]",
+      "With the saved settings the next run moves",
+      "7 recordings",
+      "(",
+      "3.2 GB",
+      ") to the Recycle Bin.",
+      "Last run Oct 30, 2026, 3:10:02 PM: 12 moved, 3 skipped.",
+      "[btn]",
+      "Run now…",
+      "[btn primary]",
+      "Save policy"
+     ]
+    }
+   ]
+  }
+ ]
+}

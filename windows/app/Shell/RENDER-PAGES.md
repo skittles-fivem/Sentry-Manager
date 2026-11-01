@@ -410,3 +410,60 @@ benchmark running: Cancel, the Benchmark buttons waiting), nodes-noworker
 - flux nodes-running
 - flux nodes-noworker
 - flux nodes-closed
+### Flux: Policies
+
+One card per vehicle (flux/pages/policies.js) on the built-in Policies
+page's states, asked by the pack's own paths
+(tools/parity/packs/flux-policies.js): policies (on, the next run moving
+seven recordings, a last run), policies-off (a new vehicle's policy),
+policies-novehicle (Add a vehicle first.), policies-error (the card is the
+message), policies-long (a second vehicle with a long name and a failed
+last run).
+
+- flux policies
+- flux policies-off
+- flux policies-novehicle
+- flux policies-error
+- flux policies-long
+### Flux: Recycle Bin
+
+The bin's table (flux/pages/bin.js; labelled blocks on a phone, the boxes
+at the start of their line) on the built-in Recycle Bin page's states:
+bin (three items, one by policy, one with a file that could not be
+restored), bin-empty, bin-long (a long recording name, 5 TB), bin-error
+(the pack's ! box with Retry), bin-every-vehicle ("Every vehicle" picked:
+the vehicle column; the web clicks the filter, the native side gets the
+variant's state `{ bin: { scope: 'all' } }`).
+
+- flux bin
+- flux bin-empty
+- flux bin-long
+- flux bin-error
+- flux bin-every-vehicle
+### Flux: Notifications
+
+The notification list (flux/pages/notifications.js) on the built-in
+Notifications page's answers, with one read, two unread and one resolved
+(tools/parity/packs/flux-notifications.js): notifications (the open ones:
+the bars in their level's colour, the unread with a violet edge and dot),
+notifications-empty, notifications-all ("All, incl. resolved" picked: the
+resolved one faded; the web clicks the filter, the native side gets the
+variant's state `{ notifications: { show: 'all' } }`), notifications-error
+(the list not readable: the page shows none).
+
+- flux notifications
+- flux notifications-empty
+- flux notifications-all
+- flux notifications-error
+### Flux: Encoding per vehicle
+
+web/vehicleEncoding.js in Flux's look (flux/pages/vehicles.js) on the same
+answers as the built-in page's states: vehicles (three vehicles: automatic
+on, saved, not set up, one with a long name), vehicles-edit (?edit=<id>: the
+first one's editor open), vehicles-empty (no vehicles), vehicles-error (the
+Encoder still starting: the view is the message).
+
+- flux vehicles
+- flux vehicles-edit
+- flux vehicles-empty
+- flux vehicles-error
