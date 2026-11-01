@@ -366,7 +366,7 @@ namespace SentrySix.Core
                 o.Close = true;
                 o.Success = true;
                 o.Rescan = true;
-                o.Toast = DeleteSuccess;
+                o.Toast = StudioI18n.W(DeleteSuccess);
                 o.ToastType = "success";
                 return o;
             }
@@ -375,7 +375,7 @@ namespace SentrySix.Core
                 JsonValue error = result["error"];
                 why = error.Bool ? StudioFrames.JsString(error) : "Unknown error";
             }
-            o.Toast = DeleteFailed + ": " + why;
+            o.Toast = StudioI18n.W(DeleteFailed) + ": " + why;
             o.ToastType = "error";
             return o;
         }

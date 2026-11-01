@@ -1244,6 +1244,18 @@ namespace SentrySix.Ui.Builtin
             if (h != null) h();
         }
 
+        /// <summary>
+        /// The Viewer's language: at the start only the words from then on
+        /// (initI18n: the dashboard's markup words stay until a reset), on a
+        /// change script.js's onLanguageChange (units, 'Manual' / 'No Data').
+        /// </summary>
+        public void SetLanguage(string lang, bool changed)
+        {
+            if (changed) view.LanguageChanged(lang, settings.Metric);
+            else view.Language = lang;
+            Draw();
+        }
+
         /// <summary>Settings > Dashboard Overlay (dashboardToggle): on or off, saved.</summary>
         public void SetEnabled(bool on)
         {

@@ -690,10 +690,54 @@ namespace SentrySix.Ui.Builtin
         /// <summary>Skip Duration changed (window._skipDuration): the skip buttons' length, numbers and titles.</summary>
         void SettingsChanged()
         {
+            LanguageNow();
             JsonValue d = settings.SkipDuration;
             if (d.ToJson() == skipLength.ToJson()) return;
             skipLength = d;
             controls.SetSkip(skipLength);
+        }
+
+        string shownLanguage = StudioI18n.English;
+        bool languageRead;
+        DispatcherTimer translateTimer;
+
+        /// <summary>
+        /// The language the modal read (initI18n) or chose (setLanguage): the
+        /// Viewer's words in it (<see cref="StudioI18n.Current"/>), its
+        /// elements translated (translatePage), and on a change the
+        /// dashboard's onLanguageChange and the skip buttons' titles.
+        /// </summary>
+        void LanguageNow()
+        {
+            string lang = settings.Language ?? StudioI18n.English;
+            if (!settings.Loaded) return;
+            bool first = !languageRead;
+            languageRead = true;
+            if (lang == shownLanguage && !first) return;
+            bool changed = !first && lang != shownLanguage;
+            shownLanguage = lang;
+            StudioI18n.Current = lang;
+            dash.SetLanguage(lang, changed);
+            if (changed) controls.SetSkipTitles(settings.Text("skipBackBtn.title"), settings.Text("skipForwardBtn.title"));
+            Translate();
+        }
+
+        /// <summary>The Viewer's elements in its language; again a little later while it is not English (elements made since: the clip list, a dialog).</summary>
+        void Translate()
+        {
+            if (disposed) return;
+            StudioTranslate.Walk(root, shownLanguage);
+            if (translateTimer == null)
+            {
+                translateTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(400) };
+                translateTimer.Tick += delegate
+                {
+                    if (disposed || shownLanguage == StudioI18n.English) { translateTimer.Stop(); return; }
+                    if (root.IsVisible) StudioTranslate.Walk(root, shownLanguage);
+                };
+            }
+            if (shownLanguage == StudioI18n.English) translateTimer.Stop();
+            else if (!translateTimer.IsEnabled) translateTimer.Start();
         }
 
         /// <summary>The render test mode: the variant's steps in the settings modal (viewerSettings: capture.js's clicks and typing after the gear).</summary>
@@ -1395,6 +1439,8 @@ namespace SentrySix.Ui.Builtin
             Api real = api as Api;
             string ff = FfmpegTools.Ffmpeg, fp = FfmpegTools.Ffprobe;
             if (real == null || ff == null) return null;
+            // before the first-run probe's ffmpegs: they go in the kill-on-close job too
+            PlaybackJob.Install();
             IPrefs prefs = shell.Prefs;
             DecodePaths paths = DecodePaths.Load(prefs != null ? prefs.Get(DecodePathsKey, null) : null);
             if (paths == null)
@@ -1410,6 +1456,8 @@ namespace SentrySix.Ui.Builtin
             p.SetRate(playbackRate);
             p.Tick += OnTick;
             p.PreloadStarted += PrefetchTelemetry;
+            // a GPU path that fails on this PC is the CPU from now on, also in the next run
+            p.DecodePathFailed += family => { if (paths != null && prefs != null) prefs.Set(DecodePathsKey, paths.Save()); };
             foreach (string slot in GridGeometry.Slots) p.Attach(slot, grid.Surface(slot));
             p.SegmentOpened += i => grid.SegmentShown(p.View);
             if (grid.FocusSlot != null) p.SetFocus(grid.FocusSlot);

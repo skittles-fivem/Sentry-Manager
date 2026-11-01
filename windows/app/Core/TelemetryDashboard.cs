@@ -88,6 +88,9 @@ namespace SentrySix.Core
         public const double MpsToMph = 2.23694;
         public const double MpsToKmh = 3.6;
 
+        /// <summary>The language the words are in (i18n.js's currentLanguage; <see cref="StudioI18n"/>).</summary>
+        public string Language = StudioI18n.English;
+
         // ---- texts (index.html's first values until the first update or reset)
         public string Speed = "0";
         public string Unit = "MPH";
@@ -215,7 +218,7 @@ namespace SentrySix.Core
             {
                 bool active = ap == 1 || ap == 2;
                 AutosteerActive = ApActive = GearActive = active;
-                Ap = ApCompact = ApText(ap);
+                Ap = ApCompact = ApText(ap, Language);
             }
 
             bool brake = sei.BrakeApplied;
@@ -269,10 +272,32 @@ namespace SentrySix.Core
         /// <summary>The Autopilot label (ui.dashboard.*): Self Driving, Autosteer, TACC, else Manual.</summary>
         public static string ApText(int ap)
         {
-            if (ap == 1) return "Self Driving";
-            if (ap == 2) return "Autosteer";
-            if (ap == 3) return "TACC";
-            return "Manual";
+            return ApText(ap, StudioI18n.English);
+        }
+
+        /// <summary>The Autopilot label in a language: t('ui.dashboard.selfDriving' / autosteer / tacc / manual).</summary>
+        public static string ApText(int ap, string lang)
+        {
+            if (ap == 1) return StudioI18n.T(lang, "ui.dashboard.selfDriving");
+            if (ap == 2) return StudioI18n.T(lang, "ui.dashboard.autosteer");
+            if (ap == 3) return StudioI18n.T(lang, "ui.dashboard.tacc");
+            return StudioI18n.T(lang, "ui.dashboard.manual");
+        }
+
+        /// <summary>
+        /// script.js's onLanguageChange listener: telemetryDirty.reset(), the
+        /// units in the language, and the Autopilot labels only while they
+        /// read the English 'Manual' / 'No Data' (a label already in another
+        /// language stays as it is, as on the web).
+        /// </summary>
+        public void LanguageChanged(string lang, bool metric)
+        {
+            Language = lang;
+            ResetDirty();
+            Unit = UnitCompact = StudioI18n.T(lang, metric ? "ui.dashboard.kmh" : "ui.dashboard.mph");
+            if (Ap == "Manual") Ap = StudioI18n.T(lang, "ui.dashboard.manual");
+            else if (Ap == "No Data") Ap = StudioI18n.T(lang, "ui.dashboard.noData");
+            if (ApCompact == "Manual") ApCompact = StudioI18n.T(lang, "ui.dashboard.manual");
         }
 
         /// <summary>The pedal in percent: a value over 1 is a percent already, else a fraction; at most 100.</summary>
@@ -287,17 +312,17 @@ namespace SentrySix.Core
             dirty.Clear();
             prevLeft = prevRight = false;
             Speed = SpeedCompact = "--";
-            Unit = UnitCompact = metric ? "KM/H" : "MPH";
+            Unit = UnitCompact = StudioI18n.T(Language, metric ? "ui.dashboard.kmh" : "ui.dashboard.mph");
             Gear = GearCompact = "--";
             GearActive = false;
             BlinkLeft = BlinkRight = BlinkLeftPaused = BlinkRightPaused = false;
             wheel.Reset();
             AutosteerActive = false;
-            Ap = "No Data";
+            Ap = StudioI18n.T(Language, "ui.dashboard.noData");
             ApActive = false;
             BrakeActive = false;
             AccelActive = false;
-            ApCompact = "Manual";
+            ApCompact = StudioI18n.T(Language, "ui.dashboard.manual");
             Seq = Lat = Lon = Heading = "--";
             ResetGForce();
             ResetCompass();

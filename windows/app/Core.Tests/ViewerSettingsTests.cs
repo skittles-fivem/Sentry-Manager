@@ -203,7 +203,7 @@ namespace SentrySix.Core.Tests
                         JsonValue view = m.Snapshot();
                         JsonValue got = prev == null ? view : Diff(prev, view);
                         JsonValue wantView = st["view"];
-                        if (foreign) { got = WithoutTexts(got); wantView = WithoutTexts(wantView); }
+                        // (foreign: a session in another language; its words are checked too, in that language)
                         Same(wantView, got, what + " view");
                         prev = view;
                         n++;

@@ -167,12 +167,12 @@ namespace SentrySix.Core
         /// <summary>The buttons' titles: "Skip Backward 15 seconds" / "Skip Forward 15 seconds".</summary>
         public static string BackTitle(JsonValue duration)
         {
-            return ViewerControlsText.SkipBackward + " " + JsText(duration) + " " + ViewerControlsText.Seconds;
+            return StudioI18n.W(ViewerControlsText.SkipBackward) + " " + JsText(duration) + " " + StudioI18n.W(ViewerControlsText.Seconds);
         }
 
         public static string ForwardTitle(JsonValue duration)
         {
-            return ViewerControlsText.SkipForward + " " + JsText(duration) + " " + ViewerControlsText.Seconds;
+            return StudioI18n.W(ViewerControlsText.SkipForward) + " " + JsText(duration) + " " + StudioI18n.W(ViewerControlsText.Seconds);
         }
 
         static string JsText(JsonValue v)

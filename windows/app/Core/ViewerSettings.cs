@@ -465,18 +465,18 @@ namespace SentrySix.Core
             }
             disabled["settingsPrereleaseUpdates"] = false;
             disabled["checkForUpdatesBtn"] = false;
-            texts["skipForwardLabel"] = SettingsLayout.SkipForward;
-            texts["skipBackwardLabel"] = SettingsLayout.SkipBackward;
+            texts["skipForwardLabel"] = L(SettingsLayout.SkipForward);
+            texts["skipBackwardLabel"] = L(SettingsLayout.SkipBackward);
             texts["glassBlurValue"] = "7px";
             texts["settingsCurrentVersion"] = SettingsLayout.NoValue;
             texts["securityDetailOS"] = SettingsLayout.NoValue;
             texts["securityDetailArch"] = SettingsLayout.NoValue;
-            texts["securityLearnMoreLink"] = SettingsLayout.LearnMore;
-            texts["checkForUpdatesBtn"] = SettingsLayout.CheckNow;
-            texts["fullChangelogContent"] = SettingsLayout.ChangelogLoading;
-            texts["skipBackBtn.title"] = SettingsLayout.SkipBackTitle;
+            texts["securityLearnMoreLink"] = L(SettingsLayout.LearnMore);
+            texts["checkForUpdatesBtn"] = L(SettingsLayout.CheckNow);
+            texts["fullChangelogContent"] = L(SettingsLayout.ChangelogLoading);
+            texts["skipBackBtn.title"] = L(SettingsLayout.SkipBackTitle);
             texts["skipBackBtn.label"] = "15";
-            texts["skipForwardBtn.title"] = SettingsLayout.SkipForwardTitle;
+            texts["skipForwardBtn.title"] = L(SettingsLayout.SkipForwardTitle);
             texts["skipForwardBtn.label"] = "15";
         }
 
@@ -508,7 +508,7 @@ namespace SentrySix.Core
         public string Recording { get { return recording; } }
         /// <summary>window._skipDuration (the skip buttons' length).</summary>
         public JsonValue SkipDuration { get { return skipDuration; } }
-        /// <summary>The language i18n.js uses (the native words are English whatever it is).</summary>
+        /// <summary>The language i18n.js uses (the Viewer's words are in it: <see cref="StudioI18n"/>).</summary>
         public string Language { get { return language; } }
         /// <summary>window._mapDarkMode.</summary>
         public bool MapDark { get { return mapDark; } }
@@ -567,18 +567,16 @@ namespace SentrySix.Core
             all = settings != null && settings.IsObject ? settings : JsonValue.Object();
             IList<string> supported = SettingsLayout.Languages;
             JsonValue saved = Get("language");
-            if (saved != null && saved.IsString && supported.Contains(saved.Str)) language = saved.Str;
+            if (saved != null && saved.IsString && supported.Contains(saved.Str) && StudioI18n.Has(saved.Str)) language = saved.Str;
             else
             {
-                language = "en";
-                foreach (string l in readerLanguages ?? new string[0])
-                {
-                    string b = (l ?? "").Split('-')[0].ToLowerInvariant();
-                    if (supported.Contains(b)) { language = b; break; }
-                }
+                language = StudioI18n.Detect(readerLanguages);
+                if (!supported.Contains(language)) language = "en";
                 SetSetting("language", JsonValue.String(language));
             }
             values["settingsLanguage"] = language;
+            // translatePage() at the start: the words the elements hold in the language
+            Retranslate();
 
             checks["settingsDashboardToggle"] = host.DashboardEnabled;
             checks["settingsMapToggle"] = host.MapEnabled;
@@ -635,8 +633,12 @@ namespace SentrySix.Core
             JsonValue version = context != null ? JsJson.Get(context, "version") : null;
             string v = JsJson.Truthy(version) ? Js(version) : "web";
             texts["settingsCurrentVersion"] = "v" + v;
+            Loaded = true;
             Raise();
         }
+
+        /// <summary>Load has run (the language is the one initI18n picked).</summary>
+        public bool Loaded { get; private set; }
 
         // ------------------------------------------------------------ the reader's steps
 
@@ -715,7 +717,7 @@ namespace SentrySix.Core
                 case "prereleaseWarnModal": SettlePrerelease(false); break;
                 case "viewChangelogBtn":
                     hidden["changelogModal"] = false;
-                    texts["fullChangelogContent"] = SettingsLayout.ChangelogLoading;
+                    texts["fullChangelogContent"] = L(SettingsLayout.ChangelogLoading);
                     Emit("getChangelog");
                     // (getChangelog answers null in the web: renderFullChangelog never runs)
                     Emit("pageError");
@@ -783,7 +785,7 @@ namespace SentrySix.Core
         {
             bool wasHidden = Hidden("securityLearnMoreDetails");
             hidden["securityLearnMoreDetails"] = !wasHidden;
-            texts["securityLearnMoreLink"] = wasHidden ? SettingsLayout.HideDetails : SettingsLayout.LearnMore;
+            texts["securityLearnMoreLink"] = wasHidden ? L(SettingsLayout.HideDetails) : L(SettingsLayout.LearnMore);
         }
 
         /// <summary>runUpdateCheckWithFeedback: the shim answers no update at once; "Up to Date ✓" in green for 3 s.</summary>
@@ -791,9 +793,9 @@ namespace SentrySix.Core
         {
             updateResetAt = double.NaN;
             disabled["checkForUpdatesBtn"] = true;
-            texts["checkForUpdatesBtn"] = SettingsLayout.Checking;
+            texts["checkForUpdatesBtn"] = L(SettingsLayout.Checking);
             Emit("checkForUpdates");
-            texts["checkForUpdatesBtn"] = SettingsLayout.UpToDate + " ✓";
+            texts["checkForUpdatesBtn"] = L(SettingsLayout.UpToDate) + " ✓";
             checkBackground = SettingsLayout.GoodBackground;
             updateResetAt = now + 3000;
         }
@@ -812,7 +814,7 @@ namespace SentrySix.Core
                 if (next == updateResetAt)
                 {
                     updateResetAt = double.NaN;
-                    texts["checkForUpdatesBtn"] = SettingsLayout.CheckNow;
+                    texts["checkForUpdatesBtn"] = L(SettingsLayout.CheckNow);
                     checkBackground = "";
                     disabled["checkForUpdatesBtn"] = false;
                 }
@@ -934,12 +936,7 @@ namespace SentrySix.Core
                     language = v;
                     SetSetting("language", JsonValue.String(v));
                     // translatePage(): every data-i18n element's words again (the skip labels without their length)
-                    texts["skipForwardLabel"] = SettingsLayout.SkipForward;
-                    texts["skipBackwardLabel"] = SettingsLayout.SkipBackward;
-                    texts["securityLearnMoreLink"] = SettingsLayout.LearnMore;
-                    texts["checkForUpdatesBtn"] = SettingsLayout.CheckNow;
-                    texts["skipBackBtn.title"] = SettingsLayout.SkipBackTitle;
-                    texts["skipForwardBtn.title"] = SettingsLayout.SkipForwardTitle;
+                    Retranslate();
                     break;
                 case "settingsSkipDuration":
                     {
@@ -1152,12 +1149,29 @@ namespace SentrySix.Core
         void SkipLabels(JsonValue duration)
         {
             string d = Js(duration);
-            texts["skipForwardLabel"] = SettingsLayout.SkipForward + " " + d + "s";
-            texts["skipBackwardLabel"] = SettingsLayout.SkipBackward + " " + d + "s";
+            texts["skipForwardLabel"] = L(SettingsLayout.SkipForward) + " " + d + "s";
+            texts["skipBackwardLabel"] = L(SettingsLayout.SkipBackward) + " " + d + "s";
             texts["skipBackBtn.label"] = d;
-            texts["skipBackBtn.title"] = SettingsLayout.SkipBackward + " " + d + " " + SettingsLayout.Seconds;
+            texts["skipBackBtn.title"] = L(SettingsLayout.SkipBackward) + " " + d + " " + L(SettingsLayout.Seconds);
             texts["skipForwardBtn.label"] = d;
-            texts["skipForwardBtn.title"] = SettingsLayout.SkipForward + " " + d + " " + SettingsLayout.Seconds;
+            texts["skipForwardBtn.title"] = L(SettingsLayout.SkipForward) + " " + d + " " + L(SettingsLayout.Seconds);
+        }
+
+        /// <summary>A word of the modal in its language (i18n.js t() of the element's data-i18n key).</summary>
+        string L(string english)
+        {
+            return StudioI18n.Word(language, english);
+        }
+
+        /// <summary>translatePage(): the data-i18n elements the modal changes put back to their key's words.</summary>
+        void Retranslate()
+        {
+            texts["skipForwardLabel"] = L(SettingsLayout.SkipForward);
+            texts["skipBackwardLabel"] = L(SettingsLayout.SkipBackward);
+            texts["securityLearnMoreLink"] = L(SettingsLayout.LearnMore);
+            texts["checkForUpdatesBtn"] = L(SettingsLayout.CheckNow);
+            texts["skipBackBtn.title"] = L(SettingsLayout.SkipBackTitle);
+            texts["skipForwardBtn.title"] = L(SettingsLayout.SkipForwardTitle);
         }
 
         /// <summary>applyGlassBlur(value): --glass-blur, .no-glass at exactly 0, the words, the slider.</summary>

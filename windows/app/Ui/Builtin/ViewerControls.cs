@@ -305,6 +305,13 @@ namespace SentrySix.Ui.Builtin
 
         public string SkipLabel { get { return backLabel.Text; } }
 
+        /// <summary>translatePage()'s data-i18n-title on the skip buttons (a new language: their titles without the length).</summary>
+        public void SetSkipTitles(string back, string forward)
+        {
+            if (back != null) skipBack.ToolTip = back;
+            if (forward != null) skipForward.ToolTip = forward;
+        }
+
         /// <summary>The speed list's value (a value no option has leaves it blank, as a select does).</summary>
         public void SetSpeed(string value)
         {

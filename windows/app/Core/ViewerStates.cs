@@ -220,7 +220,8 @@ namespace SentrySix.Core
         /// <summary>t(key, params): each {name} replaced (every one) as JavaScript's replace does with a string.</summary>
         public static string T(string template, IList<KeyValuePair<string, string>> args)
         {
-            string result = template ?? "";
+            // t(key, params): the template in the Viewer's language first
+            string result = StudioI18n.W(template ?? "") ?? "";
             if (args == null) return result;
             foreach (KeyValuePair<string, string> kv in args) result = ReplaceAll(result, "{" + kv.Key + "}", kv.Value ?? "undefined");
             return result;
@@ -286,7 +287,7 @@ namespace SentrySix.Core
         public static StudioNotice Of(string message, string type)
         {
             StudioNotice n = new StudioNotice();
-            n.Message = message;
+            n.Message = StudioI18n.W(message);
             n.Type = type;
             return n;
         }
