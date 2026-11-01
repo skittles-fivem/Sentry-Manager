@@ -1274,6 +1274,58 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   switch, select and the slider, the search, Done / × / the dim, the
   Restart question, the prompt's Escape.
 
+### Phase 2: Viewer part 12, keyboard and mouse shortcuts (2026-11-01)
+
+- `Core/ViewerKeybinds.cs` (C# 5): `KeyPress` (e.key, e.code, the
+  modifiers, e.button), `Keybinds` (keybinds.js's words and identifiers,
+  `OnKey` / `OnMouse` = handleGlobalKeydown / handleGlobalMousedown and
+  the input's mousedown, returning a `KeyOutcome`: none, wait, record,
+  run, focus), `KeybindActions` (the fifteen action names, the speed
+  steps, nextClip / prevClip's index), `ExportMarkers` (exportVideo.js's
+  exportState markers: Set, Recompute, Drag, Remove, the DOM order of
+  the two markers and the highlight), `KeyCodes` (scan code to e.code as
+  Chromium's dom_code_data.inc, virtual key to e.key's names, Playwright
+  names for the render's replay).
+- Found on the way: the web's setMarkerIn / setMarkerOut keys do work
+  (studioEmbed.css hides the Start / End buttons with display:none, but
+  they are enabled with a collection, and click() on a hidden button
+  runs), so the export markers and their toasts are part of the web's
+  Viewer and now of the native one; the export itself stays out
+  (part 13). keybinds.js awaits loadKeybinds before preventDefault /
+  stopImmediatePropagation, so neither has an effect on the run path:
+  Escape still clears the camera focus when it is bound, and the native
+  side lets it too (only the recording's preventDefault, before the
+  await, counts; `KeyOutcome.Prevent`).
+- `Ui/Builtin/ViewerKeys.cs`: `WpfKeys` (KeyEventArgs' internal
+  ScanCode / IsExtendedKey by reflection, MapVirtualKey(VK_TO_VSC_EX) if
+  missing; ToUnicodeEx with flag 4 so a dead key's state is not eaten),
+  `StudioExportMarkers` on the controls' `Markers` canvas.
+  `Ui/Builtin/ViewerPageKeys.cs`: `StudioViewer` is `partial` now; this
+  part's wiring lives there (one call, `WireKeys()`, in the constructor;
+  `KeepMarkers(p)` in OnTick; `ReplayKeys()` after ReplaySettings in the
+  render test mode; the still's segment and time kept for the marker's
+  wall-clock time). `StudioSettingsModal.RecordingMouse` (new) next to
+  `RecordingKey`; `StudioClipBrowser.ScrollTo(item)`.
+- The keys reach the Viewer while it has the keyboard focus (as they reach
+  Studio's frame only while it has it): `root` is focusable and a mouse
+  down in it focuses it; the KeyDown handler is added with
+  handledEventsToo (the web's document listener also hears keys a focused
+  button or select takes).
+- Render test mode: variants viewer-keys and viewer-keys-marker with
+  `viewerKeys` ([["key", "<Playwright name>"]]) and the keybinds in GET
+  /api/studio/settings; capture.js: KEY_STEPS, KEYS_KEYBINDS, frame step
+  kind `key` (locator('body').press in Studio's frame). Not captured
+  here yet: the web pictures of the two new states.
+- test/windowsNativeViewerKeybinds.test.js and Core.Tests
+  ViewerKeybindsTests (5 tests, passing under mono with the stub runner;
+  checked to fail when ß's upper case, the prevClip wrap or the marker's
+  equal-percent rule is changed).
+- To check on Windows: the dotnet build; viewer-keys* against the web's;
+  by hand: record Space, an arrow, Ctrl + a letter, a middle / back /
+  forward button in Settings > Shortcuts, then each action with the
+  Viewer focused, none while the settings are open, a marker's drag and
+  ×, and a binding made in the browser's Studio used in the app.
+
 ## UI packs, phases 4-7 (the packs session, 2026-10-31)
 
 A separate session builds the four packs' pages natively while the other

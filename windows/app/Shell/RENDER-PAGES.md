@@ -390,6 +390,16 @@ and select rows), then every Shortcuts row (keybind rows stay too).
 viewer-settings-none: "zzz": No matching settings found. The Viewer
 behind the dim is the default day as in viewer.
 
+The keyboard shortcuts (part 12): Settings > Shortcuts' keys saved
+(keybinds: ↑ Increase Speed, D Toggle Dashboard, N Next Clip, I Export
+Marker Start) and capture.js's KEY_STEPS pressed in Studio's frame (the
+native render presses the same through its own keybinds: `viewerKeys`).
+viewer-keys: ↑, D, N: the speed list at 2x, no dashboard, the clip list's
+second item opened and selected. viewer-keys-marker: I: the green export
+start marker on the timeline at the playhead (the web's picture comes
+after its clips have played a few seconds, so its marker sits a little
+right of the native one) and the "Start marker set" toast.
+
 - builtin overview
 - builtin overview-off
 - builtin overview-logs
@@ -482,6 +492,8 @@ behind the dim is the default day as in viewer.
 - builtin viewer-settings-about
 - builtin viewer-settings-search
 - builtin viewer-settings-none
+- builtin viewer-keys
+- builtin viewer-keys-marker
 
 ## The UI packs' pages (phases 4-7)
 

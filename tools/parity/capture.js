@@ -93,6 +93,21 @@ const SETTINGS_KEYBINDS = {
   toggleDash: { display: 'Ctrl + D', identifier: 'ctrl+keyd' }
 };
 
+// The keyboard shortcuts (Viewer part 12): keys saved in Settings > Shortcuts, then pressed in
+// Studio's frame (Playwright's key names; the native render presses the same through its own
+// keybinds: viewerKeys). viewer-keys: Increase Speed (2x), Toggle Dashboard (hidden) and Next Clip
+// (the second item opened); viewer-keys-marker: Export Marker Start at the playhead, its toast.
+const KEY_STEPS = {
+  'viewer-keys': ['ArrowUp', 'KeyD', 'KeyN'],
+  'viewer-keys-marker': ['KeyI']
+};
+const KEYS_KEYBINDS = {
+  speedUp: { display: '↑', identifier: 'arrowup' },
+  toggleDash: { display: 'D', identifier: 'keyd' },
+  nextClip: { display: 'N', identifier: 'keyn' },
+  setMarkerIn: { display: 'I', identifier: 'keyi' }
+};
+
 const PAGES = {
   login: { signedIn: false, path: '/login' },
   shell: { signedIn: true, path: '/' },
@@ -222,7 +237,9 @@ const PAGES = {
   'viewer-map-off': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] },
   // the settings modal (part 11): the gear on the controls bar, then each SETTINGS_STEPS state's
   // clicks and typing in the modal (the native render replays the same steps: viewerSettings)
-  ...Object.fromEntries(Object.entries(SETTINGS_STEPS).map(([k, steps]) => [k, { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['click', '#settingsBtn'], ...steps] }]))
+  ...Object.fromEntries(Object.entries(SETTINGS_STEPS).map(([k, steps]) => [k, { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['click', '#settingsBtn'], ...steps] }])),
+  // the keyboard shortcuts (part 12): each KEY_STEPS key pressed in Studio's frame
+  ...Object.fromEntries(Object.entries(KEY_STEPS).map(([k, keys]) => [k, { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: keys.map((key) => ['key', 'body', key]) }]))
 };
 
 // each pack page module's pages, as "<pack>:<name>" (the picture is <pack>-<name>-<w>x<h>.png)
@@ -396,6 +413,8 @@ const VARIANTS = {
   'viewer-map-off': (api) => ({ route: 'viewer', viewerTimeupdate: true, api: { ...telemetryOf(api, routeFrames()), ...studioSettings(api, { mapEnabled: false }) } }),
   // (viewerSettings: the native render replays the same steps on its settings modal)
   ...Object.fromEntries(Object.entries(SETTINGS_STEPS).map(([k, steps]) => [k, (api) => ({ route: 'viewer', viewerSettings: [['click', '#settingsBtn'], ...steps], ...(k === 'viewer-settings-shortcuts' ? { api: studioSettings(api, { keybinds: SETTINGS_KEYBINDS }) } : {}) })])),
+  // (viewerKeys: the native render presses the same keys)
+  ...Object.fromEntries(Object.entries(KEY_STEPS).map(([k, keys]) => [k, (api) => ({ route: 'viewer', viewerKeys: keys.map((key) => ['key', key]), api: studioSettings(api, { keybinds: KEYS_KEYBINDS }) })])),
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },
@@ -872,6 +891,8 @@ async function shoot(browser, base, ui, pageName, size, file, vehicle, fixture) 
         if (kind === 'select') await studio.locator(sel).first().selectOption(value);
         // (typing in a field: the settings search)
         else if (kind === 'fill') await studio.locator(sel).first().fill(value);
+        // (a key pressed with the frame focused: the keybinds' keydown on its document)
+        else if (kind === 'key') await studio.locator(sel).first().press(value);
         // (an event sent to every element the selector finds, e.g. the videos' timeupdate)
         else if (kind === 'event') await studio.locator(sel).evaluateAll((els, type) => { for (const el of els) el.dispatchEvent(new Event(type)); }, value);
         else if (kind.startsWith('tile-')) {

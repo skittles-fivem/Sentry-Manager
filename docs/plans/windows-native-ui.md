@@ -250,8 +250,8 @@ is done when every item is ticked in both. Run on the owner's PC runner.
 - Phase 2 (built-in Viewer): in progress. The playback engine, the
   telemetry, the clip library (scan and grouping, part 2), the clip
   browser (the clip list panel, part 3), the six-camera grid on the
-  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6), the event marker on the timeline (part 7), the telemetry feed (part 8), the telemetry dashboard (part 9), the map (part 10) and the settings modal (part 11) are written; the rest of the Viewer page (Studio's
-  keys, export, phone layout:
+  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6), the event marker on the timeline (part 7), the telemetry feed (part 8), the telemetry dashboard (part 9), the map (part 10), the settings modal (part 11) and the keyboard and mouse shortcuts (part 12) are written; the rest of the Viewer page (Studio's
+  export, phone layout:
   `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
   still opens in the browser (`ViewerPage.Complete` stays false until it
   is all there; then its browser fallback goes and Footage's Play day /
@@ -685,8 +685,51 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   choice is saved; the native Viewer's words stay English), the backdrop
   blur (Glass Blur is saved only), Studio's developer settings (five
   clicks on the title), turning a pressed key into a binding (part 12).
+  Viewer part 12, the keyboard and mouse shortcuts (type-checked with mcs,
+  not yet built or run on Windows): `Core/ViewerKeybinds.cs` (`Keybinds`:
+  keybinds.js's formatKeyEvent, getKeyIdentifier, formatMouseEvent,
+  getMouseIdentifier, the bindable buttons (middle, back, forward),
+  loadKeybinds' `|| {}`, the listeners' rules (`OnKey`: a key while an
+  input waits becomes its binding, a lone modifier waits on; nothing while
+  a text field (an input that is not a range, a textarea) has the focus or
+  the settings modal is open; else the first binding with the key's
+  identifier; `OnMouse`: the input's own mousedown and the page's);
+  `KeybindActions`: script.js's fifteen actions, the speed steps, nextClip /
+  prevClip round the ends; `ExportMarkers`: exportVideo.js's export
+  markers, which setMarkerIn / setMarkerOut set in the web too (the hidden
+  Start / End buttons are hidden, not disabled): the percent and the
+  frame's wall-clock time, the other marker cleared on the wrong side, the
+  "Start marker set" / "End marker set" toast, back on their frames when
+  the timeline's length changes, dragged, removed; `KeyCodes`: Chromium's
+  e.code for a Windows scan code, e.key from the layout's character or the
+  key's name, Playwright's key names) and `Ui/Builtin/ViewerKeys.cs`
+  (`WpfKeys`: a WPF key or button as the web's event: the scan code from
+  the event, ToUnicodeEx with Shift and Caps Lock only for e.key;
+  `StudioExportMarkers`: .export-marker, its × and the range highlight on
+  #timelineMarkers) and `Ui/Builtin/ViewerPageKeys.cs` (`StudioViewer`'s
+  part: the Viewer takes the keys while it has the focus, as Studio's
+  frame does, a click in it gives it the focus; each action on the
+  Viewer's own setters; Settings > Shortcuts' recording of a key or a
+  middle / back / forward button through `StudioSettingsModal.RecordingKey`
+  / `RecordingMouse`). Escape still leaves the camera focus (part 5). So a
+  binding made in Studio in a browser works in the app and back: the same
+  setting, the same identifiers (e.code: the key's place, whatever the
+  layout). For reuse (the packs' Viewer pages): `StudioViewer.RunKeybind(action)`,
+  `StudioViewer.ExportMarkers`, `Keybinds.OnKey` / `OnMouse` with
+  `WpfKeys.From` for any other page that takes Studio's bindings.
+  test/windowsNativeViewerKeybinds.test.js runs keybinds.js as it is on a
+  pretend document (39 keys and buttons recorded in turn, 30 keys and 9
+  buttons in 9 focus states with the bindings saved, missing and null),
+  script.js's actions block on pretend buttons, toggles and clip items
+  (80 cases) and exportVideo.js's marker code (45 steps), and writes
+  Core.Tests/Fixtures/expected-viewer-keybinds.json; Core.Tests
+  ViewerKeybindsTests (5 tests, passing under mono). Render list:
+  viewer-keys (↑, D, N pressed: 2x, no dashboard, the second clip open),
+  viewer-keys-marker (I: the start marker and its toast); capture.js's
+  frame step kind `key`. Not done: AltGr's own e.key on European layouts
+  (the identifier, from the key's place, is the same).
   Phase 2 is not finished: `ViewerPage.Complete` stays false until parts
-  12-14 (keys, export, phone layout) are in; until then the Viewer's
+  13-14 (export, phone layout) are in; until then the Viewer's
   browser fallback stays, and Footage's Play day / Play recording keep
   going through `ViewerSlot.Open`, which lands in the native Viewer the
   moment `Complete` is true.

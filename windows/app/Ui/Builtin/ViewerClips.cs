@@ -758,6 +758,13 @@ namespace SentrySix.Ui.Builtin
         /// <summary>The items drawn now.</summary>
         public ClipListView Shown { get { return shown; } }
 
+        /// <summary>scrollIntoView({ block: 'nearest' }): an item's place in the list brought into view.</summary>
+        public void ScrollTo(ClipListItem i)
+        {
+            Border b;
+            if (i != null && itemsById.TryGetValue(i.Id, out b) && b.IsVisible) b.BringIntoView();
+        }
+
         static readonly Dictionary<string, string> LeftColour = new Dictionary<string, string>
         {
             { "recent", "rgba(52, 211, 153, 0.5)" }, { "sentry", "rgba(248, 113, 113, 0.5)" },

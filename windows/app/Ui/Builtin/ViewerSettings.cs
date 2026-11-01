@@ -82,6 +82,9 @@ namespace SentrySix.Ui.Builtin
         /// <summary>A key pressed while a keybind input waits for one (part 12 turns it into a binding: <see cref="ViewerSettingsModal.Bind"/>).</summary>
         public event Action<string, KeyEventArgs> RecordingKey;
 
+        /// <summary>A mouse button pressed on a keybind input that waits for one (keybinds.js's mousedown on the input).</summary>
+        public event Action<string, MouseButtonEventArgs> RecordingMouse;
+
         public StudioSettingsModal(ViewerSettingsModal model, bool still)
         {
             this.model = model;
@@ -914,6 +917,12 @@ namespace SentrySix.Ui.Builtin
             t.ClipToBounds = true;
             input.Child = t;
             string key = i.Key, action = i.Action;
+            input.PreviewMouseDown += (s, e) =>
+            {
+                if (model.Recording != key) return;
+                Action<string, MouseButtonEventArgs> h = RecordingMouse;
+                if (h != null) h(action, e);
+            };
             input.MouseLeftButtonDown += (s, e) => { input.Focus(); Keyboard.Focus(input); e.Handled = true; };
             input.GotKeyboardFocus += delegate { Do("focus", "#" + key, null); };
             input.LostKeyboardFocus += delegate { Do("blur", "#" + key, null); };

@@ -296,7 +296,7 @@ namespace SentrySix.Ui.Builtin
     /// the cameras and their controls, the dashboard and the map are drawn
     /// into <see cref="Stage"/> by the Viewer's other parts.
     /// </summary>
-    public sealed class StudioViewer : IDisposable
+    public sealed partial class StudioViewer : IDisposable
     {
         // style.css: --video-bg, --overlay-bg, --text-muted
         static readonly Brush VideoBg = Css.Brush("#000");
@@ -494,6 +494,8 @@ namespace SentrySix.Ui.Builtin
             settingsView = new StudioSettingsModal(settings, still);
             root.Children.Add(settingsView);
             controls.SettingsPressed += () => settings.Step("click", "#settingsBtn", null);
+            // the keyboard and mouse shortcuts (part 12) and the export markers they set
+            WireKeys();
             root.SizeChanged += delegate
             {
                 mapPanel.KeepInView();
@@ -573,6 +575,7 @@ namespace SentrySix.Ui.Builtin
             if (own) HideLoading();
             if (still) Settle();
             if (still) await ReplaySettings();
+            if (still) await ReplayKeys();
             if (still && renderOpen != null)
             {
                 ClipListItem first = clips.FirstDeletable();
@@ -1253,6 +1256,7 @@ namespace SentrySix.Ui.Builtin
             if (p == null || p.Segments.Count == 0) return;
             timeline.Tick(p.Position, p.Total);
             ShowTimes();
+            KeepMarkers(p);
             if (p.Playing) everPlayed = true;
             ShowPlaying();
             // telemetryAnimationLoop / onMasterTimeUpdate: the master's time in its segment (none while a segment switch is under way)
@@ -1294,6 +1298,8 @@ namespace SentrySix.Ui.Builtin
             int seg;
             double local;
             plan.FirstLoad(startSec, out seg, out local);
+            stillSeg = seg;
+            stillLocal = Math.Min(local, plan.Duration(seg));
             double at = plan.Start(seg) + Math.Min(local, plan.Duration(seg));
             timeline.Tick(at, plan.Total);
             if (firstLoad.Opened()) RaiseControls();

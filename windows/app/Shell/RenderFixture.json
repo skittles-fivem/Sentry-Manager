@@ -19139,6 +19139,78 @@
      "zzz"
     ]
    ]
+  },
+  "viewer-keys": {
+   "route": "viewer",
+   "viewerKeys": [
+    [
+     "key",
+     "ArrowUp"
+    ],
+    [
+     "key",
+     "KeyD"
+    ],
+    [
+     "key",
+     "KeyN"
+    ]
+   ],
+   "api": {
+    "GET /api/studio/settings": {
+     "timeFormat": "12h",
+     "keybinds": {
+      "speedUp": {
+       "display": "↑",
+       "identifier": "arrowup"
+      },
+      "toggleDash": {
+       "display": "D",
+       "identifier": "keyd"
+      },
+      "nextClip": {
+       "display": "N",
+       "identifier": "keyn"
+      },
+      "setMarkerIn": {
+       "display": "I",
+       "identifier": "keyi"
+      }
+     }
+    }
+   }
+  },
+  "viewer-keys-marker": {
+   "route": "viewer",
+   "viewerKeys": [
+    [
+     "key",
+     "KeyI"
+    ]
+   ],
+   "api": {
+    "GET /api/studio/settings": {
+     "timeFormat": "12h",
+     "keybinds": {
+      "speedUp": {
+       "display": "↑",
+       "identifier": "arrowup"
+      },
+      "toggleDash": {
+       "display": "D",
+       "identifier": "keyd"
+      },
+      "nextClip": {
+       "display": "N",
+       "identifier": "keyn"
+      },
+      "setMarkerIn": {
+       "display": "I",
+       "identifier": "keyi"
+      }
+     }
+    }
+   }
   }
  },
  "prefs": {}
