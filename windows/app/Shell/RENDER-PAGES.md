@@ -424,3 +424,18 @@ variant's state `{ bin: { scope: 'all' } }`).
 - flux bin-long
 - flux bin-error
 - flux bin-every-vehicle
+### Flux: Notifications
+
+The notification list (flux/pages/notifications.js) on the built-in
+Notifications page's answers, with one read, two unread and one resolved
+(tools/parity/packs/flux-notifications.js): notifications (the open ones:
+the bars in their level's colour, the unread with a violet edge and dot),
+notifications-empty, notifications-all ("All, incl. resolved" picked: the
+resolved one faded; the web clicks the filter, the native side gets the
+variant's state `{ notifications: { show: 'all' } }`), notifications-error
+(the list not readable: the page shows none).
+
+- flux notifications
+- flux notifications-empty
+- flux notifications-all
+- flux notifications-error
