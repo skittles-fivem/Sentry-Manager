@@ -394,3 +394,19 @@ their right ends can differ by a sample or two.
 - horizon dashboard-long
 - horizon dashboard-idle
 - horizon dashboard-logs-all
+### Daylight: Jobs
+
+The Activity page (dl/pages/jobs.js: "Happening now" and "Earlier" cards
+of jobs) on the built-in Jobs page's jobs, asked as Daylight asks with the
+fixture's one vehicle (GET /api/jobs, no vehicle picker): jobs,
+jobs-empty (Nothing yet; Clear finished disabled), jobs-running-only
+(Clear finished disabled), jobs-long (a long title, type and details),
+jobs-error (the router's red note with Try again), jobs-dark (jobs in the
+dark look: `daylight:theme` dark on both sides).
+
+- daylight jobs
+- daylight jobs-empty
+- daylight jobs-running-only
+- daylight jobs-long
+- daylight jobs-error
+- daylight jobs-dark
