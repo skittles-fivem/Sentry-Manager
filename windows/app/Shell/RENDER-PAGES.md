@@ -394,3 +394,26 @@ their right ends can differ by a sample or two.
 - horizon dashboard-long
 - horizon dashboard-idle
 - horizon dashboard-logs-all
+### Flux: Footage
+
+The days pane beside the recordings table (flux/pages/footage.js) on the
+recorded library, asked by the pack's own paths, the same as Horizon's
+(tools/parity/packs/flux-footage.js): footage (the first day open with its
+recordings, the thumbnails from the fixture's BYTES answers; the web clicks
+the day, the native side gets `?day=`), footage-empty, footage-scanning
+(an inventory scan running), footage-error (neither list readable: the
+days' red line, the table's one cell), footage-novehicle (the empty box
+with Add a vehicle), footage-long (a long vehicle name and time zone,
+converted and protected recordings: the table scrolls sideways),
+footage-selected (every day, the two newest recordings ticked: the bulk
+bar and the cursor on the second; the web clicks their boxes, the native
+side gets the variant's state `{ sel: [ids], cursor }`). The web's phone
+pictures are scrolled to the boxes it clicked; the native ones are not.
+
+- flux footage
+- flux footage-empty
+- flux footage-scanning
+- flux footage-error
+- flux footage-novehicle
+- flux footage-long
+- flux footage-selected
