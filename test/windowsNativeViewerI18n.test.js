@@ -112,10 +112,10 @@ test('the Viewer\'s words in Studio\'s languages: the table and i18n.js t() as t
     '    }',
     '}',
     ''
-  ].join('\r\n');
+  ].join('\n');
   if (process.env.UPDATE_NATIVE_PARITY === '1') fs.writeFileSync(DATA, cs);
   assert.ok(fs.existsSync(DATA), 'StudioWords.Data.cs exists (UPDATE_NATIVE_PARITY=1 writes it)');
-  assert.equal(fs.readFileSync(DATA, 'utf8'), cs, 'Studio\'s translations changed: rewrite windows/app/Core/StudioWords.Data.cs with UPDATE_NATIVE_PARITY=1');
+  assert.equal(fs.readFileSync(DATA, 'utf8').replace(/\r\n/g, '\n'), cs, 'Studio\'s translations changed: rewrite windows/app/Core/StudioWords.Data.cs with UPDATE_NATIVE_PARITY=1');
 
   // i18n.js t(): what it returns for keys of each kind
   const keys = [
