@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Windows.Input;
+using SentrySix.Core;
+using SentrySix.Core.Horizon;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -37,6 +40,32 @@ namespace SentrySix.Ui.Flux
         static readonly string[] Groups = { "Monitor", "Monitor", "Monitor", "Process", "Process", "Process", "Process", "Process", "Process", "System", "System" };
         static readonly string[] Keys = { "o", "f", "v", "e", "c", "n", "p", "j", "b", "a", "s" };
         public IReadOnlyList<PageDef> Pages { get { return pages; } }
+
+        // the pages drawn here ([PackPage("flux", route)]); the others open in the browser
+        static readonly Dictionary<string, Func<IPackPage>> native = PackPageAttribute.Of("flux");
+
+        static FluxInterface()
+        {
+            foreach (string key in native.Keys)
+            {
+                int slash = key.IndexOf('/');
+                string id = slash < 0 ? key : key.Substring(0, slash);
+                foreach (PageDef p in pages)
+                {
+                    if (p.Id != id) continue;
+                    if (slash < 0) p.Native = true;
+                    else p.NativeSubs.Add(key.Substring(slash + 1));
+                }
+            }
+        }
+
+        static Func<IPackPage> NativeFor(string id, string sub)
+        {
+            Func<IPackPage> make;
+            string first = string.IsNullOrEmpty(sub) ? "" : sub.Split('/', '?')[0];
+            if (first.Length > 0 && native.TryGetValue(id + "/" + first, out make)) return make;
+            return native.TryGetValue(id, out make) ? make : null;
+        }
 
         // index.html's sprite (.ico: stroke currentColor 1.8, no fill, round)
         static readonly Dictionary<string, string> Icons = new Dictionary<string, string>
@@ -344,6 +373,8 @@ namespace SentrySix.Ui.Flux
         {
             readonly ShellModel m;
             public readonly Grid Root = new Grid();
+            FxOverlay overlay;
+            FxPalette palette;
             readonly Border side = new Border();
             readonly Grid sideGrid = new Grid();
             readonly StackPanel brandText = new StackPanel();
@@ -595,6 +626,20 @@ namespace SentrySix.Ui.Flux
                 Root.Children.Add(scrim);
                 Root.Children.Add(side);
 
+                // Flux's own dialog and toasts (core.js openDialog(), toast()), over everything
+                overlay = new FxOverlay(m);
+                Panel.SetZIndex(overlay.Root, 10);
+                Root.Children.Add(overlay.Root);
+                m.Toast = (text, bad) => overlay.Toast(text, bad ? "bad" : "ok");
+                FxKit.Still = m.Still || m.ReduceEffects;
+                palette = new FxPalette(Commands);
+                Panel.SetZIndex(palette.Root, 11);
+                Root.Children.Add(palette.Root);
+                KeyEventHandler keysDown = OnKey;
+                Window win = null;
+                Root.Loaded += delegate { win = Window.GetWindow(Root); if (win != null) { win.PreviewKeyDown -= keysDown; win.PreviewKeyDown += keysDown; } };
+                Root.Unloaded += delegate { if (win != null) win.PreviewKeyDown -= keysDown; };
+
                 m.PropertyChanged += Changed;
                 Root.Unloaded += delegate { m.PropertyChanged -= Changed; };
                 U.OnSize(Root, (w, h) => { width = w; Layout(); });
@@ -790,28 +835,178 @@ namespace SentrySix.Ui.Flux
                 Paint();
             }
 
+            // main.js openPalette() (Ctrl K, the Jump to… button)
             void Palette()
             {
-                ContextMenu menu = new ContextMenu();
-                foreach (PageDef p in pages)
-                {
-                    MenuItem mi = new MenuItem();
-                    mi.Header = p.Title;
-                    string id = p.Id;
-                    mi.Click += delegate { m.Navigate(id); };
-                    menu.Items.Add(mi);
-                }
-                menu.PlacementTarget = cmdk;
-                menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-                menu.IsOpen = true;
+                if (overlay.IsOpen) return;
+                palette.Toggle();
             }
 
+            // main.js baseCommands(), after the page's own commands()
+            List<PackCommand> Commands()
+            {
+                List<PackCommand> list = new List<PackCommand>();
+                IPackCommands own = PackHost.PageOf(m.PageContent) as IPackCommands;
+                if (own != null) { try { list.AddRange(own.Commands()); } catch (Exception) { } }
+                for (int i = 0; i < pages.Length; i++)
+                {
+                    string id = pages[i].Id;
+                    PackCommand c = new PackCommand("Go to", pages[i].Title, pages[i].Icon, () => m.Navigate(id));
+                    c.Hint = "g " + Keys[i];
+                    list.Add(c);
+                }
+                foreach (VehicleInfo v in m.Vehicles)
+                {
+                    string vid = v.Id;
+                    list.Add(new PackCommand("Vehicle", "Switch to " + v.Name, "car", () => m.PickVehicle(vid)));
+                }
+                VehicleInfo cur = m.Current;
+                IJsonApi api = ApiOf(m);
+                HzUi ui = overlay.UiFor(null);
+                list.Add(new PackCommand("Action", "Refresh inventory", "refresh", async () =>
+                {
+                    if (cur == null || api == null) return;
+                    try { await api.Post("/api/vehicles/" + Hz.EncId(cur.Id) + "/scan", JsonValue.Object(), System.Threading.CancellationToken.None); ui.Toast("Refreshing the inventory…", "ok"); }
+                    catch (Exception ex) { ui.Toast(ex.Message, "bad"); }
+                }));
+                list.Add(new PackCommand("Action", "New conversion…", "encoder", () => m.Navigate("encoder?new=1")));
+                // (the Encoder page acts on these while it is shown, as the web's bus 'cmd')
+                list.Add(new PackCommand("Action", "Pause conversion", "pause", () => { }));
+                list.Add(new PackCommand("Action", "Resume conversion", "play", () => { }));
+                list.Add(new PackCommand("Action", "Export server stats (CSV, 24 h)", "download", () => m.OpenUrl("/api/stats/export.csv?range=24h")));
+                list.Add(new PackCommand("Action", "Download logs", "download", () => m.OpenUrl("/api/logs/download")));
+                list.Add(new PackCommand("Action", "Mark all notifications read", "check", async () =>
+                {
+                    if (api != null)
+                    {
+                        List<JsonValue> ids = new List<JsonValue>();
+                        foreach (NoteInfo n in m.Notes) if (!n.Read) { long x; ids.Add(long.TryParse(n.Id, out x) ? JsonValue.Number(x) : JsonValue.String(n.Id)); }
+                        try { await api.Post("/api/notifications/read", JsonValue.Object("ids", JsonValue.Array(ids)), System.Threading.CancellationToken.None); } catch (Exception) { }
+                    }
+                    await m.ReloadNotes();
+                }));
+                list.Add(new PackCommand("Action", "Clear finished jobs…", "jobs", () => m.Navigate("jobs?clear=1")));
+                list.Add(new PackCommand("Action", "Add a vehicle", "plus", () => m.Navigate("settings/vehicles?add=1")));
+                list.Add(new PackCommand("Action", "Settings: Interface (switch pack / Original)", "settings", () => m.Navigate("settings/interface")));
+                list.Add(new PackCommand("Action", "Settings: Security (CA certificate)", "lock", () => m.Navigate("settings/security")));
+                list.Add(new PackCommand("Action", "Settings: Electricity price", "bolt", () => m.Navigate("settings/power")));
+                PackCommand side = new PackCommand("Action", "Toggle sidebar", "sidebar", ToggleSidebar);
+                side.Hint = "[";
+                list.Add(side);
+                PackCommand keys = new PackCommand("Action", "Keyboard shortcuts", "keyboard", Shortcuts);
+                keys.Hint = "?";
+                list.Add(keys);
+                list.Add(new PackCommand("Action", "Sign out", "logout", () => m.SignOut()));
+                return list;
+            }
+
+            // main.js showShortcuts(): everywhere, then the pages' own
             void Shortcuts()
             {
-                System.Text.StringBuilder sb = new System.Text.StringBuilder("Ctrl K   Command palette\n[   Collapse the sidebar\n?   All shortcuts\n\n");
-                for (int i = 0; i < pages.Length; i++) sb.Append("g ").Append(Keys[i]).Append("   ").Append(pages[i].Title).Append('\n');
-                MessageBox.Show(Window.GetWindow(Root), sb.ToString(), "Keyboard shortcuts");
+                if (overlay.IsOpen) return;
+                List<string[]> everywhere = new List<string[]> { new[] { "Ctrl/⌘ K", "Command palette" }, new[] { "?", "This sheet" }, new[] { "[", "Collapse / expand the sidebar" }, new[] { "/", "Focus the page filter" } };
+                for (int i = 0; i < pages.Length; i++) everywhere.Add(new[] { "g " + Keys[i], "Go to " + pages[i].Title });
+                List<KeyValuePair<string, string[][]>> sections = new List<KeyValuePair<string, string[][]>>
+                {
+                    new KeyValuePair<string, string[][]>("Everywhere", everywhere.ToArray()),
+                    new KeyValuePair<string, string[][]>("Footage", new[] { new[] { "j / k", "Move the cursor down / up" }, new[] { "Shift + j / k", "Extend the selection" }, new[] { "x or Space", "Select the row" }, new[] { "Ctrl/⌘ A", "Select every row shown" }, new[] { "Enter or o", "Play the row" }, new[] { "i", "Raw JSON inspector" }, new[] { "p", "Protect / unprotect" }, new[] { "Delete", "Move the selection to the Recycle Bin" }, new[] { "Esc", "Clear the selection" } }),
+                    new KeyValuePair<string, string[][]>("Viewer", new[] { new[] { "Space or k", "Play / pause" }, new[] { ", and .", "One frame back / forward" }, new[] { "← / →", "Seek 5 s (Shift: 1 s)" }, new[] { "[ / ]", "Slower / faster" }, new[] { "n / p", "Next / previous clip" }, new[] { "1 … 6", "Focus a camera" }, new[] { "0", "All cameras" }, new[] { "l", "Next camera layout" }, new[] { "t", "Telemetry panel" }, new[] { "f", "Fullscreen" } }),
+                    new KeyValuePair<string, string[][]>("Encoder", new[] { new[] { "+ / −", "More / fewer conversions at once (running job)" }, new[] { "Space", "Pause / resume the running job" }, new[] { "/", "Filter clips" } }),
+                    new KeyValuePair<string, string[][]>("Overview", new[] { new[] { "r", "Switch the range (live / 24 h)" }, new[] { "/", "Filter the log tail" } })
+                };
+                // .kb-grid: auto-fill columns of 300 px at least, gap 18
+                WrapPanel grid = new WrapPanel();
+                foreach (KeyValuePair<string, string[][]> sec in sections)
+                {
+                    StackPanel col = new StackPanel();
+                    col.Width = 330;
+                    col.Margin = new Thickness(0, 0, 18, 18);
+                    TextBlock h3 = FxKit.Text(sec.Key.ToUpperInvariant(), 11, "violet", 600);
+                    h3.FontFamily = FxKit.Mono;
+                    h3.Margin = new Thickness(0, 0, 0, 6);
+                    col.Children.Add(h3);
+                    foreach (string[] r in sec.Value)
+                    {
+                        Flex keys = Flex.Row(4);
+                        foreach (string x in r[0].Split(' '))
+                        {
+                            if (x == "/" || x == "or" || x == "and" || x == "+" || x == "…" || x == "·") { TextBlock f = FxKit.Text(x, 12.5, "faint"); f.VerticalAlignment = VerticalAlignment.Center; keys.Children.Add(f); }
+                            else keys.Children.Add(FxPalette.Kbd(x));
+                        }
+                        TextBlock d = FxKit.Text(r[1], 12.5, "text-2");
+                        d.TextAlignment = TextAlignment.Right;
+                        Grid row = new Grid();
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                        row.Children.Add(keys);
+                        d.Margin = new Thickness(12, 0, 0, 0);
+                        Grid.SetColumn(d, 1);
+                        row.Children.Add(d);
+                        Border b = new Border();
+                        b.Child = row;
+                        b.Padding = Css.T(4, 0);
+                        b.BorderThickness = new Thickness(0, 0, 0, 1);
+                        b.SetResourceReference(Border.BorderBrushProperty, "line-soft");
+                        col.Children.Add(b);
+                    }
+                    grid.Children.Add(col);
+                }
+                overlay.Info("Keyboard shortcuts", grid, true);
             }
+
+            // main.js keydown: Ctrl K, g <key>, ?, [, /, Esc
+            long gPending;
+            void OnKey(object sender, KeyEventArgs e)
+            {
+                bool ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+                if (ctrl && e.Key == Key.K) { e.Handled = true; if (!overlay.IsOpen) palette.Toggle(); return; }
+                if (overlay.IsOpen || palette.IsOpen || m.DialogOpen) return;
+                DependencyObject f = Keyboard.FocusedElement as DependencyObject;
+                if (f is System.Windows.Controls.Primitives.TextBoxBase || f is PasswordBox || f is ComboBox)
+                {
+                    if (e.Key == Key.Escape) { Keyboard.ClearFocus(); e.Handled = true; }
+                    return;
+                }
+                if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Windows)) != 0) return;
+                bool shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+                long now = Environment.TickCount;
+                if (gPending != 0 && now - gPending < 1200)
+                {
+                    gPending = 0;
+                    string letter = e.Key >= Key.A && e.Key <= Key.Z ? ((char)('a' + (e.Key - Key.A))).ToString() : null;
+                    for (int i = 0; i < pages.Length; i++) if (Keys[i] == letter) { e.Handled = true; m.Navigate(pages[i].Id); }
+                    return;
+                }
+                if (e.Key == Key.G && !shift) { gPending = now; return; }
+                if (e.Key == Key.OemQuestion && shift) { e.Handled = true; Shortcuts(); return; }
+                if (e.Key == Key.OemOpenBrackets && !shift) { e.Handled = true; ToggleSidebar(); return; }
+                if (e.Key == Key.OemQuestion && !shift)
+                {
+                    TextBox filter = FindFilter(page);
+                    if (filter != null) { e.Handled = true; filter.Focus(); filter.SelectAll(); }
+                }
+                if (e.Key == Key.Escape && menuOpen) OpenMenu(false);
+            }
+
+            /// <summary>The page's [data-filter] field.</summary>
+            static TextBox FindFilter(DependencyObject root)
+            {
+                if (root == null) return null;
+                TextBox t = root as TextBox;
+                if (t != null && FilterKey.GetIsFilter(t) && t.IsVisible) return t;
+                int n = VisualTreeHelper.GetChildrenCount(root);
+                for (int i = 0; i < n; i++) { TextBox x = FindFilter(VisualTreeHelper.GetChild(root, i)); if (x != null) return x; }
+                return null;
+            }
+        }
+
+        // the server's API as the pages got it (the palette's actions use the same)
+        static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ShellModel, IJsonApi> apis = new System.Runtime.CompilerServices.ConditionalWeakTable<ShellModel, IJsonApi>();
+
+        static IJsonApi ApiOf(ShellModel m)
+        {
+            IJsonApi a;
+            return m != null && apis.TryGetValue(m, out a) ? a : null;
         }
 
         // ---------- pages: a placeholder in Flux's style ----------
@@ -819,6 +1014,26 @@ namespace SentrySix.Ui.Flux
         {
             PageDef p = pages[0];
             foreach (PageDef x in pages) if (x.Id == id) p = x;
+            if (ctx != null && ctx.Shell != null && ctx.Api != null) { apis.Remove(ctx.Shell); apis.Add(ctx.Shell, ctx.Api); }
+            Func<IPackPage> make = ctx != null ? NativeFor(p.Id, ctx.Sub) : null;
+            if (make != null)
+            {
+                PackPageContext pc = new PackPageContext();
+                pc.Shell = ctx.Shell;
+                pc.Api = ctx.Api;
+                pc.Def = p;
+                pc.Sub = ctx.Sub ?? "";
+                pc.Fixture = ctx.Fixture;
+                pc.Still = ctx.Shell == null || ctx.Shell.Still || ctx.Shell.ReduceEffects;
+                ShellModel sm = ctx.Shell;
+                pc.Go = hash => { if (sm != null) sm.Navigate((hash ?? "").TrimStart('#').TrimStart('/')); };
+                FxKit.Still = pc.Still;
+                FxKit.Dense = ctx.Shell != null && ctx.Shell.Prefs != null && SentrySix.Core.Flux.FxSettings.StoredTruthy(ctx.Shell.Prefs.Get("flux.dense", null));
+                PackHost host = new PackHost(make, pc, FxKit.Loading, FxKit.LoadFailed);
+                // main.js: a picked vehicle mounts these again when the page has no onVehicle
+                foreach (string r in new[] { "footage", "policies", "jobs", "bin", "overview" }) host.RemountOnCar.Add(r);
+                return host.Start().Root;
+            }
             StackPanel s = new StackPanel();
             // .phead: h1 22px 650; p muted; margin-bottom 16
             StackPanel head = new StackPanel();

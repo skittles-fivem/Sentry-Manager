@@ -43,6 +43,7 @@ namespace SentrySix.Core.Tests
             CameraGridTests.Register(Test);
             CameraFocusTests.Register(Test);
             PlaybackTests.Register(Test, Test);
+            PackTests.Register(Test, Test);
             ServerTests.Register(Test);
             int failed = 0, passed = 0;
             var sw = Stopwatch.StartNew();

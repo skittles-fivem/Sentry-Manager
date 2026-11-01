@@ -491,8 +491,100 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   changed). Render list: viewer-focus, viewer-zoom (capture.js sends the
   steps to the tile in Studio's frame: frame kinds tile-click, tile-wheel,
   tile-pan; the native render replays the variant's viewerFocus).
-- Phases 3-7 (Encoder, Horizon, Flux, Aurora, Daylight): not started.
-  Their pages open in the browser.
+- Phase 3 (Encoder): not started; its page opens in the browser.
+- Phases 4-7 (the packs): in progress on wip, one pack at a time (this
+  session works in its own files: `Core/Horizon/`, `Ui/Horizon/Hz*.cs`,
+  later `Core/Flux/`, `Ui/Flux/Fx*.cs` …). Shared pieces, added once for
+  every pack: `test/nativePackHarness.js` (runs a pack's own core.js and page
+  modules in Node on a pretend DOM with its index.html's dialog and toasts,
+  fixed answers, a fixed clock and timers run on demand; records requests,
+  dialogs, toasts, the status line), `Core.Tests/PackScript.cs` (the same
+  answers and recorders in C#) and `PackTests.cs` (Horizon*/Flux*/Aurora*/
+  Daylight*Tests found by name, one line in Program.cs),
+  `Ui/Common/PackPage.cs` (`IPackPage` = a pack page module's mount /
+  unmount / onTopics / onCar, `PackHost` = the pack router's render(): the
+  loading box, the "could not load" box with Try again, live topics, the
+  vehicle, the status line; `[PackPage("horizon", "jobs")]` registers a
+  page, no shared table), `ShellModel.PageStatus` (a pack page's own shell
+  line), the parity modules `tools/parity/packs/<pack>-<page>.js` (page
+  names, web capture, variants) with `tools/parity/packFixtures.js` writing
+  `Shell/Fixtures/<pack>-<page>.json` (merged over RenderFixture.json by
+  `--render`; a `"<pack>:<name>"` variant wins) and
+  test/windowsNativePackFixtures.test.js keeping them, RENDER-PAGES.md and
+  the packs' routes in step; capture.js takes `<pack>:<name>` pages.
+  - Phase 4, Horizon: in progress. Shared: `Core/Horizon/Hz.cs` (core.js's
+    formatters, 221 cases against core.js: test/windowsNativeHorizon.test.js,
+    Core.Tests HorizonFormatTests), `HzUi.cs` (toast, ask, askText, go,
+    status, act), `Ui/Horizon/HzKit.cs` (panels, title strip, buttons,
+    fields, segs, pills, bars, blank, loading, notes, kv), `HzIcons.cs` (the
+    whole sprite), `HzOverlay.cs` (Horizon's own dialog, sheet and toasts in
+    the shell; the shell's toasts are Horizon's now), the shell's keyboard
+    ([ ] ?) and its shortcut sheet drawn as Horizon's sheet.
+    - Jobs: native (`Ui/Horizon/HzJobsPage.cs`, `Core/Horizon/HzJobs.cs`);
+      type-checked with mcs, not yet built or rendered on Windows. The pit
+      log, the status / vehicle filters, Filter jobs, the 1 s tick, the live
+      reload, Clear finished… (preview, dialog, clear, toasts, ?clear=1) are
+      compared with hz/pages/jobs.js itself on 12 sessions of clicks and
+      typing and 11 clears (test/windowsNativeHorizonJobs.test.js,
+      Core.Tests HorizonJobsTests). Render list: horizon jobs, -empty,
+      -running-only, -long, -error.
+    - Nodes: native (`Ui/Horizon/HzNodesPage.cs`, `HzKitNodes.cs`,
+      `Core/Horizon/HzNodes.cs`; `HzNodeLanes.cs` ports hz/nodelanes.js for
+      the Encoder). Compared with hz/nodes.js and nodelanes.js on 56
+      sessions, 105 steps (test/windowsNativeHorizonNodes.test.js, Core.Tests
+      HorizonNodesTests). Use N at once writes the pack's own
+      `horizon.enc.form`. Render list: horizon nodes-empty, nodes,
+      -running, -noworker, -closed.
+    - Settings: native (`HzSettingsPage.cs`, `HzKitSettings.cs`,
+      `Core/Horizon/HzSettings.cs`): all eight tabs, the pack's own
+      "Password check" for the server's re-check while the page is open.
+      74 sessions, 151 steps against hz/pages/settings.js. Render list: 13
+      pages (one per tab, vehicle, new vehicle, windows, no vehicles, error).
+    - Footage: native (`HzFootagePage.cs`, `HzKitFootage.cs`,
+      `Core/Horizon/HzFootage.cs`, reusing Core/Footage.cs's paths, bodies
+      and Index speeds): albums, playlist, tracks, selection bar, details
+      sheet, the page's keys. 29 sessions, 119 steps. Render list: footage,
+      -empty, -scanning, -error, -novehicle, -long, -selected.
+    - Policies, Recycle Bin, Notifications ("alerts"), Encoding per vehicle
+      ("vehicles", on Core/VehicleEncoding.cs with the pack's options):
+      native (`HzPoliciesPage.cs`, `HzBinPage.cs`, `HzAlertsPage.cs`,
+      `HzVehiclesPage.cs`, `HzKitFields.cs`; models in `Core/Horizon/`).
+      19/25/15/31 sessions. Render list: 4-5 states each.
+    - Dashboard: native (`HzDashPage.cs`, `HzGauges.cs`: the dials and
+      fuel gauge on gauges.js's SVG coordinates, sparklines;
+      `Core/Horizon/HzDash.cs`): the cluster, meters, car cards, the server
+      log with its level, filter, scope, Follow, Clear and archives, polls
+      every 2 s and 5 s (stopped while minimised). 22 sessions, 54 steps
+      against hz/pages/dashboard.js, including every needle, arc and spark
+      path. Render list: dashboard, -novehicle, -error, -long, -idle,
+      -logs-all.
+    - Viewer (with the speed graph) and Encoder: after phases 2 and 3 land;
+      the browser until then.
+  - Phase 5, Flux: in progress. Shared: `Core/Flux/Fx.cs` (flux/core.js's
+    formatters, against core.js: test/windowsNativeFlux.test.js, Core.Tests
+    FluxFormatTests), `Ui/Flux/FxKit.cs` (page head, cards, toolbar,
+    buttons, fields, seg, chips, empty, loading, the data tables with their
+    860 px labelled rows; pointer: coarse at 600 px and less, as the phone
+    captures), `FxIcons.cs` (the sprite), `FxOverlay.cs` (Flux's own dialog
+    and toasts in the shell); dialogs and toasts on Horizon's generic HzUi.
+    - Jobs: native (`Ui/Flux/FxJobsPage.cs`, `Core/Flux/FxJobs.cs`),
+      compared with flux/pages/jobs.js (test/windowsNativeFluxJobs.test.js,
+      Core.Tests FluxJobsTests). Render list: flux jobs, -empty,
+      -running-only, -long, -error.
+    - Overview, Footage, Nodes, Policies, Recycle Bin, Notifications,
+      Encoding per vehicle, Settings: in progress. Viewer and Encoder: after
+      phases 2 and 3.
+  - Phases 6-7 (Aurora, Daylight): not started; their pages open in the
+    browser.
+
+Horizon (known differences): text is not selectable, so live redraws do
+not wait for a highlight; the Footage albums column has its own scroll
+instead of staying put while the page scrolls; a page's own keys are not
+listed in the shell's shortcut sheet yet; Chrome's own required / minlength
+bubbles are drawn as text under the field; the time fields of Settings'
+electricity rates are plain text ("23:00"); the server's password re-check
+outside Settings is the built-in dialog; Notifications reads the full list
+itself (one more request than the web, the shell reads the open ones).
 
 Known differences so far (for the parity checklist): the Viewer's
 clip library reads an event.json time in a form other than the ISO one

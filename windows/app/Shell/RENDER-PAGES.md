@@ -342,3 +342,327 @@ not clipped to the tile (the grid clips it) and the zoom indicator
 - builtin viewer-noglow
 - builtin viewer-focus
 - builtin viewer-zoom
+
+## The UI packs' pages (phases 4-7)
+
+Each at both sizes. A pack page's states are its module in
+`tools/parity/packs/<pack>-<page>.js` (the page names below, how capture.js
+takes the web side, and the variants); `node tools/parity/packFixtures.js`
+writes the native side's into `Shell\Fixtures\<pack>-<page>.json`, which
+`--render` merges over `Shell\RenderFixture.json` (a `"<pack>:<name>"`
+variant wins over a built-in one of the same name). Pages not drawn here
+yet render their "Opens in your browser" panel.
+
+### Horizon: Jobs
+
+The pit log (hz/pages/jobs.js) on the same answers as the built-in Jobs
+page's states: jobs, jobs-empty, jobs-running-only (Clear finished…
+disabled), jobs-long, jobs-error (the pack's "could not load" box with
+Try again).
+
+- horizon jobs
+- horizon jobs-empty
+- horizon jobs-running-only
+- horizon jobs-long
+- horizon jobs-error
+
+### Flux: Jobs
+
+The jobs table (flux/pages/jobs.js; labelled blocks on a phone) on the
+built-in Jobs page's states: jobs, jobs-empty, jobs-running-only (Clear
+finished… disabled), jobs-long, jobs-error (the pack's ! box with Retry).
+
+- flux jobs
+- flux jobs-empty
+- flux jobs-running-only
+- flux jobs-long
+- flux jobs-error
+### Horizon: Nodes
+
+The node blocks, Pair a node and "Let another server use this one"
+(hz/pages/nodes.js) on the same answers as the built-in Nodes page's
+states: nodes-empty (the fixture server's own answer: no nodes), nodes
+(an online node with its GPUs, a vehicle first and a finished dyno run;
+an offline one; a pairing code; a main server), nodes-running (a dyno run
+running: Stop, the Dyno run buttons waiting), nodes-noworker (TLS_MODE=off)
+and nodes-closed (no nodes, a pairing code).
+
+- horizon nodes-empty
+- horizon nodes
+- horizon nodes-running
+- horizon nodes-noworker
+- horizon nodes-closed
+### Horizon: Settings
+
+The settings tabs (hz/pages/settings.js), one page per tab, on the built-in
+Settings page's answers where the pack asks the same paths: settings (the
+Vehicles tab, two vehicles), settings-vehicle (the vehicle's form, an SMB
+share), settings-vehicle-new (a new vehicle on a Windows PC with "Folder on
+this PC" picked), settings-account, settings-interface, settings-display
+(Background), settings-updates, settings-security (a host the certificate does
+not cover), settings-system, settings-power (a time of use plan),
+settings-windows (the Updates tab on the Windows service), settings-novehicles
+and settings-error (the pack's "could not load" box with Try again).
+
+- horizon settings
+- horizon settings-vehicle
+- horizon settings-vehicle-new
+- horizon settings-account
+- horizon settings-interface
+- horizon settings-display
+- horizon settings-updates
+- horizon settings-security
+- horizon settings-system
+- horizon settings-power
+- horizon settings-windows
+- horizon settings-novehicles
+- horizon settings-error
+### Horizon: Policies
+
+A service schedule per vehicle (hz/pages/policies.js) on the same answers as
+the built-in Policies page's states: policies (on, two kinds kept, the next
+run moving something, a last run), policies-off (the fixture server's own
+answer), policies-novehicle ("Add a vehicle first."), policies-error (the
+panel is the message), policies-long (a second vehicle with a long name, a
+last run that failed).
+
+- horizon policies
+- horizon policies-off
+- horizon policies-novehicle
+- horizon policies-error
+- horizon policies-long
+
+### Horizon: Recycle Bin
+
+The Recycle Bin (hz/pages/bin.js) on the same answers as the built-in
+page's states: bin (one item of yours, one of the policy, one with a file
+left behind), bin-empty (the fixture server's own answer), bin-long,
+bin-error (the pack's "could not load" box with Try again), and
+bin-every-vehicle ("Every vehicle" picked: each item names its vehicle).
+
+- horizon bin
+- horizon bin-empty
+- horizon bin-long
+- horizon bin-error
+- horizon bin-every-vehicle
+
+### Horizon: Notifications
+
+The warning lights (hz/pages/alerts.js) on the same answers as the built-in
+Notifications page's states: alerts (two open and unread, critical and
+warning, one long; the resolved one hidden), alerts-empty (the fixture
+server's own answer: "All lights are off."), alerts-all ("All, with
+resolved" picked: the resolved one faded), alerts-error (the list not
+readable: the page shows none).
+
+- horizon alerts
+- horizon alerts-empty
+- horizon alerts-all
+- horizon alerts-error
+
+### Horizon: Encoding per vehicle
+
+web/vehicleEncoding.js in Horizon's look (hz/pages/vehicles.js) on the same
+answers as the built-in page's states: vehicles (three vehicles: automatic
+on, saved, not set up, one with a long name), vehicles-edit (?edit=<id>: the
+first one's editor open), vehicles-empty (no vehicles), vehicles-error (the
+Encoder still starting: the view is the message).
+
+- horizon vehicles
+- horizon vehicles-edit
+- horizon vehicles-empty
+- horizon vehicles-error
+### Horizon: Footage
+
+The track list (hz/pages/footage.js) on the recorded library, asked by the
+pack's own paths (tools/parity/packs/horizon-footage.js): footage (the
+first day open with its tracks, the thumbnails from the fixture's BYTES
+answers; the web clicks the day's album, the native side gets
+`?day=`), footage-empty, footage-scanning (an inventory scan running),
+footage-error (neither list readable), footage-novehicle (the blank with
+Add a vehicle), footage-long (a long vehicle name and track type,
+converted and protected tracks), footage-selected (every day, the two
+newest tracks ticked: the selection bar; the web clicks their boxes, the
+native side gets the variant's state `{ sel: [ids] }`).
+
+- horizon footage
+- horizon footage-empty
+- horizon footage-scanning
+- horizon footage-error
+- horizon footage-novehicle
+- horizon footage-long
+- horizon footage-selected
+### Horizon: Dashboard
+
+The instrument cluster and the server's telemetry (hz/pages/dashboard.js,
+hz/gauges.js) on test/fixtures/statsSample.json, with the pack's own
+requests answered by the module (the vehicle's days, 15 minutes of history
+for the sparklines, the log's lines): dashboard (two open notifications, a
+conversion running), dashboard-novehicle, dashboard-error (no numbers, so
+"Reading the server…" and empty boxes; the log's own error line),
+dashboard-long (long vehicle, host, process and storage names),
+dashboard-idle (no conversion: Start a conversion; a node's power: All
+servers), dashboard-logs-all (the log level Everything, stored on both
+sides). The sparklines take the live samples of a few polls on the web, so
+their right ends can differ by a sample or two.
+
+- horizon dashboard
+- horizon dashboard-novehicle
+- horizon dashboard-error
+- horizon dashboard-long
+- horizon dashboard-idle
+- horizon dashboard-logs-all
+### Flux: Nodes
+
+The node cards, Pair a node and "Let another server use this one"
+(flux/pages/nodes.js) on the same answers as the built-in Nodes page's
+states: nodes-empty (the fixture server's own answer: no nodes), nodes
+(an online node with its GPUs, a vehicle first and a finished benchmark;
+an offline one; a pairing code; a main server), nodes-running (a
+benchmark running: Cancel, the Benchmark buttons waiting), nodes-noworker
+(TLS_MODE=off) and nodes-closed (no nodes, a pairing code). One column at
+1180 px and less.
+
+- flux nodes-empty
+- flux nodes
+- flux nodes-running
+- flux nodes-noworker
+- flux nodes-closed
+### Flux: Policies
+
+One card per vehicle (flux/pages/policies.js) on the built-in Policies
+page's states, asked by the pack's own paths
+(tools/parity/packs/flux-policies.js): policies (on, the next run moving
+seven recordings, a last run), policies-off (a new vehicle's policy),
+policies-novehicle (Add a vehicle first.), policies-error (the card is the
+message), policies-long (a second vehicle with a long name and a failed
+last run).
+
+- flux policies
+- flux policies-off
+- flux policies-novehicle
+- flux policies-error
+- flux policies-long
+### Flux: Recycle Bin
+
+The bin's table (flux/pages/bin.js; labelled blocks on a phone, the boxes
+at the start of their line) on the built-in Recycle Bin page's states:
+bin (three items, one by policy, one with a file that could not be
+restored), bin-empty, bin-long (a long recording name, 5 TB), bin-error
+(the pack's ! box with Retry), bin-every-vehicle ("Every vehicle" picked:
+the vehicle column; the web clicks the filter, the native side gets the
+variant's state `{ bin: { scope: 'all' } }`).
+
+- flux bin
+- flux bin-empty
+- flux bin-long
+- flux bin-error
+- flux bin-every-vehicle
+### Flux: Notifications
+
+The notification list (flux/pages/notifications.js) on the built-in
+Notifications page's answers, with one read, two unread and one resolved
+(tools/parity/packs/flux-notifications.js): notifications (the open ones:
+the bars in their level's colour, the unread with a violet edge and dot),
+notifications-empty, notifications-all ("All, incl. resolved" picked: the
+resolved one faded; the web clicks the filter, the native side gets the
+variant's state `{ notifications: { show: 'all' } }`), notifications-error
+(the list not readable: the page shows none).
+
+- flux notifications
+- flux notifications-empty
+- flux notifications-all
+- flux notifications-error
+### Flux: Encoding per vehicle
+
+web/vehicleEncoding.js in Flux's look (flux/pages/vehicles.js) on the same
+answers as the built-in page's states: vehicles (three vehicles: automatic
+on, saved, not set up, one with a long name), vehicles-edit (?edit=<id>: the
+first one's editor open), vehicles-empty (no vehicles), vehicles-error (the
+Encoder still starting: the view is the message).
+
+- flux vehicles
+- flux vehicles-edit
+- flux vehicles-empty
+- flux vehicles-error
+### Flux: Settings
+
+The settings tabs (flux/pages/settings.js), one page per tab, on the built-in
+Settings page's answers where the pack asks the same paths: settings (the
+Vehicles tab, two vehicles; labelled blocks on a phone), settings-vehicle (the
+vehicle's form, an SMB share), settings-vehicle-new (a new vehicle on a Windows
+PC with "Folder on this PC" picked), settings-account, settings-interface,
+settings-updates, settings-security (a host the certificate does not cover),
+settings-system, settings-power (a time of use plan with two rates),
+settings-appearance, settings-windows (the Updates tab on the Windows service:
+the release wording), settings-novehicles and settings-error (main.js's "!" box
+with Retry). The web's time fields are the browser's own (12-hour on an en-US
+machine); the native ones follow the PC's clock setting the same way.
+
+- flux settings
+- flux settings-vehicle
+- flux settings-vehicle-new
+- flux settings-account
+- flux settings-interface
+- flux settings-updates
+- flux settings-security
+- flux settings-system
+- flux settings-power
+- flux settings-appearance
+- flux settings-windows
+- flux settings-novehicles
+- flux settings-error
+### Flux: Footage
+
+The days pane beside the recordings table (flux/pages/footage.js) on the
+recorded library, asked by the pack's own paths, the same as Horizon's
+(tools/parity/packs/flux-footage.js): footage (the first day open with its
+recordings, the thumbnails from the fixture's BYTES answers; the web clicks
+the day, the native side gets `?day=`), footage-empty, footage-scanning
+(an inventory scan running), footage-error (neither list readable: the
+days' red line, the table's one cell), footage-novehicle (the empty box
+with Add a vehicle), footage-long (a long vehicle name and time zone,
+converted and protected recordings: the table scrolls sideways),
+footage-selected (every day, the two newest recordings ticked: the bulk
+bar and the cursor on the second; the web clicks their boxes, the native
+side gets the variant's state `{ sel: [ids], cursor }`). The web's phone
+pictures are scrolled to the boxes it clicked; the native ones are not.
+
+- flux footage
+- flux footage-empty
+- flux footage-scanning
+- flux footage-error
+- flux footage-novehicle
+- flux footage-long
+- flux footage-selected
+
+### Aurora: Jobs
+
+The timeline (aurora/pages/jobs.js) in the pack's glass window on the
+built-in Jobs page's states, asked as GET /api/jobs (Aurora's own scope is
+"All vehicles", and the fixture has one vehicle, so no select): jobs,
+jobs-empty (the orb, Clear finished disabled), jobs-running-only (Clear
+finished disabled), jobs-long, jobs-error (main.js's "Something went
+wrong" with Try again in the window; Clear finished stays).
+
+- aurora jobs
+- aurora jobs-empty
+- aurora jobs-running-only
+- aurora jobs-long
+- aurora jobs-error
+### Daylight: Jobs
+
+The Activity page (dl/pages/jobs.js: "Happening now" and "Earlier" cards
+of jobs) on the built-in Jobs page's jobs, asked as Daylight asks with the
+fixture's one vehicle (GET /api/jobs, no vehicle picker): jobs,
+jobs-empty (Nothing yet; Clear finished disabled), jobs-running-only
+(Clear finished disabled), jobs-long (a long title, type and details),
+jobs-error (the router's red note with Try again), jobs-dark (jobs in the
+dark look: `daylight:theme` dark on both sides).
+
+- daylight jobs
+- daylight jobs-empty
+- daylight jobs-running-only
+- daylight jobs-long
+- daylight jobs-error
+- daylight jobs-dark

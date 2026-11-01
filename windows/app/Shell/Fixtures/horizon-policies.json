@@ -1,0 +1,255 @@
+{
+ "about": "Written by tools/parity/packFixtures.js from tools/parity/packs/horizon-policies.js and Shell/RenderFixture.json: the horizon pages' states for SentrySix.exe --render (RENDER-PAGES.md).",
+ "variants": {
+  "horizon:policies": {
+   "route": "policies",
+   "api": {
+    "GET /api/vehicles/model-3/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "04:15",
+      "keepDays": {
+       "Recent": 30,
+       "Sentry": 90,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": 1793375466000,
+      "lastResult": {
+       "moved": 12,
+       "skipped": 3
+      }
+     },
+     "preview": {
+      "recordings": 7,
+      "bytes": 3435973837,
+      "byCategory": {
+       "Recent": 5,
+       "Sentry": 2
+      },
+      "ids": []
+     }
+    }
+   }
+  },
+  "horizon:policies-off": {
+   "route": "policies"
+  },
+  "horizon:policies-novehicle": {
+   "route": "policies",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": []
+    }
+   }
+  },
+  "horizon:policies-error": {
+   "route": "policies",
+   "api": {
+    "GET /api/vehicles/model-3/policy": {
+     "$error": "The policy could not be read.",
+     "$status": 500
+    }
+   }
+  },
+  "horizon:policies-long": {
+   "route": "policies",
+   "api": {
+    "GET /api/vehicles": {
+     "vehicles": [
+      {
+       "id": "model-3",
+       "name": "Model 3",
+       "timezone": "UTC",
+       "source": {
+        "type": "path",
+        "path": "/srv/sentry-parity/footage"
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      },
+      {
+       "id": "model-s",
+       "name": "Model S Plaid with a name far too long for one line of a panel head at all",
+       "timezone": "UTC",
+       "source": {
+        "type": "path",
+        "path": "/srv/sentry-parity/footage"
+       },
+       "root": "/srv/sentry-parity/footage",
+       "studioRoot": "/srv/sentry-parity/footage/TeslaCam",
+       "share": {
+        "mode": "local",
+        "share": null,
+        "path": "/srv/sentry-parity/footage",
+        "healthy": true,
+        "mounted": false,
+        "fsType": null,
+        "source": null,
+        "readable": true,
+        "writable": true,
+        "renameOverwrite": true,
+        "totalBytes": 270553174016,
+        "freeBytes": 29717712896,
+        "lastError": null,
+        "hint": null,
+        "warning": "Nothing is mounted at /srv/sentry-parity/footage, so the manager is looking at the container's own disk. Set SMB_SHARE or add a volume for /srv/sentry-parity/footage.",
+        "checkedAt": 1793461865165,
+        "writeCheckedAt": 1793461865174,
+        "mountedAt": null,
+        "network": false
+       },
+       "security": null,
+       "inventory": {
+        "recordings": 3,
+        "files": 26,
+        "bytes": 10159769,
+        "byCategory": {
+         "Recent": {
+          "recordings": 1,
+          "bytes": 5060210
+         },
+         "Sentry": {
+          "recordings": 1,
+          "bytes": 2548791
+         },
+         "Saved": {
+          "recordings": 1,
+          "bytes": 2550768
+         }
+        },
+        "scannedAt": 1793461865190
+       },
+       "scanning": false,
+       "binBytes": 0,
+       "binItems": 0,
+       "policy": {
+        "enabled": false,
+        "runAt": "03:30",
+        "keepDays": {
+         "Recent": null,
+         "Sentry": null,
+         "Saved": null,
+         "Other": null
+        },
+        "lastRunAt": null,
+        "lastResult": null
+       },
+       "saved": {
+        "bytes": 0,
+        "clips": 0
+       }
+      }
+     ]
+    },
+    "GET /api/vehicles/model-3/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "04:15",
+      "keepDays": {
+       "Recent": 30,
+       "Sentry": 90,
+       "Saved": null,
+       "Other": null
+      },
+      "lastRunAt": 1793375466000,
+      "lastResult": {
+       "moved": 12,
+       "skipped": 3
+      }
+     },
+     "preview": {
+      "recordings": 7,
+      "bytes": 3435973837,
+      "byCategory": {
+       "Recent": 5,
+       "Sentry": 2
+      },
+      "ids": []
+     }
+    },
+    "GET /api/vehicles/model-s/policy": {
+     "policy": {
+      "enabled": true,
+      "runAt": "23:05",
+      "keepDays": {
+       "Recent": 1,
+       "Sentry": 3650,
+       "Saved": 365,
+       "Other": 7
+      },
+      "lastRunAt": 1793451066000,
+      "lastResult": {
+       "error": "The share is not reachable right now: //nas/teslacam could not be mounted (permission denied)."
+      }
+     },
+     "preview": {
+      "recordings": 1,
+      "bytes": 1536
+     }
+    }
+   }
+  }
+ }
+}

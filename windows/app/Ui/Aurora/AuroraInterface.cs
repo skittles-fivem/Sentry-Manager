@@ -39,6 +39,36 @@ namespace SentrySix.Ui.Aurora
         };
         public IReadOnlyList<PageDef> Pages { get { return pages; } }
 
+        // the pages drawn here ([PackPage("aurora", route)]); the others open in the browser
+        static readonly Dictionary<string, Func<IPackPage>> native = PackPageAttribute.Of("aurora");
+
+        static AuroraInterface()
+        {
+            foreach (string key in native.Keys)
+            {
+                int slash = key.IndexOf('/');
+                string id = slash < 0 ? key : key.Substring(0, slash);
+                foreach (PageDef p in pages)
+                {
+                    if (p.Id != id) continue;
+                    if (slash < 0) p.Native = true;
+                    else p.NativeSubs.Add(key.Substring(slash + 1));
+                }
+            }
+        }
+
+        static Func<IPackPage> NativeFor(string id, string sub)
+        {
+            Func<IPackPage> make;
+            string first = string.IsNullOrEmpty(sub) ? "" : sub.Split('/', '?')[0];
+            if (first.Length > 0 && native.TryGetValue(id + "/" + first, out make)) return make;
+            return native.TryGetValue(id, out make) ? make : null;
+        }
+
+        // main.js: the pages that mount again when another vehicle is picked (page.vehicle), and the one without a window (chrome: false)
+        static readonly string[] VehiclePages = { "footage", "policies", "viewer" };
+        static readonly string[] Bare = { "sky" };
+
         // main.js DOCK: route, label, primary on phones ("|" separators after Per car and Alerts)
         static readonly string[][] Dock =
         {
@@ -406,6 +436,7 @@ namespace SentrySix.Ui.Aurora
             readonly ShellModel m;
             public readonly Grid Root = new Grid();
             readonly AuroraSky sky = new AuroraSky();
+            AuOverlay overlay;
             readonly TextBlock brandName, where, dotSep, clock;
             readonly Ellipse liveDot;
             readonly Border topFade = new Border();
@@ -516,6 +547,13 @@ namespace SentrySix.Ui.Aurora
                 {
                     if (moreOpen && !more.IsMouseOver && !IsOverMoreButton()) { moreOpen = false; more.Visibility = Visibility.Collapsed; }
                 };
+
+                // Aurora's own dialog and toasts (core.js openDialog(), toast()), over everything
+                overlay = new AuOverlay(m);
+                Panel.SetZIndex(overlay.Root, 10);
+                Root.Children.Add(overlay.Root);
+                m.Toast = (text, bad) => overlay.Toast(text, bad ? "bad" : "ok");
+                AuKit.Still = m.Still || m.ReduceEffects;
 
                 m.PropertyChanged += Changed;
                 Root.Unloaded += delegate { m.PropertyChanged -= Changed; };
@@ -685,7 +723,7 @@ namespace SentrySix.Ui.Aurora
                     page.Content = m.PageContent;
                     scroller.ScrollToTop();
                 }
-                if (e.PropertyName == "ReduceEffects") sky.SetMode(Effect(m.Prefs), m.Still || m.ReduceEffects);
+                if (e.PropertyName == "ReduceEffects") { sky.SetMode(Effect(m.Prefs), m.Still || m.ReduceEffects); AuKit.Still = m.Still || m.ReduceEffects; }
                 if (e.PropertyName == "Clock24") Clock();
                 Paint();
             }
@@ -765,11 +803,65 @@ namespace SentrySix.Ui.Aurora
             }
         }
 
+        // ---------- pages drawn here: main.js render()'s glass window around the page ----------
+        static FrameworkElement Native(PageDef p, PageContext ctx, Func<IPackPage> make)
+        {
+            ShellModel sm = ctx.Shell;
+            string kick;
+            if (!Kicker.TryGetValue(p.Id, out kick)) kick = null;
+            AuWindow win = new AuWindow(sm, p.Title, kick, p.Icon, Array.IndexOf(Bare, p.Id) < 0);
+            PackPageContext pc = new PackPageContext();
+            pc.Shell = sm;
+            pc.Api = ctx.Api;
+            pc.Def = p;
+            pc.Sub = ctx.Sub ?? "";
+            pc.Fixture = ctx.Fixture;
+            pc.Still = sm == null || sm.Still || sm.ReduceEffects;
+            pc.Go = hash => { if (sm != null) sm.Navigate((hash ?? "").TrimStart('#').TrimStart('/')); };
+            AuKit.Still = pc.Still;
+            // the window stays while its body changes: "Loading…" (no actions yet: render() makes a new window, then the
+            // page writes them), main.js's "Something went wrong" (the page's actions stay), the page (AuPages.Frame)
+            PackHost host = new PackHost(make, pc,
+                () => { win.SetActions(); win.Body.Content = AuKit.Loading(); return win.Root; },
+                (message, retry) => { win.Body.Content = AuKit.LoadFailed(message, retry); return win.Root; });
+            string path = pc.Sub.Split('?')[0];
+            if (Array.IndexOf(VehiclePages, p.Id) >= 0)
+            {
+                // main.js: another vehicle mounts the page again; with a day or a recording open, the page itself (#/route)
+                if (path.Length == 0) host.RemountOnCar.Add(p.Id);
+                else if (sm != null)
+                {
+                    PropertyChangedEventHandler car = null;
+                    car = delegate(object s, PropertyChangedEventArgs e)
+                    {
+                        if (e.PropertyName == "PageContent" && sm.PageContent != host.Root) sm.PropertyChanged -= car;
+                        else if (e.PropertyName == "VehicleId" && sm.PageContent == host.Root) { sm.PropertyChanged -= car; sm.Navigate(p.Id); }
+                    };
+                    sm.PropertyChanged += car;
+                }
+            }
+            if (sm != null)
+            {
+                // ctx.sub(text): the shell's page status line is the window's sub line
+                win.SetSub(sm.PageStatus);
+                PropertyChangedEventHandler sub = null;
+                sub = delegate(object s, PropertyChangedEventArgs e)
+                {
+                    if (e.PropertyName == "PageContent" && sm.PageContent != host.Root && sm.PageContent != null) sm.PropertyChanged -= sub;
+                    else if (e.PropertyName == "PageStatus") win.SetSub(sm.PageStatus);
+                };
+                sm.PropertyChanged += sub;
+            }
+            return host.Start().Root;
+        }
+
         // ---------- pages: a placeholder glass window ----------
         public FrameworkElement Page(string id, PageContext ctx)
         {
             PageDef p = pages[0];
             foreach (PageDef x in pages) if (x.Id == id) p = x;
+            Func<IPackPage> make = ctx != null ? NativeFor(p.Id, ctx.Sub) : null;
+            if (make != null) return Native(p, ctx, make);
             StackPanel body = new StackPanel();
             // .win-head: kicker (icon + 13px 0.14em uppercase #9ff0e6 600), h1 clamp(32px, 4.2vw, 48px) 250, sub
             FrameworkElement ki = Icon(p.Icon, 16);

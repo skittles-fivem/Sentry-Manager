@@ -53,6 +53,32 @@ namespace SentrySix.Ui.Daylight
         static readonly string[] Tabs = { "home", "footage", "viewer", "encoder", "more" };
         public IReadOnlyList<PageDef> Pages { get { return pages; } }
 
+        // the pages drawn here ([PackPage("daylight", route)]); the others open in the browser
+        static readonly Dictionary<string, Func<IPackPage>> native = PackPageAttribute.Of("daylight");
+
+        static DaylightInterface()
+        {
+            foreach (string key in native.Keys)
+            {
+                int slash = key.IndexOf('/');
+                string id = slash < 0 ? key : key.Substring(0, slash);
+                foreach (PageDef p in pages)
+                {
+                    if (p.Id != id) continue;
+                    if (slash < 0) p.Native = true;
+                    else p.NativeSubs.Add(key.Substring(slash + 1));
+                }
+            }
+        }
+
+        static Func<IPackPage> NativeFor(string id, string sub)
+        {
+            Func<IPackPage> make;
+            string first = string.IsNullOrEmpty(sub) ? "" : sub.Split('/', '?')[0];
+            if (first.Length > 0 && native.TryGetValue(id + "/" + first, out make)) return make;
+            return native.TryGetValue(id, out make) ? make : null;
+        }
+
         // dl/core.js ICON (.ic: stroke currentColor 1.8, no fill, round)
         static readonly Dictionary<string, string> Icons = new Dictionary<string, string>
         {
@@ -132,7 +158,9 @@ namespace SentrySix.Ui.Daylight
                 new[] { "accent", "#0d6b6b" }, new[] { "accent-hover", "#0a5959" }, new[] { "accent-ink", "#ffffff" }, new[] { "accent-soft", "#dceeec" }, new[] { "accent-soft-ink", "#0a5555" },
                 new[] { "good", "#24724a" }, new[] { "good-soft", "#e0f1e6" }, new[] { "warn", "#8f5400" }, new[] { "warn-soft", "#fbecd2" },
                 new[] { "bad", "#b02a20" }, new[] { "bad-soft", "#f9e1dd" }, new[] { "bad-ink", "#ffffff" }, new[] { "violet", "#5b4bb0" }, new[] { "violet-soft", "#e9e5f8" }, new[] { "focus", "#0d6b6b" },
-                new[] { "placeholder", "#CC5d656d" }, new[] { "topbar-bg", "#E0f6f2ea" }, new[] { "tabbar-bg", "#EBfffdf9" }, new[] { "scroll-thumb", "#cfc6b6" }
+                new[] { "placeholder", "#CC5d656d" }, new[] { "topbar-bg", "#E0f6f2ea" }, new[] { "tabbar-bg", "#EBfffdf9" }, new[] { "scroll-thumb", "#cfc6b6" },
+                // dl/app.css .toast (dark on the light look) and its action (:root:not([data-theme=dark]) .toast-action)
+                new[] { "toast-bg", "#22282c" }, new[] { "toast-fg", "#f5f3ee" }, new[] { "toast-action-bg", "#00000000" }, new[] { "toast-action-fg", "#8fe0da" }
             };
             string[][] darkSet =
             {
@@ -141,7 +169,8 @@ namespace SentrySix.Ui.Daylight
                 new[] { "accent", "#55c7bf" }, new[] { "accent-hover", "#74d6cf" }, new[] { "accent-ink", "#082524" }, new[] { "accent-soft", "#2455c7bf" }, new[] { "accent-soft-ink", "#8fe0da" },
                 new[] { "good", "#6fd29b" }, new[] { "good-soft", "#246fd29b" }, new[] { "warn", "#f0b860" }, new[] { "warn-soft", "#24f0b860" },
                 new[] { "bad", "#ff8f84" }, new[] { "bad-soft", "#24ff8f84" }, new[] { "bad-ink", "#2b0a07" }, new[] { "violet", "#b3a8f5" }, new[] { "violet-soft", "#26b3a8f5" }, new[] { "focus", "#74d6cf" },
-                new[] { "placeholder", "#CCa4abb1" }, new[] { "topbar-bg", "#E0121517" }, new[] { "tabbar-bg", "#EB1b1f22" }, new[] { "scroll-thumb", "#434a50" }
+                new[] { "placeholder", "#CCa4abb1" }, new[] { "topbar-bg", "#E0121517" }, new[] { "tabbar-bg", "#EB1b1f22" }, new[] { "scroll-thumb", "#434a50" },
+                new[] { "toast-bg", "#eceae5" }, new[] { "toast-fg", "#1b1f22" }, new[] { "toast-action-bg", "#55c7bf" }, new[] { "toast-action-fg", "#082524" }
             };
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
             foreach (string[] kv in dark ? darkSet : light) sb.Append("<SolidColorBrush x:Key=\"").Append(kv[0]).Append("\" Color=\"").Append(kv[1]).Append("\"/>");
@@ -149,6 +178,10 @@ namespace SentrySix.Ui.Daylight
             d["font"] = U.SystemUi;
             d["mono"] = U.Consolas;
             d["dark"] = dark;
+            // --shadow-1, -2, -3 (one shadow each: WPF draws one per element)
+            d["shadow-1"] = dark ? Css.Shadow(1, 2, "rgba(0,0,0,.3)") : Css.Shadow(2, 6, "rgba(60,48,30,.08)");
+            d["shadow-2"] = dark ? Css.Shadow(8, 30, "rgba(0,0,0,.3)") : Css.Shadow(8, 28, "rgba(60,48,30,.11)");
+            d["shadow-3"] = dark ? Css.Shadow(20, 60, "rgba(0,0,0,.55)") : Css.Shadow(18, 50, "rgba(40,30,15,.22)");
             return d;
         }
 
@@ -376,6 +409,7 @@ namespace SentrySix.Ui.Daylight
             readonly ContentControl themeSideGlyph = new ContentControl(), themeTopGlyph = new ContentControl();
             readonly TextBlock themeSideText;
             readonly Border bellDot;
+            DlOverlay overlay;
             bool phone;
 
             sealed class Link
@@ -500,6 +534,13 @@ namespace SentrySix.Ui.Daylight
                 Root.Children.Add(topbar);
                 Root.Children.Add(tabbar);
 
+                // Daylight's own dialog and toasts (core.js modal(), toast()), over everything
+                overlay = new DlOverlay(m);
+                Panel.SetZIndex(overlay.Root, 10);
+                Root.Children.Add(overlay.Root);
+                m.Toast = (text, bad) => overlay.Toast(text, bad ? "bad" : "info");
+                DlKit.Still = m.Still || m.ReduceEffects;
+
                 m.PropertyChanged += Changed;
                 Root.Unloaded += delegate { m.PropertyChanged -= Changed; };
                 U.OnSize(Root, (w, h) => Layout(w));
@@ -567,7 +608,7 @@ namespace SentrySix.Ui.Daylight
                 l.Shadow = new Border();
                 l.Shadow.CornerRadius = new CornerRadius(14);
                 l.Shadow.SetResourceReference(Border.BackgroundProperty, "surface");
-                l.Shadow.Effect = Css.Shadow(2, 6, "rgba(60,48,30,.08)");
+                l.Shadow.SetResourceReference(UIElement.EffectProperty, "shadow-1");
                 Grid g = new Grid();
                 g.Margin = new Thickness(0, 0, 0, 2);
                 g.Children.Add(l.Shadow);
@@ -709,6 +750,26 @@ namespace SentrySix.Ui.Daylight
         {
             PageDef p = pages[0];
             foreach (PageDef x in pages) if (x.Id == id) p = x;
+            Func<IPackPage> make = ctx != null ? NativeFor(p.Id, ctx.Sub) : null;
+            if (make != null)
+            {
+                PackPageContext pc = new PackPageContext();
+                pc.Shell = ctx.Shell;
+                pc.Api = ctx.Api;
+                pc.Def = p;
+                pc.Sub = ctx.Sub ?? "";
+                pc.Fixture = ctx.Fixture;
+                pc.Still = ctx.Shell == null || ctx.Shell.Still || ctx.Shell.ReduceEffects;
+                ShellModel sm = ctx.Shell;
+                pc.Go = hash => { if (sm != null) sm.Navigate((hash ?? "").TrimStart('#').TrimStart('/')); };
+                DlKit.Still = pc.Still;
+                // app.js render(): the page before stays until the new one has drawn (no loading box);
+                // a page that throws is the note with "Try again"
+                PackHost host = new PackHost(make, pc, DlKit.Pending, DlKit.LoadFailed);
+                // footage.js: ctx.on('vehicle', () => ctx.rerender()) (a page with no onCar of its own)
+                host.RemountOnCar.Add("footage");
+                return host.Start().Root;
+            }
             StackPanel s = new StackPanel();
             // .page-head: h1 clamp(28px, 4vw, 38px) 700, .lede muted 18px; margin-bottom 26
             TextBlock h1 = U.Text(p.Title, 38, FontWeights.Bold, "text");

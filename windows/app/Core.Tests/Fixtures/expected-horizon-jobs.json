@@ -1,0 +1,4095 @@
+{
+ "about": "Written by test/windowsNativeHorizonJobs.test.js from examples/ui-packs/horizon/web/hz/pages/jobs.js; checked by windows/app/Core.Tests (HorizonJobsTests.cs, SentrySix.Core.Horizon.HzJobs).",
+ "now": 1793459402000,
+ "sessions": [
+  {
+   "name": "jobs",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "currency": "$",
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/jobs?vehicle=model-3"
+     ],
+     "status": "1 running · 6 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit cyan]",
+      "Convert 2026-10-30 (12 clips)",
+      "5 of 12 clips · H.265",
+      "conversion · #31",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 12m 34s",
+      "12.4 Wh · 61 W",
+      "[pit grn]",
+      "Scan Model 3",
+      "1,204 recordings",
+      "scan · #30",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 1:10:02 PM",
+      "took 42s",
+      "413 Wh · 8.0 W · $0.14",
+      "[pit red]",
+      "Empty Recycle Bin",
+      "EACCES: permission denied <share> & more",
+      "bin · #29",
+      "[pill red]",
+      "failed",
+      "Oct 30, 2026, 1:10:02 PM",
+      "took 1h 02m",
+      "[pit org]",
+      "Convert 2026-10-28",
+      "conversion · #28",
+      "[pill org]",
+      "interrupted",
+      "Oct 29, 2026, 1:10:02 PM",
+      "took —",
+      "[pit ]",
+      "Policy run",
+      "policy · #27",
+      "[pill ]",
+      "cancelled",
+      "Oct 29, 2026, 12:10:02 PM",
+      "took 9h 01m",
+      "5.21 kWh · $154",
+      "[pit ]",
+      "Convert 2026-10-27",
+      "Waiting for the encoder",
+      "conversion · #26",
+      "[pill ]",
+      "waiting",
+      "Oct 31, 2026, 12:10:02 PM",
+      "took 3h 00m"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "jobs-24h",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": true,
+   "currency": "$",
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/jobs?vehicle=model-3"
+     ],
+     "status": "1 running · 6 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit cyan]",
+      "Convert 2026-10-30 (12 clips)",
+      "5 of 12 clips · H.265",
+      "conversion · #31",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 14:57:28",
+      "took 12m 34s",
+      "12.4 Wh · 61 W",
+      "[pit grn]",
+      "Scan Model 3",
+      "1,204 recordings",
+      "scan · #30",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 13:10:02",
+      "took 42s",
+      "413 Wh · 8.0 W · $0.14",
+      "[pit red]",
+      "Empty Recycle Bin",
+      "EACCES: permission denied <share> & more",
+      "bin · #29",
+      "[pill red]",
+      "failed",
+      "Oct 30, 2026, 13:10:02",
+      "took 1h 02m",
+      "[pit org]",
+      "Convert 2026-10-28",
+      "conversion · #28",
+      "[pill org]",
+      "interrupted",
+      "Oct 29, 2026, 13:10:02",
+      "took —",
+      "[pit ]",
+      "Policy run",
+      "policy · #27",
+      "[pill ]",
+      "cancelled",
+      "Oct 29, 2026, 12:10:02",
+      "took 9h 01m",
+      "5.21 kWh · $154",
+      "[pit ]",
+      "Convert 2026-10-27",
+      "Waiting for the encoder",
+      "conversion · #26",
+      "[pill ]",
+      "waiting",
+      "Oct 31, 2026, 12:10:02",
+      "took 3h 00m"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "jobs-kr",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "currency": "kr",
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/jobs?vehicle=model-3"
+     ],
+     "status": "0 running · 2 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "2 jobs · 0 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit grn]",
+      "Scan Model 3",
+      "1,204 recordings",
+      "scan · #30",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 1:10:02 PM",
+      "took 42s",
+      "413 Wh · 8.0 W · 0.14 kr",
+      "[pit ]",
+      "Policy run",
+      "policy · #27",
+      "[pill ]",
+      "cancelled",
+      "Oct 29, 2026, 12:10:02 PM",
+      "took 9h 01m",
+      "5.21 kWh · 154 kr"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "jobs-nocurrency",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "currency": "",
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/jobs?vehicle=model-3"
+     ],
+     "status": "0 running · 1 job",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "1 job · 0 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit grn]",
+      "Scan Model 3",
+      "1,204 recordings",
+      "scan · #30",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 1:10:02 PM",
+      "took 42s",
+      "413 Wh · 8.0 W · $0.14"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "jobs-empty",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": []
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "currency": "$",
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/jobs?vehicle=model-3"
+     ],
+     "status": "0 running · 0 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "0 jobs · 0 running · Model 3 and jobs of no vehicle",
+      "[btn disabled]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[blank]",
+      "No jobs yet. Scans, conversions, Recycle Bin moves and policy runs show up here."
+     ]
+    }
+   ]
+  },
+  {
+   "name": "jobs-running-only",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 32,
+       "type": "scan",
+       "status": "running",
+       "title": "Scan Model 3",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": null
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "currency": "$",
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/jobs?vehicle=model-3"
+     ],
+     "status": "2 running · 2 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "2 jobs · 2 running · Model 3 and jobs of no vehicle",
+      "[btn disabled]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit cyan]",
+      "Convert 2026-10-30 (12 clips)",
+      "5 of 12 clips · H.265",
+      "conversion · #31",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 12m 34s",
+      "12.4 Wh · 61 W",
+      "[pit cyan]",
+      "Scan Model 3",
+      "5 of 12 clips · H.265",
+      "scan · #32",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 12m 34s"
+     ]
+    },
+    {
+     "step": {
+      "wait": 1000
+     },
+     "asked": [],
+     "status": "2 running · 2 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "2 jobs · 2 running · Model 3 and jobs of no vehicle",
+      "[btn disabled]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit cyan]",
+      "Convert 2026-10-30 (12 clips)",
+      "5 of 12 clips · H.265",
+      "conversion · #31",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 12m 35s",
+      "12.4 Wh · 61 W",
+      "[pit cyan]",
+      "Scan Model 3",
+      "5 of 12 clips · H.265",
+      "scan · #32",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 12m 35s"
+     ]
+    },
+    {
+     "step": {
+      "wait": 65000
+     },
+     "asked": [],
+     "status": "2 running · 2 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "2 jobs · 2 running · Model 3 and jobs of no vehicle",
+      "[btn disabled]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit cyan]",
+      "Convert 2026-10-30 (12 clips)",
+      "5 of 12 clips · H.265",
+      "conversion · #31",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 13m 40s",
+      "12.4 Wh · 61 W",
+      "[pit cyan]",
+      "Scan Model 3",
+      "5 of 12 clips · H.265",
+      "scan · #32",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 13m 40s"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "jobs-long",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 25,
+       "type": "conversion-with-a-long-type-name",
+       "status": "done",
+       "title": "Convert 2026-10-27 Model 3 Long Range with a name far too long for one line of the pit log at all",
+       "detail": "TeslaCam/SavedClips/2026-10-27_18-04-11/a-folder-name-that-is-far-too-long-to-fit-on-one-line · 48 of 48 clips",
+       "startedAt": 1793171402000,
+       "finishedAt": 1793171403500,
+       "energy": {
+        "wh": 123456.7,
+        "avgW": 245.5,
+        "cost": 12.5
+       }
+      },
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "currency": "$",
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/jobs?vehicle=model-3"
+     ],
+     "status": "1 running · 2 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "2 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit grn]",
+      "Convert 2026-10-27 Model 3 Long Range with a name far too long for one line of the pit log at all",
+      "TeslaCam/SavedClips/2026-10-27_18-04-11/a-folder-name-that-is-far-too-long-to-fit-on-one-line · 48 of 48 clips",
+      "conversion-with-a-long-type-name · #25",
+      "[pill grn]",
+      "done",
+      "Oct 28, 2026, 7:10:02 AM",
+      "took 2s",
+      "123.46 kWh · 246 W · $12.50",
+      "[pit cyan]",
+      "Convert 2026-10-30 (12 clips)",
+      "5 of 12 clips · H.265",
+      "conversion · #31",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 12m 34s",
+      "12.4 Wh · 61 W"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "jobs-odd",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 1,
+       "type": "scan",
+       "status": "done",
+       "title": "No start",
+       "finishedAt": 1793459402000
+      },
+      {
+       "id": 2,
+       "status": "waiting",
+       "title": 42,
+       "finishedAt": 1793459402000,
+       "startedAt": 1793459397000,
+       "energy": {
+        "wh": "3"
+       }
+      },
+      {
+       "id": 3,
+       "status": "done",
+       "startedAt": 1793459393000,
+       "finishedAt": 1793459401000,
+       "energy": {
+        "wh": 0,
+        "avgW": 0,
+        "cost": 0
+       }
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "currency": "$",
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/jobs?vehicle=model-3"
+     ],
+     "status": "0 running · 3 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "3 jobs · 0 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit grn]",
+      "No start",
+      "scan · #1",
+      "[pill grn]",
+      "done",
+      "—",
+      "took —",
+      "[pit ]",
+      "42",
+      "· #2",
+      "[pill ]",
+      "waiting",
+      "Oct 31, 2026, 3:09:57 PM",
+      "took 5s",
+      "[pit grn]",
+      "· #3",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 3:09:53 PM",
+      "took 8s",
+      "0.0 Wh · 0.0 W · $0.00"
+     ]
+    },
+    {
+     "step": {
+      "type": "undefined"
+     },
+     "asked": [],
+     "status": "0 running · 3 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "3 jobs · 0 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=undefined]",
+      "[list]",
+      "[pit ]",
+      "42",
+      "· #2",
+      "[pill ]",
+      "waiting",
+      "Oct 31, 2026, 3:09:57 PM",
+      "took 5s",
+      "[pit grn]",
+      "· #3",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 3:09:53 PM",
+      "took 8s",
+      "0.0 Wh · 0.0 W · $0.00"
+     ]
+    },
+    {
+     "step": {
+      "type": "42"
+     },
+     "asked": [],
+     "status": "0 running · 3 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "3 jobs · 0 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=42]",
+      "[list]",
+      "[pit ]",
+      "42",
+      "· #2",
+      "[pill ]",
+      "waiting",
+      "Oct 31, 2026, 3:09:57 PM",
+      "took 5s"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "jobs-novehicle",
+   "answers": {
+    "GET /api/jobs": {
+     "jobs": [
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      }
+     ]
+    }
+   },
+   "vehicle": null,
+   "h24": false,
+   "currency": "$",
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/jobs"
+     ],
+     "status": "0 running · 1 job",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "1 job · 0 running · every vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit grn]",
+      "Scan Model 3",
+      "1,204 recordings",
+      "scan · #30",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 1:10:02 PM",
+      "took 42s",
+      "413 Wh · 8.0 W · $0.14"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "jobs-encoded",
+   "answers": {
+    "GET /api/jobs?vehicle=a%20b%26c": {
+     "jobs": [
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "a b&c",
+    "name": "A <car>"
+   },
+   "h24": false,
+   "currency": "$",
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/jobs?vehicle=a%20b%26c"
+     ],
+     "status": "0 running · 1 job",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "1 job · 0 running · A <car> and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit grn]",
+      "Scan Model 3",
+      "1,204 recordings",
+      "scan · #30",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 1:10:02 PM",
+      "took 42s",
+      "413 Wh · 8.0 W · $0.14"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "jobs-error",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "$error": "The job list could not be read."
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "currency": "$",
+   "error": "The job list could not be read.",
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/jobs?vehicle=model-3"
+     ],
+     "status": null,
+     "outline": []
+    }
+   ]
+  },
+  {
+   "name": "jobs-filters",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      }
+     ]
+    },
+    "GET /api/jobs": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      },
+      {
+       "id": 25,
+       "type": "conversion-with-a-long-type-name",
+       "status": "done",
+       "title": "Convert 2026-10-27 Model 3 Long Range with a name far too long for one line of the pit log at all",
+       "detail": "TeslaCam/SavedClips/2026-10-27_18-04-11/a-folder-name-that-is-far-too-long-to-fit-on-one-line · 48 of 48 clips",
+       "startedAt": 1793171402000,
+       "finishedAt": 1793171403500,
+       "energy": {
+        "wh": 123456.7,
+        "avgW": 245.5,
+        "cost": 12.5
+       }
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "h24": false,
+   "currency": "$",
+   "error": null,
+   "steps": [
+    {
+     "step": null,
+     "asked": [
+      "GET /api/jobs?vehicle=model-3"
+     ],
+     "status": "1 running · 6 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit cyan]",
+      "Convert 2026-10-30 (12 clips)",
+      "5 of 12 clips · H.265",
+      "conversion · #31",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 12m 34s",
+      "12.4 Wh · 61 W",
+      "[pit grn]",
+      "Scan Model 3",
+      "1,204 recordings",
+      "scan · #30",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 1:10:02 PM",
+      "took 42s",
+      "413 Wh · 8.0 W · $0.14",
+      "[pit red]",
+      "Empty Recycle Bin",
+      "EACCES: permission denied <share> & more",
+      "bin · #29",
+      "[pill red]",
+      "failed",
+      "Oct 30, 2026, 1:10:02 PM",
+      "took 1h 02m",
+      "[pit org]",
+      "Convert 2026-10-28",
+      "conversion · #28",
+      "[pill org]",
+      "interrupted",
+      "Oct 29, 2026, 1:10:02 PM",
+      "took —",
+      "[pit ]",
+      "Policy run",
+      "policy · #27",
+      "[pill ]",
+      "cancelled",
+      "Oct 29, 2026, 12:10:02 PM",
+      "took 9h 01m",
+      "5.21 kWh · $154",
+      "[pit ]",
+      "Convert 2026-10-27",
+      "Waiting for the encoder",
+      "conversion · #26",
+      "[pill ]",
+      "waiting",
+      "Oct 31, 2026, 12:10:02 PM",
+      "took 3h 00m"
+     ]
+    },
+    {
+     "step": {
+      "click": "[data-segs=\"js\"] [data-v=\"running\"]"
+     },
+     "asked": [],
+     "status": "1 running · 6 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg]",
+      "All",
+      "[seg on]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit cyan]",
+      "Convert 2026-10-30 (12 clips)",
+      "5 of 12 clips · H.265",
+      "conversion · #31",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 12m 34s",
+      "12.4 Wh · 61 W"
+     ]
+    },
+    {
+     "step": {
+      "click": "[data-segs=\"js\"] [data-v=\"done\"]"
+     },
+     "asked": [],
+     "status": "1 running · 6 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg on]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit grn]",
+      "Scan Model 3",
+      "1,204 recordings",
+      "scan · #30",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 1:10:02 PM",
+      "took 42s",
+      "413 Wh · 8.0 W · $0.14"
+     ]
+    },
+    {
+     "step": {
+      "click": "[data-segs=\"js\"] [data-v=\"failed\"]"
+     },
+     "asked": [],
+     "status": "1 running · 6 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg on]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit red]",
+      "Empty Recycle Bin",
+      "EACCES: permission denied <share> & more",
+      "bin · #29",
+      "[pill red]",
+      "failed",
+      "Oct 30, 2026, 1:10:02 PM",
+      "took 1h 02m"
+     ]
+    },
+    {
+     "step": {
+      "click": "[data-segs=\"js\"] [data-v=\"other\"]"
+     },
+     "asked": [],
+     "status": "1 running · 6 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg on]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit org]",
+      "Convert 2026-10-28",
+      "conversion · #28",
+      "[pill org]",
+      "interrupted",
+      "Oct 29, 2026, 1:10:02 PM",
+      "took —",
+      "[pit ]",
+      "Policy run",
+      "policy · #27",
+      "[pill ]",
+      "cancelled",
+      "Oct 29, 2026, 12:10:02 PM",
+      "took 9h 01m",
+      "5.21 kWh · $154"
+     ]
+    },
+    {
+     "step": {
+      "click": "[data-segs=\"js\"] [data-v=\"all\"]"
+     },
+     "asked": [],
+     "status": "1 running · 6 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit cyan]",
+      "Convert 2026-10-30 (12 clips)",
+      "5 of 12 clips · H.265",
+      "conversion · #31",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 12m 34s",
+      "12.4 Wh · 61 W",
+      "[pit grn]",
+      "Scan Model 3",
+      "1,204 recordings",
+      "scan · #30",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 1:10:02 PM",
+      "took 42s",
+      "413 Wh · 8.0 W · $0.14",
+      "[pit red]",
+      "Empty Recycle Bin",
+      "EACCES: permission denied <share> & more",
+      "bin · #29",
+      "[pill red]",
+      "failed",
+      "Oct 30, 2026, 1:10:02 PM",
+      "took 1h 02m",
+      "[pit org]",
+      "Convert 2026-10-28",
+      "conversion · #28",
+      "[pill org]",
+      "interrupted",
+      "Oct 29, 2026, 1:10:02 PM",
+      "took —",
+      "[pit ]",
+      "Policy run",
+      "policy · #27",
+      "[pill ]",
+      "cancelled",
+      "Oct 29, 2026, 12:10:02 PM",
+      "took 9h 01m",
+      "5.21 kWh · $154",
+      "[pit ]",
+      "Convert 2026-10-27",
+      "Waiting for the encoder",
+      "conversion · #26",
+      "[pill ]",
+      "waiting",
+      "Oct 31, 2026, 12:10:02 PM",
+      "took 3h 00m"
+     ]
+    },
+    {
+     "step": {
+      "type": "CONVERT"
+     },
+     "asked": [],
+     "status": "1 running · 6 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=CONVERT]",
+      "[list]",
+      "[pit cyan]",
+      "Convert 2026-10-30 (12 clips)",
+      "5 of 12 clips · H.265",
+      "conversion · #31",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 12m 34s",
+      "12.4 Wh · 61 W",
+      "[pit org]",
+      "Convert 2026-10-28",
+      "conversion · #28",
+      "[pill org]",
+      "interrupted",
+      "Oct 29, 2026, 1:10:02 PM",
+      "took —",
+      "[pit ]",
+      "Convert 2026-10-27",
+      "Waiting for the encoder",
+      "conversion · #26",
+      "[pill ]",
+      "waiting",
+      "Oct 31, 2026, 12:10:02 PM",
+      "took 3h 00m"
+     ]
+    },
+    {
+     "step": {
+      "type": "h.265"
+     },
+     "asked": [],
+     "status": "1 running · 6 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=h.265]",
+      "[list]",
+      "[pit cyan]",
+      "Convert 2026-10-30 (12 clips)",
+      "5 of 12 clips · H.265",
+      "conversion · #31",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 12m 34s",
+      "12.4 Wh · 61 W"
+     ]
+    },
+    {
+     "step": {
+      "type": "nothing like this"
+     },
+     "asked": [],
+     "status": "1 running · 6 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=nothing like this]",
+      "[list]",
+      "[blank]",
+      "No job matches."
+     ]
+    },
+    {
+     "step": {
+      "type": ""
+     },
+     "asked": [],
+     "status": "1 running · 6 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit cyan]",
+      "Convert 2026-10-30 (12 clips)",
+      "5 of 12 clips · H.265",
+      "conversion · #31",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 12m 34s",
+      "12.4 Wh · 61 W",
+      "[pit grn]",
+      "Scan Model 3",
+      "1,204 recordings",
+      "scan · #30",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 1:10:02 PM",
+      "took 42s",
+      "413 Wh · 8.0 W · $0.14",
+      "[pit red]",
+      "Empty Recycle Bin",
+      "EACCES: permission denied <share> & more",
+      "bin · #29",
+      "[pill red]",
+      "failed",
+      "Oct 30, 2026, 1:10:02 PM",
+      "took 1h 02m",
+      "[pit org]",
+      "Convert 2026-10-28",
+      "conversion · #28",
+      "[pill org]",
+      "interrupted",
+      "Oct 29, 2026, 1:10:02 PM",
+      "took —",
+      "[pit ]",
+      "Policy run",
+      "policy · #27",
+      "[pill ]",
+      "cancelled",
+      "Oct 29, 2026, 12:10:02 PM",
+      "took 9h 01m",
+      "5.21 kWh · $154",
+      "[pit ]",
+      "Convert 2026-10-27",
+      "Waiting for the encoder",
+      "conversion · #26",
+      "[pill ]",
+      "waiting",
+      "Oct 31, 2026, 12:10:02 PM",
+      "took 3h 00m"
+     ]
+    },
+    {
+     "step": {
+      "click": "[data-segs=\"jsc\"] [data-v=\"all\"]"
+     },
+     "asked": [
+      "GET /api/jobs"
+     ],
+     "status": "1 running · 7 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "7 jobs · 1 running · every vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg on]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg]",
+      "This vehicle",
+      "[seg on]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit cyan]",
+      "Convert 2026-10-30 (12 clips)",
+      "5 of 12 clips · H.265",
+      "conversion · #31",
+      "[pill cyan spin]",
+      "running",
+      "Oct 31, 2026, 2:57:28 PM",
+      "took 12m 34s",
+      "12.4 Wh · 61 W",
+      "[pit grn]",
+      "Scan Model 3",
+      "1,204 recordings",
+      "scan · #30",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 1:10:02 PM",
+      "took 42s",
+      "413 Wh · 8.0 W · $0.14",
+      "[pit red]",
+      "Empty Recycle Bin",
+      "EACCES: permission denied <share> & more",
+      "bin · #29",
+      "[pill red]",
+      "failed",
+      "Oct 30, 2026, 1:10:02 PM",
+      "took 1h 02m",
+      "[pit org]",
+      "Convert 2026-10-28",
+      "conversion · #28",
+      "[pill org]",
+      "interrupted",
+      "Oct 29, 2026, 1:10:02 PM",
+      "took —",
+      "[pit ]",
+      "Policy run",
+      "policy · #27",
+      "[pill ]",
+      "cancelled",
+      "Oct 29, 2026, 12:10:02 PM",
+      "took 9h 01m",
+      "5.21 kWh · $154",
+      "[pit ]",
+      "Convert 2026-10-27",
+      "Waiting for the encoder",
+      "conversion · #26",
+      "[pill ]",
+      "waiting",
+      "Oct 31, 2026, 12:10:02 PM",
+      "took 3h 00m",
+      "[pit grn]",
+      "Convert 2026-10-27 Model 3 Long Range with a name far too long for one line of the pit log at all",
+      "TeslaCam/SavedClips/2026-10-27_18-04-11/a-folder-name-that-is-far-too-long-to-fit-on-one-line · 48 of 48 clips",
+      "conversion-with-a-long-type-name · #25",
+      "[pill grn]",
+      "done",
+      "Oct 28, 2026, 7:10:02 AM",
+      "took 2s",
+      "123.46 kWh · 246 W · $12.50"
+     ]
+    },
+    {
+     "step": {
+      "click": "[data-segs=\"js\"] [data-v=\"done\"]"
+     },
+     "asked": [],
+     "status": "1 running · 7 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "7 jobs · 1 running · every vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg on]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg]",
+      "This vehicle",
+      "[seg on]",
+      "Every vehicle",
+      "[input q=]",
+      "[list]",
+      "[pit grn]",
+      "Scan Model 3",
+      "1,204 recordings",
+      "scan · #30",
+      "[pill grn]",
+      "done",
+      "Oct 31, 2026, 1:10:02 PM",
+      "took 42s",
+      "413 Wh · 8.0 W · $0.14",
+      "[pit grn]",
+      "Convert 2026-10-27 Model 3 Long Range with a name far too long for one line of the pit log at all",
+      "TeslaCam/SavedClips/2026-10-27_18-04-11/a-folder-name-that-is-far-too-long-to-fit-on-one-line · 48 of 48 clips",
+      "conversion-with-a-long-type-name · #25",
+      "[pill grn]",
+      "done",
+      "Oct 28, 2026, 7:10:02 AM",
+      "took 2s",
+      "123.46 kWh · 246 W · $12.50"
+     ]
+    },
+    {
+     "step": {
+      "type": "long"
+     },
+     "asked": [],
+     "status": "1 running · 7 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "7 jobs · 1 running · every vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg on]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg]",
+      "This vehicle",
+      "[seg on]",
+      "Every vehicle",
+      "[input q=long]",
+      "[list]",
+      "[pit grn]",
+      "Convert 2026-10-27 Model 3 Long Range with a name far too long for one line of the pit log at all",
+      "TeslaCam/SavedClips/2026-10-27_18-04-11/a-folder-name-that-is-far-too-long-to-fit-on-one-line · 48 of 48 clips",
+      "conversion-with-a-long-type-name · #25",
+      "[pill grn]",
+      "done",
+      "Oct 28, 2026, 7:10:02 AM",
+      "took 2s",
+      "123.46 kWh · 246 W · $12.50"
+     ]
+    },
+    {
+     "step": {
+      "click": "[data-segs=\"jsc\"] [data-v=\"car\"]"
+     },
+     "asked": [
+      "GET /api/jobs?vehicle=model-3"
+     ],
+     "status": "1 running · 6 jobs",
+     "outline": [
+      "[title]",
+      "Jobs",
+      "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+      "[btn]",
+      "Clear finished…",
+      "[segs js]",
+      "[seg]",
+      "All",
+      "[seg]",
+      "Running",
+      "[seg on]",
+      "Done",
+      "[seg]",
+      "Failed",
+      "[seg]",
+      "Stopped",
+      "[segs jsc]",
+      "[seg on]",
+      "This vehicle",
+      "[seg]",
+      "Every vehicle",
+      "[input q=long]",
+      "[list]",
+      "[blank]",
+      "No job matches."
+     ]
+    }
+   ]
+  }
+ ],
+ "actions": [
+  {
+   "name": "clear",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      }
+     ]
+    },
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 3
+      },
+      {
+       "cleared": 3
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "confirm": true,
+   "scope": "car",
+   "params": "",
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"confirm\":true}",
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "dialogs": [
+    {
+     "text": [
+      "Clear finished jobs?",
+      "3 finished jobs",
+      "(done, failed, cancelled or interrupted) of Model 3 leave the list. Running, waiting and paused ones stay.",
+      "Only the list changes: footage, converted files and what a paused conversion needs are untouched.",
+      "[btn no]",
+      "Cancel",
+      "[btn yes go]",
+      "Clear jobs"
+     ],
+     "answer": "yes"
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Cleared 3 jobs.",
+     "tone": "ok"
+    }
+   ],
+   "disabled": false,
+   "outline": [
+    "[title]",
+    "Jobs",
+    "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+    "[btn]",
+    "Clear finished…",
+    "[segs js]",
+    "[seg on]",
+    "All",
+    "[seg]",
+    "Running",
+    "[seg]",
+    "Done",
+    "[seg]",
+    "Failed",
+    "[seg]",
+    "Stopped",
+    "[segs jsc]",
+    "[seg on]",
+    "This vehicle",
+    "[seg]",
+    "Every vehicle",
+    "[input q=]",
+    "[list]",
+    "[pit cyan]",
+    "Convert 2026-10-30 (12 clips)",
+    "5 of 12 clips · H.265",
+    "conversion · #31",
+    "[pill cyan spin]",
+    "running",
+    "Oct 31, 2026, 2:57:28 PM",
+    "took 12m 34s",
+    "12.4 Wh · 61 W",
+    "[pit grn]",
+    "Scan Model 3",
+    "1,204 recordings",
+    "scan · #30",
+    "[pill grn]",
+    "done",
+    "Oct 31, 2026, 1:10:02 PM",
+    "took 42s",
+    "413 Wh · 8.0 W · $0.14",
+    "[pit red]",
+    "Empty Recycle Bin",
+    "EACCES: permission denied <share> & more",
+    "bin · #29",
+    "[pill red]",
+    "failed",
+    "Oct 30, 2026, 1:10:02 PM",
+    "took 1h 02m",
+    "[pit org]",
+    "Convert 2026-10-28",
+    "conversion · #28",
+    "[pill org]",
+    "interrupted",
+    "Oct 29, 2026, 1:10:02 PM",
+    "took —",
+    "[pit ]",
+    "Policy run",
+    "policy · #27",
+    "[pill ]",
+    "cancelled",
+    "Oct 29, 2026, 12:10:02 PM",
+    "took 9h 01m",
+    "5.21 kWh · $154",
+    "[pit ]",
+    "Convert 2026-10-27",
+    "Waiting for the encoder",
+    "conversion · #26",
+    "[pill ]",
+    "waiting",
+    "Oct 31, 2026, 12:10:02 PM",
+    "took 3h 00m"
+   ]
+  },
+  {
+   "name": "clear-one",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      }
+     ]
+    },
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 1
+      },
+      {
+       "cleared": 1
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "confirm": true,
+   "scope": "car",
+   "params": "",
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"confirm\":true}",
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "dialogs": [
+    {
+     "text": [
+      "Clear finished jobs?",
+      "1 finished job",
+      "(done, failed, cancelled or interrupted) of Model 3 leave the list. Running, waiting and paused ones stay.",
+      "Only the list changes: footage, converted files and what a paused conversion needs are untouched.",
+      "[btn no]",
+      "Cancel",
+      "[btn yes go]",
+      "Clear jobs"
+     ],
+     "answer": "yes"
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Cleared 1 job.",
+     "tone": "ok"
+    }
+   ],
+   "disabled": false,
+   "outline": [
+    "[title]",
+    "Jobs",
+    "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+    "[btn]",
+    "Clear finished…",
+    "[segs js]",
+    "[seg on]",
+    "All",
+    "[seg]",
+    "Running",
+    "[seg]",
+    "Done",
+    "[seg]",
+    "Failed",
+    "[seg]",
+    "Stopped",
+    "[segs jsc]",
+    "[seg on]",
+    "This vehicle",
+    "[seg]",
+    "Every vehicle",
+    "[input q=]",
+    "[list]",
+    "[pit cyan]",
+    "Convert 2026-10-30 (12 clips)",
+    "5 of 12 clips · H.265",
+    "conversion · #31",
+    "[pill cyan spin]",
+    "running",
+    "Oct 31, 2026, 2:57:28 PM",
+    "took 12m 34s",
+    "12.4 Wh · 61 W",
+    "[pit grn]",
+    "Scan Model 3",
+    "1,204 recordings",
+    "scan · #30",
+    "[pill grn]",
+    "done",
+    "Oct 31, 2026, 1:10:02 PM",
+    "took 42s",
+    "413 Wh · 8.0 W · $0.14",
+    "[pit red]",
+    "Empty Recycle Bin",
+    "EACCES: permission denied <share> & more",
+    "bin · #29",
+    "[pill red]",
+    "failed",
+    "Oct 30, 2026, 1:10:02 PM",
+    "took 1h 02m",
+    "[pit org]",
+    "Convert 2026-10-28",
+    "conversion · #28",
+    "[pill org]",
+    "interrupted",
+    "Oct 29, 2026, 1:10:02 PM",
+    "took —",
+    "[pit ]",
+    "Policy run",
+    "policy · #27",
+    "[pill ]",
+    "cancelled",
+    "Oct 29, 2026, 12:10:02 PM",
+    "took 9h 01m",
+    "5.21 kWh · $154",
+    "[pit ]",
+    "Convert 2026-10-27",
+    "Waiting for the encoder",
+    "conversion · #26",
+    "[pill ]",
+    "waiting",
+    "Oct 31, 2026, 12:10:02 PM",
+    "took 3h 00m"
+   ]
+  },
+  {
+   "name": "clear-html",
+   "answers": {
+    "GET /api/jobs?vehicle=a%20b%26c": {
+     "jobs": [
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      }
+     ]
+    },
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 2
+      },
+      {
+       "cleared": 2
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "a b&c",
+    "name": "A <car> & co"
+   },
+   "confirm": true,
+   "scope": "car",
+   "params": "",
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"a b&c\",\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":\"a b&c\",\"confirm\":true}",
+    "GET /api/jobs?vehicle=a%20b%26c"
+   ],
+   "dialogs": [
+    {
+     "text": [
+      "Clear finished jobs?",
+      "2 finished jobs",
+      "(done, failed, cancelled or interrupted) of A <car> & co leave the list. Running, waiting and paused ones stay.",
+      "Only the list changes: footage, converted files and what a paused conversion needs are untouched.",
+      "[btn no]",
+      "Cancel",
+      "[btn yes go]",
+      "Clear jobs"
+     ],
+     "answer": "yes"
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Cleared 2 jobs.",
+     "tone": "ok"
+    }
+   ],
+   "disabled": false,
+   "outline": [
+    "[title]",
+    "Jobs",
+    "1 job · 0 running · A <car> & co and jobs of no vehicle",
+    "[btn]",
+    "Clear finished…",
+    "[segs js]",
+    "[seg on]",
+    "All",
+    "[seg]",
+    "Running",
+    "[seg]",
+    "Done",
+    "[seg]",
+    "Failed",
+    "[seg]",
+    "Stopped",
+    "[segs jsc]",
+    "[seg on]",
+    "This vehicle",
+    "[seg]",
+    "Every vehicle",
+    "[input q=]",
+    "[list]",
+    "[pit grn]",
+    "Scan Model 3",
+    "1,204 recordings",
+    "scan · #30",
+    "[pill grn]",
+    "done",
+    "Oct 31, 2026, 1:10:02 PM",
+    "took 42s",
+    "413 Wh · 8.0 W · $0.14"
+   ]
+  },
+  {
+   "name": "clear-every-vehicle",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      }
+     ]
+    },
+    "GET /api/jobs": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      }
+     ]
+    },
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 1204
+      },
+      {
+       "cleared": 1204
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "confirm": true,
+   "scope": "all",
+   "params": "",
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":null,\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":null,\"confirm\":true}",
+    "GET /api/jobs"
+   ],
+   "dialogs": [
+    {
+     "text": [
+      "Clear finished jobs?",
+      "1,204 finished jobs",
+      "(done, failed, cancelled or interrupted) leave the list. Running, waiting and paused ones stay.",
+      "Only the list changes: footage, converted files and what a paused conversion needs are untouched.",
+      "[btn no]",
+      "Cancel",
+      "[btn yes go]",
+      "Clear jobs"
+     ],
+     "answer": "yes"
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Cleared 1,204 jobs.",
+     "tone": "ok"
+    }
+   ],
+   "disabled": false,
+   "outline": [
+    "[title]",
+    "Jobs",
+    "6 jobs · 1 running · every vehicle",
+    "[btn]",
+    "Clear finished…",
+    "[segs js]",
+    "[seg on]",
+    "All",
+    "[seg]",
+    "Running",
+    "[seg]",
+    "Done",
+    "[seg]",
+    "Failed",
+    "[seg]",
+    "Stopped",
+    "[segs jsc]",
+    "[seg]",
+    "This vehicle",
+    "[seg on]",
+    "Every vehicle",
+    "[input q=]",
+    "[list]",
+    "[pit cyan]",
+    "Convert 2026-10-30 (12 clips)",
+    "5 of 12 clips · H.265",
+    "conversion · #31",
+    "[pill cyan spin]",
+    "running",
+    "Oct 31, 2026, 2:57:28 PM",
+    "took 12m 34s",
+    "12.4 Wh · 61 W",
+    "[pit grn]",
+    "Scan Model 3",
+    "1,204 recordings",
+    "scan · #30",
+    "[pill grn]",
+    "done",
+    "Oct 31, 2026, 1:10:02 PM",
+    "took 42s",
+    "413 Wh · 8.0 W · $0.14",
+    "[pit red]",
+    "Empty Recycle Bin",
+    "EACCES: permission denied <share> & more",
+    "bin · #29",
+    "[pill red]",
+    "failed",
+    "Oct 30, 2026, 1:10:02 PM",
+    "took 1h 02m",
+    "[pit org]",
+    "Convert 2026-10-28",
+    "conversion · #28",
+    "[pill org]",
+    "interrupted",
+    "Oct 29, 2026, 1:10:02 PM",
+    "took —",
+    "[pit ]",
+    "Policy run",
+    "policy · #27",
+    "[pill ]",
+    "cancelled",
+    "Oct 29, 2026, 12:10:02 PM",
+    "took 9h 01m",
+    "5.21 kWh · $154",
+    "[pit ]",
+    "Convert 2026-10-27",
+    "Waiting for the encoder",
+    "conversion · #26",
+    "[pill ]",
+    "waiting",
+    "Oct 31, 2026, 12:10:02 PM",
+    "took 3h 00m"
+   ]
+  },
+  {
+   "name": "clear-novehicle",
+   "answers": {
+    "GET /api/jobs": {
+     "jobs": [
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      }
+     ]
+    },
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 2
+      },
+      {
+       "cleared": 2
+      }
+     ]
+    }
+   },
+   "vehicle": null,
+   "confirm": true,
+   "scope": "car",
+   "params": "",
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":null,\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":null,\"confirm\":true}",
+    "GET /api/jobs"
+   ],
+   "dialogs": [
+    {
+     "text": [
+      "Clear finished jobs?",
+      "2 finished jobs",
+      "(done, failed, cancelled or interrupted) leave the list. Running, waiting and paused ones stay.",
+      "Only the list changes: footage, converted files and what a paused conversion needs are untouched.",
+      "[btn no]",
+      "Cancel",
+      "[btn yes go]",
+      "Clear jobs"
+     ],
+     "answer": "yes"
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Cleared 2 jobs.",
+     "tone": "ok"
+    }
+   ],
+   "disabled": false,
+   "outline": [
+    "[title]",
+    "Jobs",
+    "1 job · 0 running · every vehicle",
+    "[btn]",
+    "Clear finished…",
+    "[segs js]",
+    "[seg on]",
+    "All",
+    "[seg]",
+    "Running",
+    "[seg]",
+    "Done",
+    "[seg]",
+    "Failed",
+    "[seg]",
+    "Stopped",
+    "[segs jsc]",
+    "[seg on]",
+    "This vehicle",
+    "[seg]",
+    "Every vehicle",
+    "[input q=]",
+    "[list]",
+    "[pit grn]",
+    "Scan Model 3",
+    "1,204 recordings",
+    "scan · #30",
+    "[pill grn]",
+    "done",
+    "Oct 31, 2026, 1:10:02 PM",
+    "took 42s",
+    "413 Wh · 8.0 W · $0.14"
+   ]
+  },
+  {
+   "name": "clear-nothing",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      }
+     ]
+    },
+    "POST /api/jobs/clear": {
+     "jobs": 0
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "confirm": true,
+   "scope": "car",
+   "params": "",
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}"
+   ],
+   "dialogs": [],
+   "toasts": [
+    {
+     "text": "Nothing to clear: running, waiting and paused jobs stay.",
+     "tone": "ok"
+    }
+   ],
+   "disabled": false,
+   "outline": [
+    "[title]",
+    "Jobs",
+    "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+    "[btn]",
+    "Clear finished…",
+    "[segs js]",
+    "[seg on]",
+    "All",
+    "[seg]",
+    "Running",
+    "[seg]",
+    "Done",
+    "[seg]",
+    "Failed",
+    "[seg]",
+    "Stopped",
+    "[segs jsc]",
+    "[seg on]",
+    "This vehicle",
+    "[seg]",
+    "Every vehicle",
+    "[input q=]",
+    "[list]",
+    "[pit cyan]",
+    "Convert 2026-10-30 (12 clips)",
+    "5 of 12 clips · H.265",
+    "conversion · #31",
+    "[pill cyan spin]",
+    "running",
+    "Oct 31, 2026, 2:57:28 PM",
+    "took 12m 34s",
+    "12.4 Wh · 61 W",
+    "[pit grn]",
+    "Scan Model 3",
+    "1,204 recordings",
+    "scan · #30",
+    "[pill grn]",
+    "done",
+    "Oct 31, 2026, 1:10:02 PM",
+    "took 42s",
+    "413 Wh · 8.0 W · $0.14",
+    "[pit red]",
+    "Empty Recycle Bin",
+    "EACCES: permission denied <share> & more",
+    "bin · #29",
+    "[pill red]",
+    "failed",
+    "Oct 30, 2026, 1:10:02 PM",
+    "took 1h 02m",
+    "[pit org]",
+    "Convert 2026-10-28",
+    "conversion · #28",
+    "[pill org]",
+    "interrupted",
+    "Oct 29, 2026, 1:10:02 PM",
+    "took —",
+    "[pit ]",
+    "Policy run",
+    "policy · #27",
+    "[pill ]",
+    "cancelled",
+    "Oct 29, 2026, 12:10:02 PM",
+    "took 9h 01m",
+    "5.21 kWh · $154",
+    "[pit ]",
+    "Convert 2026-10-27",
+    "Waiting for the encoder",
+    "conversion · #26",
+    "[pill ]",
+    "waiting",
+    "Oct 31, 2026, 12:10:02 PM",
+    "took 3h 00m"
+   ]
+  },
+  {
+   "name": "clear-cancelled",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      }
+     ]
+    },
+    "POST /api/jobs/clear": {
+     "jobs": 4
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "confirm": false,
+   "scope": "car",
+   "params": "",
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}"
+   ],
+   "dialogs": [
+    {
+     "text": [
+      "Clear finished jobs?",
+      "4 finished jobs",
+      "(done, failed, cancelled or interrupted) of Model 3 leave the list. Running, waiting and paused ones stay.",
+      "Only the list changes: footage, converted files and what a paused conversion needs are untouched.",
+      "[btn no]",
+      "Cancel",
+      "[btn yes go]",
+      "Clear jobs"
+     ],
+     "answer": "no"
+    }
+   ],
+   "toasts": [],
+   "disabled": false,
+   "outline": [
+    "[title]",
+    "Jobs",
+    "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+    "[btn]",
+    "Clear finished…",
+    "[segs js]",
+    "[seg on]",
+    "All",
+    "[seg]",
+    "Running",
+    "[seg]",
+    "Done",
+    "[seg]",
+    "Failed",
+    "[seg]",
+    "Stopped",
+    "[segs jsc]",
+    "[seg on]",
+    "This vehicle",
+    "[seg]",
+    "Every vehicle",
+    "[input q=]",
+    "[list]",
+    "[pit cyan]",
+    "Convert 2026-10-30 (12 clips)",
+    "5 of 12 clips · H.265",
+    "conversion · #31",
+    "[pill cyan spin]",
+    "running",
+    "Oct 31, 2026, 2:57:28 PM",
+    "took 12m 34s",
+    "12.4 Wh · 61 W",
+    "[pit grn]",
+    "Scan Model 3",
+    "1,204 recordings",
+    "scan · #30",
+    "[pill grn]",
+    "done",
+    "Oct 31, 2026, 1:10:02 PM",
+    "took 42s",
+    "413 Wh · 8.0 W · $0.14",
+    "[pit red]",
+    "Empty Recycle Bin",
+    "EACCES: permission denied <share> & more",
+    "bin · #29",
+    "[pill red]",
+    "failed",
+    "Oct 30, 2026, 1:10:02 PM",
+    "took 1h 02m",
+    "[pit org]",
+    "Convert 2026-10-28",
+    "conversion · #28",
+    "[pill org]",
+    "interrupted",
+    "Oct 29, 2026, 1:10:02 PM",
+    "took —",
+    "[pit ]",
+    "Policy run",
+    "policy · #27",
+    "[pill ]",
+    "cancelled",
+    "Oct 29, 2026, 12:10:02 PM",
+    "took 9h 01m",
+    "5.21 kWh · $154",
+    "[pit ]",
+    "Convert 2026-10-27",
+    "Waiting for the encoder",
+    "conversion · #26",
+    "[pill ]",
+    "waiting",
+    "Oct 31, 2026, 12:10:02 PM",
+    "took 3h 00m"
+   ]
+  },
+  {
+   "name": "clear-preview-failed",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      }
+     ]
+    },
+    "POST /api/jobs/clear": {
+     "$error": "The server stopped."
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "confirm": true,
+   "scope": "car",
+   "params": "",
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}"
+   ],
+   "dialogs": [],
+   "toasts": [
+    {
+     "text": "The server stopped.",
+     "tone": "bad"
+    }
+   ],
+   "disabled": false,
+   "outline": [
+    "[title]",
+    "Jobs",
+    "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+    "[btn]",
+    "Clear finished…",
+    "[segs js]",
+    "[seg on]",
+    "All",
+    "[seg]",
+    "Running",
+    "[seg]",
+    "Done",
+    "[seg]",
+    "Failed",
+    "[seg]",
+    "Stopped",
+    "[segs jsc]",
+    "[seg on]",
+    "This vehicle",
+    "[seg]",
+    "Every vehicle",
+    "[input q=]",
+    "[list]",
+    "[pit cyan]",
+    "Convert 2026-10-30 (12 clips)",
+    "5 of 12 clips · H.265",
+    "conversion · #31",
+    "[pill cyan spin]",
+    "running",
+    "Oct 31, 2026, 2:57:28 PM",
+    "took 12m 34s",
+    "12.4 Wh · 61 W",
+    "[pit grn]",
+    "Scan Model 3",
+    "1,204 recordings",
+    "scan · #30",
+    "[pill grn]",
+    "done",
+    "Oct 31, 2026, 1:10:02 PM",
+    "took 42s",
+    "413 Wh · 8.0 W · $0.14",
+    "[pit red]",
+    "Empty Recycle Bin",
+    "EACCES: permission denied <share> & more",
+    "bin · #29",
+    "[pill red]",
+    "failed",
+    "Oct 30, 2026, 1:10:02 PM",
+    "took 1h 02m",
+    "[pit org]",
+    "Convert 2026-10-28",
+    "conversion · #28",
+    "[pill org]",
+    "interrupted",
+    "Oct 29, 2026, 1:10:02 PM",
+    "took —",
+    "[pit ]",
+    "Policy run",
+    "policy · #27",
+    "[pill ]",
+    "cancelled",
+    "Oct 29, 2026, 12:10:02 PM",
+    "took 9h 01m",
+    "5.21 kWh · $154",
+    "[pit ]",
+    "Convert 2026-10-27",
+    "Waiting for the encoder",
+    "conversion · #26",
+    "[pill ]",
+    "waiting",
+    "Oct 31, 2026, 12:10:02 PM",
+    "took 3h 00m"
+   ]
+  },
+  {
+   "name": "clear-failed",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      }
+     ]
+    },
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 2
+      },
+      {
+       "$error": "Jobs are being written."
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "confirm": true,
+   "scope": "car",
+   "params": "",
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"confirm\":true}",
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "dialogs": [
+    {
+     "text": [
+      "Clear finished jobs?",
+      "2 finished jobs",
+      "(done, failed, cancelled or interrupted) of Model 3 leave the list. Running, waiting and paused ones stay.",
+      "Only the list changes: footage, converted files and what a paused conversion needs are untouched.",
+      "[btn no]",
+      "Cancel",
+      "[btn yes go]",
+      "Clear jobs"
+     ],
+     "answer": "yes"
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Jobs are being written.",
+     "tone": "bad"
+    }
+   ],
+   "disabled": false,
+   "outline": [
+    "[title]",
+    "Jobs",
+    "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+    "[btn]",
+    "Clear finished…",
+    "[segs js]",
+    "[seg on]",
+    "All",
+    "[seg]",
+    "Running",
+    "[seg]",
+    "Done",
+    "[seg]",
+    "Failed",
+    "[seg]",
+    "Stopped",
+    "[segs jsc]",
+    "[seg on]",
+    "This vehicle",
+    "[seg]",
+    "Every vehicle",
+    "[input q=]",
+    "[list]",
+    "[pit cyan]",
+    "Convert 2026-10-30 (12 clips)",
+    "5 of 12 clips · H.265",
+    "conversion · #31",
+    "[pill cyan spin]",
+    "running",
+    "Oct 31, 2026, 2:57:28 PM",
+    "took 12m 34s",
+    "12.4 Wh · 61 W",
+    "[pit grn]",
+    "Scan Model 3",
+    "1,204 recordings",
+    "scan · #30",
+    "[pill grn]",
+    "done",
+    "Oct 31, 2026, 1:10:02 PM",
+    "took 42s",
+    "413 Wh · 8.0 W · $0.14",
+    "[pit red]",
+    "Empty Recycle Bin",
+    "EACCES: permission denied <share> & more",
+    "bin · #29",
+    "[pill red]",
+    "failed",
+    "Oct 30, 2026, 1:10:02 PM",
+    "took 1h 02m",
+    "[pit org]",
+    "Convert 2026-10-28",
+    "conversion · #28",
+    "[pill org]",
+    "interrupted",
+    "Oct 29, 2026, 1:10:02 PM",
+    "took —",
+    "[pit ]",
+    "Policy run",
+    "policy · #27",
+    "[pill ]",
+    "cancelled",
+    "Oct 29, 2026, 12:10:02 PM",
+    "took 9h 01m",
+    "5.21 kWh · $154",
+    "[pit ]",
+    "Convert 2026-10-27",
+    "Waiting for the encoder",
+    "conversion · #26",
+    "[pill ]",
+    "waiting",
+    "Oct 31, 2026, 12:10:02 PM",
+    "took 3h 00m"
+   ]
+  },
+  {
+   "name": "clear-none-cleared",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      }
+     ]
+    },
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 2
+      },
+      {}
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "confirm": true,
+   "scope": "car",
+   "params": "",
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"confirm\":true}",
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "dialogs": [
+    {
+     "text": [
+      "Clear finished jobs?",
+      "2 finished jobs",
+      "(done, failed, cancelled or interrupted) of Model 3 leave the list. Running, waiting and paused ones stay.",
+      "Only the list changes: footage, converted files and what a paused conversion needs are untouched.",
+      "[btn no]",
+      "Cancel",
+      "[btn yes go]",
+      "Clear jobs"
+     ],
+     "answer": "yes"
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Cleared 0 jobs.",
+     "tone": "ok"
+    }
+   ],
+   "disabled": false,
+   "outline": [
+    "[title]",
+    "Jobs",
+    "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+    "[btn]",
+    "Clear finished…",
+    "[segs js]",
+    "[seg on]",
+    "All",
+    "[seg]",
+    "Running",
+    "[seg]",
+    "Done",
+    "[seg]",
+    "Failed",
+    "[seg]",
+    "Stopped",
+    "[segs jsc]",
+    "[seg on]",
+    "This vehicle",
+    "[seg]",
+    "Every vehicle",
+    "[input q=]",
+    "[list]",
+    "[pit cyan]",
+    "Convert 2026-10-30 (12 clips)",
+    "5 of 12 clips · H.265",
+    "conversion · #31",
+    "[pill cyan spin]",
+    "running",
+    "Oct 31, 2026, 2:57:28 PM",
+    "took 12m 34s",
+    "12.4 Wh · 61 W",
+    "[pit grn]",
+    "Scan Model 3",
+    "1,204 recordings",
+    "scan · #30",
+    "[pill grn]",
+    "done",
+    "Oct 31, 2026, 1:10:02 PM",
+    "took 42s",
+    "413 Wh · 8.0 W · $0.14",
+    "[pit red]",
+    "Empty Recycle Bin",
+    "EACCES: permission denied <share> & more",
+    "bin · #29",
+    "[pill red]",
+    "failed",
+    "Oct 30, 2026, 1:10:02 PM",
+    "took 1h 02m",
+    "[pit org]",
+    "Convert 2026-10-28",
+    "conversion · #28",
+    "[pill org]",
+    "interrupted",
+    "Oct 29, 2026, 1:10:02 PM",
+    "took —",
+    "[pit ]",
+    "Policy run",
+    "policy · #27",
+    "[pill ]",
+    "cancelled",
+    "Oct 29, 2026, 12:10:02 PM",
+    "took 9h 01m",
+    "5.21 kWh · $154",
+    "[pit ]",
+    "Convert 2026-10-27",
+    "Waiting for the encoder",
+    "conversion · #26",
+    "[pill ]",
+    "waiting",
+    "Oct 31, 2026, 12:10:02 PM",
+    "took 3h 00m"
+   ]
+  },
+  {
+   "name": "clear-param",
+   "answers": {
+    "GET /api/jobs?vehicle=model-3": {
+     "jobs": [
+      {
+       "id": 31,
+       "type": "conversion",
+       "status": "running",
+       "title": "Convert 2026-10-30 (12 clips)",
+       "detail": "5 of 12 clips · H.265",
+       "startedAt": 1793458648000,
+       "finishedAt": null,
+       "energy": {
+        "wh": 12.44,
+        "avgW": 61.3,
+        "cost": null
+       }
+      },
+      {
+       "id": 30,
+       "type": "scan",
+       "status": "done",
+       "title": "Scan Model 3",
+       "detail": "1,204 recordings",
+       "startedAt": 1793452202000,
+       "finishedAt": 1793452244400,
+       "energy": {
+        "wh": 412.6,
+        "avgW": 8.04,
+        "cost": 0.1449
+       }
+      },
+      {
+       "id": 29,
+       "type": "bin",
+       "status": "failed",
+       "title": "Empty Recycle Bin",
+       "detail": "EACCES: permission denied <share> & more",
+       "startedAt": 1793365802000,
+       "finishedAt": 1793369527000,
+       "energy": null
+      },
+      {
+       "id": 28,
+       "type": "conversion",
+       "status": "interrupted",
+       "title": "Convert 2026-10-28",
+       "detail": "",
+       "startedAt": 1793279402000,
+       "finishedAt": null
+      },
+      {
+       "id": 27,
+       "type": "policy",
+       "status": "cancelled",
+       "title": "Policy run",
+       "detail": null,
+       "startedAt": 1793275802000,
+       "finishedAt": 1793308263000,
+       "energy": {
+        "wh": 5210,
+        "cost": 154.4
+       }
+      },
+      {
+       "id": 26,
+       "type": "conversion",
+       "status": "waiting",
+       "title": "Convert 2026-10-27",
+       "detail": "Waiting for the encoder",
+       "startedAt": 1793448602000
+      }
+     ]
+    },
+    "POST /api/jobs/clear": {
+     "$seq": [
+      {
+       "jobs": 1
+      },
+      {
+       "cleared": 1
+      }
+     ]
+    }
+   },
+   "vehicle": {
+    "id": "model-3",
+    "name": "Model 3"
+   },
+   "confirm": true,
+   "scope": "car",
+   "params": "clear=1",
+   "asked": [
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"preview\":true}",
+    "POST /api/jobs/clear {\"vehicle\":\"model-3\",\"confirm\":true}",
+    "GET /api/jobs?vehicle=model-3"
+   ],
+   "dialogs": [
+    {
+     "text": [
+      "Clear finished jobs?",
+      "1 finished job",
+      "(done, failed, cancelled or interrupted) of Model 3 leave the list. Running, waiting and paused ones stay.",
+      "Only the list changes: footage, converted files and what a paused conversion needs are untouched.",
+      "[btn no]",
+      "Cancel",
+      "[btn yes go]",
+      "Clear jobs"
+     ],
+     "answer": "yes"
+    }
+   ],
+   "toasts": [
+    {
+     "text": "Cleared 1 job.",
+     "tone": "ok"
+    }
+   ],
+   "disabled": false,
+   "outline": [
+    "[title]",
+    "Jobs",
+    "6 jobs · 1 running · Model 3 and jobs of no vehicle",
+    "[btn]",
+    "Clear finished…",
+    "[segs js]",
+    "[seg on]",
+    "All",
+    "[seg]",
+    "Running",
+    "[seg]",
+    "Done",
+    "[seg]",
+    "Failed",
+    "[seg]",
+    "Stopped",
+    "[segs jsc]",
+    "[seg on]",
+    "This vehicle",
+    "[seg]",
+    "Every vehicle",
+    "[input q=]",
+    "[list]",
+    "[pit cyan]",
+    "Convert 2026-10-30 (12 clips)",
+    "5 of 12 clips · H.265",
+    "conversion · #31",
+    "[pill cyan spin]",
+    "running",
+    "Oct 31, 2026, 2:57:28 PM",
+    "took 12m 34s",
+    "12.4 Wh · 61 W",
+    "[pit grn]",
+    "Scan Model 3",
+    "1,204 recordings",
+    "scan · #30",
+    "[pill grn]",
+    "done",
+    "Oct 31, 2026, 1:10:02 PM",
+    "took 42s",
+    "413 Wh · 8.0 W · $0.14",
+    "[pit red]",
+    "Empty Recycle Bin",
+    "EACCES: permission denied <share> & more",
+    "bin · #29",
+    "[pill red]",
+    "failed",
+    "Oct 30, 2026, 1:10:02 PM",
+    "took 1h 02m",
+    "[pit org]",
+    "Convert 2026-10-28",
+    "conversion · #28",
+    "[pill org]",
+    "interrupted",
+    "Oct 29, 2026, 1:10:02 PM",
+    "took —",
+    "[pit ]",
+    "Policy run",
+    "policy · #27",
+    "[pill ]",
+    "cancelled",
+    "Oct 29, 2026, 12:10:02 PM",
+    "took 9h 01m",
+    "5.21 kWh · $154",
+    "[pit ]",
+    "Convert 2026-10-27",
+    "Waiting for the encoder",
+    "conversion · #26",
+    "[pill ]",
+    "waiting",
+    "Oct 31, 2026, 12:10:02 PM",
+    "took 3h 00m"
+   ]
+  }
+ ]
+}

@@ -1,9 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Threading;
+using System.Windows.Threading;
+using SentrySix.Core;
+using SentrySix.Core.Horizon;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -39,6 +44,32 @@ namespace SentrySix.Ui.Horizon
             { "dashboard", "Dash" }, { "vehicles", "Per car" }, { "bin", "Bin" }, { "alerts", "Alerts" }
         };
         public IReadOnlyList<PageDef> Pages { get { return pages; } }
+
+        // the pages drawn here ([PackPage("horizon", route)]); the others open in the browser
+        static readonly Dictionary<string, Func<IPackPage>> native = PackPageAttribute.Of("horizon");
+
+        static HorizonInterface()
+        {
+            foreach (string key in native.Keys)
+            {
+                int slash = key.IndexOf('/');
+                string id = slash < 0 ? key : key.Substring(0, slash);
+                foreach (PageDef p in pages)
+                {
+                    if (p.Id != id) continue;
+                    if (slash < 0) p.Native = true;
+                    else p.NativeSubs.Add(key.Substring(slash + 1));
+                }
+            }
+        }
+
+        static Func<IPackPage> NativeFor(string id, string sub)
+        {
+            Func<IPackPage> make;
+            string first = string.IsNullOrEmpty(sub) ? "" : sub.Split('/', '?')[0];
+            if (first.Length > 0 && native.TryGetValue(id + "/" + first, out make)) return make;
+            return native.TryGetValue(id, out make) ? make : null;
+        }
 
         static string ShortOf(PageDef p)
         {
@@ -340,6 +371,7 @@ namespace SentrySix.Ui.Horizon
         {
             readonly ShellModel m;
             public readonly Grid Root = new Grid();
+            HzOverlay overlay;
             readonly HorizonSky sky;
             readonly Grid dash = new Grid();
             readonly Border dashBox = new Border();
@@ -404,6 +436,8 @@ namespace SentrySix.Ui.Horizon
                 for (int i = 0; i < pages.Length; i++) (i < 5 ? navA : navB).Children.Add(NavItem(pages[i]));
                 navA.Justify = "end";
                 navB.Justify = "start";
+                // .dash-nav: min-width 0, overflow visible (a label wider than its track spills over the gap)
+                navA.Overflow = navB.Overflow = true;
 
                 // the radio display
                 BtnLook seek = new BtnLook();
@@ -554,9 +588,22 @@ namespace SentrySix.Ui.Horizon
                 fab.Click += delegate { Quick(); };
                 Root.Children.Add(fab);
 
+                // Horizon's own dialog and toasts (core.js modal(), toast()), over everything
+                overlay = new HzOverlay(m);
+                Panel.SetZIndex(overlay.Root, 10);
+                Root.Children.Add(overlay.Root);
+                m.Toast = (text, bad) => overlay.Toast(text, bad ? "bad" : "ok");
+                HzKit.Still = m.Still || m.ReduceEffects;
+
                 m.PropertyChanged += Changed;
                 Root.Unloaded += delegate { m.PropertyChanged -= Changed; };
-                U.OnSize(Root, (w, h) => { width = w; height = h; Layout(); });
+                // main.js keydown: [ and ] tune the radio, ? the sheet (not while typing or with a dialog open)
+                KeyEventHandler keysDown = OnKey;
+                Window win = null;
+                Root.Loaded += delegate { win = Window.GetWindow(Root); if (win != null) { win.KeyDown -= keysDown; win.KeyDown += keysDown; } };
+                Root.Unloaded += delegate { if (win != null) win.KeyDown -= keysDown; if (convTimer != null) convTimer.Stop(); };
+                Root.Loaded += delegate { PollConverter(); CenterTune(); };
+                U.OnSize(Root, (w, h) => { width = w; height = h; Layout(); CenterTune(); });
                 Paint();
             }
 
@@ -688,8 +735,28 @@ namespace SentrySix.Ui.Horizon
                     page.Content = m.PageContent;
                     scroller.ScrollToTop();
                 }
+                if (e.PropertyName == "Route") CenterTune();
                 if (e.PropertyName == "ReduceEffects") sky.SetChoice(m.Prefs != null ? m.Prefs.Get("horizon.sky", "auto") : "auto", m.Still || m.ReduceEffects);
                 Paint();
+            }
+
+            // main.js render(): keep the active tuner button in view (centred when it can be)
+            void CenterTune()
+            {
+                Root.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    foreach (NavEntry e in entries)
+                    {
+                        if (!e.Tune || e.P.Id != m.Route || !e.Box.IsLoaded || tuner.Visibility != Visibility.Visible) continue;
+                        try
+                        {
+                            Point at = e.Box.TransformToAncestor(tunerTrack).Transform(new Point(0, 0));
+                            double left = at.X + tunerTrack.Margin.Left - (tunerScroll.ViewportWidth - e.Box.ActualWidth) / 2;
+                            tunerScroll.ScrollToHorizontalOffset(Math.Max(0, left));
+                        }
+                        catch (InvalidOperationException) { }
+                    }
+                }), DispatcherPriority.Loaded);
             }
 
             int Index()
@@ -712,7 +779,8 @@ namespace SentrySix.Ui.Horizon
                 ch.Text = "CH " + (i + 1).ToString("00");
                 radioName.Text = p.Title.ToUpperInvariant();
                 VehicleInfo v = m.Current;
-                radioSub.Text = v != null ? v.Name : "no vehicle";
+                // main.js radioSub(): the page's status line, else the vehicle
+                radioSub.Text = m.PageStatus.Length > 0 ? m.PageStatus : v != null ? v.Name : "no vehicle";
                 // LIVE: green and glowing when connected, pink while reconnecting
                 liveTxt.Foreground = Css.Brush(!m.LiveKnown ? "#7d86a8" : m.Live ? "#5dffb0" : "#ffb3c2");
                 liveTxt.Effect = m.LiveKnown && m.Live ? Css.Glow(6, "rgba(93,255,176,.8)") : null;
@@ -731,14 +799,22 @@ namespace SentrySix.Ui.Horizon
                     if (e.P.Id == "alerts") { text = alerts; bg = m.CriticalOpen ? "red" : "org"; }
                     if (e.P.Id == "bin") text = m.BinItems > 0 ? m.BinItems.ToString() : "";
                     if (e.P.Id == "jobs") { text = m.RunningJobs > 0 ? m.RunningJobs.ToString() : ""; bg = "cyan"; fg = null; }
-                    if (e.P.Id == "encoder") { text = m.Converting ? "●" : ""; bg = "cyan"; fg = null; }
+                    if (e.P.Id == "encoder")
+                    {
+                        // main.js converterState(): ● while it runs, II while paused (the jobs' word until the converter answers)
+                        bool on = convState != null ? Running.Contains(convState) : m.Converting;
+                        bool held = convState == "paused" || convState == "paused_network";
+                        text = on ? "●" : held ? "II" : "";
+                        bg = on ? "cyan" : "org"; fg = on ? null : "go-ink";
+                    }
                     U.SetBadge(e.Badge, text, bg, fg ?? (object)Css.Brush("#06121a"));
                 }
                 U.SetBadge(bellBadge, alerts, m.CriticalOpen ? "red" : "org", "go-ink");
                 bell.ToolTip = alerts.Length > 0 ? "Notifications, " + alerts + " unread" : "Notifications";
                 // the engine: the floor speeds up, the line under the strip lights up
-                sky.Engine(m.Converting);
-                dashLine.Opacity = m.Converting ? 1 : 0.55;
+                bool engine = convState != null ? Running.Contains(convState) : m.Converting;
+                sky.Engine(engine);
+                dashLine.Opacity = engine ? 1 : 0.55;
                 fab.Visibility = width <= 1023 && m.Route != "viewer" ? Visibility.Visible : Visibility.Collapsed;
             }
 
@@ -832,40 +908,256 @@ namespace SentrySix.Ui.Horizon
                 Paint();
             }
 
-            void KeysSheet()
+            void OnKey(object sender, KeyEventArgs e)
             {
-                MessageBox.Show(Window.GetWindow(Root), "[ / ]   Previous / next page (tune the radio)\n?   This sheet\nEsc   Close a dialog\n\nEvery shortcut has a button too, so everything also works by touch.", "Keyboard shortcuts");
+                if (overlay.IsOpen || m.DialogOpen) return;
+                DependencyObject f = Keyboard.FocusedElement as DependencyObject;
+                if (f is System.Windows.Controls.Primitives.TextBoxBase || f is PasswordBox || f is ComboBox)
+                {
+                    if (e.Key == Key.Escape) { Keyboard.ClearFocus(); e.Handled = true; }
+                    return;
+                }
+                if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Windows)) != 0) return;
+                bool shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+                if (e.Key == Key.OemOpenBrackets && !shift) { e.Handled = true; Seek(-1); }
+                else if (e.Key == Key.OemCloseBrackets && !shift) { e.Handled = true; Seek(1); }
+                else if (e.Key == Key.OemQuestion && shift) { e.Handled = true; KeysSheet(); }
             }
 
-            void Quick()
+            // main.js keysSheet(): the shortcuts everywhere (a page's own under its name)
+            void KeysSheet()
             {
-                ContextMenu menu = new ContextMenu();
-                string[][] items =
+                if (overlay.IsOpen) return;
+                StackPanel s = new StackPanel();
+                s.Children.Add(KeysSection("Everywhere", new[] { new[] { "[ / ]", "Previous / next page (tune the radio)" }, new[] { "?", "This sheet" }, new[] { "Esc", "Close a dialog" } }));
+                TextBlock foot = HzKit.Small("Every shortcut has a button too, so everything also works by touch.", "dim");
+                foot.Margin = new Thickness(0, 12, 0, 0);
+                s.Children.Add(foot);
+                overlay.Sheet("Keyboard shortcuts", s, true, null);
+            }
+
+            static FrameworkElement KeysSection(string title, string[][] rows)
+            {
+                StackPanel sec = new StackPanel();
+                SpacedText h3 = new SpacedText(title.ToUpperInvariant(), 12, FontWeights.Bold, 0.18);
+                h3.Foreground = Css.Brush("#ffd2ef");
+                h3.Margin = new Thickness(0, 6, 0, 6);
+                sec.Children.Add(h3);
+                foreach (string[] r in rows)
                 {
-                    new[] { "Play the newest footage", "viewer" },
-                    new[] { "Start a conversion", "encoder" },
-                    new[] { "Footage track list", "footage" },
-                    new[] { "Interface and background", "settings" }
+                    Flex keys = Flex.Row(4);
+                    foreach (string k in r[0].Split(' '))
+                    {
+                        if (k == "/" || k == "or" || k == "·") { TextBlock d = HzKit.Text(k, 14, "dim"); d.VerticalAlignment = VerticalAlignment.Center; keys.Children.Add(d); continue; }
+                        TextBlock kt = new TextBlock();
+                        kt.Text = k;
+                        kt.FontFamily = U.Consolas;
+                        kt.FontWeight = FontWeights.Bold;
+                        kt.FontSize = 12;
+                        kt.SetResourceReference(TextBlock.ForegroundProperty, "ink");
+                        Border kbd = new Border();
+                        kbd.Child = kt;
+                        kbd.Padding = Css.T(2, 6);
+                        kbd.CornerRadius = new CornerRadius(3);
+                        kbd.BorderThickness = new Thickness(1);
+                        kbd.BorderBrush = Css.Brush("rgba(207,195,238,.4)");
+                        kbd.Background = Css.Brush("rgba(255,255,255,.06)");
+                        kbd.VerticalAlignment = VerticalAlignment.Center;
+                        keys.Children.Add(kbd);
+                    }
+                    TextBlock desc = HzKit.Text(r[1], 14, "ink");
+                    desc.TextAlignment = TextAlignment.Right;
+                    Grid row = new Grid();
+                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    row.Children.Add(keys);
+                    desc.Margin = new Thickness(12, 0, 0, 0);
+                    Grid.SetColumn(desc, 1);
+                    row.Children.Add(desc);
+                    Border b = new Border();
+                    b.Child = row;
+                    b.Padding = Css.T(4, 0);
+                    b.BorderThickness = new Thickness(0, 0, 0, 1);
+                    b.SetResourceReference(Border.BorderBrushProperty, "line-soft");
+                    b.Margin = new Thickness(0, 0, 0, 6);
+                    sec.Children.Add(b);
+                }
+                return sec;
+            }
+
+            // main.js quick(): the quick actions sheet (phones and tablets)
+            async void Quick()
+            {
+                if (overlay.IsOpen) return;
+                VehicleInfo v = m.Current;
+                string st = convState;
+                bool running = st != null && Running.Contains(st);
+                bool paused = st == "paused" || st == "paused_network";
+                List<string[]> items = new List<string[]>
+                {
+                    new[] { "play", "Play the newest footage", "#/viewer" },
+                    new[] { "engine", "Start a conversion", "#/encoder?new=1" }
                 };
+                if (running) items.Add(new[] { "pause", "Pause the conversion", "pause" });
+                else if (paused) items.Add(new[] { "play", "Resume the conversion", "resume" });
+                items.Add(new[] { "refresh", v != null ? "Refresh " + v.Name + "'s inventory" : "Refresh the inventory", "scan" });
+                items.Add(new[] { "check", "Mark every notification read", "read" });
+                items.Add(new[] { "film", "Footage track list", "#/footage" });
+                items.Add(new[] { "gear", "Interface and background", "#/settings/interface" });
+                Flex list = Flex.Col(8);
+                string picked = null;
+                Action<string> close = null;
                 foreach (string[] it in items)
                 {
-                    MenuItem mi = new MenuItem();
-                    mi.Header = it[0];
-                    string route = it[1];
-                    mi.Click += delegate { m.Navigate(route); };
-                    menu.Items.Add(mi);
+                    string a = it[2];
+                    BtnLook k = HzKit.BtnK(HzBtn.Plain);
+                    k.MinHeight = 50;
+                    k.Align = HorizontalAlignment.Left;
+                    Button b = U.Button(U.IconLabel(HzIcons.Icon(it[0], 18), it[1], 8), k);
+                    b.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    b.HorizontalContentAlignment = HorizontalAlignment.Left;
+                    b.Click += delegate { picked = a; if (close != null) close(a); };
+                    list.Children.Add(b);
                 }
-                menu.PlacementTarget = fab;
-                menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Top;
-                menu.IsOpen = true;
+                Picker carPick = null;
+                PropertyChangedEventHandler carChanged = null;
+                if (m.Vehicles.Count > 1)
+                {
+                    InputLook ik = InK();
+                    ik.Padding = new Thickness(12, 0, 36, 0);
+                    FrameworkElement arrow = SelectArrow();
+                    arrow.Margin = new Thickness(0, 0, -26, 0);
+                    carPick = new Picker(m, ik, arrow, 0, 10000);
+                    carPick.Root.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    list.Children.Add(HzKit.Field("Vehicle", carPick.Root));
+                    carChanged = delegate(object s, PropertyChangedEventArgs e) { if (e.PropertyName == "VehicleId" && close != null) close("car"); };
+                    m.PropertyChanged += carChanged;
+                }
+                string mode = m.Prefs != null ? m.Prefs.Get("horizon.sky", "auto") : "auto";
+                HzKit.Segs sky = new HzKit.Segs("Background effect", new[] { new[] { "auto", "Auto" }, new[] { "full", "Full" }, new[] { "calm", "Calm" }, new[] { "off", "Off" } }, mode);
+                sky.Picked += c =>
+                {
+                    if (m.Prefs != null) m.Prefs.Set("horizon.sky", c);
+                    this.sky.SetChoice(c, m.Still || m.ReduceEffects);
+                };
+                list.Children.Add(HzKit.Field("Background effect", sky.Root));
+                await overlay.Sheet("Quick actions", list, false, c => close = c);
+                if (carChanged != null) m.PropertyChanged -= carChanged;
+                if (picked == null) return;
+                if (picked.StartsWith("#")) { m.Navigate(picked.TrimStart('#').TrimStart('/')); return; }
+                IJsonApi api = ApiOf(m);
+                if (api == null) return;
+                HzUi ui = overlay.UiFor(null);
+                if (picked == "scan" && v != null)
+                    await ui.Act(async () => { await api.Post("/api/vehicles/" + Hz.EncId(v.Id) + "/scan", JsonValue.Object(), CancellationToken.None); ui.Toast("Refreshing the inventory. Jobs shows the progress.", "ok"); });
+                if (picked == "read")
+                {
+                    await ui.Act(async () =>
+                    {
+                        List<JsonValue> ids = new List<JsonValue>();
+                        foreach (NoteInfo n in m.Notes) if (!n.Read) ids.Add(Num(n.Id));
+                        if (ids.Count > 0) await api.Post("/api/notifications/read", JsonValue.Object("ids", JsonValue.Array(ids)), CancellationToken.None);
+                        await m.ReloadNotes();
+                        ui.Toast(ids.Count > 0 ? "All notifications marked read." : "Nothing unread.", "ok");
+                    });
+                }
+                if (picked == "pause" || picked == "resume")
+                {
+                    JsonValue cur = null;
+                    try { cur = await Converter.Invoke(api, "getCurrent", null); } catch (Exception) { }
+                    JsonValue id = cur != null ? cur["id"] : JsonValue.Null;
+                    if (!id.Bool) return;
+                    try
+                    {
+                        JsonValue r = await Converter.Invoke(api, picked, JsonValue.Object("jobId", id));
+                        ui.Toast(picked == "pause" ? "Conversion paused." : "Conversion resumed.", "ok");
+                        ConverterState(r != null && r["state"].Str != null ? r["state"].Str : picked == "pause" ? "paused" : "encoding");
+                    }
+                    catch (Exception ex)
+                    {
+                        ConverterError ce = ex as ConverterError;
+                        ui.Toast("Converter: " + (ce != null ? ce.Code : "failed"), "bad");
+                    }
+                }
+            }
+
+            /// <summary>A notification id as the web sends it back (a number when it is one).</summary>
+            static JsonValue Num(string id)
+            {
+                long n;
+                return long.TryParse(id, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out n) ? JsonValue.Number(n) : JsonValue.String(id);
+            }
+
+            // ---------- the converter: the Encoder badge and the engine (main.js converterState, pollConverter) ----------
+            static readonly HashSet<string> Running = new HashSet<string> { "discovering", "waiting", "staging", "encoding", "writing-telemetry", "verifying", "copying", "replacing" };
+            string convState;
+            DispatcherTimer convTimer;
+
+            void ConverterState(string st)
+            {
+                convState = st;
+                Paint();
+            }
+
+            async void PollConverter()
+            {
+                if (convTimer != null) convTimer.Stop();
+                IJsonApi api = ApiOf(m);
+                Window w = Window.GetWindow(Root);
+                bool visible = w == null || w.WindowState != WindowState.Minimized;
+                if (api != null && visible && m.Route != "encoder" && !m.Still)
+                {
+                    try
+                    {
+                        JsonValue r = await Converter.Invoke(api, "getCurrent", null);
+                        ConverterState(r != null && r.IsObject ? r["state"].Str : null);
+                    }
+                    catch (Exception) { }
+                }
+                if (m.Still || !Root.IsLoaded) return;
+                if (convTimer == null)
+                {
+                    convTimer = new DispatcherTimer();
+                    convTimer.Tick += delegate { PollConverter(); };
+                }
+                convTimer.Interval = TimeSpan.FromMilliseconds(convState != null && Running.Contains(convState) ? 5000 : 15000);
+                convTimer.Start();
             }
         }
 
-        // ---------- pages: a placeholder in Horizon's style ----------
+        // the server's API as the pages got it (the shell's quick actions and converter poll use the same)
+        static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ShellModel, IJsonApi> apis = new System.Runtime.CompilerServices.ConditionalWeakTable<ShellModel, IJsonApi>();
+
+        static IJsonApi ApiOf(ShellModel m)
+        {
+            IJsonApi a;
+            return m != null && apis.TryGetValue(m, out a) ? a : null;
+        }
+
+        // ---------- pages: drawn here (PackHost, as main.js render()), else a placeholder in Horizon's style ----------
         public FrameworkElement Page(string id, PageContext ctx)
         {
             PageDef p = pages[0];
             foreach (PageDef x in pages) if (x.Id == id) p = x;
+            if (ctx != null && ctx.Shell != null && ctx.Api != null) { apis.Remove(ctx.Shell); apis.Add(ctx.Shell, ctx.Api); }
+            Func<IPackPage> make = ctx != null ? NativeFor(p.Id, ctx.Sub) : null;
+            if (make != null)
+            {
+                PackPageContext pc = new PackPageContext();
+                pc.Shell = ctx.Shell;
+                pc.Api = ctx.Api;
+                pc.Def = p;
+                pc.Sub = ctx.Sub ?? "";
+                pc.Fixture = ctx.Fixture;
+                pc.Still = ctx.Shell == null || ctx.Shell.Still || ctx.Shell.ReduceEffects;
+                ShellModel sm = ctx.Shell;
+                pc.Go = hash => { if (sm != null) sm.Navigate((hash ?? "").TrimStart('#').TrimStart('/')); };
+                HzKit.Still = pc.Still;
+                PackHost host = new PackHost(make, pc, HzKit.Loading, HzKit.LoadFailed);
+                // main.js: a picked vehicle mounts these again when the page has no onCar
+                foreach (string r in new[] { "footage", "policies", "jobs", "bin", "dashboard" }) host.RemountOnCar.Add(r);
+                return host.Start().Root;
+            }
             Flex col = Flex.Col(16);
             // .ptitle.hud: h1 clamp(22px, 2.4vw, 30px) 800, 0.06em, uppercase; p dim 14px
             SpacedText h1 = new SpacedText(p.Title.ToUpperInvariant(), 30, U.W(800), 0.06);
