@@ -177,7 +177,10 @@ const PAGES = {
   // the controls bar (part 6): the speed this browser keeps (localStorage playbackRate) and
   // Settings > Skip Duration at 10 s (the skip buttons' lengths)
   'viewer-speed': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, storage: { playbackRate: '2' } },
-  'viewer-skip': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 }
+  'viewer-skip': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
+  // the event marker (part 7): the Sentry day with its event.json time half way through its
+  // minute, so the marker sits in the middle of the timeline (the fixture's own sit at the end)
+  'viewer-event': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19']] }
 };
 
 // each pack page module's pages, as "<pack>:<name>" (the picture is <pack>-<name>-<w>x<h>.png)
@@ -241,6 +244,13 @@ function footageScroll(state) {
 // and gives the variant (the long names are the recorded vehicle renamed).
 // { "$pending": true } never answers (the page as it waits).
 const NODES_VARIANTS = ['nodes', 'nodes-running', 'nodes-noworker', 'nodes-closed'];
+// the Sentry event's event.json (its readFile answer) with another time
+function sentryEventAt(api, timestamp) {
+  const key = Object.keys(api).find((k) => k.startsWith('POST /api/studio/readFile ') && k.includes('/SentryClips/'));
+  if (!key) return {};
+  return { [key]: { ...api[key], text: JSON.stringify({ ...JSON.parse(api[key].text), timestamp }) } };
+}
+
 const VARIANTS = {
   'overview-off': { route: 'overview', prefs: { nerdStats: 'false' } },
   'overview-logs': { route: 'overview', sub: 'logs' },
@@ -298,6 +308,7 @@ const VARIANTS = {
   'viewer-zoom': { route: 'viewer', viewerFocus: ZOOM_STEPS },
   'viewer-speed': { route: 'viewer', prefs: { playbackRate: '2' } },
   'viewer-skip': (api) => ({ route: 'viewer', api: { 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], skipDuration: 10 } } }),
+  'viewer-event': (api) => ({ route: 'viewer', state: { date: '2026-10-19' }, api: sentryEventAt(api, '2026-10-19T22:13:32') }),
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },

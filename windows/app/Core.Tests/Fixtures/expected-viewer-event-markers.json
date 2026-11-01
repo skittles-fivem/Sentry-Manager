@@ -1,0 +1,1342 @@
+{
+ "zone": "America/Chicago",
+ "cases": [
+  {
+   "name": "none",
+   "marker": null
+  },
+  {
+   "name": "sentry, the fixture",
+   "tag": "SentryClips",
+   "eventId": "2026-10-19_22-14-03",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": {
+      "timestamp": "2026-10-19T22:14:03",
+      "reason": "sentry_aware_object_detection",
+      "camera": "0"
+     }
+    }
+   ],
+   "marker": {
+    "className": "event-timeline-marker sentry",
+    "left": "100%",
+    "title": "Sentry Event: sentry_aware_object_detection\n2026-10-19T22:14:03",
+    "icon": "<svg viewBox=\"0 0 24 24\"><path d=\"M12 2L1 21h22L12 2zm0 3.5L19.5 19h-15L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z\"/></svg>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      120
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      2
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "saved, the fixture",
+   "tag": "SavedClips",
+   "eventId": "2026-10-18_17-30-12",
+   "groups": [
+    {
+     "timestampKey": "2026-10-18_17-29-11",
+     "eventMeta": {
+      "timestamp": "2026-10-18T17:30:12",
+      "reason": "user_interaction_honk"
+     }
+    }
+   ],
+   "marker": {
+    "className": "event-timeline-marker saved",
+    "left": "100%",
+    "title": "Saved Event: user_interaction_honk\n2026-10-18T17:30:12",
+    "icon": "<span class=\"material-symbols-outlined\">bookmark</span>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      120
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      2
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "sentry, mid way",
+   "tag": "SentryClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": {
+      "timestamp": "2026-10-19T22:13:32",
+      "reason": "sentry_aware_object_detection"
+     }
+    }
+   ],
+   "marker": {
+    "className": "event-timeline-marker sentry",
+    "left": "50%",
+    "title": "Sentry Event: sentry_aware_object_detection\n2026-10-19T22:13:32",
+    "icon": "<svg viewBox=\"0 0 24 24\"><path d=\"M12 2L1 21h22L12 2zm0 3.5L19.5 19h-15L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z\"/></svg>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      1
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      30
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      30
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      30
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "eleven segments",
+   "tag": "SentryClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-04-02"
+    },
+    {
+     "timestampKey": "2026-10-19_22-05-02"
+    },
+    {
+     "timestampKey": "2026-10-19_22-06-02"
+    },
+    {
+     "timestampKey": "2026-10-19_22-07-02",
+     "eventMeta": {
+      "timestamp": "2026-10-19T22:14:03",
+      "reason": "sentry_aware_object_detection",
+      "camera": "0"
+     }
+    },
+    {
+     "timestampKey": "2026-10-19_22-08-02"
+    },
+    {
+     "timestampKey": "2026-10-19_22-09-02"
+    },
+    {
+     "timestampKey": "2026-10-19_22-10-02"
+    },
+    {
+     "timestampKey": "2026-10-19_22-11-02"
+    },
+    {
+     "timestampKey": "2026-10-19_22-12-02"
+    },
+    {
+     "timestampKey": "2026-10-19_22-13-02"
+    },
+    {
+     "timestampKey": "2026-10-19_22-14-02"
+    }
+   ],
+   "marker": {
+    "className": "event-timeline-marker sentry",
+    "left": "91.06060606060606%",
+    "title": "Sentry Event: sentry_aware_object_detection\n2026-10-19T22:14:03",
+    "icon": "<svg viewBox=\"0 0 24 24\"><path d=\"M12 2L1 21h22L12 2zm0 3.5L19.5 19h-15L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z\"/></svg>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      109.27272727272728
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      1.8212121212121213
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      54.63636363636364
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      54.63636363636364
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      54.63636363636364
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "before the start",
+   "tag": "SentryClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": {
+      "timestamp": "2026-10-19T22:10:00"
+     }
+    }
+   ],
+   "marker": {
+    "className": "event-timeline-marker sentry",
+    "left": "0%",
+    "title": "Sentry Event: Unknown\n2026-10-19T22:10:00",
+    "icon": "<svg viewBox=\"0 0 24 24\"><path d=\"M12 2L1 21h22L12 2zm0 3.5L19.5 19h-15L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z\"/></svg>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      0
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      0
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      0
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      0
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      0
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "after the end",
+   "tag": "SavedClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": {
+      "timestamp": "2026-10-19T23:00:00"
+     }
+    }
+   ],
+   "marker": {
+    "className": "event-timeline-marker saved",
+    "left": "100%",
+    "title": "Saved Event: User saved\n2026-10-19T23:00:00",
+    "icon": "<span class=\"material-symbols-outlined\">bookmark</span>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      120
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      2
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "utc",
+   "tag": "SentryClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": {
+      "timestamp": "2026-10-20T03:13:20Z",
+      "reason": ""
+     }
+    }
+   ],
+   "marker": {
+    "className": "event-timeline-marker sentry",
+    "left": "30%",
+    "title": "Sentry Event: Unknown\n2026-10-20T03:13:20Z",
+    "icon": "<svg viewBox=\"0 0 24 24\"><path d=\"M12 2L1 21h22L12 2zm0 3.5L19.5 19h-15L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z\"/></svg>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      36
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      0.6
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      18
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      18
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      18
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "offset",
+   "tag": "SentryClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": {
+      "timestamp": "2026-10-19T22:13:20.500-05:00",
+      "reason": 7
+     }
+    }
+   ],
+   "marker": {
+    "className": "event-timeline-marker sentry",
+    "left": "30.833333333333336%",
+    "title": "Sentry Event: 7\n2026-10-19T22:13:20.500-05:00",
+    "icon": "<svg viewBox=\"0 0 24 24\"><path d=\"M12 2L1 21h22L12 2zm0 3.5L19.5 19h-15L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z\"/></svg>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      37
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      0.6166666666666667
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      18.5
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      18.5
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      18.5
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "date only (utc)",
+   "tag": "SavedClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_18-59-30",
+     "eventMeta": {
+      "timestamp": "2026-10-20"
+     }
+    }
+   ],
+   "marker": {
+    "className": "event-timeline-marker saved",
+    "left": "50%",
+    "title": "Saved Event: User saved\n2026-10-20",
+    "icon": "<span class=\"material-symbols-outlined\">bookmark</span>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      1
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      30
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      30
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      30
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "clock change",
+   "tag": "SentryClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-11-01_01-30-00"
+    },
+    {
+     "timestampKey": "2026-11-01_01-59-00",
+     "eventMeta": {
+      "timestamp": "2026-11-01T01:59:30",
+      "reason": "user_interaction_dashcam_icon_tapped"
+     }
+    }
+   ],
+   "marker": {
+    "className": "event-timeline-marker sentry",
+    "left": "98.33333333333333%",
+    "title": "Sentry Event: user_interaction_dashcam_icon_tapped\n2026-11-01T01:59:30",
+    "icon": "<svg viewBox=\"0 0 24 24\"><path d=\"M12 2L1 21h22L12 2zm0 3.5L19.5 19h-15L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z\"/></svg>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      118
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      1.9666666666666666
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      59
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      59
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      59
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "lower case tag",
+   "tag": "sentryclips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": {
+      "timestamp": "2026-10-19T22:14:03",
+      "reason": "sentry_aware_object_detection",
+      "camera": "0"
+     }
+    }
+   ],
+   "marker": {
+    "className": "event-timeline-marker sentry",
+    "left": "100%",
+    "title": "Sentry Event: sentry_aware_object_detection\n2026-10-19T22:14:03",
+    "icon": "<svg viewBox=\"0 0 24 24\"><path d=\"M12 2L1 21h22L12 2zm0 3.5L19.5 19h-15L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z\"/></svg>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      120
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      2
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "recent",
+   "tag": "RecentClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": {
+      "timestamp": "2026-10-19T22:14:03",
+      "reason": "sentry_aware_object_detection",
+      "camera": "0"
+     }
+    }
+   ],
+   "marker": null
+  },
+  {
+   "name": "no tag",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": {
+      "timestamp": "2026-10-19T22:14:03",
+      "reason": "sentry_aware_object_detection",
+      "camera": "0"
+     }
+    }
+   ],
+   "marker": null
+  },
+  {
+   "name": "no time",
+   "tag": "SentryClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": {
+      "reason": "x"
+     }
+    }
+   ],
+   "marker": null
+  },
+  {
+   "name": "empty time",
+   "tag": "SentryClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": {
+      "timestamp": ""
+     }
+    }
+   ],
+   "marker": null
+  },
+  {
+   "name": "bad time",
+   "tag": "SentryClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": {
+      "timestamp": "not a date"
+     }
+    }
+   ],
+   "marker": null
+  },
+  {
+   "name": "month 13",
+   "tag": "SentryClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": {
+      "timestamp": "2026-13-01T00:00:00"
+     }
+    }
+   ],
+   "marker": null
+  },
+  {
+   "name": "by key",
+   "tag": "SentryClips",
+   "eventId": "e1",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02"
+    },
+    {
+     "timestampKey": "2026-10-19_22-14-02"
+    }
+   ],
+   "byKey": {
+    "SentryClips/e1": {
+     "timestamp": "2026-10-19T22:14:32",
+     "reason": "vehicle_auto_emergency_braking"
+    }
+   },
+   "marker": {
+    "className": "event-timeline-marker sentry",
+    "left": "75%",
+    "title": "Sentry Event: vehicle_auto_emergency_braking\n2026-10-19T22:14:32",
+    "icon": "<svg viewBox=\"0 0 24 24\"><path d=\"M12 2L1 21h22L12 2zm0 3.5L19.5 19h-15L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z\"/></svg>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      90
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      1.5
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      45
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      45
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      45
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "by key, no event id",
+   "tag": "SentryClips",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02"
+    }
+   ],
+   "byKey": {
+    "SentryClips/undefined": {
+     "timestamp": "2026-10-19T22:14:03",
+     "reason": "sentry_aware_object_detection",
+     "camera": "0"
+    }
+   },
+   "marker": null
+  },
+  {
+   "name": "group meta before key",
+   "tag": "SavedClips",
+   "eventId": "e1",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-13-02",
+     "eventMeta": null
+    },
+    {
+     "timestampKey": "2026-10-19_22-14-02",
+     "eventMeta": {
+      "timestamp": "2026-10-19T22:14:10"
+     }
+    }
+   ],
+   "byKey": {
+    "SavedClips/e1": {
+     "timestamp": "2026-10-19T22:14:03",
+     "reason": "sentry_aware_object_detection",
+     "camera": "0"
+    }
+   },
+   "marker": {
+    "className": "event-timeline-marker saved",
+    "left": "56.666666666666664%",
+    "title": "Saved Event: User saved\n2026-10-19T22:14:10",
+    "icon": "<span class=\"material-symbols-outlined\">bookmark</span>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      68
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      1.1333333333333333
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      34
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      34
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      34
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "no groups",
+   "tag": "SentryClips",
+   "eventId": "e1",
+   "groups": [],
+   "byKey": {
+    "SentryClips/e1": {
+     "timestamp": "1970-01-01T00:00:30Z"
+    }
+   },
+   "marker": {
+    "className": "event-timeline-marker sentry",
+    "left": "50%",
+    "title": "Sentry Event: Unknown\n1970-01-01T00:00:30Z",
+    "icon": "<svg viewBox=\"0 0 24 24\"><path d=\"M12 2L1 21h22L12 2zm0 3.5L19.5 19h-15L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z\"/></svg>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      60
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      1
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      30
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      30
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      30
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "odd keys",
+   "tag": "SentryClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "nonsense",
+     "eventMeta": {
+      "timestamp": "2026-10-19T22:13:32"
+     }
+    },
+    {
+     "timestampKey": "2026-10-19_22-13-02"
+    }
+   ],
+   "marker": {
+    "className": "event-timeline-marker sentry",
+    "left": "99.99999832632813%",
+    "title": "Sentry Event: Unknown\n2026-10-19T22:13:32",
+    "icon": "<svg viewBox=\"0 0 24 24\"><path d=\"M12 2L1 21h22L12 2zm0 3.5L19.5 19h-15L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z\"/></svg>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      119.99999799159374
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      1.9999999665265624
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      59.99999899579687
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      59.99999899579687
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      59.99999899579687
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  },
+  {
+   "name": "odd first key",
+   "tag": "SavedClips",
+   "eventId": "e",
+   "groups": [
+    {
+     "timestampKey": "2026-10-19_22-1302",
+     "eventMeta": {
+      "timestamp": "1970-01-01T00:00:45Z"
+     }
+    }
+   ],
+   "marker": {
+    "className": "event-timeline-marker saved",
+    "left": "75%",
+    "title": "Saved Event: User saved\n1970-01-01T00:00:45Z",
+    "icon": "<span class=\"material-symbols-outlined\">bookmark</span>"
+   },
+   "clicks": [
+    {
+     "mode": true,
+     "starts": [
+      0,
+      60,
+      120
+     ],
+     "seeks": [
+      90
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0,
+      2
+     ],
+     "seeks": [
+      1.5
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [
+      0
+     ],
+     "seeks": [
+      45
+     ]
+    },
+    {
+     "mode": true,
+     "starts": [],
+     "seeks": [
+      45
+     ]
+    },
+    {
+     "mode": true,
+     "starts": null,
+     "seeks": [
+      45
+     ]
+    },
+    {
+     "mode": false,
+     "starts": [
+      0,
+      60
+     ],
+     "seeks": []
+    }
+   ]
+  }
+ ]
+}

@@ -652,7 +652,7 @@ namespace SentrySix.Ui.Builtin
             library.EventsRead = () => clips.Render(library);
             library.Selected = c => { clips.Highlight(library); OpenCollection(c); };
             library.ProfileApplied = (profile, kind) => grid.ApplyProfile(profile);
-            library.EventShown = c => grid.UpdateGlow(c, library);
+            library.EventShown = c => { grid.UpdateGlow(c, library); UpdateEventMarker(c); };
             library.EventSeek = sec => { Player p = Player; if (p != null && library.Active != null) p.Seek(sec); };
             Scan = v => v.library.Open(v.Start.StartFolder);
             PickDay = d =>
@@ -704,6 +704,7 @@ namespace SentrySix.Ui.Builtin
             int token = ++openToken;
             grid.AutoHardware(c.Groups);
             grid.UpdateGlow(c, library);
+            UpdateEventMarker(c);
             List<PlaybackSegment> segs = c.Segments();
             double fallback = Dashcam.Get(c.ProfileId ?? library.ProfileId).DefaultSegmentDurationSeconds;
             double start = StartOffset(c);
@@ -736,6 +737,28 @@ namespace SentrySix.Ui.Builtin
                 p.SetLayout(grid.PlayerSlots);
                 p.Open(segs, fallback, start);
             }, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        // ---- the event marker (part 7) ----------------------------------------------------
+
+        /// <summary>
+        /// updateEventTimelineMarker: the Sentry or Saved event's marker on
+        /// the timeline (EventMarkers.Of); its click seeks to its percent of
+        /// the collection's length, as seekNativeDayCollectionBySec does.
+        /// </summary>
+        void UpdateEventMarker(DayCollection c)
+        {
+            if (disposed) return;
+            EventMarker m = EventMarkers.Of(c, key => library.EventMetaByKey.Has(key) ? library.EventMetaByKey.Get(key) : null, library.Zone);
+            controls.SetEventMarker(m, SeekToEvent);
+        }
+
+        /// <summary>The marker's click: pct of cumulativeStarts' last (60 s without one), while a collection is open.</summary>
+        public void SeekToEvent(double pct)
+        {
+            Player p = Player;
+            if (p == null || library == null || library.Active == null) return;
+            p.Seek(EventMarkers.SeekSeconds(pct, p.Segments.Count > 0 ? p.Total : 0));
         }
 
         // ---- the controls bar (part 6) ----------------------------------------------------

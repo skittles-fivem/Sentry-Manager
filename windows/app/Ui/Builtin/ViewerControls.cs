@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using SentrySix.Core;
 
@@ -166,8 +167,9 @@ namespace SentrySix.Ui.Builtin
             range.Uid = "progressBar";
             timeline.Children.Add(range);
             markers.Uid = "timelineMarkers";
-            markers.IsHitTestVisible = false;
+            // (no background: the layer lets the pointer through to the bar, its event marker takes it)
             markers.ClipToBounds = false;
+            markers.SizeChanged += delegate { PlaceEventMarker(); };
             Panel.SetZIndex(markers, 10);
             timeline.Children.Add(markers);
             Grid.SetColumn(timeline, 3);
@@ -216,8 +218,39 @@ namespace SentrySix.Ui.Builtin
             return b;
         }
 
-        /// <summary>The timeline's marker layer (event markers: part 7).</summary>
+        /// <summary>The timeline's marker layer.</summary>
         public Canvas Markers { get { return markers; } }
+
+        StudioEventMarker eventMarker;
+
+        /// <summary>The event marker on the timeline (null: none).</summary>
+        public StudioEventMarker EventMarker { get { return eventMarker; } }
+
+        /// <summary>
+        /// updateEventTimelineMarker: the old .event-timeline-marker removed,
+        /// the new one (when there is one) placed at its percent of the
+        /// timeline; its click goes to <paramref name="click"/> with the percent.
+        /// </summary>
+        public void SetEventMarker(EventMarker m, Action<double> click)
+        {
+            if (eventMarker != null) markers.Children.Remove(eventMarker);
+            eventMarker = null;
+            if (m == null) return;
+            eventMarker = new StudioEventMarker(m);
+            double pct = m.Pct;
+            eventMarker.Click += () => { if (click != null) click(pct); };
+            Panel.SetZIndex(eventMarker, 12);
+            markers.Children.Add(eventMarker);
+            PlaceEventMarker();
+        }
+
+        void PlaceEventMarker()
+        {
+            if (eventMarker == null) return;
+            // left: pct% of the timeline, top 50%, translate(-50%, -50%)
+            Canvas.SetLeft(eventMarker, eventMarker.Marker.Pct / 100 * markers.ActualWidth - StudioEventMarker.Size / 2);
+            Canvas.SetTop(eventMarker, markers.ActualHeight / 2 - StudioEventMarker.Size / 2);
+        }
 
         /// <summary>#progressBar.</summary>
         public StudioRange Range { get { return range; } }
@@ -276,6 +309,125 @@ namespace SentrySix.Ui.Builtin
         public void SetSpeed(string value)
         {
             speed.Show(value);
+        }
+    }
+
+    /// <summary>
+    /// .event-timeline-marker: a 16 px circle, --error-color (#f87171) for a
+    /// Sentry event with the white warning triangle at 10 px, --warning-color
+    /// (#fbbf24) for a saved one with the 'bookmark' symbol at 16 px in the
+    /// text colour; its glow (0 0 8px at .6 and 0 0 16px at .3 of
+    /// rgba(248,113,113) / rgba(251,191,36)) pulses to 12px .8 / 24px .5 and
+    /// back every 2 s (ease-in-out); 1.2 times over the pointer (0.15 s); a
+    /// hand cursor, the title as its tooltip; a click seeks (and goes no
+    /// further, as stopPropagation keeps it off the bar).
+    /// </summary>
+    public sealed class StudioEventMarker : Grid
+    {
+        public const double Size = 16;
+        static readonly Brush SentryBg = Css.Brush("#f87171");
+        static readonly Brush SavedBg = Css.Brush("#fbbf24");
+        readonly EventMarker marker;
+        readonly MarkerGlow glow;
+        readonly ScaleTransform scale = new ScaleTransform(1, 1, Size / 2, Size / 2);
+        bool pressed;
+
+        public event Action Click;
+
+        public StudioEventMarker(EventMarker m)
+        {
+            marker = m;
+            Uid = "eventTimelineMarker";
+            Width = Size;
+            Height = Size;
+            Cursor = Cursors.Hand;
+            ToolTip = m.Title;
+            RenderTransform = scale;
+            glow = new MarkerGlow(m.IsSentry ? Css.C("rgba(248, 113, 113, 1)") : Css.C("rgba(251, 191, 36, 1)"));
+            glow.IsHitTestVisible = false;
+            Children.Add(glow);
+            Ellipse dot = new Ellipse();
+            dot.Fill = m.IsSentry ? SentryBg : SavedBg;
+            Children.Add(dot);
+            FrameworkElement icon = m.IsSentry
+                ? StudioIcons.Svg24(EventMarkers.SentrySvg, 10, Brushes.White)
+                : StudioIcons.Symbol(EventMarkers.Bookmark, 16, StudioLook.Text);
+            icon.HorizontalAlignment = HorizontalAlignment.Center;
+            icon.VerticalAlignment = VerticalAlignment.Center;
+            icon.IsHitTestVisible = false;
+            Children.Add(icon);
+            if (!StudioTile.StillMode)
+            {
+                DoubleAnimation pulse = new DoubleAnimation(0, 1, TimeSpan.FromSeconds(1)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } };
+                glow.BeginAnimation(MarkerGlow.PulseProperty, pulse);
+            }
+            MouseEnter += delegate { Grow(1.2); };
+            MouseLeave += delegate { Grow(1); pressed = false; };
+            MouseLeftButtonDown += (s, e) => { pressed = true; e.Handled = true; };
+            MouseLeftButtonUp += (s, e) =>
+            {
+                e.Handled = true;
+                if (!pressed) return;
+                pressed = false;
+                Action h = Click;
+                if (h != null) h();
+            };
+        }
+
+        public EventMarker Marker { get { return marker; } }
+
+        void Grow(double to)
+        {
+            if (StudioTile.StillMode)
+            {
+                scale.ScaleX = to;
+                scale.ScaleY = to;
+                return;
+            }
+            DoubleAnimation a = new DoubleAnimation(to, TimeSpan.FromMilliseconds(150)) { EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } };
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty, a);
+            scale.BeginAnimation(ScaleTransform.ScaleYProperty, a);
+        }
+
+        /// <summary>The two box-shadows around the circle, Pulse 0 (8px .6, 16px .3) to 1 (12px .8, 24px .5).</summary>
+        sealed class MarkerGlow : FrameworkElement
+        {
+            public static readonly DependencyProperty PulseProperty = DependencyProperty.Register("Pulse", typeof(double), typeof(MarkerGlow), new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsRender));
+            readonly Color color;
+
+            public MarkerGlow(Color color)
+            {
+                this.color = color;
+            }
+
+            public double Pulse
+            {
+                get { return (double)GetValue(PulseProperty); }
+                set { SetValue(PulseProperty, value); }
+            }
+
+            protected override void OnRender(DrawingContext dc)
+            {
+                double p = Pulse;
+                Shadow(dc, 16 + 8 * p, 0.3 + 0.2 * p);
+                Shadow(dc, 8 + 4 * p, 0.6 + 0.2 * p);
+            }
+
+            /// <summary>A box-shadow 0 0 blur of the 16 px circle: full under the circle, half at its edge, gone blur px out.</summary>
+            void Shadow(DrawingContext dc, double blur, double alpha)
+            {
+                double r = Size / 2, outer = r + blur;
+                RadialGradientBrush b = new RadialGradientBrush();
+                Color full = Color.FromArgb((byte)Math.Round(alpha * 255), color.R, color.G, color.B);
+                Color half = Color.FromArgb((byte)Math.Round(alpha * 255 / 2), color.R, color.G, color.B);
+                Color none = Color.FromArgb(0, color.R, color.G, color.B);
+                b.GradientStops.Add(new GradientStop(full, Math.Max(0, (r - blur / 2) / outer)));
+                b.GradientStops.Add(new GradientStop(half, r / outer));
+                b.GradientStops.Add(new GradientStop(Color.FromArgb((byte)Math.Round(alpha * 255 / 6), color.R, color.G, color.B), (r + blur / 2) / outer));
+                b.GradientStops.Add(new GradientStop(none, 1));
+                b.Freeze();
+                dc.DrawEllipse(b, null, new Point(r, r), outer, outer);
+            }
         }
     }
 

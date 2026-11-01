@@ -1018,6 +1018,32 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   pause, the skips, a drag along the bar while playing and paused, the
   speed list, the end of a collection and play again.
 
+### Phase 2: Viewer part 7, event markers (2026-11-01)
+
+- `Core/EventMarkers.cs` (C# 5): `EventMarker` (Kind sentry / saved, Pct,
+  Title) and `EventMarkers` (`Of`: eventMarkers.js
+  updateEventTimelineMarker step for step, Date.parse through `JsDate`, the
+  keys through `LibraryScan.KeyToEpochMs`; `SeekSeconds`; `Meta`; the
+  triangle and the bookmark symbol).
+- `Ui/Builtin/ViewerControls.cs`: `StudioEventMarker` (.event-timeline-marker
+  with its glow pulse, still in the render mode), `StudioControlsBar.SetEventMarker`
+  and its `EventMarker`; #timelineMarkers now lets a click reach its marker
+  (no background, so the bar under it still takes the rest).
+- `StudioViewer`: `UpdateEventMarker` when a collection opens and on
+  `ViewerLibrary.EventShown` (its event.json read), `SeekToEvent(pct)`.
+- test/windowsNativeViewerEventMarkers.test.js writes
+  Core.Tests/Fixtures/expected-viewer-event-markers.json; Core.Tests
+  `ViewerEventMarkerTests` (passing under mono).
+- capture.js: `sentryEventAt`, PAGES and VARIANTS viewer-event;
+  RenderFixture.json got viewer-event (the Sentry event.json's readFile
+  answer at 22:13:32).
+- Not here: the event's pin on the map (showEventJsonLocation) belongs to
+  part 10 (it takes `EventMarkers.Meta`); the FSD markers have no data in
+  the web. Known difference: the glow is a radial gradient close to the two
+  box-shadows, and the render draws it at the pulse's start.
+- To check on Windows: viewer-event, viewer-sentry and viewer-saved against
+  the web's; by hand: the tooltip, the hover growth, a click seeking.
+
 ## UI packs, phases 4-7 (the packs session, 2026-10-31)
 
 A separate session builds the four packs' pages natively while the other

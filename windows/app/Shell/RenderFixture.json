@@ -17793,6 +17793,17 @@
      "skipDuration": 10
     }
    }
+  },
+  "viewer-event": {
+   "route": "viewer",
+   "state": {
+    "date": "2026-10-19"
+   },
+   "api": {
+    "POST /api/studio/readFile {\"path\":\"/srv/sentry-parity/footage/TeslaCam/SentryClips/2026-10-19_22-14-03/event.json\"}": {
+     "text": "{\"timestamp\":\"2026-10-19T22:13:32\",\"city\":\"Austin\",\"est_lat\":\"30.2672\",\"est_lon\":\"-97.7431\",\"reason\":\"sentry_aware_object_detection\",\"camera\":\"0\"}"
+    }
+   }
   }
  },
  "prefs": {}

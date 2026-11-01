@@ -250,8 +250,8 @@ is done when every item is ticked in both. Run on the owner's PC runner.
 - Phase 2 (built-in Viewer): in progress. The playback engine, the
   telemetry, the clip library (scan and grouping, part 2), the clip
   browser (the clip list panel, part 3), the six-camera grid on the
-  Player (part 4), camera focus, zoom and pan (part 5) and the controls bar, timeline and scrubber (part 6) are written; the rest of the Viewer page (Studio's
-  event markers, dashboard, map, settings modal, keys, export, phone layout:
+  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6) and the event marker on the timeline (part 7) are written; the rest of the Viewer page (Studio's
+  dashboard, map, settings modal, keys, export, phone layout:
   `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
   still opens in the browser (`ViewerPage.Complete` stays false until it
   is all there; then its browser fallback goes and Footage's Play day /
@@ -524,8 +524,32 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   ViewerTimelineTests (3 tests, passing under mono). Render list: every
   Viewer render now has the bar (the fixture's `viewerClipSeconds` is the
   clips' length the web probes), viewer-speed (2x kept), viewer-skip (Skip
-  Duration 10). Phase 2 is not finished: `ViewerPage.Complete` stays false
-  until parts 7-14 are in.
+  Duration 10).
+  Viewer part 7, the event marker (type-checked with mcs, not yet built or
+  rendered on Windows): `Core/EventMarkers.cs` (`EventMarkers.Of`:
+  updateEventTimelineMarker's marker for a SentryClips / SavedClips
+  collection with an event.json time: the groups' meta, else
+  eventMetaByKey's, its percent between the first segment's start and the
+  last one's plus 60 s kept within 0..100, the title "Sentry Event:
+  <reason|Unknown>" / "Saved Event: <reason|User saved>" with the time;
+  `SeekSeconds`: the click's pct of the collection's length or 60 s;
+  `Meta`: the collection's event.json, for part 10's event pin, which reads
+  est_lat / est_lon from it) and `StudioEventMarker` in
+  `Ui/Builtin/ViewerControls.cs` (.event-timeline-marker: the 16 px circle,
+  the triangle or the bookmark, the pulsing glow, 1.2x over the pointer,
+  the title as its tooltip). The Viewer sets it when a collection opens
+  and when its event.json is read (`StudioControlsBar.SetEventMarker`,
+  `StudioViewer.SeekToEvent(pct)` for reuse); a click seeks there. The
+  FSD event markers (refreshFsdEventMarkers) never have data in the web
+  (no SentryUSB drive data there), so there are none natively either.
+  test/windowsNativeViewerEventMarkers.test.js runs eventMarkers.js and
+  clipBrowser.js's parseTimestampKeyToEpochMs (24 collections, 6 clicks
+  each) and writes Core.Tests/Fixtures/expected-viewer-event-markers.json;
+  Core.Tests ViewerEventMarkerTests (1 test, passing under mono). Render
+  list: viewer-event (the Sentry event half way through its minute); the
+  marker also shows at the right end in viewer-sentry and viewer-saved.
+  Phase 2 is not finished: `ViewerPage.Complete` stays false until parts
+  8-14 are in.
 - Phase 3 (Encoder): not started; its page opens in the browser.
 - Phases 4-7 (the packs): in progress on wip, one pack at a time (this
   session works in its own files: `Core/Horizon/`, `Ui/Horizon/Hz*.cs`,

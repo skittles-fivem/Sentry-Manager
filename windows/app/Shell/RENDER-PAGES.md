@@ -289,6 +289,19 @@ speed this PC keeps (localStorage / prefs playbackRate "2": the list reads
 skipDuration 10): the skip buttons read 10 (their titles "Skip Backward
 10 seconds" / "Skip Forward 10 seconds").
 
+The event marker (part 7): a Sentry or Saved collection with an event.json
+time has Studio's .event-timeline-marker on the timeline: a 16 px circle
+(#f87171 with the white warning triangle for Sentry, #fbbf24 with the
+bookmark symbol for Saved) and its glow, at the event's place between the
+first segment's start and the last one's start plus 60 s, kept within the
+timeline. The fixture's events come 61 s after their one clip starts, so in
+viewer-sentry and viewer-saved the marker sits at the timeline's right end.
+viewer-event: the Sentry day with its event.json time (the readFile answer)
+at 22:13:32, half way through that minute: the marker in the middle of the
+timeline. The glow pulses every 2 s on both sides; the native render draws
+it at the start of the pulse, the web's picture where the pulse happens to
+be.
+
 - builtin overview
 - builtin overview-off
 - builtin overview-logs
@@ -364,6 +377,7 @@ skipDuration 10): the skip buttons read 10 (their titles "Skip Backward
 - builtin viewer-zoom
 - builtin viewer-speed
 - builtin viewer-skip
+- builtin viewer-event
 
 ## The UI packs' pages (phases 4-7)
 
