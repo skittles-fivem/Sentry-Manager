@@ -342,6 +342,30 @@ start (lit), as the native still draws it. Studio has no time format
 control (#settingsTimeFormat is not in its page), so the recording time
 is 12 h whatever the timeFormat setting says.
 
+The map (part 10): every Viewer render with a collection now has Studio's
+floating #mapVis (260 x 260, 20 px down and 380 px in from the frame's
+left, under the dashboard) once a segment has loaded. Its tiles come from
+Google's tile servers (OpenStreetMap's for that provider) on both sides:
+the web's Chromium and the native render (MapTileCache.GetNow, a 5 s wait
+per tile, kept on disk for a week) fetch the same URLs, so the CI runner
+needs to reach mt0-3.google.com and a-c.tile.openstreetmap.org; a tile
+that does not come leaves the map's #1a1a1a. RecentClips days with the
+fixture's Park records draw no arrow (no GPS fix); the Sentry and Saved
+days (viewer-sentry, viewer-saved, viewer-event, viewer-focus, ...) show
+event.json's red pin at zoom 16 north-up. The new states answer the
+RecentClips day's first front clip with a two-second drive (capture.js
+routeFrames: north-east through Austin, a gentle left curve, manual for
+the first second and Autosteer after) and then send the master's
+timeupdate. viewer-map: the route fitted (blue, then green), the arrow on
+its first point at the centre, the map turned heading-up (rotated by the
+heading, scaled 1.42). viewer-map-north: a click on #mapOrientationBtn
+first (the native `viewerMapNorth`): north-up, the arrow turned to 48°.
+viewer-map-dark: OpenStreetMap in Dark style (mapTileProvider osm,
+mapDarkMode true): OSM's tiles under invert(100%) hue-rotate(180deg)
+brightness(0.85) contrast(1.2). viewer-map-off: Settings > GPS Map off
+(mapEnabled false): no map. The hint and the two buttons show only under
+the pointer (capture.js moves it off), so no picture has them.
+
 - builtin overview
 - builtin overview-off
 - builtin overview-logs
@@ -422,6 +446,10 @@ is 12 h whatever the timeFormat setting says.
 - builtin viewer-dash-extra
 - builtin viewer-dash-compact
 - builtin viewer-dash-parked
+- builtin viewer-map
+- builtin viewer-map-north
+- builtin viewer-map-dark
+- builtin viewer-map-off
 
 ## The UI packs' pages (phases 4-7)
 

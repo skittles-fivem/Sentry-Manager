@@ -83,7 +83,7 @@ namespace SentrySix.Ui.Builtin
         public static BitmapSource AccelGray { get { Load(); return accelGray; } }
 
         /// <summary>Ui\Builtin\Images beside the exe (or in a checkout), else the repository's assets\.</summary>
-        static BitmapSource Png(string name)
+        internal static BitmapSource Png(string name)
         {
             string exe = AppDomain.CurrentDomain.BaseDirectory;
             string[] tries =

@@ -345,6 +345,9 @@ namespace SentrySix.Ui.Builtin
         TelemetryCache telemetryCache;
         TelemetryStep lastTelemetry = new TelemetryStep();
         readonly StudioDashboard dash;
+        readonly ViewerMap map = new ViewerMap();
+        readonly StudioMapPanel mapPanel;
+        DispatcherTimer mapSettle, mapResize;
         readonly JsonValue renderDash;
         bool stillPlaysOn;
 
@@ -470,8 +473,21 @@ namespace SentrySix.Ui.Builtin
             root.Children.Add(dash.Floating);
             dash.PlacementChanged += PlaceCompact;
             PlaceCompact();
+            // the map (part 10): floating over the frame under the dashboard
+            mapPanel = new StudioMapPanel(map, still);
+            mapPanel.Save = SaveSetting;
+            mapPanel.Notify = Notify;
+            root.Children.Add(mapPanel);
+            TelemetryLoaded += f =>
+            {
+                map.PathLoaded(f.MapPath, ViewerMap.EventMetaOf(library != null ? library.Active : null));
+                // (the render test mode: updateMapVisibility's settle comes before the still's tick)
+                if (still) map.Settle();
+            };
             root.SizeChanged += delegate
             {
+                mapPanel.KeepInView();
+                MapResized();
                 dash.Floating.KeepInView();
                 // (the compact dashboard's font is clamp(10px, 1.2vh, 16px) of the frame)
                 if (dash.Settings.CompactFixed) PlaceCompact();
@@ -577,6 +593,12 @@ namespace SentrySix.Ui.Builtin
             grid.Settings(all, SaveSetting);
             // the dashboard's settings: Dashboard Overlay, Metric Units, Dashboard Style, Fixed to Front Camera, Accelerator Display
             dash.ApplySettings(DashboardSettings.From(all));
+            // GPS Map, Map Provider, Map Style and Map Labels: the tile layer once they are in
+            MapSettings ms = MapSettings.From(all);
+            map.Enabled = ms.Enabled;
+            map.Tiles.Load(ms);
+            mapPanel.Attach();
+            mapPanel.Draw();
             // Settings > Skip Duration (getSetting('skipDuration') || 15): the skip buttons' length and titles
             skipLength = SkipLength.Of(JsJson.Get(all, "skipDuration"));
             controls.SetSkip(skipLength);
@@ -680,7 +702,7 @@ namespace SentrySix.Ui.Builtin
             library.EventsRead = () => clips.Render(library);
             library.Selected = c => { clips.Highlight(library); OpenCollection(c); };
             library.ProfileApplied = (profile, kind) => grid.ApplyProfile(profile);
-            library.EventShown = c => { grid.UpdateGlow(c, library); UpdateEventMarker(c); };
+            library.EventShown = c => { grid.UpdateGlow(c, library); UpdateEventMarker(c); map.ShowEvent(ViewerMap.EventMetaOf(c), true); };
             library.EventSeek = sec => { Player p = Player; if (p != null && library.Active != null) p.Seek(sec); };
             Scan = v => v.library.Open(v.Start.StartFolder);
             PickDay = d =>
@@ -739,6 +761,11 @@ namespace SentrySix.Ui.Builtin
             dash.TelemetryCapability = feed.Enabled;
             dash.Capability = library == null || Dashcam.Get(library.ProfileId).Capabilities.Dashboard;
             dash.ResetAll();
+            // the map's part: no route, dots, pin or arrow; Sentry / Saved clips' event.json place shown
+            map.TelemetryCapability = feed.Enabled;
+            map.Capability = library == null || Dashcam.Get(library.ProfileId).Capabilities.Map;
+            map.Reset();
+            map.ShowEvent(ViewerMap.EventMetaOf(c), true);
             List<PlaybackSegment> segs = c.Segments();
             double fallback = Dashcam.Get(c.ProfileId ?? library.ProfileId).DefaultSegmentDurationSeconds;
             double start = StartOffset(c);
@@ -758,6 +785,9 @@ namespace SentrySix.Ui.Builtin
                 dash.Loaded = true;
                 bool timeupdate = renderDash != null && renderDash["viewerTimeupdate"].Bool;
                 if (renderDash != null && renderDash["viewerExtra"].Bool) dash.ToggleExtra();
+                map.SegmentLoading();
+                // (the variant's click on #mapOrientationBtn: north-up; capture.js moves the pointer off after)
+                if (renderDash != null && renderDash["viewerMapNorth"].Bool) map.ToggleOrientation();
                 LoadTelemetry(segs, first, stillPlaysOn || timeupdate ? shownAt * 1000 : double.NaN);
                 if (timeupdate) dash.RecordingTime(segs[first], shownAt);
                 SegmentView view = SegmentPlan.PlanSegment(segs[first], true, grid.PlayerSlots, "front", "front");
@@ -887,9 +917,68 @@ namespace SentrySix.Ui.Builtin
             lastTelemetry = step;
             Player pl = Player;
             dash.Apply(step, still ? stillPlaysOn : pl != null && pl.Playing);
+            // updateVisualization's map part (resetDashboardElements' telemetryDirty.reset() too)
+            if (step.Reset) map.Dirty();
+            if (step.Sei != null) map.Tick(step.Sei, playbackRate);
             if (still) dash.Settle();
             Action<TelemetryStep> h = TelemetryTicked;
             if (h != null) h(step);
+        }
+
+        // ---- the map (part 10) ------------------------------------------------------------
+
+        /// <summary>
+        /// The map's state (part 10): its view, marker, route, event pin,
+        /// tile provider and fallback; the settings modal (part 11) and the
+        /// export (part 13) read it.
+        /// </summary>
+        public ViewerMap Map { get { return map; } }
+
+        /// <summary>#mapVis: its provider, style and labels setters save the Studio settings.</summary>
+        public StudioMapPanel MapPanel { get { return mapPanel; } }
+
+        /// <summary>state.ui.mapEnabled (Settings > GPS Map; on by default): saved, the map shown or hidden (and fitted 150 ms on).</summary>
+        public bool MapEnabled
+        {
+            get { return map.Enabled; }
+            set
+            {
+                map.Enabled = value;
+                map.Dirty();
+                SaveSetting("mapEnabled", JsonValue.From(value));
+                mapPanel.Draw();
+                SettleMapSoon();
+            }
+        }
+
+        /// <summary>updateMapVisibility's setTimeout(150): the route fitted, else the arrow at 16.</summary>
+        void SettleMapSoon()
+        {
+            if (still) { map.Settle(); return; }
+            if (mapSettle == null)
+            {
+                mapSettle = new DispatcherTimer(DispatcherPriority.Background);
+                mapSettle.Interval = TimeSpan.FromMilliseconds(150);
+                mapSettle.Tick += delegate { mapSettle.Stop(); if (!disposed) map.Settle(); };
+                timers.Add(mapSettle);
+            }
+            mapSettle.Stop();
+            mapSettle.Start();
+        }
+
+        /// <summary>The window's resize (100 ms on): the playing path fitted again.</summary>
+        void MapResized()
+        {
+            if (still) return;
+            if (mapResize == null)
+            {
+                mapResize = new DispatcherTimer(DispatcherPriority.Background);
+                mapResize.Interval = TimeSpan.FromMilliseconds(100);
+                mapResize.Tick += delegate { mapResize.Stop(); if (!disposed) map.Resized(); };
+                timers.Add(mapResize);
+            }
+            mapResize.Stop();
+            mapResize.Start();
         }
 
         // ---- the event marker (part 7) ----------------------------------------------------
@@ -1269,6 +1358,9 @@ namespace SentrySix.Ui.Builtin
             if (firstLoad.Opened()) RaiseControls();
             // loadNativeSegment: dashboardVis.classList.add('visible')
             dash.Loaded = true;
+            // loadNativeSegment: mapVis.classList.add('visible'), updateMapVisibility's settle 150 ms on
+            map.SegmentLoading();
+            SettleMapSoon();
             Player pl = Player;
             if (pl != null) LoadTelemetry(pl.Segments, index, double.NaN);
             // #autoplayToggle (checked): the collection plays once its first segment is in (paused again while put away)

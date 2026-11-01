@@ -1155,6 +1155,69 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   with real Tesla clips: the wheel turning smoothly, the blinkers blinking
   and pausing, the details opening, dragging both panels.
 
+### Phase 2: Viewer part 10, the map (2026-11-01)
+
+- `Core/ViewerMap.cs` (C# 5): `MapProviders` (src/shared/mapProviders.js:
+  google, google-satellite, osm; googleApistyle; getUrlTemplate;
+  buildTileUrl; `LayerTileUrl` is the URL Leaflet's layer asks for, its
+  {s} from |x + y| and x wrapped), `MapSettings` (mapEnabled,
+  mapTileProvider, mapDarkMode, mapLabels; the provider and style lists'
+  values as syncMapSettingsUI sets them), `MapTileState` (mapTiles.js:
+  the fallback to OpenStreetMap after 3 Google tile errors before any
+  loaded, or a failed 5 s probe; a provider picked clears it; `Generation`
+  numbers the live layer so an old layer's tiles are not counted),
+  `LeafletView` (Leaflet's view maths, checked against Leaflet itself:
+  project / unproject, _limitZoom, getBoundsZoom with the 1 % snap,
+  fitBounds, setZoomAround with the scale of the zoom asked for (a double
+  click at the max zoom still pans, as Leaflet does), ScrollWheelZoom's
+  steps, the pixel origin), `MapMarker` (mapVisualization.js),
+  `MapRoute` (the autopilot stretches, the event pin's snap), `ViewerMap`
+  (script.js's map state; each Viewer moment is a method).
+- `Ui/Builtin/ViewerMap.cs`: `StudioMapPanel` (#mapVis) and
+  `MapTileCache`. The tiles are fetched by the app from the provider
+  (User-Agent "SentrySixManager/1.0 (Windows app; +repo URL)", six at a
+  time, 512 in memory, a week on disk under
+  %LOCALAPPDATA%\SentrySixManager\MapTiles); the render test mode fetches
+  them at once (`GetNow`, 5 s, and stops trying once one could not be
+  reached). `DashArt.Png` is internal now; Studio's assets/arrow.png is
+  copied to `Ui/Builtin/Images`.
+- `StudioViewer`: owns the map; a collection opening resets it and shows
+  event.json's pin at zoom 16; a segment loading shows the panel and
+  settles it 150 ms later; its path draws the route and fits it; each
+  telemetry tick moves the arrow (only while GPS Map is on and the
+  telemetry capability is there); the library's event.json read shows the
+  pin; a resize fits the path again (100 ms on). The settings are read
+  with the dashboard's (`ReadSettings`), then the tile layer is attached.
+- Render test mode: variant `viewerMapNorth` (the click on
+  #mapOrientationBtn); new states viewer-map, -north, -dark, -off with
+  capture.js's `routeFrames` (a two-second drive, manual then Autosteer).
+  The web pictures were taken here once (Chromium reached Google's and
+  OpenStreetMap's tiles): the route, the arrow at the centre, heading-up
+  turned; north-up; OSM inverted; Sentry's pin at 16. The Windows runner
+  must reach the same tile servers for the native pictures to match.
+- test/windowsNativeViewerMap.test.js runs mapProviders.js, mapTiles.js
+  (pretend Leaflet layers and probe image), mapVisualization.js with
+  script.js's orientation button, script.js's route, event pin, route fit,
+  recenterMap and right-button drag, and Leaflet's own fitBounds,
+  setZoomAround, ScrollWheelZoom and DoubleClickZoom on an L.Map with no
+  page; Core.Tests `ViewerMapTests` (6 tests) pass under mono, and all 125
+  registered tests of the stub runner pass.
+- Part 15's notes: `ViewerPage.Complete` stays false (the settings modal,
+  keys, export and phone layout are not in), so the browser fallback
+  stays; Footage's Play day / Play recording already land in the native
+  Viewer through `ViewerSlot.Open` once it is true.
+- Left out on purpose: Leaflet's zoom and pan animations (the view jumps;
+  the heading turn and the pin's bounce are animated), touch pinch zoom,
+  Studio's Drives tab routes and FSD dots (not in Sentry Six's Viewer).
+  Leaflet works out the wheel's point from the rotated container's
+  bounding box (off while heading-up); the native map uses the point
+  under the pointer.
+- To check on Windows: the dotnet build; viewer-map* and every Viewer
+  render with a collection against the web's (the tiles' placement and
+  the turn, the route's width, the arrow's size); by hand: the wheel,
+  double click, right-button drag while turned, the buttons on hover,
+  the panel's drag, the fallback toast with Google blocked.
+
 ## UI packs, phases 4-7 (the packs session, 2026-10-31)
 
 A separate session builds the four packs' pages natively while the other

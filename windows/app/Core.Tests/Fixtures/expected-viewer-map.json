@@ -1,0 +1,4335 @@
+{
+ "providers": [
+  {
+   "id": "google",
+   "provider": "google",
+   "label": "Google Maps",
+   "maxZoom": 20,
+   "subdomains": [
+    "mt0",
+    "mt1",
+    "mt2",
+    "mt3"
+   ],
+   "isGoogle": true,
+   "nativeDark": true,
+   "darkFilter": false,
+   "templates": [
+    {
+     "labels": true,
+     "dark": false,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "dark": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Ag%7Cp.c%3A%23242f3e,s.e%3Al.t.f%7Cp.c%3A%23ffffff,s.e%3Al.t.s%7Cp.c%3A%23242f3e,s.t%3A37%7Cs.e%3Ag%7Cp.c%3A%23263c3f,s.t%3A81%7Cs.e%3Ag%7Cp.c%3A%232b3645,s.t%3A6%7Cs.e%3Ag%7Cp.c%3A%2317263c,s.t%3A3%7Cs.e%3Ag%7Cp.c%3A%2338414e,s.t%3A3%7Cs.e%3Ag.s%7Cp.c%3A%23212a37,s.t%3A49%7Cs.e%3Ag%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.f%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.s%7Cp.c%3A%232a3340,s.t%3A4%7Cs.e%3Ag%7Cp.c%3A%232f3948,s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": false,
+     "dark": false,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "dark": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Ag%7Cp.c%3A%23242f3e,s.e%3Al.t.f%7Cp.c%3A%23ffffff,s.e%3Al.t.s%7Cp.c%3A%23242f3e,s.t%3A37%7Cs.e%3Ag%7Cp.c%3A%23263c3f,s.t%3A81%7Cs.e%3Ag%7Cp.c%3A%232b3645,s.t%3A6%7Cs.e%3Ag%7Cp.c%3A%2317263c,s.t%3A3%7Cs.e%3Ag%7Cp.c%3A%2338414e,s.t%3A3%7Cs.e%3Ag.s%7Cp.c%3A%23212a37,s.t%3A49%7Cs.e%3Ag%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.f%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.s%7Cp.c%3A%232a3340,s.t%3A4%7Cs.e%3Ag%7Cp.c%3A%232f3948,s.e%3Al%7Cp.v%3Aoff"
+    }
+   ],
+   "urls": [
+    {
+     "labels": true,
+     "x": 5,
+     "y": 7,
+     "z": 12,
+     "i": 0,
+     "url": "https://mt0.google.com/vt/lyrs=m&x=5&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "x": 6,
+     "y": 7,
+     "z": 12,
+     "i": 1,
+     "url": "https://mt1.google.com/vt/lyrs=m&x=6&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "x": 7,
+     "y": 7,
+     "z": 12,
+     "i": 2,
+     "url": "https://mt2.google.com/vt/lyrs=m&x=7&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "x": 8,
+     "y": 7,
+     "z": 12,
+     "i": 3,
+     "url": "https://mt3.google.com/vt/lyrs=m&x=8&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "x": 9,
+     "y": 7,
+     "z": 12,
+     "i": 4,
+     "url": "https://mt0.google.com/vt/lyrs=m&x=9&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": false,
+     "x": 5,
+     "y": 7,
+     "z": 12,
+     "i": 0,
+     "url": "https://mt0.google.com/vt/lyrs=m&x=5&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "x": 6,
+     "y": 7,
+     "z": 12,
+     "i": 1,
+     "url": "https://mt1.google.com/vt/lyrs=m&x=6&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "x": 7,
+     "y": 7,
+     "z": 12,
+     "i": 2,
+     "url": "https://mt2.google.com/vt/lyrs=m&x=7&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "x": 8,
+     "y": 7,
+     "z": 12,
+     "i": 3,
+     "url": "https://mt3.google.com/vt/lyrs=m&x=8&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "x": 9,
+     "y": 7,
+     "z": 12,
+     "i": 4,
+     "url": "https://mt0.google.com/vt/lyrs=m&x=9&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    }
+   ]
+  },
+  {
+   "id": "google-satellite",
+   "provider": "google-satellite",
+   "label": "Google Satellite",
+   "maxZoom": 20,
+   "subdomains": [
+    "mt0",
+    "mt1",
+    "mt2",
+    "mt3"
+   ],
+   "isGoogle": true,
+   "nativeDark": false,
+   "darkFilter": false,
+   "templates": [
+    {
+     "labels": true,
+     "dark": false,
+     "url": "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+    },
+    {
+     "labels": true,
+     "dark": true,
+     "url": "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+    },
+    {
+     "labels": false,
+     "dark": false,
+     "url": "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+    },
+    {
+     "labels": false,
+     "dark": true,
+     "url": "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+    }
+   ],
+   "urls": [
+    {
+     "labels": true,
+     "x": 5,
+     "y": 7,
+     "z": 12,
+     "i": 0,
+     "url": "https://mt0.google.com/vt/lyrs=s&x=5&y=7&z=12"
+    },
+    {
+     "labels": true,
+     "x": 6,
+     "y": 7,
+     "z": 12,
+     "i": 1,
+     "url": "https://mt1.google.com/vt/lyrs=s&x=6&y=7&z=12"
+    },
+    {
+     "labels": true,
+     "x": 7,
+     "y": 7,
+     "z": 12,
+     "i": 2,
+     "url": "https://mt2.google.com/vt/lyrs=s&x=7&y=7&z=12"
+    },
+    {
+     "labels": true,
+     "x": 8,
+     "y": 7,
+     "z": 12,
+     "i": 3,
+     "url": "https://mt3.google.com/vt/lyrs=s&x=8&y=7&z=12"
+    },
+    {
+     "labels": true,
+     "x": 9,
+     "y": 7,
+     "z": 12,
+     "i": 4,
+     "url": "https://mt0.google.com/vt/lyrs=s&x=9&y=7&z=12"
+    },
+    {
+     "labels": false,
+     "x": 5,
+     "y": 7,
+     "z": 12,
+     "i": 0,
+     "url": "https://mt0.google.com/vt/lyrs=s&x=5&y=7&z=12"
+    },
+    {
+     "labels": false,
+     "x": 6,
+     "y": 7,
+     "z": 12,
+     "i": 1,
+     "url": "https://mt1.google.com/vt/lyrs=s&x=6&y=7&z=12"
+    },
+    {
+     "labels": false,
+     "x": 7,
+     "y": 7,
+     "z": 12,
+     "i": 2,
+     "url": "https://mt2.google.com/vt/lyrs=s&x=7&y=7&z=12"
+    },
+    {
+     "labels": false,
+     "x": 8,
+     "y": 7,
+     "z": 12,
+     "i": 3,
+     "url": "https://mt3.google.com/vt/lyrs=s&x=8&y=7&z=12"
+    },
+    {
+     "labels": false,
+     "x": 9,
+     "y": 7,
+     "z": 12,
+     "i": 4,
+     "url": "https://mt0.google.com/vt/lyrs=s&x=9&y=7&z=12"
+    }
+   ]
+  },
+  {
+   "id": "osm",
+   "provider": "osm",
+   "label": "OpenStreetMap",
+   "maxZoom": 19,
+   "subdomains": [
+    "a",
+    "b",
+    "c"
+   ],
+   "isGoogle": false,
+   "nativeDark": false,
+   "darkFilter": true,
+   "templates": [
+    {
+     "labels": true,
+     "dark": false,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    },
+    {
+     "labels": true,
+     "dark": true,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    },
+    {
+     "labels": false,
+     "dark": false,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    },
+    {
+     "labels": false,
+     "dark": true,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    }
+   ],
+   "urls": [
+    {
+     "labels": true,
+     "x": 5,
+     "y": 7,
+     "z": 12,
+     "i": 0,
+     "url": "https://a.tile.openstreetmap.org/12/5/7.png"
+    },
+    {
+     "labels": true,
+     "x": 6,
+     "y": 7,
+     "z": 12,
+     "i": 1,
+     "url": "https://b.tile.openstreetmap.org/12/6/7.png"
+    },
+    {
+     "labels": true,
+     "x": 7,
+     "y": 7,
+     "z": 12,
+     "i": 2,
+     "url": "https://c.tile.openstreetmap.org/12/7/7.png"
+    },
+    {
+     "labels": true,
+     "x": 8,
+     "y": 7,
+     "z": 12,
+     "i": 3,
+     "url": "https://a.tile.openstreetmap.org/12/8/7.png"
+    },
+    {
+     "labels": true,
+     "x": 9,
+     "y": 7,
+     "z": 12,
+     "i": 4,
+     "url": "https://b.tile.openstreetmap.org/12/9/7.png"
+    },
+    {
+     "labels": false,
+     "x": 5,
+     "y": 7,
+     "z": 12,
+     "i": 0,
+     "url": "https://a.tile.openstreetmap.org/12/5/7.png"
+    },
+    {
+     "labels": false,
+     "x": 6,
+     "y": 7,
+     "z": 12,
+     "i": 1,
+     "url": "https://b.tile.openstreetmap.org/12/6/7.png"
+    },
+    {
+     "labels": false,
+     "x": 7,
+     "y": 7,
+     "z": 12,
+     "i": 2,
+     "url": "https://c.tile.openstreetmap.org/12/7/7.png"
+    },
+    {
+     "labels": false,
+     "x": 8,
+     "y": 7,
+     "z": 12,
+     "i": 3,
+     "url": "https://a.tile.openstreetmap.org/12/8/7.png"
+    },
+    {
+     "labels": false,
+     "x": 9,
+     "y": 7,
+     "z": 12,
+     "i": 4,
+     "url": "https://b.tile.openstreetmap.org/12/9/7.png"
+    }
+   ]
+  },
+  {
+   "id": "nope",
+   "provider": "google",
+   "label": "Google Maps",
+   "maxZoom": 20,
+   "subdomains": [
+    "mt0",
+    "mt1",
+    "mt2",
+    "mt3"
+   ],
+   "isGoogle": true,
+   "nativeDark": true,
+   "darkFilter": false,
+   "templates": [
+    {
+     "labels": true,
+     "dark": false,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "dark": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Ag%7Cp.c%3A%23242f3e,s.e%3Al.t.f%7Cp.c%3A%23ffffff,s.e%3Al.t.s%7Cp.c%3A%23242f3e,s.t%3A37%7Cs.e%3Ag%7Cp.c%3A%23263c3f,s.t%3A81%7Cs.e%3Ag%7Cp.c%3A%232b3645,s.t%3A6%7Cs.e%3Ag%7Cp.c%3A%2317263c,s.t%3A3%7Cs.e%3Ag%7Cp.c%3A%2338414e,s.t%3A3%7Cs.e%3Ag.s%7Cp.c%3A%23212a37,s.t%3A49%7Cs.e%3Ag%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.f%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.s%7Cp.c%3A%232a3340,s.t%3A4%7Cs.e%3Ag%7Cp.c%3A%232f3948,s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": false,
+     "dark": false,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "dark": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Ag%7Cp.c%3A%23242f3e,s.e%3Al.t.f%7Cp.c%3A%23ffffff,s.e%3Al.t.s%7Cp.c%3A%23242f3e,s.t%3A37%7Cs.e%3Ag%7Cp.c%3A%23263c3f,s.t%3A81%7Cs.e%3Ag%7Cp.c%3A%232b3645,s.t%3A6%7Cs.e%3Ag%7Cp.c%3A%2317263c,s.t%3A3%7Cs.e%3Ag%7Cp.c%3A%2338414e,s.t%3A3%7Cs.e%3Ag.s%7Cp.c%3A%23212a37,s.t%3A49%7Cs.e%3Ag%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.f%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.s%7Cp.c%3A%232a3340,s.t%3A4%7Cs.e%3Ag%7Cp.c%3A%232f3948,s.e%3Al%7Cp.v%3Aoff"
+    }
+   ],
+   "urls": [
+    {
+     "labels": true,
+     "x": 5,
+     "y": 7,
+     "z": 12,
+     "i": 0,
+     "url": "https://mt0.google.com/vt/lyrs=m&x=5&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "x": 6,
+     "y": 7,
+     "z": 12,
+     "i": 1,
+     "url": "https://mt1.google.com/vt/lyrs=m&x=6&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "x": 7,
+     "y": 7,
+     "z": 12,
+     "i": 2,
+     "url": "https://mt2.google.com/vt/lyrs=m&x=7&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "x": 8,
+     "y": 7,
+     "z": 12,
+     "i": 3,
+     "url": "https://mt3.google.com/vt/lyrs=m&x=8&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "x": 9,
+     "y": 7,
+     "z": 12,
+     "i": 4,
+     "url": "https://mt0.google.com/vt/lyrs=m&x=9&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": false,
+     "x": 5,
+     "y": 7,
+     "z": 12,
+     "i": 0,
+     "url": "https://mt0.google.com/vt/lyrs=m&x=5&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "x": 6,
+     "y": 7,
+     "z": 12,
+     "i": 1,
+     "url": "https://mt1.google.com/vt/lyrs=m&x=6&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "x": 7,
+     "y": 7,
+     "z": 12,
+     "i": 2,
+     "url": "https://mt2.google.com/vt/lyrs=m&x=7&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "x": 8,
+     "y": 7,
+     "z": 12,
+     "i": 3,
+     "url": "https://mt3.google.com/vt/lyrs=m&x=8&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "x": 9,
+     "y": 7,
+     "z": 12,
+     "i": 4,
+     "url": "https://mt0.google.com/vt/lyrs=m&x=9&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "provider": "google",
+   "label": "Google Maps",
+   "maxZoom": 20,
+   "subdomains": [
+    "mt0",
+    "mt1",
+    "mt2",
+    "mt3"
+   ],
+   "isGoogle": true,
+   "nativeDark": true,
+   "darkFilter": false,
+   "templates": [
+    {
+     "labels": true,
+     "dark": false,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "dark": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Ag%7Cp.c%3A%23242f3e,s.e%3Al.t.f%7Cp.c%3A%23ffffff,s.e%3Al.t.s%7Cp.c%3A%23242f3e,s.t%3A37%7Cs.e%3Ag%7Cp.c%3A%23263c3f,s.t%3A81%7Cs.e%3Ag%7Cp.c%3A%232b3645,s.t%3A6%7Cs.e%3Ag%7Cp.c%3A%2317263c,s.t%3A3%7Cs.e%3Ag%7Cp.c%3A%2338414e,s.t%3A3%7Cs.e%3Ag.s%7Cp.c%3A%23212a37,s.t%3A49%7Cs.e%3Ag%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.f%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.s%7Cp.c%3A%232a3340,s.t%3A4%7Cs.e%3Ag%7Cp.c%3A%232f3948,s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": false,
+     "dark": false,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "dark": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Ag%7Cp.c%3A%23242f3e,s.e%3Al.t.f%7Cp.c%3A%23ffffff,s.e%3Al.t.s%7Cp.c%3A%23242f3e,s.t%3A37%7Cs.e%3Ag%7Cp.c%3A%23263c3f,s.t%3A81%7Cs.e%3Ag%7Cp.c%3A%232b3645,s.t%3A6%7Cs.e%3Ag%7Cp.c%3A%2317263c,s.t%3A3%7Cs.e%3Ag%7Cp.c%3A%2338414e,s.t%3A3%7Cs.e%3Ag.s%7Cp.c%3A%23212a37,s.t%3A49%7Cs.e%3Ag%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.f%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.s%7Cp.c%3A%232a3340,s.t%3A4%7Cs.e%3Ag%7Cp.c%3A%232f3948,s.e%3Al%7Cp.v%3Aoff"
+    }
+   ],
+   "urls": [
+    {
+     "labels": true,
+     "x": 5,
+     "y": 7,
+     "z": 12,
+     "i": 0,
+     "url": "https://mt0.google.com/vt/lyrs=m&x=5&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "x": 6,
+     "y": 7,
+     "z": 12,
+     "i": 1,
+     "url": "https://mt1.google.com/vt/lyrs=m&x=6&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "x": 7,
+     "y": 7,
+     "z": 12,
+     "i": 2,
+     "url": "https://mt2.google.com/vt/lyrs=m&x=7&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "x": 8,
+     "y": 7,
+     "z": 12,
+     "i": 3,
+     "url": "https://mt3.google.com/vt/lyrs=m&x=8&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": true,
+     "x": 9,
+     "y": 7,
+     "z": 12,
+     "i": 4,
+     "url": "https://mt0.google.com/vt/lyrs=m&x=9&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon"
+    },
+    {
+     "labels": false,
+     "x": 5,
+     "y": 7,
+     "z": 12,
+     "i": 0,
+     "url": "https://mt0.google.com/vt/lyrs=m&x=5&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "x": 6,
+     "y": 7,
+     "z": 12,
+     "i": 1,
+     "url": "https://mt1.google.com/vt/lyrs=m&x=6&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "x": 7,
+     "y": 7,
+     "z": 12,
+     "i": 2,
+     "url": "https://mt2.google.com/vt/lyrs=m&x=7&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "x": 8,
+     "y": 7,
+     "z": 12,
+     "i": 3,
+     "url": "https://mt3.google.com/vt/lyrs=m&x=8&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    },
+    {
+     "labels": false,
+     "x": 9,
+     "y": 7,
+     "z": 12,
+     "i": 4,
+     "url": "https://mt0.google.com/vt/lyrs=m&x=9&y=7&z=12&apistyle=s.e%3Al%7Cp.v%3Aoff"
+    }
+   ]
+  }
+ ],
+ "tiles": [
+  {
+   "settings": {},
+   "steps": [
+    {
+     "op": "attach",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {}
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {}
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {}
+    },
+    {
+     "op": "load",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {}
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {}
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {}
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {}
+    },
+    {
+     "op": "probe",
+     "value": false,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": false,
+     "saved": {}
+    }
+   ]
+  },
+  {
+   "settings": {},
+   "steps": [
+    {
+     "op": "attach",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {}
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {}
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {}
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "osm",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 2,
+     "notices": 1,
+     "probing": true,
+     "saved": {}
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "osm",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 2,
+     "notices": 1,
+     "probing": true,
+     "saved": {}
+    },
+    {
+     "op": "provider",
+     "value": "google",
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 3,
+     "notices": 1,
+     "probing": true,
+     "saved": {
+      "mapTileProvider": "google"
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 3,
+     "notices": 1,
+     "probing": true,
+     "saved": {
+      "mapTileProvider": "google"
+     }
+    },
+    {
+     "op": "probe",
+     "value": false,
+     "effective": "osm",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 4,
+     "notices": 2,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "google"
+     }
+    },
+    {
+     "op": "provider",
+     "value": "osm",
+     "effective": "osm",
+     "selected": "osm",
+     "labels": true,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 5,
+     "notices": 2,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "osm"
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "osm",
+     "selected": "osm",
+     "labels": true,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 5,
+     "notices": 2,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "osm"
+     }
+    },
+    {
+     "op": "probe",
+     "value": true,
+     "effective": "osm",
+     "selected": "osm",
+     "labels": true,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 5,
+     "notices": 2,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "osm"
+     }
+    }
+   ]
+  },
+  {
+   "settings": {
+    "mapTileProvider": "osm",
+    "mapLabels": false
+   },
+   "steps": [
+    {
+     "op": "attach",
+     "value": null,
+     "effective": "osm",
+     "selected": "osm",
+     "labels": false,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 1,
+     "notices": 0,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "osm",
+      "mapLabels": false
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "osm",
+     "selected": "osm",
+     "labels": false,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 1,
+     "notices": 0,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "osm",
+      "mapLabels": false
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "osm",
+     "selected": "osm",
+     "labels": false,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 1,
+     "notices": 0,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "osm",
+      "mapLabels": false
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "osm",
+     "selected": "osm",
+     "labels": false,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 1,
+     "notices": 0,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "osm",
+      "mapLabels": false
+     }
+    },
+    {
+     "op": "labels",
+     "value": true,
+     "effective": "osm",
+     "selected": "osm",
+     "labels": true,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 2,
+     "notices": 0,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "osm",
+      "mapLabels": true
+     }
+    },
+    {
+     "op": "provider",
+     "value": "google-satellite",
+     "effective": "google-satellite",
+     "selected": "google-satellite",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+     "maxZoom": 20,
+     "layers": 3,
+     "notices": 0,
+     "probing": true,
+     "saved": {
+      "mapTileProvider": "google-satellite",
+      "mapLabels": true
+     }
+    },
+    {
+     "op": "probe",
+     "value": true,
+     "effective": "google-satellite",
+     "selected": "google-satellite",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+     "maxZoom": 20,
+     "layers": 3,
+     "notices": 0,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "google-satellite",
+      "mapLabels": true
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google-satellite",
+     "selected": "google-satellite",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+     "maxZoom": 20,
+     "layers": 3,
+     "notices": 0,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "google-satellite",
+      "mapLabels": true
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google-satellite",
+     "selected": "google-satellite",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+     "maxZoom": 20,
+     "layers": 3,
+     "notices": 0,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "google-satellite",
+      "mapLabels": true
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "osm",
+     "selected": "google-satellite",
+     "labels": true,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 4,
+     "notices": 1,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "google-satellite",
+      "mapLabels": true
+     }
+    },
+    {
+     "op": "labels",
+     "value": false,
+     "effective": "osm",
+     "selected": "google-satellite",
+     "labels": false,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 5,
+     "notices": 1,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "google-satellite",
+      "mapLabels": false
+     }
+    }
+   ]
+  },
+  {
+   "settings": {
+    "mapDarkMode": true
+   },
+   "steps": [
+    {
+     "op": "dark",
+     "value": true,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": null,
+     "maxZoom": null,
+     "layers": 0,
+     "notices": 0,
+     "probing": false,
+     "saved": {
+      "mapDarkMode": true
+     }
+    },
+    {
+     "op": "attach",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Ag%7Cp.c%3A%23242f3e,s.e%3Al.t.f%7Cp.c%3A%23ffffff,s.e%3Al.t.s%7Cp.c%3A%23242f3e,s.t%3A37%7Cs.e%3Ag%7Cp.c%3A%23263c3f,s.t%3A81%7Cs.e%3Ag%7Cp.c%3A%232b3645,s.t%3A6%7Cs.e%3Ag%7Cp.c%3A%2317263c,s.t%3A3%7Cs.e%3Ag%7Cp.c%3A%2338414e,s.t%3A3%7Cs.e%3Ag.s%7Cp.c%3A%23212a37,s.t%3A49%7Cs.e%3Ag%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.f%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.s%7Cp.c%3A%232a3340,s.t%3A4%7Cs.e%3Ag%7Cp.c%3A%232f3948,s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {
+      "mapDarkMode": true
+     }
+    },
+    {
+     "op": "probe",
+     "value": true,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Ag%7Cp.c%3A%23242f3e,s.e%3Al.t.f%7Cp.c%3A%23ffffff,s.e%3Al.t.s%7Cp.c%3A%23242f3e,s.t%3A37%7Cs.e%3Ag%7Cp.c%3A%23263c3f,s.t%3A81%7Cs.e%3Ag%7Cp.c%3A%232b3645,s.t%3A6%7Cs.e%3Ag%7Cp.c%3A%2317263c,s.t%3A3%7Cs.e%3Ag%7Cp.c%3A%2338414e,s.t%3A3%7Cs.e%3Ag.s%7Cp.c%3A%23212a37,s.t%3A49%7Cs.e%3Ag%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.f%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.s%7Cp.c%3A%232a3340,s.t%3A4%7Cs.e%3Ag%7Cp.c%3A%232f3948,s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": false,
+     "saved": {
+      "mapDarkMode": true
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Ag%7Cp.c%3A%23242f3e,s.e%3Al.t.f%7Cp.c%3A%23ffffff,s.e%3Al.t.s%7Cp.c%3A%23242f3e,s.t%3A37%7Cs.e%3Ag%7Cp.c%3A%23263c3f,s.t%3A81%7Cs.e%3Ag%7Cp.c%3A%232b3645,s.t%3A6%7Cs.e%3Ag%7Cp.c%3A%2317263c,s.t%3A3%7Cs.e%3Ag%7Cp.c%3A%2338414e,s.t%3A3%7Cs.e%3Ag.s%7Cp.c%3A%23212a37,s.t%3A49%7Cs.e%3Ag%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.f%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.s%7Cp.c%3A%232a3340,s.t%3A4%7Cs.e%3Ag%7Cp.c%3A%232f3948,s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": false,
+     "saved": {
+      "mapDarkMode": true
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Ag%7Cp.c%3A%23242f3e,s.e%3Al.t.f%7Cp.c%3A%23ffffff,s.e%3Al.t.s%7Cp.c%3A%23242f3e,s.t%3A37%7Cs.e%3Ag%7Cp.c%3A%23263c3f,s.t%3A81%7Cs.e%3Ag%7Cp.c%3A%232b3645,s.t%3A6%7Cs.e%3Ag%7Cp.c%3A%2317263c,s.t%3A3%7Cs.e%3Ag%7Cp.c%3A%2338414e,s.t%3A3%7Cs.e%3Ag.s%7Cp.c%3A%23212a37,s.t%3A49%7Cs.e%3Ag%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.f%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.s%7Cp.c%3A%232a3340,s.t%3A4%7Cs.e%3Ag%7Cp.c%3A%232f3948,s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": false,
+     "saved": {
+      "mapDarkMode": true
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "osm",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 2,
+     "notices": 1,
+     "probing": false,
+     "saved": {
+      "mapDarkMode": true
+     }
+    },
+    {
+     "op": "provider",
+     "value": "osm",
+     "effective": "osm",
+     "selected": "osm",
+     "labels": true,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 3,
+     "notices": 1,
+     "probing": false,
+     "saved": {
+      "mapDarkMode": true,
+      "mapTileProvider": "osm"
+     }
+    },
+    {
+     "op": "dark",
+     "value": false,
+     "effective": "osm",
+     "selected": "osm",
+     "labels": true,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 4,
+     "notices": 1,
+     "probing": false,
+     "saved": {
+      "mapDarkMode": true,
+      "mapTileProvider": "osm"
+     }
+    },
+    {
+     "op": "provider",
+     "value": "google",
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 5,
+     "notices": 1,
+     "probing": true,
+     "saved": {
+      "mapDarkMode": true,
+      "mapTileProvider": "google"
+     }
+    },
+    {
+     "op": "dark",
+     "value": true,
+     "effective": "google",
+     "selected": "google",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Ag%7Cp.c%3A%23242f3e,s.e%3Al.t.f%7Cp.c%3A%23ffffff,s.e%3Al.t.s%7Cp.c%3A%23242f3e,s.t%3A37%7Cs.e%3Ag%7Cp.c%3A%23263c3f,s.t%3A81%7Cs.e%3Ag%7Cp.c%3A%232b3645,s.t%3A6%7Cs.e%3Ag%7Cp.c%3A%2317263c,s.t%3A3%7Cs.e%3Ag%7Cp.c%3A%2338414e,s.t%3A3%7Cs.e%3Ag.s%7Cp.c%3A%23212a37,s.t%3A49%7Cs.e%3Ag%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.f%7Cp.c%3A%235f6b7c,s.t%3A49%7Cs.e%3Ag.s%7Cp.c%3A%232a3340,s.t%3A4%7Cs.e%3Ag%7Cp.c%3A%232f3948,s.e%3Al%7Cp.v%3Aoff,s.t%3A1%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A3%7Cs.e%3Al%7Cp.v%3Aon,s.t%3A49%7Cs.e%3Al%7Cp.v%3Aon",
+     "maxZoom": 20,
+     "layers": 6,
+     "notices": 1,
+     "probing": true,
+     "saved": {
+      "mapDarkMode": true,
+      "mapTileProvider": "google"
+     }
+    }
+   ]
+  },
+  {
+   "settings": {
+    "mapTileProvider": "bogus",
+    "mapLabels": 0
+   },
+   "steps": [
+    {
+     "op": "attach",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": false,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {
+      "mapTileProvider": "bogus",
+      "mapLabels": 0
+     }
+    },
+    {
+     "op": "load",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": false,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {
+      "mapTileProvider": "bogus",
+      "mapLabels": 0
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": false,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {
+      "mapTileProvider": "bogus",
+      "mapLabels": 0
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": false,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {
+      "mapTileProvider": "bogus",
+      "mapLabels": 0
+     }
+    },
+    {
+     "op": "error",
+     "value": null,
+     "effective": "google",
+     "selected": "google",
+     "labels": false,
+     "url": "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {
+      "mapTileProvider": "bogus",
+      "mapLabels": 0
+     }
+    }
+   ]
+  },
+  {
+   "settings": {
+    "mapTileProvider": "google-satellite",
+    "mapLabels": null
+   },
+   "steps": [
+    {
+     "op": "attach",
+     "value": null,
+     "effective": "google-satellite",
+     "selected": "google-satellite",
+     "labels": true,
+     "url": "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+     "maxZoom": 20,
+     "layers": 1,
+     "notices": 0,
+     "probing": true,
+     "saved": {
+      "mapTileProvider": "google-satellite",
+      "mapLabels": null
+     }
+    },
+    {
+     "op": "labels",
+     "value": false,
+     "effective": "google-satellite",
+     "selected": "google-satellite",
+     "labels": false,
+     "url": "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+     "maxZoom": 20,
+     "layers": 2,
+     "notices": 0,
+     "probing": true,
+     "saved": {
+      "mapTileProvider": "google-satellite",
+      "mapLabels": false
+     }
+    },
+    {
+     "op": "probe",
+     "value": false,
+     "effective": "osm",
+     "selected": "google-satellite",
+     "labels": false,
+     "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+     "maxZoom": 19,
+     "layers": 3,
+     "notices": 1,
+     "probing": false,
+     "saved": {
+      "mapTileProvider": "google-satellite",
+      "mapLabels": false
+     }
+    }
+   ]
+  }
+ ],
+ "marker": [
+  {
+   "op": "sei",
+   "value": {
+    "lat": 30.2672,
+    "lon": -97.7431,
+    "heading": 135.5
+   },
+   "rate": 1,
+   "shown": true,
+   "at": [
+    30.2672,
+    -97.7431
+   ],
+   "arrowSize": 80,
+   "arrowRotation": 135.5,
+   "container": "rotate(-135.5deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": true,
+   "view": {
+    "lat": 30.2672,
+    "lng": -97.7431,
+    "zoom": 16,
+    "origin": [
+     3833320,
+     6907336
+    ]
+   },
+   "current": [
+    30.2672,
+    -97.7431
+   ],
+   "bearing": 135.5,
+   "orientation": "heading-up",
+   "upright": 135.5,
+   "compass": -135.5,
+   "title": "Toggle heading-up / north-up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": 30.2672,
+    "lon": -97.7431,
+    "heading": 135.5
+   },
+   "rate": 1,
+   "shown": true,
+   "at": [
+    30.2672,
+    -97.7431
+   ],
+   "arrowSize": 80,
+   "arrowRotation": 135.5,
+   "container": "rotate(-135.5deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": false,
+   "view": {
+    "lat": 30.2672,
+    "lng": -97.7431,
+    "zoom": 16,
+    "origin": [
+     3833320,
+     6907336
+    ]
+   },
+   "current": [
+    30.2672,
+    -97.7431
+   ],
+   "bearing": 135.5,
+   "orientation": "heading-up",
+   "upright": 135.5,
+   "compass": -135.5,
+   "title": "Toggle heading-up / north-up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": 30.26721,
+    "lon": -97.74311,
+    "heading": 135.54
+   },
+   "rate": 2,
+   "shown": true,
+   "at": [
+    30.26721,
+    -97.74311
+   ],
+   "arrowSize": 80,
+   "arrowRotation": 135.53999999999996,
+   "container": "rotate(-135.53999999999996deg) scale(1.42)",
+   "transition": "transform 0.075s ease-out",
+   "setView": true,
+   "view": {
+    "lat": 30.26721,
+    "lng": -97.74311,
+    "zoom": 16,
+    "origin": [
+     3833320,
+     6907336
+    ]
+   },
+   "current": [
+    30.26721,
+    -97.74311
+   ],
+   "bearing": 135.53999999999996,
+   "orientation": "heading-up",
+   "upright": 135.53999999999996,
+   "compass": -135.53999999999996,
+   "title": "Toggle heading-up / north-up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": 30.26725,
+    "lon": -97.74316,
+    "heading": 350
+   },
+   "rate": 0.5,
+   "shown": true,
+   "at": [
+    30.26725,
+    -97.74316
+   ],
+   "arrowSize": 80,
+   "arrowRotation": -10,
+   "container": "rotate(10deg) scale(1.42)",
+   "transition": "transform 0.3s ease-out",
+   "setView": true,
+   "view": {
+    "lat": 30.26725,
+    "lng": -97.74316,
+    "zoom": 16,
+    "origin": [
+     3833318,
+     6907333
+    ]
+   },
+   "current": [
+    30.26725,
+    -97.74316
+   ],
+   "bearing": -10,
+   "orientation": "heading-up",
+   "upright": -10,
+   "compass": 10,
+   "title": "Toggle heading-up / north-up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": 30.2673,
+    "lon": -97.7432,
+    "heading": 10
+   },
+   "rate": 4,
+   "shown": true,
+   "at": [
+    30.2673,
+    -97.7432
+   ],
+   "arrowSize": 80,
+   "arrowRotation": 10,
+   "container": "rotate(-10deg) scale(1.42)",
+   "transition": "transform 0.0375s ease-out",
+   "setView": true,
+   "view": {
+    "lat": 30.2673,
+    "lng": -97.7432,
+    "zoom": 16,
+    "origin": [
+     3833316,
+     6907331
+    ]
+   },
+   "current": [
+    30.2673,
+    -97.7432
+   ],
+   "bearing": 10,
+   "orientation": "heading-up",
+   "upright": 10,
+   "compass": -10,
+   "title": "Toggle heading-up / north-up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": 30.2673,
+    "lon": -97.7432,
+    "heading": -170
+   },
+   "rate": 1,
+   "shown": true,
+   "at": [
+    30.2673,
+    -97.7432
+   ],
+   "arrowSize": 80,
+   "arrowRotation": 190,
+   "container": "rotate(-190deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": true,
+   "view": {
+    "lat": 30.2673,
+    "lng": -97.7432,
+    "zoom": 16,
+    "origin": [
+     3833316,
+     6907331
+    ]
+   },
+   "current": [
+    30.2673,
+    -97.7432
+   ],
+   "bearing": 190,
+   "orientation": "heading-up",
+   "upright": 190,
+   "compass": -190,
+   "title": "Toggle heading-up / north-up"
+  },
+  {
+   "op": "zoom",
+   "value": 14,
+   "rate": null,
+   "shown": true,
+   "at": [
+    30.2673,
+    -97.7432
+   ],
+   "arrowSize": 67,
+   "arrowRotation": 190,
+   "container": "rotate(-190deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": true,
+   "view": {
+    "lat": 30.2673,
+    "lng": -97.7432,
+    "zoom": 14,
+    "origin": [
+     958232,
+     1726736
+    ]
+   },
+   "current": [
+    30.2673,
+    -97.7432
+   ],
+   "bearing": 190,
+   "orientation": "heading-up",
+   "upright": 190,
+   "compass": -190,
+   "title": "Toggle heading-up / north-up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": 30.2673,
+    "lon": -97.7432,
+    "heading": -170
+   },
+   "rate": 1,
+   "shown": true,
+   "at": [
+    30.2673,
+    -97.7432
+   ],
+   "arrowSize": 67,
+   "arrowRotation": 190,
+   "container": "rotate(-190deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": true,
+   "view": {
+    "lat": 30.2673,
+    "lng": -97.7432,
+    "zoom": 14,
+    "origin": [
+     958232,
+     1726736
+    ]
+   },
+   "current": [
+    30.2673,
+    -97.7432
+   ],
+   "bearing": 190,
+   "orientation": "heading-up",
+   "upright": 190,
+   "compass": -190,
+   "title": "Toggle heading-up / north-up"
+  },
+  {
+   "op": "toggle",
+   "value": null,
+   "rate": null,
+   "shown": true,
+   "at": [
+    30.2673,
+    -97.7432
+   ],
+   "arrowSize": 67,
+   "arrowRotation": 190,
+   "container": "rotate(0deg) scale(1)",
+   "transition": "transform 0.3s ease-out",
+   "setView": false,
+   "view": {
+    "lat": 30.2673,
+    "lng": -97.7432,
+    "zoom": 14,
+    "origin": [
+     958232,
+     1726736
+    ]
+   },
+   "current": [
+    30.2673,
+    -97.7432
+   ],
+   "bearing": 0,
+   "orientation": "north-up",
+   "upright": 0,
+   "compass": 0,
+   "title": "North up — tap for heading up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": 30.2674,
+    "lon": -97.7433,
+    "heading": 200
+   },
+   "rate": 1,
+   "shown": true,
+   "at": [
+    30.2674,
+    -97.7433
+   ],
+   "arrowSize": 67,
+   "arrowRotation": 200,
+   "container": "rotate(0deg) scale(1)",
+   "transition": "",
+   "setView": true,
+   "view": {
+    "lat": 30.2674,
+    "lng": -97.7433,
+    "zoom": 14,
+    "origin": [
+     958231,
+     1726735
+    ]
+   },
+   "current": [
+    30.2674,
+    -97.7433
+   ],
+   "bearing": 0,
+   "orientation": "north-up",
+   "upright": 0,
+   "compass": 0,
+   "title": "North up — tap for heading up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": 30.2674,
+    "lon": -97.7433,
+    "heading": 200
+   },
+   "rate": 1,
+   "shown": true,
+   "at": [
+    30.2674,
+    -97.7433
+   ],
+   "arrowSize": 67,
+   "arrowRotation": 200,
+   "container": "rotate(0deg) scale(1)",
+   "transition": "",
+   "setView": false,
+   "view": {
+    "lat": 30.2674,
+    "lng": -97.7433,
+    "zoom": 14,
+    "origin": [
+     958231,
+     1726735
+    ]
+   },
+   "current": [
+    30.2674,
+    -97.7433
+   ],
+   "bearing": 0,
+   "orientation": "north-up",
+   "upright": 0,
+   "compass": 0,
+   "title": "North up — tap for heading up"
+  },
+  {
+   "op": "zoom",
+   "value": 6,
+   "rate": null,
+   "shown": true,
+   "at": [
+    30.2674,
+    -97.7433
+   ],
+   "arrowSize": 28,
+   "arrowRotation": 200,
+   "container": "rotate(0deg) scale(1)",
+   "transition": "",
+   "setView": true,
+   "view": {
+    "lat": 30.2674,
+    "lng": -97.7433,
+    "zoom": 6,
+    "origin": [
+     3615,
+     6617
+    ]
+   },
+   "current": [
+    30.2674,
+    -97.7433
+   ],
+   "bearing": 0,
+   "orientation": "north-up",
+   "upright": 0,
+   "compass": 0,
+   "title": "North up — tap for heading up"
+  },
+  {
+   "op": "toggle",
+   "value": null,
+   "rate": null,
+   "shown": true,
+   "at": [
+    30.2674,
+    -97.7433
+   ],
+   "arrowSize": 28,
+   "arrowRotation": 200,
+   "container": "rotate(-200deg) scale(1.42)",
+   "transition": "transform 0.3s ease-out",
+   "setView": false,
+   "view": {
+    "lat": 30.2674,
+    "lng": -97.7433,
+    "zoom": 6,
+    "origin": [
+     3615,
+     6617
+    ]
+   },
+   "current": [
+    30.2674,
+    -97.7433
+   ],
+   "bearing": 200,
+   "orientation": "heading-up",
+   "upright": 200,
+   "compass": null,
+   "title": "Heading up — tap for north up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": 30.2675,
+    "lon": -97.7434,
+    "heading": 559.5
+   },
+   "rate": 0,
+   "shown": true,
+   "at": [
+    30.2675,
+    -97.7434
+   ],
+   "arrowSize": 28,
+   "arrowRotation": 199.5,
+   "container": "rotate(-199.5deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": true,
+   "view": {
+    "lat": 30.2675,
+    "lng": -97.7434,
+    "zoom": 6,
+    "origin": [
+     3615,
+     6617
+    ]
+   },
+   "current": [
+    30.2675,
+    -97.7434
+   ],
+   "bearing": 199.5,
+   "orientation": "heading-up",
+   "upright": 199.5,
+   "compass": -199.5,
+   "title": "Heading up — tap for north up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": 0.0005,
+    "lon": -97.7434,
+    "heading": 90
+   },
+   "rate": 1,
+   "shown": false,
+   "at": null,
+   "arrowSize": null,
+   "arrowRotation": null,
+   "container": "rotate(-199.5deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": false,
+   "view": {
+    "lat": 30.2675,
+    "lng": -97.7434,
+    "zoom": 6,
+    "origin": [
+     3615,
+     6617
+    ]
+   },
+   "current": [
+    30.2675,
+    -97.7434
+   ],
+   "bearing": 199.5,
+   "orientation": "heading-up",
+   "upright": 199.5,
+   "compass": -199.5,
+   "title": "Heading up — tap for north up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": 30.2675,
+    "lon": -97.7434,
+    "heading": 90
+   },
+   "rate": 1,
+   "shown": true,
+   "at": [
+    30.2675,
+    -97.7434
+   ],
+   "arrowSize": 28,
+   "arrowRotation": 90,
+   "container": "rotate(-90deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": true,
+   "view": {
+    "lat": 30.2675,
+    "lng": -97.7434,
+    "zoom": 6,
+    "origin": [
+     3615,
+     6617
+    ]
+   },
+   "current": [
+    30.2675,
+    -97.7434
+   ],
+   "bearing": 90,
+   "orientation": "heading-up",
+   "upright": 90,
+   "compass": -90,
+   "title": "Heading up — tap for north up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": 0,
+    "lon": 0,
+    "heading": 45
+   },
+   "rate": 1,
+   "shown": false,
+   "at": null,
+   "arrowSize": null,
+   "arrowRotation": null,
+   "container": "rotate(-90deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": false,
+   "view": {
+    "lat": 30.2675,
+    "lng": -97.7434,
+    "zoom": 6,
+    "origin": [
+     3615,
+     6617
+    ]
+   },
+   "current": [
+    30.2675,
+    -97.7434
+   ],
+   "bearing": 90,
+   "orientation": "heading-up",
+   "upright": 90,
+   "compass": -90,
+   "title": "Heading up — tap for north up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": 95,
+    "lon": 10,
+    "heading": 45
+   },
+   "rate": 1,
+   "shown": false,
+   "at": null,
+   "arrowSize": null,
+   "arrowRotation": null,
+   "container": "rotate(-90deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": false,
+   "view": {
+    "lat": 30.2675,
+    "lng": -97.7434,
+    "zoom": 6,
+    "origin": [
+     3615,
+     6617
+    ]
+   },
+   "current": [
+    30.2675,
+    -97.7434
+   ],
+   "bearing": 90,
+   "orientation": "heading-up",
+   "upright": 90,
+   "compass": -90,
+   "title": "Heading up — tap for north up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": -33.8688197,
+    "lon": 151.2092955,
+    "heading": -45
+   },
+   "rate": 1,
+   "shown": true,
+   "at": [
+    -33.8688197,
+    151.2092955
+   ],
+   "arrowSize": 28,
+   "arrowRotation": -45,
+   "container": "rotate(45deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": true,
+   "view": {
+    "lat": -33.8688197,
+    "lng": 151.2092955,
+    "zoom": 6,
+    "origin": [
+     14945,
+     9703
+    ]
+   },
+   "current": [
+    -33.8688197,
+    151.2092955
+   ],
+   "bearing": -45,
+   "orientation": "heading-up",
+   "upright": -45,
+   "compass": 45,
+   "title": "Heading up — tap for north up"
+  },
+  {
+   "op": "zoom",
+   "value": 20,
+   "rate": null,
+   "shown": true,
+   "at": [
+    -33.8688197,
+    151.2092955
+   ],
+   "arrowSize": 106,
+   "arrowRotation": -45,
+   "container": "rotate(45deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": true,
+   "view": {
+    "lat": -33.8688197,
+    "lng": 151.2092955,
+    "zoom": 20,
+    "origin": [
+     246967422,
+     161085926
+    ]
+   },
+   "current": [
+    -33.8688197,
+    151.2092955
+   ],
+   "bearing": -45,
+   "orientation": "heading-up",
+   "upright": -45,
+   "compass": 45,
+   "title": "Heading up — tap for north up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": -33.8688197,
+    "lon": 151.2092955,
+    "heading": -45
+   },
+   "rate": 1,
+   "shown": true,
+   "at": [
+    -33.8688197,
+    151.2092955
+   ],
+   "arrowSize": 106,
+   "arrowRotation": -45,
+   "container": "rotate(45deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": true,
+   "view": {
+    "lat": -33.8688197,
+    "lng": 151.2092955,
+    "zoom": 20,
+    "origin": [
+     246967422,
+     161085926
+    ]
+   },
+   "current": [
+    -33.8688197,
+    151.2092955
+   ],
+   "bearing": -45,
+   "orientation": "heading-up",
+   "upright": -45,
+   "compass": 45,
+   "title": "Heading up — tap for north up"
+  },
+  {
+   "op": "clear",
+   "value": null,
+   "rate": null,
+   "shown": false,
+   "at": null,
+   "arrowSize": null,
+   "arrowRotation": null,
+   "container": "rotate(0deg) scale(1)",
+   "transition": "transform 0.3s ease-out",
+   "setView": false,
+   "view": {
+    "lat": -33.8688197,
+    "lng": 151.2092955,
+    "zoom": 20,
+    "origin": [
+     246967422,
+     161085926
+    ]
+   },
+   "current": null,
+   "bearing": 0,
+   "orientation": "heading-up",
+   "upright": 0,
+   "compass": 45,
+   "title": "Heading up — tap for north up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": -33.8688197,
+    "lon": 151.2092955,
+    "heading": 181
+   },
+   "rate": 1,
+   "shown": true,
+   "at": [
+    -33.8688197,
+    151.2092955
+   ],
+   "arrowSize": 106,
+   "arrowRotation": -179,
+   "container": "rotate(179deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": true,
+   "view": {
+    "lat": -33.8688197,
+    "lng": 151.2092955,
+    "zoom": 20,
+    "origin": [
+     246967422,
+     161085926
+    ]
+   },
+   "current": [
+    -33.8688197,
+    151.2092955
+   ],
+   "bearing": -179,
+   "orientation": "heading-up",
+   "upright": -179,
+   "compass": 179,
+   "title": "Heading up — tap for north up"
+  },
+  {
+   "op": "toggle",
+   "value": null,
+   "rate": null,
+   "shown": true,
+   "at": [
+    -33.8688197,
+    151.2092955
+   ],
+   "arrowSize": 106,
+   "arrowRotation": -179,
+   "container": "rotate(0deg) scale(1)",
+   "transition": "transform 0.3s ease-out",
+   "setView": false,
+   "view": {
+    "lat": -33.8688197,
+    "lng": 151.2092955,
+    "zoom": 20,
+    "origin": [
+     246967422,
+     161085926
+    ]
+   },
+   "current": [
+    -33.8688197,
+    151.2092955
+   ],
+   "bearing": 0,
+   "orientation": "north-up",
+   "upright": 0,
+   "compass": 0,
+   "title": "North up — tap for heading up"
+  },
+  {
+   "op": "toggle",
+   "value": null,
+   "rate": null,
+   "shown": true,
+   "at": [
+    -33.8688197,
+    151.2092955
+   ],
+   "arrowSize": 106,
+   "arrowRotation": -179,
+   "container": "rotate(179deg) scale(1.42)",
+   "transition": "transform 0.3s ease-out",
+   "setView": false,
+   "view": {
+    "lat": -33.8688197,
+    "lng": 151.2092955,
+    "zoom": 20,
+    "origin": [
+     246967422,
+     161085926
+    ]
+   },
+   "current": [
+    -33.8688197,
+    151.2092955
+   ],
+   "bearing": -179,
+   "orientation": "heading-up",
+   "upright": -179,
+   "compass": null,
+   "title": "Heading up — tap for north up"
+  },
+  {
+   "op": "sei",
+   "value": {
+    "lat": -33.8688,
+    "lon": 151.2093,
+    "heading": 359
+   },
+   "rate": 1,
+   "shown": true,
+   "at": [
+    -33.8688,
+    151.2093
+   ],
+   "arrowSize": 106,
+   "arrowRotation": -1,
+   "container": "rotate(1deg) scale(1.42)",
+   "transition": "transform 0.15s ease-out",
+   "setView": true,
+   "view": {
+    "lat": -33.8688,
+    "lng": 151.2093,
+    "zoom": 20,
+    "origin": [
+     246967425,
+     161085908
+    ]
+   },
+   "current": [
+    -33.8688,
+    151.2093
+   ],
+   "bearing": -1,
+   "orientation": "heading-up",
+   "upright": -1,
+   "compass": 1,
+   "title": "Heading up — tap for north up"
+  }
+ ],
+ "paths": {
+  "single": [
+   {
+    "lat": 30.2672,
+    "lon": -97.7431,
+    "autopilot": true
+   }
+  ],
+  "mixed": [
+   {
+    "lat": 30.2672,
+    "lon": -97.7431,
+    "autopilot": false
+   },
+   {
+    "lat": 30.2675,
+    "lon": -97.7428,
+    "autopilot": false
+   },
+   {
+    "lat": 30.2681,
+    "lon": -97.742,
+    "autopilot": true
+   },
+   {
+    "lat": 30.2688,
+    "lon": -97.7411,
+    "autopilot": true
+   },
+   {
+    "lat": 30.2694,
+    "lon": -97.7402,
+    "autopilot": false
+   },
+   {
+    "lat": 30.2699,
+    "lon": -97.7399,
+    "autopilot": true
+   }
+  ],
+  "drive": [
+   {
+    "lat": 30.2,
+    "lon": -97.8,
+    "autopilot": false
+   },
+   {
+    "lat": 30.204,
+    "lon": -97.7935,
+    "autopilot": false
+   },
+   {
+    "lat": 30.208,
+    "lon": -97.78699999999999,
+    "autopilot": false
+   },
+   {
+    "lat": 30.212,
+    "lon": -97.782,
+    "autopilot": false
+   },
+   {
+    "lat": 30.215999999999998,
+    "lon": -97.7755,
+    "autopilot": false
+   },
+   {
+    "lat": 30.22,
+    "lon": -97.76899999999999,
+    "autopilot": false
+   },
+   {
+    "lat": 30.224,
+    "lon": -97.764,
+    "autopilot": false
+   },
+   {
+    "lat": 30.227999999999998,
+    "lon": -97.7575,
+    "autopilot": false
+   },
+   {
+    "lat": 30.232,
+    "lon": -97.75099999999999,
+    "autopilot": false
+   },
+   {
+    "lat": 30.236,
+    "lon": -97.746,
+    "autopilot": false
+   },
+   {
+    "lat": 30.24,
+    "lon": -97.73949999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.244,
+    "lon": -97.73299999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.247999999999998,
+    "lon": -97.728,
+    "autopilot": true
+   },
+   {
+    "lat": 30.252,
+    "lon": -97.72149999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.256,
+    "lon": -97.71499999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.259999999999998,
+    "lon": -97.71,
+    "autopilot": true
+   },
+   {
+    "lat": 30.264,
+    "lon": -97.70349999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.268,
+    "lon": -97.69699999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.272,
+    "lon": -97.692,
+    "autopilot": true
+   },
+   {
+    "lat": 30.276,
+    "lon": -97.68549999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.279999999999998,
+    "lon": -97.67899999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.284,
+    "lon": -97.67399999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.288,
+    "lon": -97.66749999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.291999999999998,
+    "lon": -97.66099999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.296,
+    "lon": -97.65599999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.3,
+    "lon": -97.64949999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.304,
+    "lon": -97.64299999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.308,
+    "lon": -97.63799999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.311999999999998,
+    "lon": -97.63149999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.316,
+    "lon": -97.62499999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.32,
+    "lon": -97.61999999999999,
+    "autopilot": false
+   },
+   {
+    "lat": 30.323999999999998,
+    "lon": -97.61349999999999,
+    "autopilot": false
+   },
+   {
+    "lat": 30.328,
+    "lon": -97.607,
+    "autopilot": false
+   },
+   {
+    "lat": 30.332,
+    "lon": -97.602,
+    "autopilot": false
+   },
+   {
+    "lat": 30.336,
+    "lon": -97.5955,
+    "autopilot": false
+   },
+   {
+    "lat": 30.34,
+    "lon": -97.589,
+    "autopilot": false
+   },
+   {
+    "lat": 30.343999999999998,
+    "lon": -97.584,
+    "autopilot": false
+   },
+   {
+    "lat": 30.348,
+    "lon": -97.5775,
+    "autopilot": false
+   },
+   {
+    "lat": 30.352,
+    "lon": -97.571,
+    "autopilot": false
+   },
+   {
+    "lat": 30.355999999999998,
+    "lon": -97.566,
+    "autopilot": false
+   }
+  ],
+  "long": [
+   {
+    "lat": 29.9,
+    "lon": -98.1,
+    "autopilot": true
+   },
+   {
+    "lat": 29.93,
+    "lon": -98.05999999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 29.959999999999997,
+    "lon": -98.02,
+    "autopilot": true
+   },
+   {
+    "lat": 29.99,
+    "lon": -97.97999999999999,
+    "autopilot": false
+   },
+   {
+    "lat": 30.02,
+    "lon": -97.94,
+    "autopilot": false
+   },
+   {
+    "lat": 30.049999999999997,
+    "lon": -97.89999999999999,
+    "autopilot": false
+   },
+   {
+    "lat": 30.08,
+    "lon": -97.86,
+    "autopilot": false
+   },
+   {
+    "lat": 30.11,
+    "lon": -97.82,
+    "autopilot": true
+   },
+   {
+    "lat": 30.139999999999997,
+    "lon": -97.78,
+    "autopilot": true
+   },
+   {
+    "lat": 30.169999999999998,
+    "lon": -97.74,
+    "autopilot": true
+   },
+   {
+    "lat": 30.2,
+    "lon": -97.69999999999999,
+    "autopilot": false
+   },
+   {
+    "lat": 30.229999999999997,
+    "lon": -97.66,
+    "autopilot": false
+   },
+   {
+    "lat": 30.259999999999998,
+    "lon": -97.61999999999999,
+    "autopilot": false
+   },
+   {
+    "lat": 30.29,
+    "lon": -97.58,
+    "autopilot": false
+   },
+   {
+    "lat": 30.32,
+    "lon": -97.53999999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.349999999999998,
+    "lon": -97.5,
+    "autopilot": true
+   },
+   {
+    "lat": 30.38,
+    "lon": -97.46,
+    "autopilot": true
+   },
+   {
+    "lat": 30.41,
+    "lon": -97.41999999999999,
+    "autopilot": false
+   },
+   {
+    "lat": 30.439999999999998,
+    "lon": -97.38,
+    "autopilot": false
+   },
+   {
+    "lat": 30.47,
+    "lon": -97.33999999999999,
+    "autopilot": false
+   },
+   {
+    "lat": 30.5,
+    "lon": -97.3,
+    "autopilot": false
+   },
+   {
+    "lat": 30.529999999999998,
+    "lon": -97.25999999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.56,
+    "lon": -97.22,
+    "autopilot": true
+   },
+   {
+    "lat": 30.59,
+    "lon": -97.17999999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.619999999999997,
+    "lon": -97.14,
+    "autopilot": false
+   },
+   {
+    "lat": 30.65,
+    "lon": -97.1,
+    "autopilot": false
+   },
+   {
+    "lat": 30.68,
+    "lon": -97.05999999999999,
+    "autopilot": false
+   },
+   {
+    "lat": 30.709999999999997,
+    "lon": -97.02,
+    "autopilot": false
+   },
+   {
+    "lat": 30.74,
+    "lon": -96.97999999999999,
+    "autopilot": true
+   },
+   {
+    "lat": 30.77,
+    "lon": -96.94,
+    "autopilot": true
+   }
+  ],
+  "wide": [
+   {
+    "lat": -33.86,
+    "lon": 151.2,
+    "autopilot": false
+   },
+   {
+    "lat": -33.9,
+    "lon": 151.25,
+    "autopilot": false
+   }
+  ]
+ },
+ "segments": {
+  "single": [
+   {
+    "autopilot": true,
+    "coords": [
+     [
+      30.2672,
+      -97.7431
+     ]
+    ]
+   }
+  ],
+  "mixed": [
+   {
+    "autopilot": false,
+    "coords": [
+     [
+      30.2672,
+      -97.7431
+     ],
+     [
+      30.2675,
+      -97.7428
+     ]
+    ]
+   },
+   {
+    "autopilot": true,
+    "coords": [
+     [
+      30.2675,
+      -97.7428
+     ],
+     [
+      30.2681,
+      -97.742
+     ],
+     [
+      30.2688,
+      -97.7411
+     ]
+    ]
+   },
+   {
+    "autopilot": false,
+    "coords": [
+     [
+      30.2688,
+      -97.7411
+     ],
+     [
+      30.2694,
+      -97.7402
+     ]
+    ]
+   },
+   {
+    "autopilot": true,
+    "coords": [
+     [
+      30.2694,
+      -97.7402
+     ],
+     [
+      30.2699,
+      -97.7399
+     ]
+    ]
+   }
+  ],
+  "drive": [
+   {
+    "autopilot": false,
+    "coords": [
+     [
+      30.2,
+      -97.8
+     ],
+     [
+      30.204,
+      -97.7935
+     ],
+     [
+      30.208,
+      -97.78699999999999
+     ],
+     [
+      30.212,
+      -97.782
+     ],
+     [
+      30.215999999999998,
+      -97.7755
+     ],
+     [
+      30.22,
+      -97.76899999999999
+     ],
+     [
+      30.224,
+      -97.764
+     ],
+     [
+      30.227999999999998,
+      -97.7575
+     ],
+     [
+      30.232,
+      -97.75099999999999
+     ],
+     [
+      30.236,
+      -97.746
+     ]
+    ]
+   },
+   {
+    "autopilot": true,
+    "coords": [
+     [
+      30.236,
+      -97.746
+     ],
+     [
+      30.24,
+      -97.73949999999999
+     ],
+     [
+      30.244,
+      -97.73299999999999
+     ],
+     [
+      30.247999999999998,
+      -97.728
+     ],
+     [
+      30.252,
+      -97.72149999999999
+     ],
+     [
+      30.256,
+      -97.71499999999999
+     ],
+     [
+      30.259999999999998,
+      -97.71
+     ],
+     [
+      30.264,
+      -97.70349999999999
+     ],
+     [
+      30.268,
+      -97.69699999999999
+     ],
+     [
+      30.272,
+      -97.692
+     ],
+     [
+      30.276,
+      -97.68549999999999
+     ],
+     [
+      30.279999999999998,
+      -97.67899999999999
+     ],
+     [
+      30.284,
+      -97.67399999999999
+     ],
+     [
+      30.288,
+      -97.66749999999999
+     ],
+     [
+      30.291999999999998,
+      -97.66099999999999
+     ],
+     [
+      30.296,
+      -97.65599999999999
+     ],
+     [
+      30.3,
+      -97.64949999999999
+     ],
+     [
+      30.304,
+      -97.64299999999999
+     ],
+     [
+      30.308,
+      -97.63799999999999
+     ],
+     [
+      30.311999999999998,
+      -97.63149999999999
+     ],
+     [
+      30.316,
+      -97.62499999999999
+     ]
+    ]
+   },
+   {
+    "autopilot": false,
+    "coords": [
+     [
+      30.316,
+      -97.62499999999999
+     ],
+     [
+      30.32,
+      -97.61999999999999
+     ],
+     [
+      30.323999999999998,
+      -97.61349999999999
+     ],
+     [
+      30.328,
+      -97.607
+     ],
+     [
+      30.332,
+      -97.602
+     ],
+     [
+      30.336,
+      -97.5955
+     ],
+     [
+      30.34,
+      -97.589
+     ],
+     [
+      30.343999999999998,
+      -97.584
+     ],
+     [
+      30.348,
+      -97.5775
+     ],
+     [
+      30.352,
+      -97.571
+     ],
+     [
+      30.355999999999998,
+      -97.566
+     ]
+    ]
+   }
+  ],
+  "long": [
+   {
+    "autopilot": true,
+    "coords": [
+     [
+      29.9,
+      -98.1
+     ],
+     [
+      29.93,
+      -98.05999999999999
+     ],
+     [
+      29.959999999999997,
+      -98.02
+     ]
+    ]
+   },
+   {
+    "autopilot": false,
+    "coords": [
+     [
+      29.959999999999997,
+      -98.02
+     ],
+     [
+      29.99,
+      -97.97999999999999
+     ],
+     [
+      30.02,
+      -97.94
+     ],
+     [
+      30.049999999999997,
+      -97.89999999999999
+     ],
+     [
+      30.08,
+      -97.86
+     ]
+    ]
+   },
+   {
+    "autopilot": true,
+    "coords": [
+     [
+      30.08,
+      -97.86
+     ],
+     [
+      30.11,
+      -97.82
+     ],
+     [
+      30.139999999999997,
+      -97.78
+     ],
+     [
+      30.169999999999998,
+      -97.74
+     ]
+    ]
+   },
+   {
+    "autopilot": false,
+    "coords": [
+     [
+      30.169999999999998,
+      -97.74
+     ],
+     [
+      30.2,
+      -97.69999999999999
+     ],
+     [
+      30.229999999999997,
+      -97.66
+     ],
+     [
+      30.259999999999998,
+      -97.61999999999999
+     ],
+     [
+      30.29,
+      -97.58
+     ]
+    ]
+   },
+   {
+    "autopilot": true,
+    "coords": [
+     [
+      30.29,
+      -97.58
+     ],
+     [
+      30.32,
+      -97.53999999999999
+     ],
+     [
+      30.349999999999998,
+      -97.5
+     ],
+     [
+      30.38,
+      -97.46
+     ]
+    ]
+   },
+   {
+    "autopilot": false,
+    "coords": [
+     [
+      30.38,
+      -97.46
+     ],
+     [
+      30.41,
+      -97.41999999999999
+     ],
+     [
+      30.439999999999998,
+      -97.38
+     ],
+     [
+      30.47,
+      -97.33999999999999
+     ],
+     [
+      30.5,
+      -97.3
+     ]
+    ]
+   },
+   {
+    "autopilot": true,
+    "coords": [
+     [
+      30.5,
+      -97.3
+     ],
+     [
+      30.529999999999998,
+      -97.25999999999999
+     ],
+     [
+      30.56,
+      -97.22
+     ],
+     [
+      30.59,
+      -97.17999999999999
+     ]
+    ]
+   },
+   {
+    "autopilot": false,
+    "coords": [
+     [
+      30.59,
+      -97.17999999999999
+     ],
+     [
+      30.619999999999997,
+      -97.14
+     ],
+     [
+      30.65,
+      -97.1
+     ],
+     [
+      30.68,
+      -97.05999999999999
+     ],
+     [
+      30.709999999999997,
+      -97.02
+     ]
+    ]
+   },
+   {
+    "autopilot": true,
+    "coords": [
+     [
+      30.709999999999997,
+      -97.02
+     ],
+     [
+      30.74,
+      -96.97999999999999
+     ],
+     [
+      30.77,
+      -96.94
+     ]
+    ]
+   }
+  ],
+  "wide": [
+   {
+    "autopilot": false,
+    "coords": [
+     [
+      -33.86,
+      151.2
+     ],
+     [
+      -33.9,
+      151.25
+     ]
+    ]
+   }
+  ]
+ },
+ "events": [
+  {
+   "meta": {
+    "est_lat": "30.2685",
+    "est_lon": "-97.7419"
+   },
+   "path": "mixed",
+   "recenter": true,
+   "pin": [
+    30.2681,
+    -97.742
+   ],
+   "setView": true,
+   "view": {
+    "lat": 30.2681,
+    "lng": -97.742,
+    "zoom": 16,
+    "origin": [
+     3833372,
+     6907288
+    ]
+   }
+  },
+  {
+   "meta": {
+    "est_lat": 30.28,
+    "est_lon": -97.75
+   },
+   "path": "mixed",
+   "recenter": true,
+   "pin": [
+    30.28,
+    -97.75
+   ],
+   "setView": true,
+   "view": {
+    "lat": 30.28,
+    "lng": -97.75,
+    "zoom": 16,
+    "origin": [
+     3832999,
+     6906645
+    ]
+   }
+  },
+  {
+   "meta": {
+    "est_lat": "30.2685abc",
+    "est_lon": " -97.7419"
+   },
+   "path": null,
+   "recenter": true,
+   "pin": [
+    30.2685,
+    -97.7419
+   ],
+   "setView": true,
+   "view": {
+    "lat": 30.2685,
+    "lng": -97.7419,
+    "zoom": 16,
+    "origin": [
+     3833376,
+     6907266
+    ]
+   }
+  },
+  {
+   "meta": {
+    "est_lat": "0.0001",
+    "est_lon": "0.0002"
+   },
+   "path": "mixed",
+   "recenter": true,
+   "pin": null,
+   "setView": false,
+   "view": {
+    "lat": 0,
+    "lng": 0,
+    "zoom": 2,
+    "origin": [
+     383,
+     383
+    ]
+   }
+  },
+  {
+   "meta": {
+    "est_lat": "x",
+    "est_lon": "-97.7"
+   },
+   "path": "mixed",
+   "recenter": true,
+   "pin": null,
+   "setView": false,
+   "view": {
+    "lat": 0,
+    "lng": 0,
+    "zoom": 2,
+    "origin": [
+     383,
+     383
+    ]
+   }
+  },
+  {
+   "meta": {
+    "est_lat": "30.2672",
+    "est_lon": "-97.7431",
+    "street": "Congress Ave"
+   },
+   "path": "single",
+   "recenter": false,
+   "pin": [
+    30.2672,
+    -97.7431
+   ],
+   "setView": false,
+   "view": {
+    "lat": 0,
+    "lng": 0,
+    "zoom": 2,
+    "origin": [
+     383,
+     383
+    ]
+   }
+  },
+  {
+   "meta": {
+    "est_lat": "-33.88",
+    "est_lon": "151.22"
+   },
+   "path": "wide",
+   "recenter": true,
+   "pin": [
+    -33.88,
+    151.22
+   ],
+   "setView": true,
+   "view": {
+    "lat": -33.88,
+    "lng": 151.22,
+    "zoom": 16,
+    "origin": [
+     15435842,
+     10068377
+    ]
+   }
+  },
+  {
+   "meta": null,
+   "path": "mixed",
+   "recenter": true,
+   "pin": null,
+   "setView": false,
+   "view": {
+    "lat": 0,
+    "lng": 0,
+    "zoom": 2,
+    "origin": [
+     383,
+     383
+    ]
+   }
+  },
+  {
+   "meta": {
+    "est_lat": null,
+    "est_lon": "1"
+   },
+   "path": null,
+   "recenter": true,
+   "pin": null,
+   "setView": false,
+   "view": {
+    "lat": 0,
+    "lng": 0,
+    "zoom": 2,
+    "origin": [
+     383,
+     383
+    ]
+   }
+  }
+ ],
+ "fits": [
+  {
+   "path": "single",
+   "maxZoom": 20,
+   "view": {
+    "lat": 30.267199999999995,
+    "lng": -97.7431,
+    "zoom": 20,
+    "origin": [
+     61335061,
+     110519314
+    ]
+   }
+  },
+  {
+   "path": "single",
+   "maxZoom": 19,
+   "view": {
+    "lat": 30.267199999999995,
+    "lng": -97.7431,
+    "zoom": 19,
+    "origin": [
+     30667466,
+     55259592
+    ]
+   }
+  },
+  {
+   "path": "mixed",
+   "maxZoom": 20,
+   "view": {
+    "lat": 30.26855000928202,
+    "lng": -97.74150000000002,
+    "zoom": 16,
+    "origin": [
+     3833395,
+     6907263
+    ]
+   }
+  },
+  {
+   "path": "mixed",
+   "maxZoom": 19,
+   "view": {
+    "lat": 30.26855000928202,
+    "lng": -97.74150000000002,
+    "zoom": 16,
+    "origin": [
+     3833395,
+     6907263
+    ]
+   }
+  },
+  {
+   "path": "drive",
+   "maxZoom": 20,
+   "view": {
+    "lat": 30.279999999999998,
+    "lng": -97.67899999999999,
+    "zoom": 15,
+    "origin": [
+     1918089,
+     3453258
+    ]
+   }
+  },
+  {
+   "path": "drive",
+   "maxZoom": 19,
+   "view": {
+    "lat": 30.279999999999998,
+    "lng": -97.67899999999999,
+    "zoom": 15,
+    "origin": [
+     1918089,
+     3453258
+    ]
+   }
+  },
+  {
+   "path": "long",
+   "maxZoom": 20,
+   "view": {
+    "lat": 30.349999999999998,
+    "lng": -97.5,
+    "zoom": 15,
+    "origin": [
+     1922260,
+     3451369
+    ]
+   }
+  },
+  {
+   "path": "long",
+   "maxZoom": 19,
+   "view": {
+    "lat": 30.349999999999998,
+    "lng": -97.5,
+    "zoom": 15,
+    "origin": [
+     1922260,
+     3451369
+    ]
+   }
+  },
+  {
+   "path": "wide",
+   "maxZoom": 20,
+   "view": {
+    "lat": -33.9,
+    "lng": 151.25,
+    "zoom": 15,
+    "origin": [
+     7718555,
+     5034685
+    ]
+   }
+  },
+  {
+   "path": "wide",
+   "maxZoom": 19,
+   "view": {
+    "lat": -33.9,
+    "lng": 151.25,
+    "zoom": 15,
+    "origin": [
+     7718555,
+     5034685
+    ]
+   }
+  }
+ ],
+ "recenters": [
+  {
+   "pin": [
+    30.2685,
+    -97.7419
+   ],
+   "current": [
+    30.27,
+    -97.74
+   ],
+   "polyline": "mixed",
+   "zoom": 12,
+   "view": {
+    "lat": 30.2685,
+    "lng": -97.7419,
+    "zoom": 16,
+    "origin": [
+     3833376,
+     6907266
+    ]
+   }
+  },
+  {
+   "current": [
+    30.27,
+    -97.74
+   ],
+   "polyline": "mixed",
+   "zoom": 12,
+   "view": {
+    "lat": 30.27,
+    "lng": -97.74,
+    "zoom": 16,
+    "origin": [
+     3833465,
+     6907185
+    ]
+   }
+  },
+  {
+   "polyline": "drive",
+   "zoom": 18,
+   "view": {
+    "lat": 30.278030997682546,
+    "lng": -97.68299999999999,
+    "zoom": 10,
+    "origin": [
+     59812,
+     107791
+    ]
+   }
+  },
+  {
+   "polyline": "single",
+   "zoom": 3,
+   "view": {
+    "lat": 30.267199999999995,
+    "lng": -97.7431,
+    "zoom": 16,
+    "origin": [
+     3833320,
+     6907336
+    ]
+   }
+  },
+  {
+   "mapPath": "long",
+   "zoom": 5,
+   "view": {
+    "lat": 30.33596632322659,
+    "lng": -97.52,
+    "zoom": 8,
+    "origin": [
+     14886,
+     26839
+    ]
+   }
+  },
+  {
+   "lastPath": "wide",
+   "zoom": 5,
+   "view": {
+    "lat": -33.88000234385706,
+    "lng": 151.225,
+    "zoom": 12,
+    "origin": [
+     964634,
+     629153
+    ]
+   }
+  },
+  {
+   "mapPath": [],
+   "lastPath": "mixed",
+   "zoom": 5,
+   "view": {
+    "lat": 30.26855000928202,
+    "lng": -97.74150000000002,
+    "zoom": 16,
+    "origin": [
+     3833395,
+     6907263
+    ]
+   }
+  },
+  {
+   "lastBounds": "long",
+   "zoom": 18,
+   "view": {
+    "lat": 30.33596632322659,
+    "lng": -97.52,
+    "zoom": 8,
+    "origin": [
+     14886,
+     26839
+    ]
+   }
+  },
+  {
+   "zoom": 9,
+   "view": {
+    "lat": 10,
+    "lng": 10,
+    "zoom": 9,
+    "origin": [
+     69048,
+     61747
+    ]
+   }
+  }
+ ],
+ "views": [
+  {
+   "op": "view",
+   "a": [
+    30.2672,
+    -97.7431
+   ],
+   "b": 16,
+   "view": {
+    "lat": 30.2672,
+    "lng": -97.7431,
+    "zoom": 16,
+    "origin": [
+     3833320,
+     6907336
+    ]
+   },
+   "points": [
+    [
+     129,
+     129
+    ],
+    [
+     181,
+     81
+    ],
+    [
+     11602152,
+     3160542
+    ],
+    [
+     4555288,
+     1481272
+    ]
+   ]
+  },
+  {
+   "op": "drag",
+   "a": 0,
+   "b": [
+    40,
+    -25
+   ],
+   "view": {
+    "lat": 30.266740057331518,
+    "lng": -97.74396657943727,
+    "zoom": 16,
+    "origin": [
+     3833280,
+     6907361
+    ]
+   },
+   "points": [
+    [
+     169,
+     104
+    ],
+    [
+     221,
+     56
+    ],
+    [
+     11602192,
+     3160517
+    ],
+    [
+     4555328,
+     1481247
+    ]
+   ]
+  },
+  {
+   "op": "drag",
+   "a": 135.5,
+   "b": [
+    40,
+    -25
+   ],
+   "view": {
+    "lat": 30.26655092851174,
+    "lng": -97.74297839463672,
+    "zoom": 16,
+    "origin": [
+     3833326,
+     6907371
+    ]
+   },
+   "points": [
+    [
+     123,
+     94
+    ],
+    [
+     175,
+     46
+    ],
+    [
+     11602146,
+     3160507
+    ],
+    [
+     4555282,
+     1481237
+    ]
+   ]
+  },
+  {
+   "op": "drag",
+   "a": -90,
+   "b": [
+    -120,
+    10
+   ],
+   "view": {
+    "lat": 30.264330771578162,
+    "lng": -97.7427649497986,
+    "zoom": 16,
+    "origin": [
+     3833336,
+     6907491
+    ]
+   },
+   "points": [
+    [
+     113,
+     -26
+    ],
+    [
+     165,
+     -74
+    ],
+    [
+     11602136,
+     3160387
+    ],
+    [
+     4555272,
+     1481117
+    ]
+   ]
+  },
+  {
+   "op": "drag",
+   "a": 359.9,
+   "b": [
+    3,
+    3
+   ],
+   "view": {
+    "lat": 30.264386468101357,
+    "lng": -97.74282921036487,
+    "zoom": 16,
+    "origin": [
+     3833333,
+     6907488
+    ]
+   },
+   "points": [
+    [
+     116,
+     -23
+    ],
+    [
+     168,
+     -71
+    ],
+    [
+     11602139,
+     3160390
+    ],
+    [
+     4555275,
+     1481120
+    ]
+   ]
+  },
+  {
+   "op": "wheel",
+   "a": 50,
+   "b": [
+    129,
+    129
+   ],
+   "view": {
+    "lat": 30.264386371146575,
+    "lng": -97.74282932281496,
+    "zoom": 17,
+    "origin": [
+     7666795,
+     13815105
+    ]
+   },
+   "points": [
+    [
+     104,
+     -175
+    ],
+    [
+     206,
+     -272
+    ],
+    [
+     23204149,
+     6320652
+    ],
+    [
+     9110421,
+     2962111
+    ]
+   ]
+  },
+  {
+   "op": "wheel",
+   "a": 50,
+   "b": [
+    30,
+    200
+   ],
+   "view": {
+    "lat": 30.26405740657561,
+    "lng": -97.7433604001999,
+    "zoom": 18,
+    "origin": [
+     15333620,
+     27630410
+    ]
+   },
+   "points": [
+    [
+     178,
+     -549
+    ],
+    [
+     383,
+     -744
+    ],
+    [
+     46408268,
+     12641104
+    ],
+    [
+     18220812,
+     5924022
+    ]
+   ]
+  },
+  {
+   "op": "wheel",
+   "a": -50,
+   "b": [
+    200,
+    40
+   ],
+   "view": {
+    "lat": 30.26364504097932,
+    "lng": -97.74374127388002,
+    "zoom": 17,
+    "origin": [
+     7666710,
+     13815185
+    ]
+   },
+   "points": [
+    [
+     189,
+     -255
+    ],
+    [
+     291,
+     -352
+    ],
+    [
+     23204234,
+     6320572
+    ],
+    [
+     9110506,
+     2962031
+    ]
+   ]
+  },
+  {
+   "op": "wheel",
+   "a": 150,
+   "b": [
+    100,
+    100
+   ],
+   "view": {
+    "lat": 30.263846590672532,
+    "lng": -97.74397462606431,
+    "zoom": 19,
+    "origin": [
+     30667140,
+     55261040
+    ]
+   },
+   "points": [
+    [
+     455,
+     -1319
+    ],
+    [
+     865,
+     -1707
+    ],
+    [
+     92816635,
+     25281987
+    ],
+    [
+     36441724,
+     11847824
+    ]
+   ]
+  },
+  {
+   "op": "wheel",
+   "a": -400,
+   "b": [
+    10,
+    10
+   ],
+   "view": {
+    "lat": 30.259711264138403,
+    "lng": -97.73918688297273,
+    "zoom": 15,
+    "origin": [
+     1916687,
+     3453806
+    ]
+   },
+   "points": [
+    [
+     38,
+     -73
+    ],
+    [
+     63,
+     -98
+    ],
+    [
+     5801049,
+     1580133
+    ],
+    [
+     2277617,
+     740498
+    ]
+   ]
+  },
+  {
+   "op": "dblclick",
+   "a": [
+    60,
+    70
+   ],
+   "b": false,
+   "view": {
+    "lat": 30.260790867582262,
+    "lng": -97.74066209793092,
+    "zoom": 16,
+    "origin": [
+     3833434,
+     6907682
+    ]
+   },
+   "points": [
+    [
+     15,
+     -217
+    ],
+    [
+     67,
+     -265
+    ],
+    [
+     11602038,
+     3160196
+    ],
+    [
+     4555174,
+     1480926
+    ]
+   ]
+  },
+  {
+   "op": "dblclick",
+   "a": [
+    250,
+    5
+   ],
+   "b": true,
+   "view": {
+    "lat": 30.258492641700563,
+    "lng": -97.74325847625734,
+    "zoom": 15,
+    "origin": [
+     1916592,
+     3453839
+    ]
+   },
+   "points": [
+    [
+     133,
+     -106
+    ],
+    [
+     158,
+     -131
+    ],
+    [
+     5801144,
+     1580100
+    ],
+    [
+     2277712,
+     740465
+    ]
+   ]
+  },
+  {
+   "op": "view",
+   "a": [
+    30.2672,
+    -97.7431
+   ],
+   "b": 20,
+   "view": {
+    "lat": 30.2672,
+    "lng": -97.7431,
+    "zoom": 20,
+    "origin": [
+     61335061,
+     110519314
+    ]
+   },
+   "points": [
+    [
+     129,
+     129
+    ],
+    [
+     949,
+     -648
+    ],
+    [
+     185632490,
+     50566741
+    ],
+    [
+     72882667,
+     23698414
+    ]
+   ]
+  },
+  {
+   "op": "wheel",
+   "a": 50,
+   "b": [
+    200,
+    200
+   ],
+   "view": {
+    "lat": 30.2672,
+    "lng": -97.7431,
+    "zoom": 20,
+    "origin": [
+     61335061,
+     110519314
+    ]
+   },
+   "points": [
+    [
+     129,
+     129
+    ],
+    [
+     949,
+     -648
+    ],
+    [
+     185632490,
+     50566741
+    ],
+    [
+     72882667,
+     23698414
+    ]
+   ]
+  },
+  {
+   "op": "dblclick",
+   "a": [
+    200,
+    200
+   ],
+   "b": false,
+   "view": {
+    "lat": 30.26715878053187,
+    "lng": -97.74305261671545,
+    "zoom": 20,
+    "origin": [
+     61335097,
+     110519350
+    ]
+   },
+   "points": [
+    [
+     93,
+     93
+    ],
+    [
+     913,
+     -684
+    ],
+    [
+     185632454,
+     50566705
+    ],
+    [
+     72882631,
+     23698378
+    ]
+   ]
+  },
+  {
+   "op": "maxZoom",
+   "a": 19,
+   "b": null,
+   "view": {
+    "lat": 30.26715878053187,
+    "lng": -97.74305261671545,
+    "zoom": 19,
+    "origin": [
+     30667484,
+     55259610
+    ]
+   },
+   "points": [
+    [
+     111,
+     111
+    ],
+    [
+     521,
+     -277
+    ],
+    [
+     92816291,
+     25283417
+    ],
+    [
+     36441380,
+     11849254
+    ]
+   ]
+  },
+  {
+   "op": "view",
+   "a": [
+    -33.8688197,
+    151.2092955
+   ],
+   "b": 0,
+   "view": {
+    "lat": -33.8688197,
+    "lng": 151.2092955,
+    "zoom": 0,
+    "origin": [
+     107,
+     25
+    ]
+   },
+   "points": [
+    [
+     -49,
+     80
+    ],
+    [
+     -49,
+     80
+    ],
+    [
+     129,
+     129
+    ],
+    [
+     21,
+     103
+    ]
+   ]
+  },
+  {
+   "op": "wheel",
+   "a": -50,
+   "b": [
+    129,
+    129
+   ],
+   "view": {
+    "lat": -33.8688197,
+    "lng": 151.2092955,
+    "zoom": 0,
+    "origin": [
+     107,
+     25
+    ]
+   },
+   "points": [
+    [
+     -49,
+     80
+    ],
+    [
+     -49,
+     80
+    ],
+    [
+     129,
+     129
+    ],
+    [
+     21,
+     103
+    ]
+   ]
+  },
+  {
+   "op": "dblclick",
+   "a": [
+    0,
+    0
+   ],
+   "b": true,
+   "view": {
+    "lat": -87.4478492644728,
+    "lng": 333.28125000000006,
+    "zoom": 0,
+    "origin": [
+     236,
+     127
+    ]
+   },
+   "points": [
+    [
+     -178,
+     -22
+    ],
+    [
+     -178,
+     -22
+    ],
+    [
+     0,
+     27
+    ],
+    [
+     -108,
+     1
+    ]
+   ]
+  },
+  {
+   "op": "view",
+   "a": [
+    85.2,
+    179.99
+   ],
+   "b": 4,
+   "view": {
+    "lat": 85.2,
+    "lng": 179.99,
+    "zoom": 4,
+    "origin": [
+     3967,
+     -129
+    ]
+   },
+   "points": [
+    [
+     -3031,
+     1815
+    ],
+    [
+     -3031,
+     1815
+    ],
+    [
+     -199,
+     2587
+    ],
+    [
+     -1919,
+     2177
+    ]
+   ]
+  },
+  {
+   "op": "drag",
+   "a": 30,
+   "b": [
+    -500,
+    300
+   ],
+   "view": {
+    "lat": 87.73490626234084,
+    "lng": 204.8741632522459,
+    "zoom": 4,
+    "origin": [
+     4250,
+     -129
+    ]
+   },
+   "points": [
+    [
+     -3314,
+     1815
+    ],
+    [
+     -3314,
+     1815
+    ],
+    [
+     -482,
+     2587
+    ],
+    [
+     -2202,
+     2177
+    ]
+   ]
+  }
+ ]
+}

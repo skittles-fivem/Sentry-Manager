@@ -189,7 +189,15 @@ const PAGES = {
   'viewer-dash': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] },
   'viewer-dash-extra': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['click', '#toggleExtra'], ['event', 'video', 'timeupdate']] },
   'viewer-dash-compact': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] },
-  'viewer-dash-parked': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] }
+  'viewer-dash-parked': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] },
+  // the map (part 10): the RecentClips day's first clip answering a short drive (routeFrames: manual,
+  // then Autosteer), the master's timeupdate at its start: the route fitted, the arrow on its first
+  // point, the map turned heading-up; north-up (a click on #mapOrientationBtn); OpenStreetMap in
+  // Dark style (the CSS invert); GPS Map off. (The Sentry and Saved days show event.json's pin.)
+  'viewer-map': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] },
+  'viewer-map-north': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['click', '#mapOrientationBtn'], ['event', 'video', 'timeupdate']] },
+  'viewer-map-dark': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] },
+  'viewer-map-off': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['event', 'video', 'timeupdate']] }
 };
 
 // each pack page module's pages, as "<pack>:<name>" (the picture is <pack>-<name>-<w>x<h>.png)
@@ -284,6 +292,12 @@ function telemetryOf(api, frames) {
   return key ? { [key]: { v: 1, frames } } : {};
 }
 const driveFrames = () => Array.from({ length: 24 }, (_, i) => [i * 1000 / 12, seiRecord({ ...DRIVE_SEI, seq: DRIVE_SEI.seq + i })]);
+// A short drive for the map (part 10): two seconds north-east through Austin, a gentle left
+// curve, manual for the first second and Autosteer after
+const routeFrames = () => Array.from({ length: 24 }, (_, i) => [i * 1000 / 12, seiRecord({
+  ...DRIVE_SEI, seq: DRIVE_SEI.seq + i, autopilot: i < 12 ? 0 : 2,
+  lat: 30.2672 + i * 0.000012 + i * i * 0.0000004, lon: -97.7431 + i * 0.000014 - i * i * 0.0000002, heading: 48 - i * 1.5
+})]);
 const studioSettings = (api, more) => ({ 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], ...more } });
 
 const VARIANTS = {
@@ -350,6 +364,11 @@ const VARIANTS = {
   'viewer-dash-extra': (api) => ({ route: 'viewer', viewerTimeupdate: true, viewerExtra: true, api: { ...telemetryOf(api, driveFrames()), ...studioSettings(api, { useMetric: true, accelPedMode: 'sidebar' }) } }),
   'viewer-dash-compact': (api) => ({ route: 'viewer', viewerTimeupdate: true, api: { ...telemetryOf(api, driveFrames()), ...studioSettings(api, { dashboardLayout: 'compact' }) } }),
   'viewer-dash-parked': (api) => ({ route: 'viewer', viewerTimeupdate: true, api: { ...telemetryOf(api, []), ...studioSettings(api, { dashboardLayout: 'compact' }) } }),
+  // (viewerMapNorth: the native render turns the map north-up first, as the click on #mapOrientationBtn does)
+  'viewer-map': (api) => ({ route: 'viewer', viewerTimeupdate: true, api: telemetryOf(api, routeFrames()) }),
+  'viewer-map-north': (api) => ({ route: 'viewer', viewerTimeupdate: true, viewerMapNorth: true, api: telemetryOf(api, routeFrames()) }),
+  'viewer-map-dark': (api) => ({ route: 'viewer', viewerTimeupdate: true, api: { ...telemetryOf(api, routeFrames()), ...studioSettings(api, { mapTileProvider: 'osm', mapDarkMode: true }) } }),
+  'viewer-map-off': (api) => ({ route: 'viewer', viewerTimeupdate: true, api: { ...telemetryOf(api, routeFrames()), ...studioSettings(api, { mapEnabled: false }) } }),
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },

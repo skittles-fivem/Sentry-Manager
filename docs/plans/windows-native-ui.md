@@ -250,8 +250,8 @@ is done when every item is ticked in both. Run on the owner's PC runner.
 - Phase 2 (built-in Viewer): in progress. The playback engine, the
   telemetry, the clip library (scan and grouping, part 2), the clip
   browser (the clip list panel, part 3), the six-camera grid on the
-  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6), the event marker on the timeline (part 7), the telemetry feed (part 8) and the telemetry dashboard (part 9) are written; the rest of the Viewer page (Studio's
-  map, settings modal, keys, export, phone layout:
+  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6), the event marker on the timeline (part 7), the telemetry feed (part 8), the telemetry dashboard (part 9) and the map (part 10) are written; the rest of the Viewer page (Studio's
+  settings modal, keys, export, phone layout:
   `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
   still opens in the browser (`ViewerPage.Complete` stays false until it
   is all there; then its browser fallback goes and Footage's Play day /
@@ -594,8 +594,51 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   viewer-dash, viewer-dash-extra, viewer-dash-compact, viewer-dash-parked;
   every other Viewer render with a collection now has the floating
   dashboard too.
+  Viewer part 10, the map (type-checked with mcs, not yet built or run on
+  Windows): `Core/ViewerMap.cs` (`MapProviders`: mapProviders.js's three
+  providers, Google's apistyle with the curated labels and night palette,
+  the URL templates and tile URLs; `MapSettings`: GPS Map, Map Provider,
+  Map Style, Map Labels as Studio reads them; `MapTileState`: mapTiles.js's
+  session provider and the OpenStreetMap fallback after 3 Google tile
+  errors before any loaded or a failed probe, cleared when a provider is
+  picked; `LeafletView`: the map's view as Leaflet keeps it (EPSG:3857,
+  256 px tiles, setView, fitBounds with its 1 % snap, setZoomAround, the
+  scroll wheel's steps, the pixel origin and container points);
+  `MapMarker`: mapVisualization.js's arrow, its size by zoom, the
+  heading-up turn (scale 1.42) and north-up, the event pin's
+  counter-rotation; `MapRoute`: the route cut per autopilot stretch, the
+  event pin from est_lat / est_lon snapped to the route within 500 m;
+  `ViewerMap`: script.js's map state and moments: a collection opening,
+  a segment loading, its path in (route, start and end dots, fit, zoom 15
+  when wider than 14), each tick, the 150 ms settle, re-center, the
+  right-button drag turned back by the bearing, the wheel, double click,
+  resize) and `Ui/Builtin/ViewerMap.cs` (`StudioMapPanel`: #mapVis at
+  top 20, left 380, 260 x 260, dragged with the left button within the
+  frame, the tiles, route, dots, pin and arrow drawn as Leaflet places
+  them, the whole map turned and scaled about its centre, the hint and
+  the orientation and re-center buttons on hover; `MapTileCache`: tiles
+  fetched by this PC straight from the provider with a User-Agent, six at
+  a time, kept in memory and for a week on disk under
+  %LOCALAPPDATA%\SentrySixManager\MapTiles, OpenStreetMap's dark mode as
+  the CSS invert per pixel). Nothing new in the container. For reuse (the
+  packs' Viewer pages, the settings modal of part 11, the export of part
+  13): `StudioViewer.Map` (`ViewerMap`: `View`, `Marker`, `Tiles`,
+  `Route`, `Path`, `EventPin`, `Recenter`, `ToggleOrientation`),
+  `StudioViewer.MapPanel` (`SetProvider`, `SetStyle`, `SetLabels`, each
+  saved with setSetting) and `StudioViewer.MapEnabled` (GPS Map, saved);
+  `LeafletView` and `MapProviders` work for any other map (the export's
+  minimap). test/windowsNativeViewerMap.test.js runs mapProviders.js,
+  mapTiles.js, mapVisualization.js, script.js's map code and Leaflet's
+  own view methods and writes Core.Tests/Fixtures/expected-viewer-map.json;
+  Core.Tests ViewerMapTests (6 tests, passing under mono; all 125 tests of
+  the stub runner pass). Render list: viewer-map, viewer-map-north,
+  viewer-map-dark, viewer-map-off; every Viewer render with a collection
+  now has the map (its tiles from the network on both sides). Not done:
+  Leaflet's zoom and pan animations (the view jumps; the heading turn is
+  animated), touch pinch zoom, Studio's drive routes and FSD event dots
+  (Sentry Six's Viewer has no Drives tab).
   Phase 2 is not finished: `ViewerPage.Complete` stays false until parts
-  10-14 are in.
+  11-14 are in.
 - Phase 3 (Encoder): not started; its page opens in the browser.
 - Phases 4-7 (the packs): in progress on wip, one pack at a time (this
   session works in its own files: `Core/Horizon/`, `Ui/Horizon/Hz*.cs`,
