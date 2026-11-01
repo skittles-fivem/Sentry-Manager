@@ -300,8 +300,22 @@ is done when every item is ticked in both. Run on the owner's PC runner.
       -logs-all.
     - Viewer (with the speed graph) and Encoder: after phases 2 and 3 land;
       the browser until then.
-  - Phases 5-7 (Flux, Aurora, Daylight): not started; their pages open in
-    the browser.
+  - Phase 5, Flux: in progress. Shared: `Core/Flux/Fx.cs` (flux/core.js's
+    formatters, against core.js: test/windowsNativeFlux.test.js, Core.Tests
+    FluxFormatTests), `Ui/Flux/FxKit.cs` (page head, cards, toolbar,
+    buttons, fields, seg, chips, empty, loading, the data tables with their
+    860 px labelled rows; pointer: coarse at 600 px and less, as the phone
+    captures), `FxIcons.cs` (the sprite), `FxOverlay.cs` (Flux's own dialog
+    and toasts in the shell); dialogs and toasts on Horizon's generic HzUi.
+    - Jobs: native (`Ui/Flux/FxJobsPage.cs`, `Core/Flux/FxJobs.cs`),
+      compared with flux/pages/jobs.js (test/windowsNativeFluxJobs.test.js,
+      Core.Tests FluxJobsTests). Render list: flux jobs, -empty,
+      -running-only, -long, -error.
+    - Overview, Footage, Nodes, Policies, Recycle Bin, Notifications,
+      Encoding per vehicle, Settings: in progress. Viewer and Encoder: after
+      phases 2 and 3.
+  - Phases 6-7 (Aurora, Daylight): not started; their pages open in the
+    browser.
 
 Horizon (known differences): text is not selectable, so live redraws do
 not wait for a highlight; the Footage albums column has its own scroll
