@@ -635,8 +635,8 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   viewer-map-dark, viewer-map-off; every Viewer render with a collection
   now has the map (its tiles from the network on both sides). Not done:
   Leaflet's zoom and pan animations (the view jumps; the heading turn is
-  animated), touch pinch zoom, Studio's drive routes and FSD event dots
-  (Sentry Six's Viewer has no Drives tab).
+  animated), Studio's drive routes and FSD event dots (Sentry Six's Viewer
+  has no Drives tab). Two-finger pinch zoom: done in part 16.
   Viewer part 11, the settings modal (type-checked with mcs, not yet built
   or run on Windows): `Core/ViewerSettings.cs` (`SettingsLayout`: Studio's
   #settingsModal as index.html has it in English: the six nav items, the
@@ -681,10 +681,10 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   stub runner pass). Render list: viewer-settings, -playback, -map,
   -cameras, -shortcuts, -about, -search, -none (capture.js's
   SETTINGS_STEPS, replayed natively from the variant's viewerSettings).
-  Not done: Studio's words in the other twelve languages (the Language
-  choice is saved; the native Viewer's words stay English), the backdrop
-  blur (Glass Blur is saved only), Studio's developer settings (five
-  clicks on the title), turning a pressed key into a binding (part 12).
+  Studio's other twelve languages: done in part 16. Not done: the
+  backdrop blur (Glass Blur is saved only; it cannot show: flightDeck.css
+  makes the dashboard, map and modal backgrounds the opaque #12161D),
+  Studio's developer settings (five clicks on the title).
   Viewer part 12, the keyboard and mouse shortcuts (type-checked with mcs,
   not yet built or run on Windows): `Core/ViewerKeybinds.cs` (`Keybinds`:
   keybinds.js's formatKeyEvent, getKeyIdentifier, formatMouseEvent,
@@ -726,8 +726,8 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   ViewerKeybindsTests (5 tests, passing under mono). Render list:
   viewer-keys (↑, D, N pressed: 2x, no dashboard, the second clip open),
   viewer-keys-marker (I: the start marker and its toast); capture.js's
-  frame step kind `key`. Not done: AltGr's own e.key on European layouts
-  (the identifier, from the key's place, is the same).
+  frame step kind `key`. AltGr's own e.key on European layouts: done in
+  part 16.
   Viewer part 13, export (type-checked with mcs, not yet built or run on
   Windows): the web Viewer has no export, so the native one has none
   (1:1). web/studioEmbed.css hides the controls bar's #setStartMarkerBtn,
@@ -775,8 +775,8 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   compatibility press and release. `StudioTouchLayer.Coarse` (a ready
   touch screen and no mouse, or tablet mode) gives the Viewer's selects
   and the settings search their 16 px under a coarse pointer. Not ported:
-  Leaflet's two-finger pinch zoom on the map (the native map zooms with
-  the wheel and double-click). test/windowsNativeViewerTouch.test.js runs
+  nothing more (Leaflet's two-finger pinch zoom on the map is in since part
+  16). test/windowsNativeViewerTouch.test.js runs
   studioTouch.js on 16 touch sessions on a pretend document and reads the
   CSS block, writing Core.Tests/Fixtures/expected-viewer-touch.json;
   Core.Tests ViewerTouchTests (2 tests, passing under mono). Render list:
@@ -790,6 +790,49 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   does); `StudioTouchLayer` / `IStudioTouchDrag` for finger drags on any
   panel; `StudioFrames.Fit` for the 900 px scale; the Core classes listed
   per part above for the logic.
+  Viewer part 16, the review's fixes (type-checked with mcs, Core tests
+  under mono; built, rendered and played on Windows by CI and the owner's
+  PC, see windows-handoff.md): the playback engine no longer ends the app
+  when a decoder is disposed as it starts (the pipes are taken on the
+  caller's thread, nothing throws out of a reader thread), reads the probe
+  table under its lock, keeps the clock's place in its segment when the
+  durations come in, stops its render tick while the page is hidden,
+  released or stopped, plays the master (or another camera) when the
+  focused camera has no clip in a segment, restarts a master that dies
+  part way (three times, the clock held meanwhile), drops the preloaded
+  segment when the rate crosses 2x, keeps a failed GPU path per codec
+  family for the session and saves the CPU for it, restarts the preloaded
+  segment's failed decoders before the boundary, bumps the generation on
+  release, waits for a scrub preview's frame before the next, probes the
+  first picture's clips before the background durations (each probe on
+  its own thread), puts restarted followers ahead by the start-up time
+  and scales the restart limit with the rate, and reuses frame buffers
+  (`FrameBuffers`, by size, 192 MB at most). The Api allows 64
+  connections and the relay cancels a request whose ffmpeg went away; the
+  first-run decode-path probe is in the kill-on-close job. Studio's
+  languages: `Core/StudioI18n.cs` (i18n.js t() with its English fallback
+  and {param} replacement, the saved or detected language, `Word(lang,
+  english)` by index.html's data-i18n keys) on `Core/StudioWords.Data.cs`
+  (the Viewer's ui.* groups of translations.js in all 13 languages,
+  written by test/windowsNativeViewerI18n.test.js, checked by Core.Tests
+  ViewerI18nTests), the settings modal's words and texts in its language
+  (the foreign-language sessions of the settings parity test now compare
+  the words too), the dashboard's Autopilot and unit words and
+  onLanguageChange, the toasts and the skip titles, and
+  `Ui/Builtin/ViewerI18n.cs` (`StudioTranslate.Walk`: translatePage on the
+  Viewer's elements). AltGr: WpfKeys.KeyOf holds Ctrl and Alt for
+  ToUnicodeEx (the letter again when the layer has none). The map pinches
+  with two fingers (`ViewerMap.Pinch`, Leaflet's TouchZoom snapped on the
+  release). `SentrySix.exe --playback-check <folder>` runs the engine
+  headless on a clip folder (water.yml's dispatch-only playback job). Not
+  done: the settings search matches the English words in every language
+  (the web's matches the shown words), Leaflet's zoom and pan animations,
+  the glass blur (see part 11). For reuse (the packs' Viewer and Encoder
+  pages): `StudioI18n` (`Current`, `T`, `W`, `LanguageChanged`) and
+  `StudioTranslate.Walk(root, lang)` for any page with Studio's words;
+  `Player.CurrentStreams`, `FramesShown`, `DecodePathFailed`,
+  `VideoSurface.ShownTime` for diagnostics; `PlaybackCheck` for a pack's
+  own engine check.
 - Phase 3 (Encoder): not started; its page opens in the browser.
   (Phase 2's notes, part 15, applied: the Viewer's browser fallback is
   removed and Footage's Play day / Play recording open the native Viewer.

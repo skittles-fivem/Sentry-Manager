@@ -11,6 +11,8 @@ namespace SentrySix.Shell
     ///   [--tray]                       start hidden in the tray (the sign-in start-up entry)
     ///   --render &lt;interface&gt; &lt;page&gt; --width N --height N --out file.png [--fixture file.json]
     ///                                  the parity test mode (RENDER-PAGES.md)
+    ///   --playback-check &lt;folder&gt; [--seconds N] [--out report.json] [--ffmpeg exe] [--ffprobe exe]
+    ///                                  the Viewer's playback engine on a clip folder, headless (Ui/Common/Playback/PlaybackCheck.cs)
     /// One app per Windows user: a second launch brings the first one's window to the front.
     /// </summary>
     public static class Program
@@ -31,6 +33,8 @@ namespace SentrySix.Shell
         public static int Main(string[] args)
         {
             string server = null, renderIface = null, renderPage = null, outFile = null, fixture = null;
+            string playbackFolder = null, ffmpegExe = null, ffprobeExe = null;
+            double checkSeconds = 20;
             bool trayOnly = false;
             int width = 1400, height = 900;
             for (int i = 0; i < args.Length; i++)
@@ -46,7 +50,21 @@ namespace SentrySix.Shell
                     case "--height": height = int.Parse(next() ?? "900", CultureInfo.InvariantCulture); break;
                     case "--out": outFile = next(); break;
                     case "--fixture": fixture = next(); break;
+                    case "--playback-check": playbackFolder = next(); break;
+                    case "--seconds": checkSeconds = double.Parse(next() ?? "20", CultureInfo.InvariantCulture); break;
+                    case "--ffmpeg": ffmpegExe = next(); break;
+                    case "--ffprobe": ffprobeExe = next(); break;
                 }
+            }
+
+            if (playbackFolder != null)
+            {
+                // no single-instance check and no server: the clips come from the disk
+                Application check = new Application();
+                check.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                int code = SentrySix.Ui.Playback.PlaybackCheck.Run(playbackFolder, checkSeconds, outFile, ffmpegExe, ffprobeExe);
+                check.Shutdown(code);
+                return code;
             }
 
             if (renderIface != null)

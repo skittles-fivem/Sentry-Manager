@@ -108,6 +108,8 @@ namespace SentrySix.Ui.Playback
                 image.Source = bitmap;
             }
             bitmap.WritePixels(new Int32Rect(0, 0, f.Width, f.Height), f.Data, f.Stride, 0);
+            ShownTime = f.Time;
+            Shows++;
             shownIndex = f.Index;
             shownStream = stream;
         }
@@ -126,11 +128,18 @@ namespace SentrySix.Ui.Playback
         {
             image.Source = null;
             bitmap = null;
+            ShownTime = double.NaN;
             shownIndex = -1;
             shownStream = null;
         }
 
         public bool HasPicture { get { return bitmap != null; } }
+
+        /// <summary>The shown frame's time into its clip (NaN: none or a still); for the playback check's skew.</summary>
+        public double ShownTime = double.NaN;
+
+        /// <summary>Frames put on screen so far.</summary>
+        public long Shows;
     }
 
     /// <summary>

@@ -1405,6 +1405,43 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   touch renders against the web's; the coarse pointer detection
   (`GetSystemMetrics` SM_DIGITIZER / SM_MOUSEPRESENT / tablet mode).
 
+### Viewer part 16: the review's fixes (2026-11-01)
+
+- The playback engine's review: `Core/Playback.cs` (CameraStream takes its
+  pipes in Start, nothing throws out of its reader thread, `FrameBuffers`
+  reuses frame buffers by size), `Core/PlaybackClock.cs` (the restart limit
+  scales with the rate), `Ui/Common/Playback/Player.cs` (probe table under
+  its lock, the clock kept in its segment when the durations come in, the
+  render tick unhooked while hidden / released / stopped, odd clips while a
+  camera is focused, the master restarted part way, the preload dropped at
+  the 2x threshold, the GPU fallback per codec family saved as the CPU
+  (`DecodePathFailed`; ViewerPage saves the paths), the preload's failed
+  decoders restarted before the boundary, the generation bumped on
+  release, the scrub preview waiting for its frame, first-picture probes
+  first and on their own threads, followers restarted ahead by 0.5 s x the
+  rate and checked only once they have a frame), `Core/Api.cs` (64
+  connections), `Core/MediaRelay.cs` (a request is cancelled when its
+  ffmpeg hangs up), `ViewerPage.MakePlayer` (the job before the probe).
+- Languages: `Core/StudioI18n.cs`, `Core/StudioWords.Data.cs` (generated:
+  `UPDATE_NATIVE_PARITY=1 node --test test/windowsNativeViewerI18n.test.js`),
+  `Ui/Builtin/ViewerI18n.cs`, Core.Tests `ViewerI18nTests` (3 tests); the
+  settings modal and dashboard in `Core/ViewerSettings.cs` and
+  `Core/TelemetryDashboard.cs`; the settings parity test's foreign sessions
+  now compare the words too. AltGr in `Ui/Builtin/ViewerKeys.cs` (one more
+  keybinds parity case, German AltGr+Q). Pinch zoom in
+  `Ui/Builtin/ViewerMap.cs` / `ViewerMap.Pinch` (a Core test).
+- Rejected, with why: the glass blur (flightDeck.css makes
+  --panel-bg-gradient and --modal-bg the opaque #12161D, so the web's
+  backdrop-filter has nothing to show through on the dashboard, map and
+  settings box); Leaflet's 250 ms zoom and pan animation (cosmetic; the
+  pinch, wheel and double click land on the same view as Leaflet's).
+- `SentrySix.exe --playback-check <folder> [--seconds N] [--out report.json]
+  [--ffmpeg exe] [--ffprobe exe]` (`Ui/Common/Playback/PlaybackCheck.cs`):
+  the engine headless on a clip folder, served from the disk through the
+  relay; water.yml's `playback` job (workflow_dispatch only, input
+  `windows_run`: the Windows run whose windows-package to use) runs it on
+  the owner's HW3 and HW4 events; the other water jobs skip a dispatch.
+
 ## UI packs, phases 4-7 (the packs session, 2026-10-31)
 
 A separate session builds the four packs' pages natively while the other

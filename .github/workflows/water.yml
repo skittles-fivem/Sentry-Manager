@@ -2,11 +2,22 @@ name: Windows PC (water)
 
 # Runs on the owner's own Windows PC (a self-hosted runner) for what GitHub's
 # machines cannot test: real GPUs, the network, a TrueNAS node. Only pushes
-# to wip start it, never pull requests, so nobody else's code runs there.
+# to wip start it, never pull requests, so nobody else's code runs there. A
+# dispatch (the owner's or this repo's sessions', on a branch of this repo)
+# runs only the Viewer's playback check on the package a Windows run built.
 
 on:
   push:
     branches: [wip]
+  workflow_dispatch:
+    inputs:
+      windows_run:
+        description: 'The id of a Windows workflow run whose windows-package to play with'
+        required: true
+      seconds:
+        description: 'Seconds to play each event'
+        required: false
+        default: '20'
 
 permissions:
   contents: read
@@ -19,6 +30,7 @@ concurrency:
 
 jobs:
   probe:
+    if: github.event_name == 'push'
     runs-on: [self-hosted, Windows]
     timeout-minutes: 15
     defaults:
@@ -363,6 +375,96 @@ jobs:
         if: always()
         run: |
           foreach ($d in 'gputiers', 'gpu-report', 'helper') {
+            $p = Join-Path $env:RUNNER_TEMP $d
+            if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction Continue }
+          }
+
+  # The Viewer's playback engine on this PC's GPU (docs/plans/windows-native-ui.md,
+  # "Playback without Windows codecs"): SentrySix.exe --playback-check from the
+  # package the given Windows run built plays one HW3 and one HW4 event (the
+  # owner's clips, read only; every camera) for the seconds asked from 8 s
+  # before a segment boundary, and reports each camera's decode path
+  # (D3D11VA or the CPU) and frames per second, the largest time apart of the
+  # cameras, the buffering, the CPU and GPU use, and that no ffmpeg outlived
+  # the player. Only on a dispatch; the other jobs skip it.
+  playback:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    defaults:
+      run:
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-package
+          path: ${{ runner.temp }}\playback-pkg
+          run-id: ${{ inputs.windows_run }}
+          github-token: ${{ github.token }}
+
+      - name: Unpack the package
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pkg = Join-Path $env:RUNNER_TEMP 'playback-pkg'
+          $zip = @(Get-ChildItem -LiteralPath $pkg -Filter 'SentrySixManager-*-win-x64.zip')
+          if ($zip.Count -ne 1) { throw "expected one SentrySixManager-*-win-x64.zip in the artifact, found $($zip.Count)" }
+          $root = Join-Path $env:RUNNER_TEMP 'playback-app'
+          if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [IO.Compression.ZipFile]::ExtractToDirectory($zip[0].FullName, $root)
+          foreach ($f in 'app-ui\SentrySix.exe', 'ffmpeg\ffmpeg.exe', 'ffmpeg\ffprobe.exe') {
+            if (-not (Test-Path -LiteralPath (Join-Path $root $f))) { throw "the package has no $f" }
+          }
+          Write-Host "unpacked $($zip[0].Name) to $root"
+          & (Join-Path $root 'ffmpeg\ffmpeg.exe') -hide_banner -version | Select-Object -First 1
+          nvidia-smi --query-gpu=name,driver_version --format=csv
+
+      - name: Playback check (HW3 and HW4 events)
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:RUNNER_TEMP 'playback-app'
+          $out = Join-Path $env:RUNNER_TEMP 'playback-report'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $before = @(Get-Process ffmpeg, ffprobe -ErrorAction SilentlyContinue).Count
+          $bad = 0
+          $summary = New-Object Text.StringBuilder
+          foreach ($c in @(@{ name = 'HW3'; dir = 'C:\Users\ktmcm\OneDrive\Desktop\2026-10-19' }, @{ name = 'HW4'; dir = 'C:\Users\ktmcm\OneDrive\Desktop\2026-07-21' })) {
+            $json = Join-Path $out "playback-$($c.name).json"
+            $argv = @('--playback-check', $c.dir, '--seconds', '${{ inputs.seconds }}', '--out', $json,
+                      '--ffmpeg', (Join-Path $root 'ffmpeg\ffmpeg.exe'), '--ffprobe', (Join-Path $root 'ffmpeg\ffprobe.exe'))
+            $p = Start-Process -FilePath (Join-Path $root 'app-ui\SentrySix.exe') -ArgumentList ($argv | ForEach-Object { '"' + $_ + '"' }) -PassThru -Wait -WindowStyle Hidden
+            Write-Host "== $($c.name): exit code $($p.ExitCode)"
+            if (Test-Path -LiteralPath $json) {
+              $r = Get-Content -Raw -LiteralPath $json | ConvertFrom-Json
+              Write-Host $r.log
+              [void]$summary.AppendLine("### $($c.name): $(if ($p.ExitCode -eq 0) { 'OK' } else { 'FAILED' })").AppendLine('').AppendLine('```text').AppendLine($r.log).AppendLine('```')
+            } else {
+              Write-Host "::error::$($c.name): no report written"
+            }
+            if ($p.ExitCode -ne 0) { $bad++ }
+          }
+          Start-Sleep -Seconds 2
+          $after = @(Get-Process ffmpeg, ffprobe -ErrorAction SilentlyContinue)
+          Write-Host "ffmpeg/ffprobe running before: $before, after: $($after.Count)"
+          if ($after.Count -gt $before) { Write-Host "::error::ffmpeg left running: $(($after | ForEach-Object { $_.Id }) -join ', ')"; $bad++ }
+          [IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, $summary.ToString(), (New-Object Text.UTF8Encoding $false))
+          if ($bad) { throw "$bad playback check(s) failed" }
+
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playback-check
+          path: ${{ runner.temp }}\playback-report
+          if-no-files-found: warn
+
+      - name: Clean up
+        if: always()
+        run: |
+          foreach ($d in 'playback-pkg', 'playback-app', 'playback-report') {
             $p = Join-Path $env:RUNNER_TEMP $d
             if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction Continue }
           }
