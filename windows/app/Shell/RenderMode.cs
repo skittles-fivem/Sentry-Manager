@@ -130,6 +130,8 @@ namespace SentrySix.Shell
                 }
                 // a still picture: no overlay scroll bar (Playwright's captures have none)
                 Scroll.Still = true;
+                // (the Viewer's pointer: coarse where the captures emulate touch, studioEmbed.css's 16 px inputs)
+                SentrySix.Ui.Builtin.StudioTouchLayer.RenderCoarse = width <= 760 || vx["viewerTouch"].IsArray;
                 IInterface look = Interfaces.Get(ifaceId);
                 if (look == null) throw new ArgumentException("No such interface: " + ifaceId + " (builtin, horizon, flux, aurora, daylight).");
                 MemoryPrefs prefs = new MemoryPrefs();

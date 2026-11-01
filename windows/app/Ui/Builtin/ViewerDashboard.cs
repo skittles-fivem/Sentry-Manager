@@ -439,7 +439,7 @@ namespace SentrySix.Ui.Builtin
     /// its two values, the compass with its heading) and the details toggle
     /// with Lat, Lon, Head and Seq.
     /// </summary>
-    public sealed class StudioFloatingDashboard : Grid
+    public sealed class StudioFloatingDashboard : Grid, IStudioTouchDrag
     {
         public const double PanelWidth = 480;
         public const double Collapsed = 200;
@@ -488,6 +488,8 @@ namespace SentrySix.Ui.Builtin
             MouseLeftButtonUp += OnUp;
             LostMouseCapture += delegate { dragging = false; Cursor = Cursors.Hand; };
             PreviewMouseRightButtonDown += (s, e) => e.Handled = true;
+            // studioTouch.js: a finger drags it as the mouse does
+            StudioTouchLayer.SetDrag(this, this);
         }
 
         internal FloatingLayout Layout { get { return layout; } }
@@ -526,19 +528,29 @@ namespace SentrySix.Ui.Builtin
         void OnDown(object sender, MouseButtonEventArgs e)
         {
             e.Handled = true;
-            if (layout.OnToggle(e.OriginalSource as DependencyObject)) return;
+            if (Down(el => e.GetPosition(el), e.OriginalSource as DependencyObject)) CaptureMouse();
+        }
+
+        bool Down(PointAt at, DependencyObject source)
+        {
+            if (layout.OnToggle(source)) return false;
             dragging = true;
-            dragStart = e.GetPosition(Parent as IInputElement) - Offset;
+            dragStart = at(Parent as IInputElement) - Offset;
             Cursor = Cursors.SizeAll;
-            CaptureMouse();
+            return true;
         }
 
         void OnMove(object sender, MouseEventArgs e)
         {
+            Move(el => e.GetPosition(el));
+        }
+
+        void Move(PointAt at)
+        {
             if (!dragging) return;
             FrameworkElement frame = Parent as FrameworkElement;
             if (frame == null) return;
-            Point p = e.GetPosition(frame);
+            Point p = at(frame);
             Vector next = new Vector(p.X - dragStart.X, p.Y - dragStart.Y);
             Offset = DashDrag.Clamp(this, frame, next);
         }
@@ -546,11 +558,26 @@ namespace SentrySix.Ui.Builtin
         void OnUp(object sender, MouseButtonEventArgs e)
         {
             e.Handled = true;
+            Up();
+        }
+
+        void Up()
+        {
             if (!dragging) return;
             dragging = false;
-            ReleaseMouseCapture();
+            if (IsMouseCaptured) ReleaseMouseCapture();
             Cursor = Cursors.Hand;
         }
+
+        // ---- a finger (studioTouch.js) ------------------------------------------------------
+
+        bool IStudioTouchDrag.IsControl(DependencyObject source) { return layout.IsToggle(source); }
+
+        void IStudioTouchDrag.DragDown(PointAt at, DependencyObject source) { Down(at, source); }
+
+        void IStudioTouchDrag.DragMove(PointAt at) { Move(at); }
+
+        void IStudioTouchDrag.DragUp(PointAt at) { Up(); }
 
         /// <summary>The frame was resized: a panel with less than 50 px left in view goes to the nearest corner.</summary>
         public void KeepInView()
@@ -682,6 +709,14 @@ namespace SentrySix.Ui.Builtin
         }
 
         /// <summary>Whether a press landed on the details toggle (then it toggles, not drags).</summary>
+        /// <summary>The press is on #toggleExtra (a button: a finger taps it, studioTouch.js's SKIP).</summary>
+        public bool IsToggle(DependencyObject source)
+        {
+            for (DependencyObject d = source; d != null && d != owner; d = VisualTreeHelper.GetParent(d))
+                if (d == toggle) return true;
+            return false;
+        }
+
         public bool OnToggle(DependencyObject source)
         {
             for (DependencyObject d = source; d != null && d != this; d = VisualTreeHelper.GetParent(d))
@@ -864,7 +899,7 @@ namespace SentrySix.Ui.Builtin
     /// label over the recording time, right blinker, steering wheel,
     /// accelerator, spaced evenly; PARKED and the time alone in a gap.
     /// </summary>
-    public sealed class StudioCompactDashboard : Grid
+    public sealed class StudioCompactDashboard : Grid, IStudioTouchDrag
     {
         readonly Border shadow = new Border();
         readonly Border panel = new Border();
@@ -894,24 +929,41 @@ namespace SentrySix.Ui.Builtin
             MouseLeftButtonDown += (s, e) =>
             {
                 e.Handled = true;
-                if (fixedToCamera) return;
-                dragging = true;
-                dragStart = e.GetPosition(Parent as IInputElement) - new Vector(offset.X, offset.Y);
-                CaptureMouse();
+                if (Down(el => e.GetPosition(el))) CaptureMouse();
             };
-            MouseMove += (s, e) =>
-            {
-                FrameworkElement frame = Parent as FrameworkElement;
-                if (!dragging || frame == null) return;
-                Point p = e.GetPosition(frame);
-                Vector v = DashDrag.Clamp(this, frame, new Vector(p.X - dragStart.X, p.Y - dragStart.Y));
-                offset.X = v.X;
-                offset.Y = v.Y;
-            };
-            MouseLeftButtonUp += (s, e) => { e.Handled = true; dragging = false; ReleaseMouseCapture(); };
+            MouseMove += (s, e) => Move(el => e.GetPosition(el));
+            MouseLeftButtonUp += (s, e) => { e.Handled = true; dragging = false; if (IsMouseCaptured) ReleaseMouseCapture(); };
             LostMouseCapture += delegate { dragging = false; };
+            // studioTouch.js: a finger moves it as the mouse does
+            StudioTouchLayer.SetDrag(this, this);
             Fixed = true;
         }
+
+        bool Down(PointAt at)
+        {
+            if (fixedToCamera) return false;
+            dragging = true;
+            dragStart = at(Parent as IInputElement) - new Vector(offset.X, offset.Y);
+            return true;
+        }
+
+        void Move(PointAt at)
+        {
+            FrameworkElement frame = Parent as FrameworkElement;
+            if (!dragging || frame == null) return;
+            Point p = at(frame);
+            Vector v = DashDrag.Clamp(this, frame, new Vector(p.X - dragStart.X, p.Y - dragStart.Y));
+            offset.X = v.X;
+            offset.Y = v.Y;
+        }
+
+        bool IStudioTouchDrag.IsControl(DependencyObject source) { return false; }
+
+        void IStudioTouchDrag.DragDown(PointAt at, DependencyObject source) { Down(at); }
+
+        void IStudioTouchDrag.DragMove(PointAt at) { Move(at); }
+
+        void IStudioTouchDrag.DragUp(PointAt at) { dragging = false; }
 
         internal CompactLayout Layout { get { return layout; } }
 

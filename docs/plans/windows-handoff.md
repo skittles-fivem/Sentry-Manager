@@ -1359,6 +1359,46 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   browser opens at #/viewer without the date or folder.
 - To check on Windows: the dotnet build; viewer-export against the web's.
 
+### Viewer part 14 (phone-width layout) and part 15 (2026-11-01)
+
+- Studio has no phone layout: the 900 px scale (fitFrames) was already in
+  `StudioFrameWrap` (part 0). New: fingers. `Core/ViewerTouch.cs`
+  (`StudioTouch`, C# 5) is web/studioTouch.js's drag state, event for
+  event, and studioEmbed.css's pointer: coarse numbers.
+  `Ui/Builtin/ViewerTouch.cs`: `StudioTouchLayer` (Preview touch events on
+  the Viewer's root; a finger held on a handle is not promoted to the
+  mouse, the rest is) and `IStudioTouchDrag`, which
+  `StudioFloatingDashboard`, `StudioCompactDashboard`, `StudioMapPanel`
+  and the clip list's resize handle (`StudioClipBrowser.ResizeTouch`)
+  implement by calling their mouse drags' own code with a `PointAt`
+  (their mouse handlers now go through the same methods).
+  `StudioTouchLayer.InputFont` (16 px under a coarse pointer) on
+  `StudioSelect` and the settings search. `RenderMode` sets
+  `StudioTouchLayer.RenderCoarse` (phone width or a `viewerTouch` variant),
+  one line in a shared file.
+- test/windowsNativeViewerTouch.test.js runs studioTouch.js in a vm on 16
+  touch sessions (pretend elements with closest()) and reads the CSS
+  block; Core.Tests ViewerTouchTests (2 tests, passing under mono with the
+  stub runner). Its second test also checks part 15: the Viewer is in
+  `BuiltinInterface`'s native table, and Footage's two buttons call
+  `ViewerSlot.Open`.
+- Render list: viewer-touch, viewer-touch-map (capture.js TOUCH_STEPS,
+  `touch: true` gives the context touch at both sizes, a `touch-drag`
+  frame step sends TouchEvents in Studio's frame). RenderFixture.json:
+  only those two variants were added (a full `--fixture-only` run here
+  also rewrote the time-dependent answers and pulled in the packs'
+  variants, so it was not kept).
+- Part 15 applied: `ViewerPage.Complete` and the render-only fallback in
+  `BuiltinInterface.Page` are gone; "viewer" is a native page, so the
+  nav, Footage's Play day ({ date }) and Play recording ({ folder }) show
+  the native Viewer. The language-level and expected-*.json notes of part
+  15 were already met by parts 0-13.
+- Not ported: Leaflet's two-finger pinch zoom on the map.
+- To check on Windows: the dotnet build; touch on a real touch screen
+  (the promotion of untouched fingers to the mouse, the drags); the two
+  touch renders against the web's; the coarse pointer detection
+  (`GetSystemMetrics` SM_DIGITIZER / SM_MOUSEPRESENT / tablet mode).
+
 ## UI packs, phases 4-7 (the packs session, 2026-10-31)
 
 A separate session builds the four packs' pages natively while the other

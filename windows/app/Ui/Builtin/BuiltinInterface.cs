@@ -41,6 +41,7 @@ namespace SentrySix.Ui.Builtin
         {
             { "overview", c => new OverviewPage(c) },
             { "footage", c => new FootagePage(c) },
+            { "viewer", c => new ViewerPage(c) },
             { "nodes", c => new NodesPage(c) },
             { "policies", c => new PoliciesPage(c) },
             { "jobs", c => new JobsPage(c) },
@@ -52,7 +53,6 @@ namespace SentrySix.Ui.Builtin
 
         static BuiltinInterface()
         {
-            if (ViewerPage.Complete) native["viewer"] = c => new ViewerPage(c);
             foreach (string key in native.Keys)
             {
                 int slash = key.IndexOf('/');
@@ -616,8 +616,6 @@ namespace SentrySix.Ui.Builtin
             if (p == null) p = pages[0];
             string sub = ctx != null && ctx.Sub != null ? ctx.Sub : "";
             Func<PageContext, INativePage> make = NativeFor(p.Id, sub);
-            // (the Viewer, until all of it is drawn here, in the render test mode only)
-            if (make == null && p.Id == "viewer" && ctx != null && ctx.Fixture != null) make = c => new ViewerPage(c);
             if (make != null && ctx != null)
             {
                 // (a page that cannot even be made shows why, as a failed draw does)

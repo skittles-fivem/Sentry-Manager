@@ -276,7 +276,7 @@ namespace SentrySix.Ui.Builtin
     /// the wheel and a double click zoom, the right button drags the map;
     /// the hint, the orientation and the re-center buttons on hover.
     /// </summary>
-    public sealed class StudioMapPanel : Grid
+    public sealed class StudioMapPanel : Grid, IStudioTouchDrag
     {
         public const double Size = 260;
         public const double Left = 380, Top = 20;
@@ -458,6 +458,8 @@ namespace SentrySix.Ui.Builtin
             MouseRightButtonDown += OnRightDown;
             MouseRightButtonUp += OnRightUp;
             LostMouseCapture += delegate { dragging = false; panning = false; Cursor = Cursors.Hand; };
+            // studioTouch.js: one finger moves the panel, as the mouse does (the buttons keep their taps)
+            StudioTouchLayer.SetDrag(this, this);
             mapHost.MouseWheel += OnWheel;
             wheelTimer.Interval = TimeSpan.FromMilliseconds(40);
             wheelTimer.Tick += delegate
@@ -644,10 +646,39 @@ namespace SentrySix.Ui.Builtin
                 map.DoubleClick(new PixelPoint(at.X, at.Y), (Keyboard.Modifiers & ModifierKeys.Shift) != 0);
             }
             if (panning) return;
-            dragging = true;
-            dragStart = e.GetPosition(Parent as IInputElement) - Offset;
-            Cursor = Cursors.SizeAll;
+            Down(el => e.GetPosition(el));
             CaptureMouse();
+        }
+
+        void Down(PointAt at)
+        {
+            dragging = true;
+            dragStart = at(Parent as IInputElement) - Offset;
+            Cursor = Cursors.SizeAll;
+        }
+
+        bool IStudioTouchDrag.IsControl(DependencyObject source) { return OnButton(source); }
+
+        void IStudioTouchDrag.DragDown(PointAt at, DependencyObject source)
+        {
+            if (panning || OnButton(source)) return;
+            Down(at);
+        }
+
+        void IStudioTouchDrag.DragMove(PointAt at)
+        {
+            FrameworkElement frame = Parent as FrameworkElement;
+            if (!dragging || panning || frame == null) return;
+            Point q = at(frame);
+            Offset = DashDrag.Clamp(this, frame, new Vector(q.X - dragStart.X, q.Y - dragStart.Y));
+        }
+
+        void IStudioTouchDrag.DragUp(PointAt at)
+        {
+            if (!dragging) return;
+            dragging = false;
+            if (IsMouseCaptured) ReleaseMouseCapture();
+            Cursor = Cursors.Hand;
         }
 
         bool IsOverMap(MouseEventArgs e)

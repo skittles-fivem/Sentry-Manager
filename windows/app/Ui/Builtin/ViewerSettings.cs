@@ -373,7 +373,7 @@ namespace SentrySix.Ui.Builtin
             search.BorderThickness = new Thickness(0);
             search.Foreground = Text;
             search.CaretBrush = Text;
-            search.FontSize = 11;
+            search.FontSize = StudioTouchLayer.InputFont(11);
             search.FontFamily = U.Inter;
             search.Padding = new Thickness(0);
             search.Margin = new Thickness(29, 0, 27, 0);

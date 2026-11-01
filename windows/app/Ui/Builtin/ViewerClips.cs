@@ -86,7 +86,8 @@ namespace SentrySix.Ui.Builtin
         public StudioSelect(double fontSize, FontWeight weight, Brush fg, Brush bg, Brush border, CornerRadius radius, Thickness padding, double arrowPad, double minHeight, double maxWidth)
         {
             this.maxWidth = maxWidth;
-            label.FontSize = fontSize;
+            // (studioEmbed.css under pointer: coarse: max(16px, 1em))
+            label.FontSize = StudioTouchLayer.InputFont(fontSize);
             label.FontWeight = weight;
             label.FontFamily = U.Inter;
             label.Foreground = fg;
@@ -430,6 +431,8 @@ namespace SentrySix.Ui.Builtin
             handle.MouseMove += HandleMove;
             handle.MouseLeftButtonUp += HandleUp;
             handle.LostMouseCapture += delegate { if (dragging) HandleUp(null, null); };
+            // studioTouch.js: a finger resizes the panel as the mouse does
+            StudioTouchLayer.SetDrag(handle, new ResizeTouch(this));
             Children.Add(handle);
 
             // .clip-thumb-tooltip and .modal live above everything else in the Viewer
@@ -641,18 +644,29 @@ namespace SentrySix.Ui.Builtin
 
         void HandleDown(object s, MouseButtonEventArgs e)
         {
-            if (!mode.Classic) return;
-            dragging = true;
-            dragStartX = e.GetPosition(this).X;
-            dragStartWidth = mode.Width;
+            if (!ResizeDown(el => e.GetPosition(el))) return;
             handle.CaptureMouse();
             e.Handled = true;
         }
 
+        bool ResizeDown(PointAt at)
+        {
+            if (!mode.Classic) return false;
+            dragging = true;
+            dragStartX = at(this).X;
+            dragStartWidth = mode.Width;
+            return true;
+        }
+
         void HandleMove(object s, MouseEventArgs e)
         {
+            ResizeMove(el => e.GetPosition(el));
+        }
+
+        void ResizeMove(PointAt at)
+        {
             if (!dragging) return;
-            double x = e.GetPosition(this).X;
+            double x = at(this).X;
             mode.Width = ClipsPanelMode.Dragged(dragStartWidth, x - dragStartX);
             Layout();
             Moved();
@@ -667,6 +681,20 @@ namespace SentrySix.Ui.Builtin
             Layout();
             Moved();
             viewer.SaveSetting("sidebarWidth", JsonValue.Number(w));
+        }
+
+        /// <summary>.sidebar-resize-handle (a finger drags it too).</summary>
+        public UIElement ResizeHandle { get { return handle; } }
+
+        /// <summary>.sidebar-resize-handle under a finger (studioTouch.js).</summary>
+        sealed class ResizeTouch : IStudioTouchDrag
+        {
+            readonly StudioClipBrowser b;
+            public ResizeTouch(StudioClipBrowser b) { this.b = b; }
+            public bool IsControl(DependencyObject source) { return false; }
+            public void DragDown(PointAt at, DependencyObject source) { b.ResizeDown(at); }
+            public void DragMove(PointAt at) { b.ResizeMove(at); }
+            public void DragUp(PointAt at) { b.HandleUp(null, null); }
         }
 
         // ---- the header -----------------------------------------------------------------

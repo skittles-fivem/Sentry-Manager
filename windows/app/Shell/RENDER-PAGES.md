@@ -176,8 +176,8 @@ answers: no Interface, Security or System card) and settings-error (GET
 /api/settings fails: the whole page is the message). At phone width the
 tab strip shows one section; on a desktop every card. The new vehicle's
 time zone is this PC's (Windows' zone as its IANA name), as the browser's.
-The Viewer (phase 2, in progress: only the render test mode draws it until
-all of it is native; its navigation still opens the browser): viewer (the
+The Viewer (phase 2: all of it is native, so its navigation and Footage's
+Play day / Play recording show it in the window): viewer (the
 selected vehicle's footage, Studio's address with its root), viewer-day
 (Footage > Play day on the first day: the native side has the Viewer's
 `state` `{ "date": … }`, the web clicks the first day's Play day),
@@ -411,6 +411,25 @@ the timeline, the "End marker set" toast, and a controls bar with only
 HW4 / HW3 and the gear right of the timeline (no Start / End, Export or
 share buttons).
 
+Phone-width layout (part 14): Studio has no phone layout of its own; the
+frame under 900 px is drawn at 900 px and scaled down (fitFrames), which
+every Viewer state above already shows at phone width (the proposal's
+empty, no-video, error, loading, day, focus, HW3, compact and parked
+states are viewer-novehicle, -noclips, -readerror, -scanning, -day,
+-focus, -hw3, -dash-compact and -dash-parked). At phone width the
+captures' Chromium emulates touch, so pointer: coarse holds there:
+studioEmbed.css's inputs and selects at 16 px or more (the day list, the
+vehicle picker, the speed list, the settings search and selects; the
+native render takes the coarse pointer at phone width and in the touch
+variants). A one-finger drag on a panel (web/studioTouch.js: the
+dashboard, compact dashboard, map and clip list's resize handle) moves it
+as the mouse does (capture.js's TOUCH_STEPS as touchstart, two touchmoves
+and touchend from the panel's centre in Studio's frame, with touch at both
+sizes; the native render drags the same through its touch layer:
+`viewerTouch`). viewer-touch: the floating dashboard (DRIVE, as viewer-dash)
+dragged 260 px left and 200 px down. viewer-touch-map: the map panel (the
+route, as viewer-map) dragged 220 px right and 160 px down.
+
 - builtin overview
 - builtin overview-off
 - builtin overview-logs
@@ -506,6 +525,8 @@ share buttons).
 - builtin viewer-keys
 - builtin viewer-keys-marker
 - builtin viewer-export
+- builtin viewer-touch
+- builtin viewer-touch-map
 
 ## The UI packs' pages (phases 4-7)
 

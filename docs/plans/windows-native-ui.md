@@ -247,16 +247,16 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   extra hidden line). Renders of a variant with `scroll` (footage-open,
   footage-long) scroll the same element to the top as capture.js does on
   the web after its clicks (the open recording's card).
-- Phase 2 (built-in Viewer): in progress. The playback engine, the
+- Phase 2 (built-in Viewer): native, all parts written (type-checked with
+  mcs, the Core tests passing under mono; the Windows build and renders are
+  CI's). The playback engine, the
   telemetry, the clip library (scan and grouping, part 2), the clip
   browser (the clip list panel, part 3), the six-camera grid on the
-  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6), the event marker on the timeline (part 7), the telemetry feed (part 8), the telemetry dashboard (part 9), the map (part 10), the settings modal (part 11), the keyboard and mouse shortcuts (part 12) and export (part 13: none, as in the web Viewer) are written; the rest of the Viewer page (Studio's
-  phone layout:
-  `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
-  still opens in the browser (`ViewerPage.Complete` stays false until it
-  is all there; then its browser fallback goes and Footage's Play day /
-  Play recording land in it, which they already do through
-  `ViewerSlot.Open`). Core (C# 5, tested
+  Player (part 4), camera focus, zoom and pan (part 5) the controls bar, timeline and scrubber (part 6), the event marker on the timeline (part 7), the telemetry feed (part 8), the telemetry dashboard (part 9), the map (part 10), the settings modal (part 11), the keyboard and mouse shortcuts (part 12), export (part 13: none, as in the web Viewer) and the phone-width layout (part 14) are written. The
+  Viewer is registered as a native page of the built-in interface
+  (`BuiltinInterface`'s table; `ViewerPage.Complete` and the browser
+  fallback are gone), so its navigation and Footage's Play day / Play
+  recording (`ViewerSlot.Open`) show it in the window. Core (C# 5, tested
   under mono with a stub runner here, by Core.Tests on Windows):
   `Telemetry` (protobuf.js's SeiMetadata.decode step for step, atob,
   collectSei, hasValidGps, findSeiAtTime, and an 8-clip cache of GET /api/telemetry
@@ -754,12 +754,45 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   both export markers and the range between them, the "End marker set"
   toast, and the controls bar without the hidden buttons; capture.js's
   EXPORT_STEPS).
-  Phase 2 is not finished: `ViewerPage.Complete` stays false until part
-  14 (the phone-width layout) is in; until then the Viewer's
-  browser fallback stays, and Footage's Play day / Play recording keep
-  going through `ViewerSlot.Open`, which lands in the native Viewer the
-  moment `Complete` is true.
+  Viewer part 14, the phone-width layout (type-checked with mcs, not yet
+  built or run on Windows): Studio has no phone layout of its own, so
+  under 900 px the Viewer is laid out at 900 px and scaled down
+  (`StudioFrames.Fit` in `StudioFrameWrap`, as fitFrames; part 0). For
+  fingers, `Core/ViewerTouch.cs` (`StudioTouch`) is web/studioTouch.js
+  event for event: HANDLES (#dashboardVis, #dashboardVisCompact, #mapVis,
+  .sidebar-resize-handle), SKIP (button, input, select, textarea, a), the
+  6 px threshold, mousedown at the start, mousemove, mouseup at the lifted
+  finger or the start, a second finger ending the drag, preventDefault;
+  plus studioEmbed.css's pointer: coarse block (inputs at max(16px, 1em),
+  `InputFontSize`; the handles' touch-action, `TouchAction`).
+  `Ui/Builtin/ViewerTouch.cs`: `StudioTouchLayer` on the Viewer's root
+  holds a finger that starts on a handle (`IStudioTouchDrag`, set with
+  `StudioTouchLayer.SetDrag`; the floating and compact dashboards, the map
+  panel and the clip list's resize handle implement it with their own
+  mouse drags' code) and replays it as their drag; every other touch is
+  left to WPF's promotion to the mouse (taps, sliders, scrolling), as the
+  web leaves it to the browser; a finger that never moved is the browser's
+  compatibility press and release. `StudioTouchLayer.Coarse` (a ready
+  touch screen and no mouse, or tablet mode) gives the Viewer's selects
+  and the settings search their 16 px under a coarse pointer. Not ported:
+  Leaflet's two-finger pinch zoom on the map (the native map zooms with
+  the wheel and double-click). test/windowsNativeViewerTouch.test.js runs
+  studioTouch.js on 16 touch sessions on a pretend document and reads the
+  CSS block, writing Core.Tests/Fixtures/expected-viewer-touch.json;
+  Core.Tests ViewerTouchTests (2 tests, passing under mono). Render list:
+  viewer-touch (the dashboard dragged by a finger) and viewer-touch-map
+  (the map panel), capture.js's TOUCH_STEPS with touch at both sizes; the
+  proposal's other phone states are the existing ones at phone width.
+  For reuse (the packs' Viewer pages): `ViewerSlot.Open(shell, extra)`
+  opens the one Viewer with { date } or { folder } and navigates to it;
+  `ViewerPage` / `StudioViewer` is the whole Viewer (a pack's Viewer page
+  can host `ViewerSlot.Of(shell)` in its own frame wrap as `ViewerPage`
+  does); `StudioTouchLayer` / `IStudioTouchDrag` for finger drags on any
+  panel; `StudioFrames.Fit` for the 900 px scale; the Core classes listed
+  per part above for the logic.
 - Phase 3 (Encoder): not started; its page opens in the browser.
+  (Phase 2's notes, part 15, applied: the Viewer's browser fallback is
+  removed and Footage's Play day / Play recording open the native Viewer.)
 - Phases 4-7 (the packs): in progress on wip, one pack at a time (this
   session works in its own files: `Core/Horizon/`, `Ui/Horizon/Hz*.cs`,
   later `Core/Flux/`, `Ui/Flux/Fx*.cs` …). Shared pieces, added once for

@@ -24,18 +24,12 @@ namespace SentrySix.Ui.Builtin
     /// address (Footage > Play day and Play recording). It fills the page
     /// area edge to edge (.frame-wrap: the main padding taken back, 100vh, on
     /// the phone 100vh - 66px) and, under 900 px, is drawn at 900 px and
-    /// scaled down (fitFrames).
+    /// scaled down (fitFrames); a finger drags its panels as studioTouch.js
+    /// does (<see cref="StudioTouchLayer"/>). The whole Viewer is drawn
+    /// here, so its navigation shows it in the window (no browser fallback).
     /// </summary>
     public sealed class ViewerPage : INativePage
     {
-        /// <summary>
-        /// Set when the whole Viewer is drawn here (phase 2: the clip list,
-        /// the controls, the dashboard, the map, the settings): until then its
-        /// navigation opens the browser, and only the render test mode draws
-        /// this page.
-        /// </summary>
-        public static readonly bool Complete = false;
-
         static readonly string[] affects = new string[0];
 
         readonly ShellModel shell;
@@ -354,6 +348,7 @@ namespace SentrySix.Ui.Builtin
         readonly StudioSettingsModal settingsView;
         Task settingsRead;
         bool hardware = true;
+        readonly StudioTouchLayer touchLayer;
 
         public StudioViewer(ShellModel shell, IJsonApi api, ViewerStart start, bool still)
             : this(shell, api, start, still, null)
@@ -496,6 +491,8 @@ namespace SentrySix.Ui.Builtin
             controls.SettingsPressed += () => settings.Step("click", "#settingsBtn", null);
             // the keyboard and mouse shortcuts (part 12) and the export markers they set
             WireKeys();
+            // a finger on the dashboard, map and resize handle (part 14, studioTouch.js)
+            touchLayer = new StudioTouchLayer(root);
             root.SizeChanged += delegate
             {
                 mapPanel.KeepInView();
@@ -576,6 +573,7 @@ namespace SentrySix.Ui.Builtin
             if (still) Settle();
             if (still) await ReplaySettings();
             if (still) await ReplayKeys();
+            if (still) await ReplayTouch();
             if (still && renderOpen != null)
             {
                 ClipListItem first = clips.FirstDeletable();
@@ -584,6 +582,46 @@ namespace SentrySix.Ui.Builtin
                     if (renderOpen == "delete-final") clips.AskDeleteFinal(first);
                     else clips.AskDelete(first);
                 }
+            }
+        }
+
+        /// <summary>The render test mode: the variant's finger drags (viewerTouch: [handle's Uid, dx, dy], capture.js's touch-drag steps in Studio's frame).</summary>
+        async Task ReplayTouch()
+        {
+            JsonValue steps = renderDash != null ? renderDash["viewerTouch"] : JsonValue.Null;
+            if (!steps.IsArray) return;
+            try { await settingsRead; }
+            catch (Exception) { }
+            if (!root.IsLoaded)
+            {
+                TaskCompletionSource<bool> loaded = new TaskCompletionSource<bool>();
+                RoutedEventHandler once = null;
+                once = delegate { root.Loaded -= once; loaded.TrySetResult(true); };
+                root.Loaded += once;
+                await loaded.Task;
+            }
+            // (the panels placed: the telemetry's dashboard and route are in)
+            await Dispatcher.Yield(DispatcherPriority.Background);
+            if (disposed) return;
+            root.UpdateLayout();
+            foreach (JsonValue st in steps.Items)
+            {
+                UIElement on = TouchHandle(st[0].Str);
+                if (on != null) touchLayer.Replay(on, st[1].Num, st[2].Num);
+                root.UpdateLayout();
+            }
+        }
+
+        /// <summary>studioTouch.js's HANDLES by their ids (the native elements' Uids).</summary>
+        UIElement TouchHandle(string uid)
+        {
+            switch (uid)
+            {
+                case "dashboardVis": return dash.Floating;
+                case "dashboardVisCompact": return dash.Compact;
+                case "mapVis": return mapPanel;
+                case "sidebar-resize-handle": return clips.ResizeHandle;
+                default: return null;
             }
         }
 

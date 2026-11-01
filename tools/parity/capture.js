@@ -113,6 +113,15 @@ const KEYS_KEYBINDS = {
 // Marker Start, Skip Forward, Export Marker End: both markers and the range between them on the
 // timeline, and a controls bar without the hidden buttons (the native render presses the same keys).
 const EXPORT_STEPS = { 'viewer-export': ['KeyI', 'KeyL', 'KeyO'] };
+
+// The phone-width layout (Viewer part 14): one finger dragging a panel (studioTouch.js turns it
+// into the panel's mouse drag), as [handle id, dx, dy] in Studio's own pixels. The context has
+// touch at both sizes for these (studioTouch.js only listens on a touch device); the native
+// render drags the same through its touch layer (viewerTouch).
+const TOUCH_STEPS = {
+  'viewer-touch': [['dashboardVis', -260, 200]],
+  'viewer-touch-map': [['mapVis', 220, 160]]
+};
 const EXPORT_KEYBINDS = {
   setMarkerIn: { display: 'I', identifier: 'keyi' },
   skipForward: { display: 'L', identifier: 'keyl' },
@@ -252,7 +261,9 @@ const PAGES = {
   // the keyboard shortcuts (part 12): each KEY_STEPS key pressed in Studio's frame
   ...Object.fromEntries(Object.entries(KEY_STEPS).map(([k, keys]) => [k, { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: keys.map((key) => ['key', 'body', key]) }])),
   // export (part 13): the export markers set by EXPORT_STEPS' keys, no export buttons
-  ...Object.fromEntries(Object.entries(EXPORT_STEPS).map(([k, keys]) => [k, { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: keys.map((key) => ['key', 'body', key]) }]))
+  ...Object.fromEntries(Object.entries(EXPORT_STEPS).map(([k, keys]) => [k, { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: keys.map((key) => ['key', 'body', key]) }])),
+  // a finger's drag on the dashboard / map, after the telemetry's timeupdate (touch at both sizes)
+  ...Object.fromEntries(Object.entries(TOUCH_STEPS).map(([k, steps]) => [k, { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, touch: true, frame: [['event', 'video', 'timeupdate'], ...steps.map(([id, dx, dy]) => ['touch-drag', `#${id}`, [dx, dy]])] }]))
 };
 
 // each pack page module's pages, as "<pack>:<name>" (the picture is <pack>-<name>-<w>x<h>.png)
@@ -429,6 +440,9 @@ const VARIANTS = {
   // (viewerKeys: the native render presses the same keys)
   ...Object.fromEntries(Object.entries(KEY_STEPS).map(([k, keys]) => [k, (api) => ({ route: 'viewer', viewerKeys: keys.map((key) => ['key', key]), api: studioSettings(api, { keybinds: KEYS_KEYBINDS }) })])),
   ...Object.fromEntries(Object.entries(EXPORT_STEPS).map(([k, keys]) => [k, (api) => ({ route: 'viewer', viewerKeys: keys.map((key) => ['key', key]), api: studioSettings(api, { keybinds: EXPORT_KEYBINDS }) })])),
+  // (viewerTouch: the native render drags the same through its touch layer)
+  'viewer-touch': (api) => ({ route: 'viewer', viewerTimeupdate: true, viewerTouch: TOUCH_STEPS['viewer-touch'], api: telemetryOf(api, driveFrames()) }),
+  'viewer-touch-map': (api) => ({ route: 'viewer', viewerTimeupdate: true, viewerTouch: TOUCH_STEPS['viewer-touch-map'], api: telemetryOf(api, routeFrames()) }),
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },
@@ -792,12 +806,13 @@ async function api(ctx, base, method, p, data) {
   return body;
 }
 
-function contextOptions(size, ui) {
+function contextOptions(size, ui, touch) {
   return {
     viewport: { width: size.width, height: size.height },
     deviceScaleFactor: 1,
     isMobile: size.mobile,
-    hasTouch: size.mobile,
+    // (a page with touch steps has a touch screen at both sizes)
+    hasTouch: size.mobile || !!touch,
     ignoreHTTPSErrors: true,
     // Daylight follows the device's light or dark setting; the native app's
     // default is its light look, so Daylight is compared in light. The other
@@ -876,7 +891,7 @@ async function answerAs(ctx, answers) {
 
 async function shoot(browser, base, ui, pageName, size, file, vehicle, fixture) {
   const spec = PAGES[pageName];
-  const ctx = await browser.newContext(contextOptions(size, ui));
+  const ctx = await browser.newContext(contextOptions(size, ui, spec.touch));
   const errors = [];
   try {
     if (spec.signedIn) await signIn(ctx, base);
@@ -923,6 +938,19 @@ async function shoot(browser, base, ui, pageName, size, file, vehicle, fixture) 
               document.dispatchEvent(new MouseEvent('mouseup', opts({ clientX: x + v[0], clientY: y + v[1] })));
             }
           }, [kind, value]);
+        } else if (kind === 'touch-drag') {
+          // (one finger from the element's centre by [dx, dy] in two moves: studioTouch.js's touchstart,
+          // touchmove and touchend listeners on the frame's document)
+          await studio.locator(sel).first().evaluate((el, [dx, dy]) => {
+            const r = el.getBoundingClientRect();
+            const x = r.left + r.width / 2, y = r.top + r.height / 2;
+            const at = (px, py) => new Touch({ identifier: 1, target: el, clientX: px, clientY: py, screenX: px, screenY: py, pageX: px, pageY: py });
+            const send = (type, t, down) => el.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: down ? [t] : [], targetTouches: down ? [t] : [], changedTouches: [t] }));
+            send('touchstart', at(x, y), true);
+            send('touchmove', at(x + dx / 2, y + dy / 2), true);
+            send('touchmove', at(x + dx, y + dy), true);
+            send('touchend', at(x + dx, y + dy), false);
+          }, value);
         } else await studio.locator(sel).first().click({ force: true });
         await page.waitForTimeout(1500);
       }
