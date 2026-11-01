@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using SentrySix.Core;
@@ -318,7 +319,11 @@ namespace SentrySix.Ui.Builtin
         readonly ViewerFirstLoad firstLoad = new ViewerFirstLoad();
         readonly System.Threading.CancellationTokenSource life = new System.Threading.CancellationTokenSource();
         readonly StudioClipBrowser clips;
+        readonly StudioCameraGrid grid;
         readonly string renderOpen;
+        MediaRelay relay;
+        Task<Player> playerTask;
+        int openToken;
         bool? deleted;
         Player player;
         DayWish wish;
@@ -342,6 +347,13 @@ namespace SentrySix.Ui.Builtin
             root.Background = VideoBg;
             root.SetValue(TextElement.FontFamilyProperty, U.Inter);
             root.Children.Add(stage);
+            // #multiCamGrid in .video-container (hidden until a segment loads)
+            StudioTile.StillMode = still;
+            grid = new StudioCameraGrid(shell.Prefs, still);
+            grid.CollectionOpen = () => library != null && library.Active != null;
+            grid.Relayout += slots => { Player p = Player; if (p != null) p.Relayout(slots); };
+            grid.AfterSwap = () => grid.UpdateGlow(library != null ? library.Active : null, library);
+            stage.Children.Add(grid);
 
             // .drop-overlay > .drop-message: the folder symbol (48 px), the words, .drop-actions (empty: none)
             Path icon = new Path();
@@ -485,6 +497,9 @@ namespace SentrySix.Ui.Builtin
             if (all == null || !all.IsObject) all = JsonValue.Object();
             string saved = shell.Prefs != null ? shell.Prefs.Get(ClipsPanelMode.StorageKey, null) : null;
             clips.InitMode(all, saved);
+            grid.Settings(all, SaveSetting);
+            // (the settings modal's reads call updateEventCameraHighlight once they are in)
+            if (library != null && library.Active != null) grid.UpdateGlow(library.Active, library);
             JsonValue f = all["dateFormat"];
             dateFormat = f.Bool ? StudioFrames.JsString(f) : "ymd";
             if (library != null)
@@ -581,7 +596,10 @@ namespace SentrySix.Ui.Builtin
             };
             library.ClipsChanged = () => clips.Render(library);
             library.EventsRead = () => clips.Render(library);
-            library.Selected = c => clips.Highlight(library);
+            library.Selected = c => { clips.Highlight(library); OpenCollection(c); };
+            library.ProfileApplied = (profile, kind) => grid.ApplyProfile(profile);
+            library.EventShown = c => grid.UpdateGlow(c, library);
+            library.EventSeek = sec => { Player p = Player; if (p != null && library.Active != null) p.Seek(sec); };
             Scan = v => v.library.Open(v.Start.StartFolder);
             PickDay = d =>
             {
@@ -611,6 +629,121 @@ namespace SentrySix.Ui.Builtin
                 if (v.still && n.Expires) return;
                 v.Notify(n);
             }
+        }
+
+        /// <summary>The camera grid.</summary>
+        public StudioCameraGrid Grid { get { return grid; } }
+
+        /// <summary>This PC's remembered decode paths (DecodePaths.Save).</summary>
+        public const string DecodePathsKey = "sentrySix.playback.decodePaths";
+
+        /// <summary>
+        /// selectDayCollection's playback part: the HW4 / HW3 layout from the
+        /// footage, the event camera's glow, the first segment (15 s before
+        /// the event when event.json has its time, else the start) opened in
+        /// the player with the grid's slots. The render test mode shows a
+        /// still frame of a fixture clip in each camera that has a clip.
+        /// </summary>
+        void OpenCollection(DayCollection c)
+        {
+            if (c == null || disposed) return;
+            int token = ++openToken;
+            grid.AutoHardware(c.Groups);
+            grid.UpdateGlow(c, library);
+            List<PlaybackSegment> segs = c.Segments();
+            double fallback = Dashcam.Get(c.ProfileId ?? library.ProfileId).DefaultSegmentDurationSeconds;
+            double start = StartOffset(c);
+            SegmentPlan plan = new SegmentPlan(segs.Count, fallback);
+            int first;
+            double local;
+            plan.FirstLoad(start, out first, out local);
+            CollectionOpening(first);
+            if (segs.Count == 0) return;
+            if (still)
+            {
+                SegmentView view = SegmentPlan.PlanSegment(segs[first], true, grid.PlayerSlots, "front", "front");
+                BitmapSource frame = RenderFrame();
+                foreach (SegmentTarget t in view.Targets)
+                {
+                    if (t.File != null && frame != null) grid.Surface(t.Slot).ShowStill(frame);
+                    else grid.Surface(t.Slot).Clear();
+                }
+                grid.SegmentShown(view);
+                return;
+            }
+            Task<Player> make = playerTask ?? (playerTask = MakePlayer());
+            make.ContinueWith(t =>
+            {
+                if (t.Status != TaskStatus.RanToCompletion || t.Result == null || disposed || token != openToken) return;
+                Player p = t.Result;
+                p.SetLayout(grid.PlayerSlots);
+                p.Open(segs, fallback, start);
+            }, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        /// <summary>selectDayCollection's startOffsetSec: 15 s before the event (its event.json read already), else 0.</summary>
+        double StartOffset(DayCollection c)
+        {
+            JsonValue meta = null;
+            if (c.Groups != null) foreach (ClipGroup g in c.Groups) if (JsJson.Truthy(g.EventMeta)) { meta = g.EventMeta; break; }
+            if (meta == null && !string.IsNullOrEmpty(c.Tag) && !string.IsNullOrEmpty(c.EventId) && library.EventMetaByKey.Has(c.Tag + "/" + c.EventId))
+                meta = library.EventMetaByKey.Get(c.Tag + "/" + c.EventId);
+            JsonValue ts = JsJson.Get(meta, "timestamp");
+            if (!JsJson.Truthy(ts)) return 0;
+            double ev = JsDate.Parse(StudioFrames.JsString(ts), library.Zone);
+            double startMs = LibraryScan.KeyToEpochMs(c.Groups.Count > 0 ? c.Groups[0].TimestampKey : null, library.Zone) ?? 0;
+            double anchor = !double.IsNaN(ev) && !double.IsInfinity(ev) && startMs > 0 ? Math.Max(0, ev - startMs) : 0;
+            return Math.Max(0, anchor - 15000) / 1000;
+        }
+
+        static BitmapSource renderFrame;
+
+        /// <summary>Shell\RenderFrame.png beside the exe: the first frame of a capture.js fixture clip.</summary>
+        static BitmapSource RenderFrame()
+        {
+            if (renderFrame != null) return renderFrame;
+            try
+            {
+                string f = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Shell", "RenderFrame.png");
+                if (!System.IO.File.Exists(f)) return null;
+                BitmapImage b = new BitmapImage();
+                b.BeginInit();
+                b.CacheOption = BitmapCacheOption.OnLoad;
+                b.UriSource = new Uri(f);
+                b.EndInit();
+                b.Freeze();
+                renderFrame = b;
+            }
+            catch (Exception) { }
+            return renderFrame;
+        }
+
+        /// <summary>
+        /// The player, once: the decode paths this PC remembers (else the
+        /// probe, on a background thread, remembered after), the loopback
+        /// relay to /api/media, the telemetry cache; each slot's picture
+        /// attached. None without the real server's API or ffmpeg.
+        /// </summary>
+        async Task<Player> MakePlayer()
+        {
+            Api real = api as Api;
+            string ff = FfmpegTools.Ffmpeg, fp = FfmpegTools.Ffprobe;
+            if (real == null || ff == null) return null;
+            IPrefs prefs = shell.Prefs;
+            DecodePaths paths = DecodePaths.Load(prefs != null ? prefs.Get(DecodePathsKey, null) : null);
+            if (paths == null)
+            {
+                try { paths = await Task.Run(() => DecodePaths.Probe(ff, System.IO.Path.GetTempPath(), null)); }
+                catch (Exception) { paths = null; }
+                if (paths != null && prefs != null) prefs.Set(DecodePathsKey, paths.Save());
+            }
+            if (disposed) return null;
+            relay = new MediaRelay(real);
+            Player p = new Player(relay, ff, fp, paths, new TelemetryCache(real));
+            foreach (string slot in GridGeometry.Slots) p.Attach(slot, grid.Surface(slot));
+            p.SegmentOpened += i => grid.SegmentShown(p.View);
+            Player = p;
+            return p;
         }
 
         /// <summary>The clip library (null without a start folder).</summary>
@@ -892,6 +1025,7 @@ namespace SentrySix.Ui.Builtin
             foreach (DispatcherTimer t in timers) t.Stop();
             timers.Clear();
             if (Player != null) { try { Player.Dispose(); } catch (Exception) { } Player = null; }
+            if (relay != null) { try { relay.Dispose(); } catch (Exception) { } relay = null; }
         }
     }
 }

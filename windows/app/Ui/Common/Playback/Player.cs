@@ -144,6 +144,21 @@ namespace SentrySix.Ui.Playback
             slots = layout == null ? new List<LayoutSlot>() : layout.ToList();
         }
 
+        /// <summary>
+        /// The grid's slots changed (the HW4 / HW3 switch, a camera swap, a
+        /// reset order): the playing segment loads again with them at the same
+        /// place, playing on when it played (setMultiLayout's and the drop's
+        /// loadNativeSegment).
+        /// </summary>
+        public void Relayout(IEnumerable<LayoutSlot> layout)
+        {
+            SetLayout(layout);
+            if (current != null && segments.Count > 0) Seek(clock.Position);
+        }
+
+        /// <summary>What the playing segment shows (each slot's clip or none), or null before one has opened.</summary>
+        public SegmentView View { get { return current == null ? null : current.View; } }
+
         /// <summary>The picture for a slot ("main" for the single view).</summary>
         public void Attach(string slot, VideoSurface surface)
         {

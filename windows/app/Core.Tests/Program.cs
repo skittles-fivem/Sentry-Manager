@@ -40,6 +40,7 @@ namespace SentrySix.Core.Tests
             ViewerStatesTests.Register(Test);
             ViewerLibraryTests.Register(Test);
             ClipBrowserTests.Register(Test);
+            CameraGridTests.Register(Test);
             PlaybackTests.Register(Test, Test);
             ServerTests.Register(Test);
             int failed = 0, passed = 0;

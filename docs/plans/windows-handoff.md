@@ -890,3 +890,44 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   selected collection in the Player, the controls bar's left padding in
   the hidden / docked modes.
 
+
+### Phase 2: Viewer part 4, the six-camera grid and layouts (2026-11-01)
+
+- `Core/CameraGrid.cs`: `MultiSlot`, `MultiLayout`, `MultiLayouts`
+  (`Get`, `Resolve`: an unknown id is six_default, as setMultiLayout),
+  `TeslaHardware` (`Read`, `Normalize`, `LayoutId`, `Auto`: the mode to
+  switch to or null), `GridTracks`, `GridSizes`, `FreeBox`, `FreeLayout`,
+  `TileBox`, `FreeLayouts`, `GridGeometry` (`Grid`, `Dividers`, `Free`,
+  `Shown`), `GridLayoutState` (the resizer's state: `Apply`, divider and
+  free drags, the resets; stores through a callback), `CameraOrders`
+  (`Load`, `OrderKey`, `Effective`, `Drop`, `Reset`, `ToSetting`,
+  `TileLabel`), `CameraMirror`, `EventCameraGlow`, `JsJson` (with
+  `JsJson.Undefined` for a key set to undefined).
+- `Ui/Builtin/ViewerGrid.cs`: `StudioCameraGrid` (in `StudioViewer.Stage`;
+  `Settings`, `ApplyProfile`, `AutoHardware`, `SetLayout`, `SegmentShown`,
+  `UpdateGlow`, `ResetOrder` for the settings modal's Reset Camera Order,
+  `SetMirror` / `SetGlow` for its switches, `Focused` for the focus part,
+  `Hardware` for the controls bar, `Relayout` to the Player,
+  `DashboardSlot` for the compact dashboard), `StudioTile`,
+  `StudioHardwareToggle`.
+- `StudioViewer`: `Grid`, `OpenCollection` (library.Selected),
+  `MakePlayer` (once; null in the render mode or without ffmpeg),
+  `DecodePathsKey`; library.ProfileApplied / EventShown / EventSeek wired;
+  the relay is disposed with the Viewer. `Player.Relayout(slots)` and
+  `Player.View`; `VideoSurface.ShowStill(bitmap)`.
+- `Shell/RenderFrame.png`: frame 0 of a capture.js fixture clip
+  (createTeslaH264Fixture, 320x240 testsrc2); the render mode shows it in
+  every camera of the first segment that has a clip.
+- capture.js: GRID_SIZES / FREE_LAYOUTS, PAGES and VARIANTS viewer-hw3,
+  -sizes, -free, -swapped, -nomirror, -noglow; RenderFixture.json has the
+  same six variants (checked equal to a real `capture.js --fixture-only`
+  run here).
+- Not done here: the controls bar (it places `Grid.Hardware`, the play
+  button and the rest), focus mode and zoom / pan (set `Grid.Focused`,
+  `Player.SetFocus`), the compact dashboard in `Grid.DashboardSlot`'s tile,
+  the settings modal's Mirror Cameras / Glow switches and Reset Camera
+  Order. `ViewerPage.Complete` stays false, so the Viewer and Footage's
+  Play day / Play recording still open the browser.
+- To check on Windows: the dotnet build, the six new renders against the
+  web's, a real collection playing in the grid (the decode probe's first
+  run, the relay, swaps and the HW switch reloading the segment).

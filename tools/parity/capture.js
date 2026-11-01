@@ -49,6 +49,19 @@ const SERVER = path.join(REPO, 'server', 'index.js');
 const USER = 'admin';
 const PASSWORD = 'parity-fixture-pass';
 const INTERFACES = ['builtin', 'horizon', 'flux', 'aurora', 'daylight'];
+// The camera grid's saved sizes and free layout in viewer-sizes and
+// viewer-free (localStorage on the web, this PC's prefs natively).
+const GRID_SIZES = JSON.stringify({ six_default: { columns: [0.5, 0.25, 0.25], rows: [0.62, 0.38] } });
+const FREE_LAYOUTS = JSON.stringify({
+  six_default: {
+    boxes: {
+      tl: { x: 0, y: 0.6, w: 0.25, h: 0.4 }, tc: { x: 0.02, y: 0.02, w: 0.62, h: 0.56 }, tr: { x: 0.66, y: 0.02, w: 0.32, h: 0.3 },
+      bl: { x: 0.25, y: 0.6, w: 0.25, h: 0.4 }, bc: { x: 0.66, y: 0.34, w: 0.32, h: 0.3 }, br: { x: 0.5, y: 0.66, w: 0.3, h: 0.34 }
+    },
+    order: ['tl', 'bl', 'br', 'tr', 'bc', 'tc']
+  }
+});
+
 const PAGES = {
   login: { signedIn: false, path: '/login' },
   shell: { signedIn: true, path: '/' },
@@ -140,7 +153,14 @@ const PAGES = {
   'viewer-classic-hidden': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, storage: { 'teslareplay.ui.clipsMode': 'hidden' } },
   'viewer-vehicles': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
   'viewer-delete': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19'], ['click', '.clip-delete-btn']] },
-  'viewer-delete-final': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19'], ['click', '.clip-delete-btn'], ['click', '#confirmDeleteBtn']] }
+  'viewer-delete-final': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19'], ['click', '.clip-delete-btn'], ['click', '#confirmDeleteBtn']] },
+  // The six-camera grid (Viewer part 4)
+  'viewer-hw3': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
+  'viewer-sizes': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, storage: { 'sentrySix.playback.gridSizes': GRID_SIZES } },
+  'viewer-free': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, storage: { 'sentrySix.playback.freeLayouts': FREE_LAYOUTS } },
+  'viewer-swapped': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
+  'viewer-nomirror': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
+  'viewer-noglow': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19']] }
 };
 
 // the Footage page's first page of days, as it asks for it
@@ -241,6 +261,17 @@ const VARIANTS = {
   // (viewerOpen: the native render opens that dialog for the first item with a delete button)
   'viewer-delete': { route: 'viewer', state: { date: '2026-10-19' }, viewerOpen: 'delete' },
   'viewer-delete-final': { route: 'viewer', state: { date: '2026-10-19' }, viewerOpen: 'delete-final' },
+  // the grid: RecentClips without the pillar cameras (an HW3 car: two columns), saved sizes and free
+  // layout, a camera swap and Mirror Cameras off (Studio's settings), the Sentry day without its glow
+  'viewer-hw3': (api) => {
+    const key = Object.keys(api).find((k) => k.startsWith('POST /api/studio/readDir ') && k.endsWith('/RecentClips"}'));
+    return { route: 'viewer', api: key ? { [key]: api[key].filter((e) => !/-(left|right)_pillar\.mp4$/.test(e.name)) } : {} };
+  },
+  'viewer-sizes': { route: 'viewer', prefs: { 'sentrySix.playback.gridSizes': GRID_SIZES } },
+  'viewer-free': { route: 'viewer', prefs: { 'sentrySix.playback.freeLayouts': FREE_LAYOUTS } },
+  'viewer-swapped': (api) => ({ route: 'viewer', api: { 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], customCameraOrdersByProfile: { tesla: { tc: 'back', bc: 'front', tl: 'right_pillar', tr: 'left_pillar' } } } } }),
+  'viewer-nomirror': (api) => ({ route: 'viewer', api: { 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], mirrorCameras: false } } }),
+  'viewer-noglow': (api) => ({ route: 'viewer', state: { date: '2026-10-19' }, api: { 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], sentryCameraHighlight: false } } }),
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },

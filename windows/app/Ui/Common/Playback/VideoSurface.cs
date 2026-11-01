@@ -112,6 +112,15 @@ namespace SentrySix.Ui.Playback
             shownStream = stream;
         }
 
+        /// <summary>A still picture (the render test mode's frame of a fixture clip).</summary>
+        public void ShowStill(BitmapSource still)
+        {
+            image.Source = still;
+            bitmap = null;
+            shownIndex = -1;
+            shownStream = null;
+        }
+
         /// <summary>No picture (a camera without a clip in this segment).</summary>
         public void Clear()
         {

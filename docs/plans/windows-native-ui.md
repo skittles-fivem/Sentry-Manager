@@ -248,10 +248,11 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   footage-long) scroll the same element to the top as capture.js does on
   the web after its clicks (the open recording's card).
 - Phase 2 (built-in Viewer): in progress. The playback engine, the
-  telemetry, the clip library (scan and grouping, part 2) and the clip
-  browser (the clip list panel, part 3) are written; the rest of the
-  Viewer page (Studio's controls, the cameras on the Player, dashboard,
-  map, settings modal: `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
+  telemetry, the clip library (scan and grouping, part 2), the clip
+  browser (the clip list panel, part 3) and the six-camera grid on the
+  Player (part 4) are written; the rest of the Viewer page (Studio's
+  controls bar, dashboard, map, settings modal, export:
+  `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
   still opens in the browser (`ViewerPage.Complete` stays false until it
   is all there; then its browser fallback goes and Footage's Play day /
   Play recording land in it, which they already do through
@@ -408,6 +409,57 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   inside Studio's frame: `frame`; RenderFixture.json has GET
   /api/studio/settings and the variants, from a real capture.js fixture
   run).
+  Viewer part 4, the six-camera grid and its layouts (type-checked with
+  mcs, not yet built or rendered on Windows): `Core/CameraGrid.cs`
+  (`MultiLayouts`: multiLayouts.js's six_default, tesla_hw3 and
+  gm_surroundvision; `TeslaHardware`: getTeslaHardware / setTeslaHardware
+  / teslaLayoutId and autoTeslaHardware; `GridSizes`, `FreeLayouts` and
+  `GridLayoutState`: playbackLayout.js createGridResizer, the dividers'
+  shares per layout with their 12 % minimum and double-click reset, the
+  free layout's corner and move drags with their 8 % minimum, captured from
+  the grid on the first drag, a plain click changing nothing, double-click
+  on a corner back to the grid; `GridGeometry`: Chrome's layout of
+  .multi-cam-grid, padding and gap 10, fr tracks, the HW3 centre tiles not
+  shown; `CameraOrders`: cameraRearrange.js's saved orders per profile and
+  HW3 layout in Studio's customCameraOrdersByProfile (the legacy
+  customCameraOrder moved once), getEffectiveSlots, the drop's swap,
+  resetCameraOrder and updateTileLabels' words; `CameraMirror`:
+  applyMirrorTransforms; `EventCameraGlow`: updateEventCameraHighlight;
+  `JsJson`: JSON.parse / spread / JSON.stringify as JavaScript does them,
+  integer keys first and undefined left out) and `Ui/Builtin/ViewerGrid.cs`
+  (`StudioCameraGrid`: #multiCamGrid in the stage, hidden until a segment
+  loads; `StudioTile`: .multi-tile with its VideoSurface, .multi-label,
+  grips, the drag's outline and indicator, the glow (border pulse and one
+  glow), .empty-camera-slot, the front camera's tile unclipped as
+  :has(.dashboard-vis-compact) lets it overflow; `StudioHardwareToggle`:
+  #hardwareToggle for the controls bar). The Viewer (`StudioViewer`) now
+  makes the Player once (this PC's remembered decode paths, else the probe
+  on a background thread, remembered as sentrySix.playback.decodePaths;
+  the loopback relay; the telemetry cache; only with the real server's API
+  and ffmpeg), opens the selected collection in it (selectDayCollection's
+  autoTeslaHardware, glow, 15 s event lead and first segment, then
+  CollectionOpening), seeks on the library's EventSeek, applies the
+  profile's layout on ProfileApplied, the glow on EventShown, and loads the
+  segment again with the new slots on a swap, a reset or the HW switch
+  (`Player.Relayout`; `Player.View` is the playing segment's plan). The
+  grid's settings come from GET /api/studio/settings (mirrorCameras,
+  sentryCameraHighlight, savedCameraHighlight, the camera orders); its
+  sizes, free layouts and HW mode are this PC's prefs under the web's
+  localStorage keys. test/windowsNativeCameraGrid.test.js runs
+  multiLayouts.js, playbackLayout.js on a pretend grid (9 cases of
+  divider, free and layout steps, including stored text that is not JSON,
+  integer keys and invalid boxes), script.js autoTeslaHardware (9 cases),
+  cameraRearrange.js (7 cases of drops, resets and layout changes, with
+  partial and odd saved orders), applyMirrorTransforms (5 setting values)
+  and updateEventCameraHighlight (17 cases), and writes
+  Core.Tests/Fixtures/expected-camera-grid.json; Core.Tests
+  CameraGridTests (4 tests, passing under mono; each fails when the 12 %
+  minimum, the free z order, a camera index, undefined's omission or the
+  integer key order is changed). Render list: viewer-hw3, -sizes, -free,
+  -swapped, -nomirror, -noglow (the native render draws
+  Shell\RenderFrame.png, the first frame of a fixture clip, in each camera
+  that has a clip). The browser fallback stays until the controls bar,
+  dashboard, map and settings modal are drawn too.
 - Phases 3-7 (Encoder, Horizon, Flux, Aurora, Daylight): not started.
   Their pages open in the browser.
 
@@ -443,6 +495,21 @@ replaces the browser);
 a recording's "Download" reads the whole file before saving it; the
 Overview's log lines cannot be highlighted (each has "Copy line" on its
 right-click menu instead), so a live update never waits for a highlight.
+Viewer grid: the event camera's glow is a pulsing border colour and one
+glow drawn both ways from it (the web: three outer and two inset
+box-shadows); a tile's drag is the app's own (no HTML drag image, the
+indicator drawn in the grid, the pointer a hand rather than Chrome's grab);
+a saved camera order for a profile that is not an object is ignored (the
+web keeps an array's slot keys in memory without saving them, and its drop
+throws on text or a number); grid sizes or free layouts stored as JSON
+null are read as none (the web's script stops there); until the controls
+bar is drawn (the next part) the HW4 / HW3 switch is not on screen and the
+grid fills the stage. Kept from the web: GM footage gets the six-camera
+layout with Tesla's slots (the GM profile names a layout id,
+gmc_surroundvision, that MULTI_LAYOUTS does not have, so setMultiLayout
+falls back to six_default; worth fixing on the web side); the HW4 / HW3
+switch does not move the event camera's glow (setMultiLayout does not call
+updateEventCameraHighlight).
 Nodes: Trust this node? is Windows' own OK / Cancel box (titled Sentry
 Six Manager, not the browser's "<host> says"); an empty required field's
 "Please fill out this field." is drawn under the field, not as Chrome's

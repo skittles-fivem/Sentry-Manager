@@ -237,6 +237,26 @@ button's first and second dialog (the web clicks .clip-delete-btn and
 the variant's `viewerOpen`). After its clicks capture.js moves the
 pointer to the bottom right corner, so no hover is left in the picture;
 the hover preview (thumb.png and the filmstrip) is not rendered.
+The six-camera grid (part 4): every Viewer render with clips now shows
+#multiCamGrid behind the clip list (the open collection's first segment;
+the native render draws Shell\RenderFrame.png, the first frame of a
+capture.js fixture clip, in each camera that has a clip, where the web
+shows the playing clips: the pictures are the same test pattern, not the
+same frame), with the camera labels, the back and repeaters mirrored and
+viewer-sentry's / viewer-saved's event camera (front) glowing red /
+yellow (the native picture is the glow's first keyframe). viewer-hw3:
+RecentClips without the pillar cameras (the folder read answered without
+them), so autoTeslaHardware picks HW3: two columns, Front and Back over
+the repeaters. viewer-sizes: saved divider sizes (localStorage / prefs
+sentrySix.playback.gridSizes: columns 0.5, 0.25, 0.25, rows 0.62, 0.38).
+viewer-free: a saved free layout (sentrySix.playback.freeLayouts: every
+camera at its own place, Front on top). viewer-swapped: a custom camera
+order (GET /api/studio/settings customCameraOrdersByProfile: Front and
+Back swapped, the pillars swapped). viewer-nomirror: Mirror Cameras off
+(mirrorCameras false). viewer-noglow: the Sentry day with Sentry Camera
+Glow off (sentryCameraHighlight false). The controls bar (and the HW4 /
+HW3 switch in it) is the next part, so the grid fills the stage natively
+while the web's stands above its controls.
 
 - builtin overview
 - builtin overview-off
@@ -303,3 +323,9 @@ the hover preview (thumb.png and the filmstrip) is not rendered.
 - builtin viewer-vehicles
 - builtin viewer-delete
 - builtin viewer-delete-final
+- builtin viewer-hw3
+- builtin viewer-sizes
+- builtin viewer-free
+- builtin viewer-swapped
+- builtin viewer-nomirror
+- builtin viewer-noglow
