@@ -1028,6 +1028,7 @@ namespace SentrySix.Ui.Flux
                 ShellModel sm = ctx.Shell;
                 pc.Go = hash => { if (sm != null) sm.Navigate((hash ?? "").TrimStart('#').TrimStart('/')); };
                 FxKit.Still = pc.Still;
+                FxKit.Dense = ctx.Shell != null && ctx.Shell.Prefs != null && SentrySix.Core.Flux.FxSettings.StoredTruthy(ctx.Shell.Prefs.Get("flux.dense", null));
                 PackHost host = new PackHost(make, pc, FxKit.Loading, FxKit.LoadFailed);
                 // main.js: a picked vehicle mounts these again when the page has no onVehicle
                 foreach (string r in new[] { "footage", "policies", "jobs", "bin", "overview" }) host.RemountOnCar.Add(r);

@@ -27,6 +27,9 @@ namespace SentrySix.Ui.Flux
         /// <summary>pointer: coarse, as the phone captures have it.</summary>
         public static bool Coarse(double width) { return width <= 600; }
 
+        /// <summary>Settings > Appearance "Extra-dense tables in this browser" (the "flux.dense" pref, the web's dense class).</summary>
+        public static bool Dense;
+
         /// <summary>Animations stand still (render mode, Windows' setting, reduce effects).</summary>
         public static bool Still;
 
@@ -523,7 +526,8 @@ namespace SentrySix.Ui.Flux
         {
             Border td = new Border();
             td.Child = content;
-            td.Padding = coarse ? new Thickness(8) : Css.T(6, 8);
+            // .dense .dtable td (3px 6px) outranks the touch screen's 8px
+            td.Padding = Dense ? Css.T(3, 6) : coarse ? new Thickness(8) : Css.T(6, 8);
             td.BorderThickness = new Thickness(0, 0, 0, 1);
             td.SetResourceReference(Border.BorderBrushProperty, "line-soft");
             FrameworkElement fe = content as FrameworkElement;

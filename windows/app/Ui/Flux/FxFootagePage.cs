@@ -34,7 +34,7 @@ namespace SentrySix.Ui.Flux
     /// "bin" topics; another vehicle mounts the page again (main.js).
     /// </summary>
     [PackPage("flux", "footage")]
-    public sealed class FxFootagePage : IPackPage
+    public sealed class FxFootagePage : IPackPage, IPackCommands
     {
         FxFootage m;
         PackPageContext ctx;
@@ -1396,6 +1396,22 @@ namespace SentrySix.Ui.Flux
                 if (p != null) p.Children.Remove(drawerLayer);
                 drawerLayer = null;
             }
+        }
+
+        /// <summary>commands(): the page's own palette entries, then the first ten days.</summary>
+        public IList<PackCommand> Commands()
+        {
+            List<PackCommand> list = new List<PackCommand>();
+            if (m == null) return list;
+            string[] icons = { "check", "bin", "lock", "encoder" };
+            int n = 0;
+            foreach (string[] c in m.Commands())
+            {
+                string label = c[1];
+                list.Add(new PackCommand(c[0], label, n < icons.Length ? icons[n] : "footage", async () => { try { await m.Command(label); } catch (Exception) { } }));
+                n++;
+            }
+            return list;
         }
     }
 }
