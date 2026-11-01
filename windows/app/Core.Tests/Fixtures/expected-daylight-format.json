@@ -1,0 +1,1642 @@
+{
+ "about": "Written by test/windowsNativeDaylight.test.js from examples/ui-packs/daylight/web/dl/core.js and dl/state.js; checked by windows/app/Core.Tests (DaylightFormatTests.cs, SentrySix.Core.Daylight.Dl).",
+ "now": 1793459402000,
+ "cases": [
+  {
+   "fn": "bytes",
+   "args": [
+    0
+   ],
+   "out": "0 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1
+   ],
+   "out": "1 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    512
+   ],
+   "out": "512 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1023
+   ],
+   "out": "1023 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1024
+   ],
+   "out": "1 KB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1536
+   ],
+   "out": "1.5 KB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    102400
+   ],
+   "out": "100 KB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    104857600
+   ],
+   "out": "100 MB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    123456789
+   ],
+   "out": "118 MB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1099511627776
+   ],
+   "out": "1 TB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    1200000000000000000
+   ],
+   "out": "1066 PB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    -2048
+   ],
+   "out": "-2 KB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    "2048"
+   ],
+   "out": "2 KB"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    ""
+   ],
+   "out": "0 B"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    null
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    "x"
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "bytes",
+   "args": [
+    true
+   ],
+   "out": "1 B"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    0,
+    "job"
+   ],
+   "out": "0 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    1,
+    "job"
+   ],
+   "out": "1 job"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    2,
+    "job"
+   ],
+   "out": "2 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    1204,
+    "job"
+   ],
+   "out": "1,204 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    1234567.8915,
+    "job"
+   ],
+   "out": "1,234,567.892 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    null,
+    "job"
+   ],
+   "out": "0 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    "1",
+    "job"
+   ],
+   "out": "1 job"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    "7",
+    "job"
+   ],
+   "out": "7 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    1.5,
+    "job"
+   ],
+   "out": "1.5 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    true,
+    "job"
+   ],
+   "out": "1 job"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    -1,
+    "job"
+   ],
+   "out": "-1 jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    "x",
+    "job"
+   ],
+   "out": "NaN jobs"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    1,
+    "entry",
+    "entries"
+   ],
+   "out": "1 entry"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    7,
+    "entry",
+    "entries"
+   ],
+   "out": "7 entries"
+  },
+  {
+   "fn": "plural",
+   "args": [
+    0,
+    "finished job"
+   ],
+   "out": "0 finished jobs"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    0
+   ],
+   "out": "0%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    42
+   ],
+   "out": "42%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    42.4
+   ],
+   "out": "42%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    42.5
+   ],
+   "out": "43%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    99.95
+   ],
+   "out": "100%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    -0.4
+   ],
+   "out": "0%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    -2.5
+   ],
+   "out": "-2%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    null
+   ],
+   "out": "0%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    "42.5"
+   ],
+   "out": "43%"
+  },
+  {
+   "fn": "pct",
+   "args": [
+    "x"
+   ],
+   "out": "NaN%"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    0
+   ],
+   "out": "never"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    null
+   ],
+   "out": "never"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459402000
+   ],
+   "out": "just now"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459398000
+   ],
+   "out": "just now"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459358000
+   ],
+   "out": "just now"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459357000
+   ],
+   "out": "1 min ago"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459313000
+   ],
+   "out": "1 min ago"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459311000
+   ],
+   "out": "2 min ago"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793455862000
+   ],
+   "out": "59 min ago"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793452202000
+   ],
+   "out": "2 h ago"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793365802000
+   ],
+   "out": "1 d ago"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1792941002000
+   ],
+   "out": "6 d ago"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1792854602000
+   ],
+   "out": "10/24/2026"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1792019402000
+   ],
+   "out": "10/14/2026"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1793459462000
+   ],
+   "out": "just now"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    1
+   ],
+   "out": "1/1/1970"
+  },
+  {
+   "fn": "ago",
+   "args": [
+    true
+   ],
+   "out": "1/1/1970"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01 06:07:45",
+    true,
+    false
+   ],
+   "out": "6:07:45 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01 06:07:45",
+    false,
+    false
+   ],
+   "out": "6:07 AM"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "2024-05-01 06:07:45",
+    false
+   ],
+   "out": "6:07 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01_06-07-45",
+    true,
+    false
+   ],
+   "out": "6:07:45 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01_06-07-45",
+    false,
+    false
+   ],
+   "out": "6:07 AM"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "2024-05-01_06-07-45",
+    false
+   ],
+   "out": "6:07 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2026-10-25T23:59:01",
+    true,
+    false
+   ],
+   "out": "11:59:01 PM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2026-10-25T23:59:01",
+    false,
+    false
+   ],
+   "out": "11:59 PM"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "2026-10-25T23:59:01",
+    false
+   ],
+   "out": "11:59 PM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "06:07:45",
+    true,
+    false
+   ],
+   "out": "6:07:45 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "06:07:45",
+    false,
+    false
+   ],
+   "out": "6:07 AM"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "06:07:45",
+    false
+   ],
+   "out": "6:07 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "12:30",
+    true,
+    false
+   ],
+   "out": "12:30 PM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "12:30",
+    false,
+    false
+   ],
+   "out": "12:30 PM"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "12:30",
+    false
+   ],
+   "out": "12:30 PM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "0:05",
+    true,
+    false
+   ],
+   "out": "12:05 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "0:05",
+    false,
+    false
+   ],
+   "out": "12:05 AM"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "0:05",
+    false
+   ],
+   "out": "12:05 AM"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "nothing",
+    true,
+    false
+   ],
+   "out": "nothing"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "nothing",
+    false,
+    false
+   ],
+   "out": "nothing"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "nothing",
+    false
+   ],
+   "out": "nothing"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "",
+    true,
+    false
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "",
+    false,
+    false
+   ],
+   "out": ""
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "",
+    false
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    null,
+    true,
+    false
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    null,
+    false,
+    false
+   ],
+   "out": ""
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    null,
+    false
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01 06:07:45",
+    true,
+    true
+   ],
+   "out": "06:07:45"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01 06:07:45",
+    false,
+    true
+   ],
+   "out": "06:07"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "2024-05-01 06:07:45",
+    true
+   ],
+   "out": "06:07"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01_06-07-45",
+    true,
+    true
+   ],
+   "out": "06:07:45"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2024-05-01_06-07-45",
+    false,
+    true
+   ],
+   "out": "06:07"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "2024-05-01_06-07-45",
+    true
+   ],
+   "out": "06:07"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2026-10-25T23:59:01",
+    true,
+    true
+   ],
+   "out": "23:59:01"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "2026-10-25T23:59:01",
+    false,
+    true
+   ],
+   "out": "23:59"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "2026-10-25T23:59:01",
+    true
+   ],
+   "out": "23:59"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "06:07:45",
+    true,
+    true
+   ],
+   "out": "06:07:45"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "06:07:45",
+    false,
+    true
+   ],
+   "out": "06:07"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "06:07:45",
+    true
+   ],
+   "out": "06:07"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "12:30",
+    true,
+    true
+   ],
+   "out": "12:30"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "12:30",
+    false,
+    true
+   ],
+   "out": "12:30"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "12:30",
+    true
+   ],
+   "out": "12:30"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "0:05",
+    true,
+    true
+   ],
+   "out": "00:05"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "0:05",
+    false,
+    true
+   ],
+   "out": "00:05"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "0:05",
+    true
+   ],
+   "out": "00:05"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "nothing",
+    true,
+    true
+   ],
+   "out": "nothing"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "nothing",
+    false,
+    true
+   ],
+   "out": "nothing"
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "nothing",
+    true
+   ],
+   "out": "nothing"
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "",
+    true,
+    true
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    "",
+    false,
+    true
+   ],
+   "out": ""
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    "",
+    true
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    null,
+    true,
+    true
+   ],
+   "out": ""
+  },
+  {
+   "fn": "wall",
+   "args": [
+    null,
+    false,
+    true
+   ],
+   "out": ""
+  },
+  {
+   "fn": "niceTime",
+   "args": [
+    null,
+    true
+   ],
+   "out": ""
+  },
+  {
+   "fn": "when",
+   "args": [
+    0,
+    false
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "when",
+   "args": [
+    null,
+    false
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1793459402000,
+    false
+   ],
+   "out": "Oct 31, 3:10 PM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1793365802000,
+    false
+   ],
+   "out": "Oct 30, 1:10 PM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1767312309000,
+    false
+   ],
+   "out": "Jan 2, 12:05 AM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1783166400000,
+    false
+   ],
+   "out": "Jul 4, 12:00 PM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1798761599000,
+    false
+   ],
+   "out": "Dec 31, 11:59 PM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1793449800000,
+    false
+   ],
+   "out": "Oct 31, 12:30 PM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1,
+    false
+   ],
+   "out": "Jan 1, 12:00 AM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    true,
+    false
+   ],
+   "out": "Jan 1, 12:00 AM"
+  },
+  {
+   "fn": "when",
+   "args": [
+    0,
+    true
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "when",
+   "args": [
+    null,
+    true
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1793459402000,
+    true
+   ],
+   "out": "Oct 31, 15:10"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1793365802000,
+    true
+   ],
+   "out": "Oct 30, 13:10"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1767312309000,
+    true
+   ],
+   "out": "Jan 2, 00:05"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1783166400000,
+    true
+   ],
+   "out": "Jul 4, 12:00"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1798761599000,
+    true
+   ],
+   "out": "Dec 31, 23:59"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1793449800000,
+    true
+   ],
+   "out": "Oct 31, 12:30"
+  },
+  {
+   "fn": "when",
+   "args": [
+    1,
+    true
+   ],
+   "out": "Jan 1, 00:00"
+  },
+  {
+   "fn": "when",
+   "args": [
+    true,
+    true
+   ],
+   "out": "Jan 1, 00:00"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    0
+   ],
+   "out": "0 s"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    499
+   ],
+   "out": "0 s"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    500
+   ],
+   "out": "1 s"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    42400
+   ],
+   "out": "42 s"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    59499
+   ],
+   "out": "59 s"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    59500
+   ],
+   "out": "1 min"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    60000
+   ],
+   "out": "1 min"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    61000
+   ],
+   "out": "1 min 1 s"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    754000
+   ],
+   "out": "12 min 34 s"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    3600000
+   ],
+   "out": "1 h 0 min"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    3725000
+   ],
+   "out": "1 h 2 min"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    86400000
+   ],
+   "out": "24 h 0 min"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    172740000
+   ],
+   "out": "47 h 59 min"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    172800000
+   ],
+   "out": "2 d 0 h"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    183661000
+   ],
+   "out": "2 d 3 h"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    -5
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    null
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "duration",
+   "args": [
+    "5000"
+   ],
+   "out": "—"
+  },
+  {
+   "fn": "clockOf",
+   "args": [
+    0
+   ],
+   "out": "0:00"
+  },
+  {
+   "fn": "clockOf",
+   "args": [
+    999
+   ],
+   "out": "0:00"
+  },
+  {
+   "fn": "clockOf",
+   "args": [
+    5000
+   ],
+   "out": "0:05"
+  },
+  {
+   "fn": "clockOf",
+   "args": [
+    65250
+   ],
+   "out": "1:05"
+  },
+  {
+   "fn": "clockOf",
+   "args": [
+    600000
+   ],
+   "out": "10:00"
+  },
+  {
+   "fn": "clockOf",
+   "args": [
+    3601000
+   ],
+   "out": "60:01"
+  },
+  {
+   "fn": "clockOf",
+   "args": [
+    -1000
+   ],
+   "out": "0:00"
+  },
+  {
+   "fn": "clockOf",
+   "args": [
+    null
+   ],
+   "out": "0:00"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2026-10-31"
+   ],
+   "out": "Saturday, October 31"
+  },
+  {
+   "fn": "dayShort",
+   "args": [
+    "2026-10-31"
+   ],
+   "out": "Sat, Oct 31"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2026-01-01"
+   ],
+   "out": "Thursday, January 1"
+  },
+  {
+   "fn": "dayShort",
+   "args": [
+    "2026-01-01"
+   ],
+   "out": "Thu, Jan 1"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2024-02-29"
+   ],
+   "out": "Thursday, February 29"
+  },
+  {
+   "fn": "dayShort",
+   "args": [
+    "2024-02-29"
+   ],
+   "out": "Thu, Feb 29"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2026-02-30"
+   ],
+   "out": "Monday, March 2"
+  },
+  {
+   "fn": "dayShort",
+   "args": [
+    "2026-02-30"
+   ],
+   "out": "Mon, Mar 2"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2026-04-31"
+   ],
+   "out": "Friday, May 1"
+  },
+  {
+   "fn": "dayShort",
+   "args": [
+    "2026-04-31"
+   ],
+   "out": "Fri, May 1"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2026-02-00"
+   ],
+   "out": "Invalid Date"
+  },
+  {
+   "fn": "dayShort",
+   "args": [
+    "2026-02-00"
+   ],
+   "out": "Invalid Date"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2026-13-01"
+   ],
+   "out": "Invalid Date"
+  },
+  {
+   "fn": "dayShort",
+   "args": [
+    "2026-13-01"
+   ],
+   "out": "Invalid Date"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "2026-1-5"
+   ],
+   "out": "Invalid Date"
+  },
+  {
+   "fn": "dayShort",
+   "args": [
+    "2026-1-5"
+   ],
+   "out": "Invalid Date"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    "not a day"
+   ],
+   "out": "Invalid Date"
+  },
+  {
+   "fn": "dayShort",
+   "args": [
+    "not a day"
+   ],
+   "out": "Invalid Date"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    ""
+   ],
+   "out": "Invalid Date"
+  },
+  {
+   "fn": "dayShort",
+   "args": [
+    ""
+   ],
+   "out": "Invalid Date"
+  },
+  {
+   "fn": "dayTitle",
+   "args": [
+    null
+   ],
+   "out": "Invalid Date"
+  },
+  {
+   "fn": "dayShort",
+   "args": [
+    null
+   ],
+   "out": "Invalid Date"
+  },
+  {
+   "fn": "hhmm",
+   "args": [
+    "2026-10-25 08:10:02"
+   ],
+   "out": "08:10"
+  },
+  {
+   "fn": "hhmm",
+   "args": [
+    "2026-10-25"
+   ],
+   "out": ""
+  },
+  {
+   "fn": "hhmm",
+   "args": [
+    "2026-10-25 8:1"
+   ],
+   "out": "8:1"
+  },
+  {
+   "fn": "hhmm",
+   "args": [
+    ""
+   ],
+   "out": ""
+  },
+  {
+   "fn": "hhmm",
+   "args": [
+    null
+   ],
+   "out": ""
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    "low_space"
+   ],
+   "out": "Low space"
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    "share_down_now"
+   ],
+   "out": "Share down now"
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    ""
+   ],
+   "out": ""
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    null
+   ],
+   "out": ""
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    "x"
+   ],
+   "out": "X"
+  },
+  {
+   "fn": "humanize",
+   "args": [
+    "9_lives"
+   ],
+   "out": "9 lives"
+  },
+  {
+   "fn": "toldHow",
+   "args": [
+    {
+     "how": "Run update.sh"
+    }
+   ],
+   "out": "Run update.sh."
+  },
+  {
+   "fn": "toldHow",
+   "args": [
+    {
+     "how": "  Pull the image!  "
+    }
+   ],
+   "out": "Pull the image!"
+  },
+  {
+   "fn": "toldHow",
+   "args": [
+    {
+     "how": "Done?"
+    }
+   ],
+   "out": "Done?"
+  },
+  {
+   "fn": "toldHow",
+   "args": [
+    {
+     "how": ""
+    }
+   ],
+   "out": ""
+  },
+  {
+   "fn": "toldHow",
+   "args": [
+    {
+     "how": 42
+    }
+   ],
+   "out": ""
+  },
+  {
+   "fn": "toldHow",
+   "args": [
+    {}
+   ],
+   "out": ""
+  },
+  {
+   "fn": "toldHow",
+   "args": [
+    null
+   ],
+   "out": ""
+  },
+  {
+   "fn": "shareHealth",
+   "args": [
+    null
+   ],
+   "out": "grey | Not connected yet | false | "
+  },
+  {
+   "fn": "shareHealth",
+   "args": [
+    {}
+   ],
+   "out": "grey | Not connected yet | false | "
+  },
+  {
+   "fn": "shareHealth",
+   "args": [
+    {
+     "share": null
+    }
+   ],
+   "out": "grey | Not connected yet | false | "
+  },
+  {
+   "fn": "shareHealth",
+   "args": [
+    {
+     "share": {
+      "healthy": false
+     }
+    }
+   ],
+   "out": "bad | Can’t reach the footage | false | "
+  },
+  {
+   "fn": "shareHealth",
+   "args": [
+    {
+     "share": {
+      "healthy": false,
+      "lastError": "EACCES"
+     }
+    }
+   ],
+   "out": "bad | Can’t reach the footage | false | EACCES"
+  },
+  {
+   "fn": "shareHealth",
+   "args": [
+    {
+     "share": {
+      "healthy": false,
+      "hint": "Check the password"
+     }
+    }
+   ],
+   "out": "bad | Can’t reach the footage | false | Check the password"
+  },
+  {
+   "fn": "shareHealth",
+   "args": [
+    {
+     "share": {
+      "healthy": true,
+      "writable": false
+     }
+    }
+   ],
+   "out": "warn | Read-only: we can look but not tidy up | true | "
+  },
+  {
+   "fn": "shareHealth",
+   "args": [
+    {
+     "share": {
+      "healthy": true,
+      "writable": false,
+      "lastError": "read-only"
+     }
+    }
+   ],
+   "out": "warn | Read-only: we can look but not tidy up | true | read-only"
+  },
+  {
+   "fn": "shareHealth",
+   "args": [
+    {
+     "share": {
+      "healthy": true,
+      "writable": true
+     }
+    }
+   ],
+   "out": "good | Connected | true | "
+  },
+  {
+   "fn": "shareHealth",
+   "args": [
+    {
+     "share": {
+      "healthy": true
+     }
+    }
+   ],
+   "out": "good | Connected | true | "
+  }
+ ]
+}
