@@ -294,16 +294,28 @@ namespace SentrySix.Core
         /// <summary>ffprobe of a clip (through the relay): duration, rate, codec, size; a failed probe has NaN duration.</summary>
         public static ProbeResult ProbeClip(string ffprobe, string url, int timeoutMs)
         {
+            string error;
+            return ProbeClip(ffprobe, url, timeoutMs, out error);
+        }
+
+        /// <summary>As above, with what went wrong (ffprobe's exit code and errors, or its output when it could not be read).</summary>
+        public static ProbeResult ProbeClip(string ffprobe, string url, int timeoutMs, out string error)
+        {
             string o, e;
+            error = null;
             try
             {
-                if (Run(ffprobe, FfmpegArgs.Probe(url), timeoutMs, out o, out e) != 0) return new ProbeResult();
+                int rc = Run(ffprobe, FfmpegArgs.Probe(url), timeoutMs, out o, out e);
+                if (rc != 0) { error = "ffprobe exit code " + rc + ": " + (e ?? "").Trim(); return new ProbeResult(); }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                error = ex.Message;
                 return new ProbeResult();
             }
-            return FfmpegArgs.ParseProbe(o);
+            ProbeResult p = FfmpegArgs.ParseProbe(o);
+            if (p.Codec == null) error = "ffprobe said: " + (o ?? "").Trim() + " / " + (e ?? "").Trim();
+            return p;
         }
 
         /// <summary>Runs a tool to its end: exit code, standard output and error (killed past the limit: -1).</summary>

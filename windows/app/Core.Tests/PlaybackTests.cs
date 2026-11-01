@@ -524,8 +524,9 @@ namespace SentrySix.Core.Tests
                         foreach (string clip in made)
                         {
                             string curl = relay.UrlFor(clip);
-                            ProbeResult p = FfmpegTools.ProbeClip(ffprobe, curl, 30000);
-                            Assert.Equal(codecOf[clip], FfmpegArgs.Family(p.Codec), "codec of " + Path.GetFileName(clip));
+                            string why;
+                            ProbeResult p = FfmpegTools.ProbeClip(ffprobe, curl, 30000, out why);
+                            Assert.Equal(codecOf[clip], FfmpegArgs.Family(p.Codec), "codec of " + Path.GetFileName(clip) + (why != null ? " (" + why + ")" : ""));
                             Near(2, p.Duration, "duration of " + Path.GetFileName(clip), 0.1);
                             Near(36, p.Fps, "rate of " + Path.GetFileName(clip), 1e-6);
                             var tried = new List<DecodePath> { DecodePath.Cpu };
