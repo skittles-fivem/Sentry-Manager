@@ -17743,6 +17743,40 @@
      "sentryCameraHighlight": false
     }
    }
+  },
+  "viewer-focus": {
+   "route": "viewer",
+   "state": {
+    "date": "2026-10-19"
+   },
+   "viewerFocus": [
+    [
+     "tile-click",
+     "tc"
+    ]
+   ]
+  },
+  "viewer-zoom": {
+   "route": "viewer",
+   "viewerFocus": [
+    [
+     "tile-click",
+     "bc"
+    ],
+    [
+     "tile-wheel",
+     "bc",
+     -4
+    ],
+    [
+     "tile-pan",
+     "bc",
+     [
+      -150,
+      -80
+     ]
+    ]
+   ]
   }
  },
  "prefs": {}

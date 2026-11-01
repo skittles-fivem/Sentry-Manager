@@ -931,3 +931,40 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
 - To check on Windows: the dotnet build, the six new renders against the
   web's, a real collection playing in the grid (the decode probe's first
   run, the relay, swaps and the HW switch reloading the segment).
+
+
+### Phase 2: Viewer part 5, camera focus, zoom and pan (2026-11-01)
+
+- `Core/CameraFocus.cs`: `CameraFocus` (Click, Toggle, Clear, Escape,
+  Reset, Wheel, Down, Move, Up, DoubleClick, WasPanning, IndicatorFading,
+  Transform; TileWidth / TileHeight are the focused tile's size for the
+  pan's bounds; times are epoch milliseconds as Date.now()).
+- `Ui/Builtin/ViewerGrid.cs`: `StudioCameraGrid` now owns a CameraFocus
+  (`Focused`, `FocusSlot`, `FocusState`, `FocusChanged`, `ClearFocus`,
+  `Escape`, `Replay` for the render test mode); its pointer handlers are
+  added with handledEventsToo (the tiles' swap and grip handlers mark
+  their events handled), a free layout grip is left alone, a swap's drag
+  makes no click. `HideGrid` clears the focus. The grid clips to its
+  bounds and has a transparent background (the web's grid box takes the
+  pointer between tiles). `StudioTile`: the label takes the pointer,
+  `IsLabel`, `IsGrip`, `ShowFocus`, `Indicator`, the glow drawn by
+  `PaintGlow` (suppressed under focus).
+- `VideoSurface`: `SetView(zoom, panX, panY)` replaces the old Zoom setter
+  and Pan (nothing used them): the pan in the picture's pixels, the
+  picture not clipped while zoomed and not hit-testable.
+- `StudioViewer`: `FocusChanged` -> `Player.SetFocus` (also once the
+  player is made), Escape through the window's KeyDown (handledEventsToo,
+  only while the Viewer is on screen, with a collection open), the render
+  variant's `viewerFocus` replayed after the still frames are shown.
+- capture.js: FOCUS_STEPS / ZOOM_STEPS, frame kinds tile-click /
+  tile-wheel / tile-pan (dispatched in the frame on the tile and the
+  document), PAGES and VARIANTS viewer-focus and viewer-zoom;
+  RenderFixture.json got the two variants (the rest unchanged; a
+  `--fixture-only` run here writes them the same).
+- Not done here: the controls bar, dashboard, map, settings modal and
+  export, so `ViewerPage.Complete` stays false and the Viewer and
+  Footage's Play day / Play recording still open the browser.
+- To check on Windows: the dotnet build, viewer-focus and viewer-zoom
+  against the web's, a real focus (the decoder restarting at the source
+  size), wheel, drag and double-click by hand, Escape with the keyboard
+  focus elsewhere in the window.

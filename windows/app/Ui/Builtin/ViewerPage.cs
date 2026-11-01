@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
@@ -59,7 +60,8 @@ namespace SentrySix.Ui.Builtin
         {
             // (at once: the page that was there is closed after this one has the Viewer)
             string open = fixture != null ? fixture["viewerOpen"].Str : null;
-            slot.Show(shell, this, start => new StudioViewer(shell, api, start, still, open));
+            JsonValue focus = fixture != null && fixture["viewerFocus"].IsArray ? fixture["viewerFocus"] : null;
+            slot.Show(shell, this, start => new StudioViewer(shell, api, start, still, open, focus));
             slot.Place(wrap);
             return Task.FromResult<FrameworkElement>(wrap);
         }
@@ -321,6 +323,7 @@ namespace SentrySix.Ui.Builtin
         readonly StudioClipBrowser clips;
         readonly StudioCameraGrid grid;
         readonly string renderOpen;
+        readonly JsonValue renderFocus;
         MediaRelay relay;
         Task<Player> playerTask;
         int openToken;
@@ -337,7 +340,14 @@ namespace SentrySix.Ui.Builtin
 
         /// <param name="renderOpen">The render test mode: "delete" or "delete-final" opens that dialog for the first item that has a delete button.</param>
         public StudioViewer(ShellModel shell, IJsonApi api, ViewerStart start, bool still, string renderOpen)
+            : this(shell, api, start, still, renderOpen, null)
         {
+        }
+
+        /// <param name="renderFocus">The render test mode: the focus, wheel and pan steps capture.js takes in Studio's frame (StudioCameraGrid.Replay), or null.</param>
+        public StudioViewer(ShellModel shell, IJsonApi api, ViewerStart start, bool still, string renderOpen, JsonValue renderFocus)
+        {
+            this.renderFocus = renderFocus;
             this.shell = shell;
             this.api = api;
             this.still = still;
@@ -353,7 +363,27 @@ namespace SentrySix.Ui.Builtin
             grid.CollectionOpen = () => library != null && library.Active != null;
             grid.Relayout += slots => { Player p = Player; if (p != null) p.Relayout(slots); };
             grid.AfterSwap = () => grid.UpdateGlow(library != null ? library.Active : null, library);
+            // a focused camera is decoded at its source size (the others wait under it)
+            grid.FocusChanged += focusSlot => { Player p = Player; if (p != null) p.SetFocus(focusSlot); };
             stage.Children.Add(grid);
+            // Escape (script.js's keydown on the document): the focus cleared while clips or a collection are open
+            KeyEventHandler escape = (s, e) =>
+            {
+                if (e.Key != Key.Escape || !root.IsVisible) return;
+                if (grid.Escape(library != null && library.Active != null)) e.Handled = true;
+            };
+            Window keys = null;
+            root.Loaded += delegate
+            {
+                if (keys != null) return;
+                keys = Window.GetWindow(root);
+                if (keys != null) keys.AddHandler(Keyboard.KeyDownEvent, escape, true);
+            };
+            root.Unloaded += delegate
+            {
+                if (keys != null) keys.RemoveHandler(Keyboard.KeyDownEvent, escape);
+                keys = null;
+            };
 
             // .drop-overlay > .drop-message: the folder symbol (48 px), the words, .drop-actions (empty: none)
             Path icon = new Path();
@@ -669,6 +699,7 @@ namespace SentrySix.Ui.Builtin
                     else grid.Surface(t.Slot).Clear();
                 }
                 grid.SegmentShown(view);
+                if (renderFocus != null) grid.Replay(renderFocus);
                 return;
             }
             Task<Player> make = playerTask ?? (playerTask = MakePlayer());
@@ -742,6 +773,7 @@ namespace SentrySix.Ui.Builtin
             Player p = new Player(relay, ff, fp, paths, new TelemetryCache(real));
             foreach (string slot in GridGeometry.Slots) p.Attach(slot, grid.Surface(slot));
             p.SegmentOpened += i => grid.SegmentShown(p.View);
+            if (grid.FocusSlot != null) p.SetFocus(grid.FocusSlot);
             Player = p;
             return p;
         }

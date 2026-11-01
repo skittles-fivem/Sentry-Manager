@@ -1,0 +1,2955 @@
+{
+ "about": "Written by test/windowsNativeCameraFocus.test.js from Studio's multiCamFocus.js, zoomPan.js and script.js's grid click and Escape handlers; checked by windows/app/Core.Tests (CameraFocusTests.cs, SentrySix.Core.CameraFocus).",
+ "cases": [
+  {
+   "name": "click to focus, debounce, Escape, hide",
+   "tileW": 1180,
+   "tileH": 680,
+   "steps": [
+    {
+     "at": 1000,
+     "op": "click",
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1100,
+     "op": "click",
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1300,
+     "op": "click",
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1600,
+     "op": "click",
+     "slot": null,
+     "part": "grid"
+    },
+    {
+     "at": 1700,
+     "op": "click",
+     "slot": "tl",
+     "part": "tile"
+    },
+    {
+     "at": 1900,
+     "op": "click",
+     "slot": "tl",
+     "part": "tile"
+    },
+    {
+     "at": 2200,
+     "op": "click",
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 2500,
+     "op": "key",
+     "active": true
+    },
+    {
+     "at": 2600,
+     "op": "key",
+     "active": true
+    },
+    {
+     "at": 2800,
+     "op": "click",
+     "slot": "bl",
+     "part": "label"
+    },
+    {
+     "at": 3000,
+     "op": "key",
+     "active": false
+    },
+    {
+     "at": 3100,
+     "op": "hide"
+    },
+    {
+     "at": 3400,
+     "op": "click",
+     "slot": "br",
+     "part": "tile"
+    },
+    {
+     "at": 3599,
+     "op": "click",
+     "slot": "br",
+     "part": "tile"
+    },
+    {
+     "at": 3600,
+     "op": "click",
+     "slot": "br",
+     "part": "tile"
+    }
+   ],
+   "shots": [
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": null,
+     "gridFocused": false,
+     "dataFocus": null,
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": null,
+     "mirrored": null,
+     "prevented": false
+    },
+    {
+     "focus": null,
+     "gridFocused": false,
+     "dataFocus": null,
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": null,
+     "mirrored": null,
+     "prevented": false
+    },
+    {
+     "focus": null,
+     "gridFocused": false,
+     "dataFocus": null,
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": null,
+     "mirrored": null,
+     "prevented": false
+    },
+    {
+     "focus": "tl",
+     "gridFocused": true,
+     "dataFocus": "tl",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": null,
+     "gridFocused": false,
+     "dataFocus": null,
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": null,
+     "mirrored": null,
+     "prevented": true
+    },
+    {
+     "focus": null,
+     "gridFocused": false,
+     "dataFocus": null,
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": null,
+     "mirrored": null,
+     "prevented": false
+    },
+    {
+     "focus": "bl",
+     "gridFocused": true,
+     "dataFocus": "bl",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "scaleX(-1)",
+     "mirrored": true,
+     "prevented": false
+    },
+    {
+     "focus": "bl",
+     "gridFocused": true,
+     "dataFocus": "bl",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "scaleX(-1)",
+     "mirrored": true,
+     "prevented": false
+    },
+    {
+     "focus": null,
+     "gridFocused": false,
+     "dataFocus": null,
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": null,
+     "mirrored": null,
+     "prevented": false
+    },
+    {
+     "focus": "br",
+     "gridFocused": true,
+     "dataFocus": "br",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "scaleX(-1)",
+     "mirrored": true,
+     "prevented": false
+    },
+    {
+     "focus": "br",
+     "gridFocused": true,
+     "dataFocus": "br",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "scaleX(-1)",
+     "mirrored": true,
+     "prevented": false
+    },
+    {
+     "focus": null,
+     "gridFocused": false,
+     "dataFocus": null,
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": null,
+     "mirrored": null,
+     "prevented": false
+    }
+   ]
+  },
+  {
+   "name": "wheel zoom 1x to 4x and back, the indicator",
+   "tileW": 1180,
+   "tileH": 680,
+   "steps": [
+    {
+     "at": 1000,
+     "op": "wheel",
+     "deltaY": -100,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1100,
+     "op": "click",
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1200,
+     "op": "wheel",
+     "deltaY": -100,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1300,
+     "op": "wheel",
+     "deltaY": -100,
+     "slot": "tc",
+     "part": "label"
+    },
+    {
+     "at": 1400,
+     "op": "wheel",
+     "deltaY": -100,
+     "slot": null,
+     "part": "grid"
+    },
+    {
+     "at": 1500,
+     "op": "wheel",
+     "deltaY": 0,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 2999,
+     "op": "wait"
+    },
+    {
+     "at": 3000,
+     "op": "wait"
+    },
+    {
+     "at": 3100,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3110,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3120,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3130,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3140,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3150,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3160,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3170,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3180,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3190,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3200,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3210,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3220,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3230,
+     "op": "wheel",
+     "deltaY": -3,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3300,
+     "op": "wheel",
+     "deltaY": 120,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3400,
+     "op": "wheel",
+     "deltaY": 1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3410,
+     "op": "wheel",
+     "deltaY": 1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3420,
+     "op": "wheel",
+     "deltaY": 1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3430,
+     "op": "wheel",
+     "deltaY": 1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3440,
+     "op": "wheel",
+     "deltaY": 1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3450,
+     "op": "wheel",
+     "deltaY": 1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3460,
+     "op": "wheel",
+     "deltaY": 1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3470,
+     "op": "wheel",
+     "deltaY": 1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3480,
+     "op": "wheel",
+     "deltaY": 1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3490,
+     "op": "wheel",
+     "deltaY": 1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3500,
+     "op": "wheel",
+     "deltaY": 1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3510,
+     "op": "wheel",
+     "deltaY": 1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3600,
+     "op": "wheel",
+     "deltaY": 1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3700,
+     "op": "wheel",
+     "deltaY": -1,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 3800,
+     "op": "click",
+     "slot": "tl",
+     "part": "tile"
+    }
+   ],
+   "shots": [
+    {
+     "focus": null,
+     "gridFocused": false,
+     "dataFocus": null,
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": null,
+     "mirrored": null,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.25,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.3x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.25) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.5,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.5x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.5) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.5,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.5x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.5) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.75,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.8x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.75) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.75,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.8x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.75) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.75,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.8x",
+      "visible": true,
+      "fading": true
+     },
+     "transform": "scale(1.75) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2.25,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.3x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2.25) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2.5,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.5x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2.5) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2.75,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.8x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2.75) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 3,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "3.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(3) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 3.25,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "3.3x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(3.25) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 3.5,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "3.5x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(3.5) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 3.75,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "3.8x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(3.75) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 4,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "4.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(4) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 4,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "4.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(4) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 4,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "4.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(4) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 4,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "4.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(4) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 4,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "4.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(4) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 4,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "4.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(4) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 3.75,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "3.8x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(3.75) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 3.5,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "3.5x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(3.5) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 3.25,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "3.3x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(3.25) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 3,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "3.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(3) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2.75,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.8x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2.75) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2.5,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.5x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2.5) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2.25,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.3x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2.25) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.75,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.8x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.75) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.5,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.5x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.5) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.25,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.3x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.25) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.25,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.3x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.25) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tl",
+     "gridFocused": true,
+     "dataFocus": "tl",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": false
+    }
+   ]
+  },
+  {
+   "name": "pan within the tile, clicks after a pan, double-click",
+   "tileW": 1180,
+   "tileH": 680,
+   "steps": [
+    {
+     "at": 1000,
+     "op": "click",
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1100,
+     "op": "down",
+     "x": 600,
+     "y": 350,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1110,
+     "op": "move",
+     "x": 700,
+     "y": 400
+    },
+    {
+     "at": 1120,
+     "op": "up"
+    },
+    {
+     "at": 1200,
+     "op": "wheel",
+     "deltaY": -100,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1210,
+     "op": "wheel",
+     "deltaY": -100,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1220,
+     "op": "wheel",
+     "deltaY": -100,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1230,
+     "op": "wheel",
+     "deltaY": -100,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1300,
+     "op": "down",
+     "x": 600,
+     "y": 350,
+     "slot": "tc",
+     "part": "label"
+    },
+    {
+     "at": 1310,
+     "op": "move",
+     "x": 650,
+     "y": 380
+    },
+    {
+     "at": 1400,
+     "op": "down",
+     "x": 600,
+     "y": 350,
+     "slot": null,
+     "part": "grid"
+    },
+    {
+     "at": 1500,
+     "op": "down",
+     "x": 600,
+     "y": 350,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1510,
+     "op": "move",
+     "x": 700,
+     "y": 400
+    },
+    {
+     "at": 1520,
+     "op": "move",
+     "x": 535.5,
+     "y": 290.25
+    },
+    {
+     "at": 1530,
+     "op": "move",
+     "x": 3000,
+     "y": -2000
+    },
+    {
+     "at": 1540,
+     "op": "up"
+    },
+    {
+     "at": 1540,
+     "op": "click",
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1589,
+     "op": "click",
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1590,
+     "op": "wait"
+    },
+    {
+     "at": 1600,
+     "op": "down",
+     "x": 100,
+     "y": 100,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1610,
+     "op": "up"
+    },
+    {
+     "at": 1640,
+     "op": "down",
+     "x": 100,
+     "y": 100,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1650,
+     "op": "move",
+     "x": 90,
+     "y": 120
+    },
+    {
+     "at": 1655,
+     "op": "up"
+    },
+    {
+     "at": 1660,
+     "op": "wait"
+    },
+    {
+     "at": 1705,
+     "op": "wait"
+    },
+    {
+     "at": 1800,
+     "op": "wheel",
+     "deltaY": 100,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 1900,
+     "op": "wheel",
+     "deltaY": 100,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 2000,
+     "op": "dblclick",
+     "slot": "tc",
+     "part": "label"
+    },
+    {
+     "at": 2100,
+     "op": "dblclick",
+     "slot": null,
+     "part": "grid"
+    },
+    {
+     "at": 2200,
+     "op": "dblclick",
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 2300,
+     "op": "dblclick",
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 2400,
+     "op": "down",
+     "x": 600,
+     "y": 350,
+     "slot": "tc",
+     "part": "tile"
+    },
+    {
+     "at": 2410,
+     "op": "move",
+     "x": 400,
+     "y": 200
+    },
+    {
+     "at": 4000,
+     "op": "move",
+     "x": 380,
+     "y": 190
+    },
+    {
+     "at": 4010,
+     "op": "up"
+    },
+    {
+     "at": 4100,
+     "op": "click",
+     "slot": "tc",
+     "part": "tile"
+    }
+   ],
+   "shots": [
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.25,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.3x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.25) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.5,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.5x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.5) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.75,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.8x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.75) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": true,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 50,
+     "panY": 25,
+     "isPanning": true,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(50px, 25px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": -32.25,
+     "panY": -29.875,
+     "isPanning": true,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(-32.25px, -29.875px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 296,
+     "panY": -171,
+     "isPanning": true,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(296px, -171px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 296,
+     "panY": -171,
+     "isPanning": false,
+     "wasPanning": true,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(296px, -171px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 296,
+     "panY": -171,
+     "isPanning": false,
+     "wasPanning": true,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(296px, -171px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 296,
+     "panY": -171,
+     "isPanning": false,
+     "wasPanning": true,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(296px, -171px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 296,
+     "panY": -171,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(296px, -171px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 296,
+     "panY": -171,
+     "isPanning": true,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(296px, -171px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 296,
+     "panY": -171,
+     "isPanning": false,
+     "wasPanning": true,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(296px, -171px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 296,
+     "panY": -171,
+     "isPanning": true,
+     "wasPanning": true,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(296px, -171px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 291,
+     "panY": -161,
+     "isPanning": true,
+     "wasPanning": true,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(291px, -161px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 291,
+     "panY": -161,
+     "isPanning": false,
+     "wasPanning": true,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(291px, -161px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 291,
+     "panY": -161,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(291px, -161px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 291,
+     "panY": -161,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(291px, -161px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.75,
+     "panX": 253.85714285714286,
+     "panY": -146.71428571428572,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.8x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.75) translate(253.85714285714286px, -146.71428571428572px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.5,
+     "panX": 197.66666666666666,
+     "panY": -114.33333333333333,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.5x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.5) translate(197.66666666666666px, -114.33333333333333px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.5,
+     "panX": 197.66666666666666,
+     "panY": -114.33333333333333,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.5x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.5) translate(197.66666666666666px, -114.33333333333333px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1.5,
+     "panX": 197.66666666666666,
+     "panY": -114.33333333333333,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "1.5x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(1.5) translate(197.66666666666666px, -114.33333333333333px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": true,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": -100,
+     "panY": -75,
+     "isPanning": true,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(-100px, -75px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": -110,
+     "panY": -80,
+     "isPanning": true,
+     "wasPanning": false,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(-110px, -80px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tc",
+     "gridFocused": true,
+     "dataFocus": "tc",
+     "zoom": 2,
+     "panX": -110,
+     "panY": -80,
+     "isPanning": false,
+     "wasPanning": true,
+     "zoomed": [
+      "tc"
+     ],
+     "indicator": {
+      "slot": "tc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(-110px, -80px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": null,
+     "gridFocused": false,
+     "dataFocus": null,
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": null,
+     "mirrored": null,
+     "prevented": false
+    }
+   ]
+  },
+  {
+   "name": "a double-click on a camera in the grid",
+   "tileW": 1180,
+   "tileH": 680,
+   "steps": [
+    {
+     "at": 1000,
+     "op": "down",
+     "x": 300,
+     "y": 200,
+     "slot": "bc",
+     "part": "tile"
+    },
+    {
+     "at": 1010,
+     "op": "up"
+    },
+    {
+     "at": 1010,
+     "op": "click",
+     "slot": "bc",
+     "part": "tile"
+    },
+    {
+     "at": 1150,
+     "op": "down",
+     "x": 300,
+     "y": 200,
+     "slot": "bc",
+     "part": "tile"
+    },
+    {
+     "at": 1160,
+     "op": "up"
+    },
+    {
+     "at": 1160,
+     "op": "click",
+     "slot": "bc",
+     "part": "tile"
+    },
+    {
+     "at": 1160,
+     "op": "dblclick",
+     "slot": "bc",
+     "part": "tile"
+    },
+    {
+     "at": 1500,
+     "op": "down",
+     "x": 300,
+     "y": 200,
+     "slot": "bc",
+     "part": "tile"
+    },
+    {
+     "at": 1510,
+     "op": "up"
+    },
+    {
+     "at": 1510,
+     "op": "click",
+     "slot": "bc",
+     "part": "tile"
+    },
+    {
+     "at": 1600,
+     "op": "down",
+     "x": 300,
+     "y": 200,
+     "slot": "bc",
+     "part": "tile"
+    },
+    {
+     "at": 1610,
+     "op": "up"
+    },
+    {
+     "at": 1610,
+     "op": "click",
+     "slot": "bc",
+     "part": "tile"
+    },
+    {
+     "at": 1610,
+     "op": "dblclick",
+     "slot": "bc",
+     "part": "tile"
+    },
+    {
+     "at": 1700,
+     "op": "hide"
+    }
+   ],
+   "shots": [
+    {
+     "focus": null,
+     "gridFocused": false,
+     "dataFocus": null,
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": null,
+     "mirrored": null,
+     "prevented": false
+    },
+    {
+     "focus": null,
+     "gridFocused": false,
+     "dataFocus": null,
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": null,
+     "mirrored": null,
+     "prevented": false
+    },
+    {
+     "focus": "bc",
+     "gridFocused": true,
+     "dataFocus": "bc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "scaleX(-1)",
+     "mirrored": true,
+     "prevented": false
+    },
+    {
+     "focus": "bc",
+     "gridFocused": true,
+     "dataFocus": "bc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "scaleX(-1)",
+     "mirrored": true,
+     "prevented": false
+    },
+    {
+     "focus": "bc",
+     "gridFocused": true,
+     "dataFocus": "bc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "scaleX(-1)",
+     "mirrored": true,
+     "prevented": false
+    },
+    {
+     "focus": "bc",
+     "gridFocused": true,
+     "dataFocus": "bc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "scaleX(-1)",
+     "mirrored": true,
+     "prevented": false
+    },
+    {
+     "focus": "bc",
+     "gridFocused": true,
+     "dataFocus": "bc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "bc"
+     ],
+     "indicator": {
+      "slot": "bc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px) scaleX(-1)",
+     "mirrored": true,
+     "prevented": true
+    },
+    {
+     "focus": "bc",
+     "gridFocused": true,
+     "dataFocus": "bc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": true,
+     "wasPanning": false,
+     "zoomed": [
+      "bc"
+     ],
+     "indicator": {
+      "slot": "bc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px) scaleX(-1)",
+     "mirrored": true,
+     "prevented": true
+    },
+    {
+     "focus": "bc",
+     "gridFocused": true,
+     "dataFocus": "bc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": true,
+     "zoomed": [
+      "bc"
+     ],
+     "indicator": {
+      "slot": "bc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px) scaleX(-1)",
+     "mirrored": true,
+     "prevented": false
+    },
+    {
+     "focus": "bc",
+     "gridFocused": true,
+     "dataFocus": "bc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": true,
+     "zoomed": [
+      "bc"
+     ],
+     "indicator": {
+      "slot": "bc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px) scaleX(-1)",
+     "mirrored": true,
+     "prevented": false
+    },
+    {
+     "focus": "bc",
+     "gridFocused": true,
+     "dataFocus": "bc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": true,
+     "wasPanning": false,
+     "zoomed": [
+      "bc"
+     ],
+     "indicator": {
+      "slot": "bc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px) scaleX(-1)",
+     "mirrored": true,
+     "prevented": true
+    },
+    {
+     "focus": "bc",
+     "gridFocused": true,
+     "dataFocus": "bc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": true,
+     "zoomed": [
+      "bc"
+     ],
+     "indicator": {
+      "slot": "bc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px) scaleX(-1)",
+     "mirrored": true,
+     "prevented": false
+    },
+    {
+     "focus": "bc",
+     "gridFocused": true,
+     "dataFocus": "bc",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": true,
+     "zoomed": [
+      "bc"
+     ],
+     "indicator": {
+      "slot": "bc",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px) scaleX(-1)",
+     "mirrored": true,
+     "prevented": false
+    },
+    {
+     "focus": "bc",
+     "gridFocused": true,
+     "dataFocus": "bc",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": true,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "scaleX(-1)",
+     "mirrored": true,
+     "prevented": true
+    },
+    {
+     "focus": null,
+     "gridFocused": false,
+     "dataFocus": null,
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": null,
+     "mirrored": null,
+     "prevented": false
+    }
+   ]
+  },
+  {
+   "name": "a tile not laid out (no pan bound)",
+   "tileW": 0,
+   "tileH": 0,
+   "steps": [
+    {
+     "at": 1000,
+     "op": "click",
+     "slot": "tr",
+     "part": "tile"
+    },
+    {
+     "at": 1100,
+     "op": "dblclick",
+     "slot": "tr",
+     "part": "tile"
+    },
+    {
+     "at": 1200,
+     "op": "down",
+     "x": 0,
+     "y": 0,
+     "slot": "tr",
+     "part": "tile"
+    },
+    {
+     "at": 1210,
+     "op": "move",
+     "x": 5000,
+     "y": -7
+    },
+    {
+     "at": 1220,
+     "op": "up"
+    },
+    {
+     "at": 1300,
+     "op": "wheel",
+     "deltaY": -1,
+     "slot": "tr",
+     "part": "tile"
+    },
+    {
+     "at": 1400,
+     "op": "click",
+     "slot": "bl",
+     "part": "tile"
+    }
+   ],
+   "shots": [
+    {
+     "focus": "tr",
+     "gridFocused": true,
+     "dataFocus": "tr",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tr",
+     "gridFocused": true,
+     "dataFocus": "tr",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tr"
+     ],
+     "indicator": {
+      "slot": "tr",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tr",
+     "gridFocused": true,
+     "dataFocus": "tr",
+     "zoom": 2,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": true,
+     "wasPanning": false,
+     "zoomed": [
+      "tr"
+     ],
+     "indicator": {
+      "slot": "tr",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(0px, 0px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tr",
+     "gridFocused": true,
+     "dataFocus": "tr",
+     "zoom": 2,
+     "panX": 2500,
+     "panY": -3.5,
+     "isPanning": true,
+     "wasPanning": false,
+     "zoomed": [
+      "tr"
+     ],
+     "indicator": {
+      "slot": "tr",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(2500px, -3.5px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "tr",
+     "gridFocused": true,
+     "dataFocus": "tr",
+     "zoom": 2,
+     "panX": 2500,
+     "panY": -3.5,
+     "isPanning": false,
+     "wasPanning": true,
+     "zoomed": [
+      "tr"
+     ],
+     "indicator": {
+      "slot": "tr",
+      "text": "2.0x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2) translate(2500px, -3.5px)",
+     "mirrored": false,
+     "prevented": false
+    },
+    {
+     "focus": "tr",
+     "gridFocused": true,
+     "dataFocus": "tr",
+     "zoom": 2.25,
+     "panX": 2500,
+     "panY": -3.5,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [
+      "tr"
+     ],
+     "indicator": {
+      "slot": "tr",
+      "text": "2.3x",
+      "visible": true,
+      "fading": false
+     },
+     "transform": "scale(2.25) translate(2500px, -3.5px)",
+     "mirrored": false,
+     "prevented": true
+    },
+    {
+     "focus": "bl",
+     "gridFocused": true,
+     "dataFocus": "bl",
+     "zoom": 1,
+     "panX": 0,
+     "panY": 0,
+     "isPanning": false,
+     "wasPanning": false,
+     "zoomed": [],
+     "indicator": null,
+     "transform": "scaleX(-1)",
+     "mirrored": true,
+     "prevented": false
+    }
+   ]
+  }
+ ]
+}

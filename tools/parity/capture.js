@@ -62,6 +62,13 @@ const FREE_LAYOUTS = JSON.stringify({
   }
 });
 
+// Camera focus, zoom and pan (Viewer part 5): the steps taken in Studio's frame (as events sent to
+// the tile, so no panel over it takes them) and replayed by the native render (viewerFocus): a click
+// on a tile, wheel steps (negative: in), a drag from the tile's centre.
+const FOCUS_STEPS = [['tile-click', 'tc']];
+const ZOOM_STEPS = [['tile-click', 'bc'], ['tile-wheel', 'bc', -4], ['tile-pan', 'bc', [-150, -80]]];
+const tileSteps = (steps) => steps.map(([kind, slot, value]) => [kind, `.multi-tile[data-slot="${slot}"]`, value]);
+
 const PAGES = {
   login: { signedIn: false, path: '/login' },
   shell: { signedIn: true, path: '/' },
@@ -160,7 +167,11 @@ const PAGES = {
   'viewer-free': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, storage: { 'sentrySix.playback.freeLayouts': FREE_LAYOUTS } },
   'viewer-swapped': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
   'viewer-nomirror': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 },
-  'viewer-noglow': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19']] }
+  'viewer-noglow': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19']] },
+  // Camera focus, zoom and pan (Viewer part 5): the Sentry day's front camera focused (its glow
+  // suppressed), the back camera focused, zoomed to 2x and dragged
+  'viewer-focus': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19'], ...tileSteps(FOCUS_STEPS)] },
+  'viewer-zoom': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: tileSteps(ZOOM_STEPS) }
 };
 
 // the Footage page's first page of days, as it asks for it
@@ -272,6 +283,8 @@ const VARIANTS = {
   'viewer-swapped': (api) => ({ route: 'viewer', api: { 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], customCameraOrdersByProfile: { tesla: { tc: 'back', bc: 'front', tl: 'right_pillar', tr: 'left_pillar' } } } } }),
   'viewer-nomirror': (api) => ({ route: 'viewer', api: { 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], mirrorCameras: false } } }),
   'viewer-noglow': (api) => ({ route: 'viewer', state: { date: '2026-10-19' }, api: { 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], sentryCameraHighlight: false } } }),
+  'viewer-focus': { route: 'viewer', state: { date: '2026-10-19' }, viewerFocus: FOCUS_STEPS },
+  'viewer-zoom': { route: 'viewer', viewerFocus: ZOOM_STEPS },
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },
@@ -726,7 +739,21 @@ async function shoot(browser, base, ui, pageName, size, file, vehicle, fixture) 
       const studio = page.frameLocator('iframe[title^="Sentry Studio"]');
       for (const [kind, sel, value] of spec.frame) {
         if (kind === 'select') await studio.locator(sel).first().selectOption(value);
-        else await studio.locator(sel).first().click({ force: true });
+        else if (kind.startsWith('tile-')) {
+          // (sent to the tile: the grid's click, wheel and mousedown listeners; mousemove and mouseup on the document)
+          await studio.locator(sel).first().evaluate((el, [k, v]) => {
+            const r = el.getBoundingClientRect();
+            const x = r.left + r.width / 2, y = r.top + r.height / 2;
+            const opts = (more) => ({ bubbles: true, cancelable: true, view: window, ...more });
+            if (k === 'tile-click') el.dispatchEvent(new MouseEvent('click', opts({ clientX: x, clientY: y })));
+            else if (k === 'tile-wheel') for (let i = 0; i < Math.abs(v); i++) el.dispatchEvent(new WheelEvent('wheel', opts({ deltaY: v < 0 ? -100 : 100, clientX: x, clientY: y })));
+            else if (k === 'tile-pan') {
+              el.dispatchEvent(new MouseEvent('mousedown', opts({ clientX: x, clientY: y })));
+              document.dispatchEvent(new MouseEvent('mousemove', opts({ clientX: x + v[0], clientY: y + v[1] })));
+              document.dispatchEvent(new MouseEvent('mouseup', opts({ clientX: x + v[0], clientY: y + v[1] })));
+            }
+          }, [kind, value]);
+        } else await studio.locator(sel).first().click({ force: true });
         await page.waitForTimeout(1500);
       }
       await page.mouse.move(size.width - 4, size.height - 4);

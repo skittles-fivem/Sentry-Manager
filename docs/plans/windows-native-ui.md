@@ -249,8 +249,8 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   the web after its clicks (the open recording's card).
 - Phase 2 (built-in Viewer): in progress. The playback engine, the
   telemetry, the clip library (scan and grouping, part 2), the clip
-  browser (the clip list panel, part 3) and the six-camera grid on the
-  Player (part 4) are written; the rest of the Viewer page (Studio's
+  browser (the clip list panel, part 3), the six-camera grid on the
+  Player (part 4) and camera focus, zoom and pan (part 5) are written; the rest of the Viewer page (Studio's
   controls bar, dashboard, map, settings modal, export:
   `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
   still opens in the browser (`ViewerPage.Complete` stays false until it
@@ -460,6 +460,37 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   Shell\RenderFrame.png, the first frame of a fixture clip, in each camera
   that has a clip). The browser fallback stays until the controls bar,
   dashboard, map and settings modal are drawn too.
+  Viewer part 5, camera focus, zoom and pan (type-checked with mcs, not
+  yet built or rendered on Windows): `Core/CameraFocus.cs` is
+  multiCamFocus.js's toggleMultiFocus / clearMultiFocus, script.js's grid
+  click (ignored for 50 ms after a pan, 200 ms between toggles, a click
+  outside a tile still counting as one) and Escape (with a collection
+  open), and zoomPan.js (wheel steps of 0.25 from 1x to 4x, the pan in the
+  picture's own pixels within (tile x (zoom - 1)) / (2 x zoom) + 1, a
+  press on the label not panning, double-click back to 1x or to 2x, the
+  indicator's zoom.toFixed(1) + "x" fading 1.5 s after its last change,
+  the CSS transform). `StudioCameraGrid` feeds it the grid's presses,
+  releases (the click and the double-click after it, as the browser fires
+  them: not after a swap's drag, not from a free layout grip), moves while
+  panning (the mouse captured) and wheel steps, and draws it: the focused
+  tile at inset 10 px and z-index 10 (in a free layout too), every label
+  at 12 px with 6px 10px padding, the event glow suppressed (no border,
+  shadow or z-index), no dividers or grips, the focused picture zoomed
+  and panned (`VideoSurface.SetView`) and not clipped to its tile while
+  zoomed (the grid clips it, as .video-container does), .zoom-indicator.
+  Hiding the grid clears the focus; the focused camera goes to
+  `Player.SetFocus` (decoded at its source size, the others waiting under
+  it). test/windowsNativeCameraFocus.test.js runs the web's modules and
+  script.js's two handlers on a pretend grid with a pretend clock (5 cases,
+  112 steps: debounce edges, Escape with and without a collection, wheel
+  to 4x and back, pans past the bounds, a tile not laid out, the browser's
+  click-click-dblclick sequence) and writes
+  Core.Tests/Fixtures/expected-camera-focus.json; Core.Tests
+  CameraFocusTests (1 test, passing under mono; it fails when the
+  debounce, the pan tolerance, the fade time or the label check is
+  changed). Render list: viewer-focus, viewer-zoom (capture.js sends the
+  steps to the tile in Studio's frame: frame kinds tile-click, tile-wheel,
+  tile-pan; the native render replays the variant's viewerFocus).
 - Phases 3-7 (Encoder, Horizon, Flux, Aurora, Daylight): not started.
   Their pages open in the browser.
 
@@ -510,6 +541,18 @@ gmc_surroundvision, that MULTI_LAYOUTS does not have, so setMultiLayout
 falls back to six_default; worth fixing on the web side); the HW4 / HW3
 switch does not move the event camera's glow (setMultiLayout does not call
 updateEventCameraHighlight).
+Viewer focus: the pointer over a zoomed camera is the tile's hand, as over
+any tile (the web's grab / grabbing cursors are on the video, which has
+pointer-events: none, so Chrome shows the tile's grab); the click and
+double-click are made from the presses and releases (the same order as
+the browser's, the double-click by Windows' double-click time rather than
+Chrome's); the zoomed picture's corners are square (the web's video keeps
+its own border-radius in a glowing tile). Kept from the web: a click on a
+divider or between tiles restarts the 200 ms debounce; a double-click on
+a camera in the grid focuses it and zooms it to 2x (the second click is
+debounced, the dblclick finds it focused); in a zoomed camera every click
+counts as a pan, so only Escape, a double-click or the wheel back to 1x
+leaves the zoom.
 Nodes: Trust this node? is Windows' own OK / Cancel box (titled Sentry
 Six Manager, not the browser's "<host> says"); an empty required field's
 "Please fill out this field." is drawn under the field, not as Chrome's

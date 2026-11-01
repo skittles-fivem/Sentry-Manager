@@ -12,7 +12,7 @@ namespace SentrySix.Ui.Playback
     /// One camera's picture: an Image showing a WriteableBitmap (Bgr32, the
     /// decoders' bgr0), the frame copied in with one WritePixels when it
     /// changed. Stretch Uniform, mirrored with ScaleTransform(-1, 1) for the
-    /// cameras the profile mirrors, zoom 1 to 4x with a pan. The bitmap is
+    /// cameras the profile mirrors, zoom 1 to 4x with a pan (SetView). The bitmap is
     /// kept while frames keep their size (the next segment reuses it).
     /// </summary>
     public sealed class VideoSurface : Border
@@ -30,6 +30,8 @@ namespace SentrySix.Ui.Playback
             ClipToBounds = true;
             Background = Brushes.Black;
             image.Stretch = Stretch.Uniform;
+            // (video { pointer-events: none }: a zoomed picture past the tile is not the tile)
+            image.IsHitTestVisible = false;
             image.RenderTransformOrigin = new Point(0.5, 0.5);
             TransformGroup g = new TransformGroup();
             g.Children.Add(flip);
@@ -53,30 +55,28 @@ namespace SentrySix.Ui.Playback
             set { flip.ScaleX = value ? -1 : 1; }
         }
 
-        /// <summary>1 to 4.</summary>
-        public double Zoom
+        /// <summary>The zoom (1 to 4; zoomPan.js's scale).</summary>
+        public double Zoom { get { return zoom.ScaleX; } }
+
+        /// <summary>
+        /// zoomPan.js's transform: scale(zoom) translate(panX, panY) about the
+        /// centre, the pan in the picture's own pixels (so it moves pan x zoom
+        /// on screen); the bounds are CameraFocus's. While zoomed the picture
+        /// is not clipped to the tile (.zoomed's overflow: visible: the grid
+        /// clips it).
+        /// </summary>
+        public void SetView(double z, double panX, double panY)
         {
-            get { return zoom.ScaleX; }
-            set
-            {
-                double z = Math.Max(1, Math.Min(4, double.IsNaN(value) ? 1 : value));
-                zoom.ScaleX = z;
-                zoom.ScaleY = z;
-                Pan(pan.X, pan.Y);
-            }
+            if (double.IsNaN(z) || z < 1) z = 1;
+            zoom.ScaleX = z;
+            zoom.ScaleY = z;
+            pan.X = double.IsNaN(panX) ? 0 : panX * z;
+            pan.Y = double.IsNaN(panY) ? 0 : panY * z;
+            ClipToBounds = z <= 1;
         }
 
-        /// <summary>Moves the zoomed picture (device-independent pixels), kept so no edge comes inside the tile.</summary>
-        public void Pan(double x, double y)
-        {
-            double maxX = Math.Max(0, (ActualWidth * zoom.ScaleX - ActualWidth) / 2);
-            double maxY = Math.Max(0, (ActualHeight * zoom.ScaleY - ActualHeight) / 2);
-            pan.X = Math.Max(-maxX, Math.Min(maxX, x));
-            pan.Y = Math.Max(-maxY, Math.Min(maxY, y));
-        }
-
-        public double PanX { get { return pan.X; } }
-        public double PanY { get { return pan.Y; } }
+        public double PanX { get { return pan.X / zoom.ScaleX; } }
+        public double PanY { get { return pan.Y / zoom.ScaleY; } }
 
         /// <summary>The tile in device pixels (what the decoder is asked for, at most the source).</summary>
         public Size PixelSize

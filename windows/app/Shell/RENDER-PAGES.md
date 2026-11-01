@@ -258,6 +258,17 @@ Glow off (sentryCameraHighlight false). The controls bar (and the HW4 /
 HW3 switch in it) is the next part, so the grid fills the stage natively
 while the web's stands above its controls.
 
+Camera focus, zoom and pan (part 5): capture.js sends the steps to the
+tile in Studio's frame (a click, wheel steps, a drag from its centre, each
+1.5 s after the last; the native render replays the fixture variant's
+viewerFocus through CameraFocus, drawn as the screenshot finds it 2 s
+after the last step). viewer-focus: the Sentry day with the front camera
+clicked: it fills the grid (inset 10 px) with its glow suppressed and the
+labels at 12 px. viewer-zoom: the back camera clicked, four wheel steps in
+(2x) and dragged 150 px left and 80 px up (pan -75, -40): the picture is
+not clipped to the tile (the grid clips it) and the zoom indicator
+("2.0x") has faded by the time of the picture.
+
 - builtin overview
 - builtin overview-off
 - builtin overview-logs
@@ -329,3 +340,5 @@ while the web's stands above its controls.
 - builtin viewer-swapped
 - builtin viewer-nomirror
 - builtin viewer-noglow
+- builtin viewer-focus
+- builtin viewer-zoom
