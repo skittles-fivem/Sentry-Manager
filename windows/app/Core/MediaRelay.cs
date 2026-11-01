@@ -107,6 +107,16 @@ namespace SentrySix.Core
 
         static void Forget(Task t) { }
 
+        /// <summary>Where the relay says what went wrong on a connection (a test, a timing log); null: nowhere.</summary>
+        public static Action<string> Trace;
+
+        static void Note(string line)
+        {
+            Action<string> h = Trace;
+            if (h == null) return;
+            try { h(line); } catch (Exception) { }
+        }
+
         sealed class Request
         {
             public string Method;
@@ -128,6 +138,7 @@ namespace SentrySix.Core
                     {
                         Request req = await ReadRequest(ns, pending).ConfigureAwait(false);
                         if (req == null) return;
+                        Note(req.Method + " " + req.Target + " range " + (req.Range ?? "-") + (req.KeepAlive ? "" : " (close)"));
                         bool keep;
                         // per request: cancelled when the relay stops or the request ends (a write to an
                         // ffmpeg that was killed throws), so the server's response and its connection go at once
@@ -140,9 +151,10 @@ namespace SentrySix.Core
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // ffmpeg went away (a seek kills it): nothing to tell anyone
+                // ffmpeg went away (a seek kills it): nothing to tell anyone but a trace
+                Note("connection ended: " + ex.GetType().Name + ": " + ex.Message);
             }
             finally
             {
@@ -250,8 +262,9 @@ namespace SentrySix.Core
             {
                 res = await open(path, req.Range, head, ct).ConfigureAwait(false);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Note("the server could not be asked for " + req.Target + " (" + req.Range + "): " + ex.GetType().Name + ": " + ex.Message);
                 res = null; // (C# 5 cannot await in a catch: answered below)
             }
             if (res == null)

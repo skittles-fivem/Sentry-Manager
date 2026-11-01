@@ -525,7 +525,11 @@ namespace SentrySix.Core.Tests
                         {
                             string curl = relay.UrlFor(clip);
                             string why;
+                            List<string> trace = new List<string>();
+                            MediaRelay.Trace = l => { lock (trace) trace.Add(l); };
                             ProbeResult p = FfmpegTools.ProbeClip(ffprobe, curl, 30000, out why);
+                            MediaRelay.Trace = null;
+                            if (why != null) lock (trace) why += "; relay: " + string.Join(" | ", trace);
                             Assert.Equal(codecOf[clip], FfmpegArgs.Family(p.Codec), "codec of " + Path.GetFileName(clip) + (why != null ? " (" + why + ")" : ""));
                             Near(2, p.Duration, "duration of " + Path.GetFileName(clip), 0.1);
                             Near(36, p.Fps, "rate of " + Path.GetFileName(clip), 1e-6);
