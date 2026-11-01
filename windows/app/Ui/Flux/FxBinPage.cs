@@ -22,7 +22,7 @@ namespace SentrySix.Ui.Flux
     /// another vehicle is picked.
     /// </summary>
     [PackPage("flux", "bin")]
-    public sealed class FxBinPage : IPackPage
+    public sealed class FxBinPage : IPackPage, IPackCommands
     {
         readonly FxBin m = new FxBin();
         PackPageContext ctx;
@@ -218,6 +218,19 @@ namespace SentrySix.Ui.Flux
             if (gone) return;
             // (busy() enables its button again after the list was drawn)
             restoreSel.IsEnabled = true;
+        }
+
+        /// <summary>commands(): "Restore every item shown".</summary>
+        public IList<PackCommand> Commands()
+        {
+            return new List<PackCommand> { new PackCommand("Recycle Bin", FxBin.CommandLabel, "refresh", RestoreEvery) };
+        }
+
+        async void RestoreEvery()
+        {
+            if (gone) return;
+            try { await m.RestoreEvery(ctx.Api, ui, Cars, Load); }
+            catch (Exception) { }
         }
 
         async void Delete(string id)
