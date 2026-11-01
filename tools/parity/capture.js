@@ -173,7 +173,11 @@ const PAGES = {
   // Camera focus, zoom and pan (Viewer part 5): the Sentry day's front camera focused (its glow
   // suppressed), the back camera focused, zoomed to 2x and dragged
   'viewer-focus': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: [['select', '#dayFilter', '2026-10-19'], ...tileSteps(FOCUS_STEPS)] },
-  'viewer-zoom': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: tileSteps(ZOOM_STEPS) }
+  'viewer-zoom': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, frame: tileSteps(ZOOM_STEPS) },
+  // the controls bar (part 6): the speed this browser keeps (localStorage playbackRate) and
+  // Settings > Skip Duration at 10 s (the skip buttons' lengths)
+  'viewer-speed': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000, storage: { playbackRate: '2' } },
+  'viewer-skip': { signedIn: true, path: '/#/viewer', only: 'builtin', variant: true, settle: 5000 }
 };
 
 // each pack page module's pages, as "<pack>:<name>" (the picture is <pack>-<name>-<w>x<h>.png)
@@ -292,6 +296,8 @@ const VARIANTS = {
   'viewer-noglow': (api) => ({ route: 'viewer', state: { date: '2026-10-19' }, api: { 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], sentryCameraHighlight: false } } }),
   'viewer-focus': { route: 'viewer', state: { date: '2026-10-19' }, viewerFocus: FOCUS_STEPS },
   'viewer-zoom': { route: 'viewer', viewerFocus: ZOOM_STEPS },
+  'viewer-speed': { route: 'viewer', prefs: { playbackRate: '2' } },
+  'viewer-skip': (api) => ({ route: 'viewer', api: { 'GET /api/studio/settings': { ...api['GET /api/studio/settings'], skipDuration: 10 } } }),
   'footage-open': (api, vehicle) => ({ route: 'footage', state: footageOpen(api, vehicle), scroll: footageScroll(footageOpen(api, vehicle)) }),
   'footage-empty': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: false, error: null, dates: [], days: [] } } },
   'footage-scanning': { route: 'footage', api: { [`GET ${DAYS_PATH}`]: { total: 0, recordings: 0, offset: 0, limit: 30, scannedAt: null, scanning: true, error: null, dates: [], days: [] } } },
@@ -422,6 +428,9 @@ const RECORDINGS = [
   { dir: 'SavedClips/2026-10-18_17-30-12', stamps: ['2026-10-18_17-29-11'], event: { timestamp: '2026-10-18T17:30:12', city: 'Round Rock', est_lat: '30.5083', est_lon: '-97.6789', reason: 'user_interaction_honk', camera: '0' } }
 ];
 
+// each fixture clip's length in seconds
+const CLIP_SECONDS = 2;
+
 async function makeFootage(root) {
   const hasFfmpeg = spawnSync('ffmpeg', ['-version']).status === 0;
   const { createTeslaH264Fixture } = require(path.join(REPO, 'test', 'fixtures', 'ffmpegFixtures'));
@@ -436,7 +445,7 @@ async function makeFootage(root) {
         const file = path.join(dir, `${stamp}-${cam}.mp4`);
         if (hasFfmpeg) {
           await createTeslaH264Fixture({
-            ffmpegPath: 'ffmpeg', outputPath: file, durationSeconds: 2, frameRate: 12, size: '320x240', spatialNoise: 4,
+            ffmpegPath: 'ffmpeg', outputPath: file, durationSeconds: CLIP_SECONDS, frameRate: 12, size: '320x240', spatialNoise: 4,
             telemetryPattern: Array.from({ length: 24 }, (_, i) => Buffer.from([0x20, i]))
           });
           real++;
@@ -615,6 +624,8 @@ async function writeFixture(base, file, dir) {
     now: new Date().toISOString().slice(0, 19),
     live: true,
     vehicle,
+    // the fixture clips' length (the web's Viewer probes it from the clips; its native render has none to probe)
+    viewerClipSeconds: CLIP_SECONDS,
     api,
     variants: fill(Object.fromEntries(Object.entries(VARIANTS).map(([k, v]) => [k, typeof v === 'function' ? v(api, vehicle) : v]))),
     prefs: {}

@@ -61,7 +61,9 @@ namespace SentrySix.Ui.Builtin
             // (at once: the page that was there is closed after this one has the Viewer)
             string open = fixture != null ? fixture["viewerOpen"].Str : null;
             JsonValue focus = fixture != null && fixture["viewerFocus"].IsArray ? fixture["viewerFocus"] : null;
-            slot.Show(shell, this, start => new StudioViewer(shell, api, start, still, open, focus));
+            // (the fixture clips' length: the web probes it from the clips, the render test mode has none to probe)
+            double clipSeconds = fixture != null && fixture["viewerClipSeconds"].IsNumber ? fixture["viewerClipSeconds"].Num : double.NaN;
+            slot.Show(shell, this, start => new StudioViewer(shell, api, start, still, open, focus, clipSeconds));
             slot.Place(wrap);
             return Task.FromResult<FrameworkElement>(wrap);
         }
@@ -324,6 +326,13 @@ namespace SentrySix.Ui.Builtin
         readonly StudioCameraGrid grid;
         readonly string renderOpen;
         readonly JsonValue renderFocus;
+        readonly double renderClipSeconds = double.NaN;
+        readonly StudioControlsBar controls;
+        readonly ViewerTimeline timeline = new ViewerTimeline();
+        double playbackRate = 1;
+        JsonValue skipLength = JsonValue.Number(ViewerControlsText.DefaultSkip);
+        bool autoplay;
+        bool everPlayed;
         MediaRelay relay;
         Task<Player> playerTask;
         int openToken;
@@ -346,7 +355,14 @@ namespace SentrySix.Ui.Builtin
 
         /// <param name="renderFocus">The render test mode: the focus, wheel and pan steps capture.js takes in Studio's frame (StudioCameraGrid.Replay), or null.</param>
         public StudioViewer(ShellModel shell, IJsonApi api, ViewerStart start, bool still, string renderOpen, JsonValue renderFocus)
+            : this(shell, api, start, still, renderOpen, renderFocus, double.NaN)
         {
+        }
+
+        /// <param name="renderClipSeconds">The render test mode: each fixture clip's length (the web probes it; NaN: the profile's estimate).</param>
+        public StudioViewer(ShellModel shell, IJsonApi api, ViewerStart start, bool still, string renderOpen, JsonValue renderFocus, double renderClipSeconds)
+        {
+            this.renderClipSeconds = renderClipSeconds;
             this.renderFocus = renderFocus;
             this.shell = shell;
             this.api = api;
@@ -422,6 +438,11 @@ namespace SentrySix.Ui.Builtin
             root.Children.Add(overlay);
             loadingView = new StudioLoadingOverlay(loading, still);
             root.Children.Add(loadingView);
+            // .controls under the video area (the video area, its empty screen and loading overlay end 60 px above the bottom)
+            controls = new StudioControlsBar(grid.Hardware);
+            root.Children.Add(controls);
+            VideoMoved();
+            WireControls();
             toasts = new StudioToasts(still);
             root.Children.Add(toasts);
             // #clipBrowser floats over the empty screen (z-index 90), under the loading overlay
@@ -528,6 +549,9 @@ namespace SentrySix.Ui.Builtin
             string saved = shell.Prefs != null ? shell.Prefs.Get(ClipsPanelMode.StorageKey, null) : null;
             clips.InitMode(all, saved);
             grid.Settings(all, SaveSetting);
+            // Settings > Skip Duration (getSetting('skipDuration') || 15): the skip buttons' length and titles
+            skipLength = SkipLength.Of(JsJson.Get(all, "skipDuration"));
+            controls.SetSkip(skipLength);
             // (the settings modal's reads call updateEventCameraHighlight once they are in)
             if (library != null && library.Active != null) grid.UpdateGlow(library.Active, library);
             JsonValue f = all["dateFormat"];
@@ -559,7 +583,7 @@ namespace SentrySix.Ui.Builtin
         /// <summary>.clips-mode-docked .video-container: the video area starts right of the docked sidebar.</summary>
         void VideoMoved()
         {
-            Thickness m = new Thickness(clips.VideoLeft, 0, 0, 0);
+            Thickness m = new Thickness(clips != null ? clips.VideoLeft : 0, 0, 0, StudioControlsBar.Height60);
             stage.Margin = m;
             overlay.Margin = m;
             loadingView.Margin = m;
@@ -688,9 +712,11 @@ namespace SentrySix.Ui.Builtin
             double local;
             plan.FirstLoad(start, out first, out local);
             CollectionOpening(first);
+            autoplay = true;
             if (segs.Count == 0) return;
             if (still)
             {
+                StillTimeline(segs.Count, fallback, start);
                 SegmentView view = SegmentPlan.PlanSegment(segs[first], true, grid.PlayerSlots, "front", "front");
                 BitmapSource frame = RenderFrame();
                 foreach (SegmentTarget t in view.Targets)
@@ -710,6 +736,159 @@ namespace SentrySix.Ui.Builtin
                 p.SetLayout(grid.PlayerSlots);
                 p.Open(segs, fallback, start);
             }, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        // ---- the controls bar (part 6) ----------------------------------------------------
+
+        /// <summary>The controls bar.</summary>
+        public StudioControlsBar Controls { get { return controls; } }
+
+        /// <summary>#progressBar and the time display as script.js keeps them.</summary>
+        public ViewerTimeline Timeline { get { return timeline; } }
+
+        /// <summary>
+        /// The bar's buttons, speed list and timeline: the speed this PC
+        /// keeps (localStorage 'playbackRate'), play and pause, the skips
+        /// (skipSeconds), and the scrubber (pointerdown remembers whether it
+        /// played, the slider previews where it is, the release seeks there
+        /// and plays on when it played).
+        /// </summary>
+        void WireControls()
+        {
+            controls.SetEnabled(false);
+            // index.html's 00:00:00 / 00:00:00 until a collection opens
+            ShowTimes();
+            IPrefs prefs = shell.Prefs;
+            string saved = prefs != null ? prefs.Get(PlaybackSpeeds.StorageKey, null) : null;
+            playbackRate = PlaybackSpeeds.Restore(saved, 1);
+            if (!string.IsNullOrEmpty(saved)) controls.SetSpeed(PlaybackSpeeds.Value(playbackRate));
+            controls.SpeedPicked += v => SetSpeed(PlaybackSpeeds.Apply(v));
+            controls.PlayPressed += PlayPause;
+            controls.SkipPressed += forward => Skip(forward);
+            StudioRange range = controls.Range;
+            range.PointerDown += () =>
+            {
+                Player p = Player;
+                timeline.PointerDown(p != null && p.Playing);
+                if (p != null && p.Segments.Count > 0) p.BeginScrub();
+            };
+            range.Input += v =>
+            {
+                Player p = Player;
+                double target = timeline.Input(v, p != null ? p.Total : 1);
+                if (p != null && p.Segments.Count > 0) p.ScrubTo(target);
+                ShowTimes();
+            };
+            range.PointerUp += () =>
+            {
+                timeline.PointerUp();
+                Player p = Player;
+                // (the player seeks to the last place the slider was, and plays on when it played)
+                if (p != null && p.Segments.Count > 0) p.EndScrub();
+            };
+            range.Change += v =>
+            {
+                Player p = Player;
+                timeline.Change(v, p != null ? p.Total : 1);
+            };
+        }
+
+        /// <summary>setPlaybackSpeed(rate): the player's speed, the list, this PC's choice.</summary>
+        public void SetSpeed(double rate)
+        {
+            playbackRate = rate;
+            controls.SetSpeed(PlaybackSpeeds.Value(rate));
+            if (shell.Prefs != null && !still) shell.Prefs.Set(PlaybackSpeeds.StorageKey, PlaybackSpeeds.Value(rate));
+            Player p = Player;
+            if (p != null) p.SetRate(rate);
+        }
+
+        /// <summary>The speed now (state.ui.playbackRate).</summary>
+        public double Speed { get { return playbackRate; } }
+
+        /// <summary>bumpPlaybackSpeed(dir): the next speed up or down (none past the ends).</summary>
+        public void BumpSpeed(int dir)
+        {
+            double next = PlaybackSpeeds.Bump(playbackRate, dir);
+            if (!double.IsNaN(next)) SetSpeed(next);
+        }
+
+        /// <summary>#playBtn: pause while playing, else play (a collection played to its end starts its last segment again, as an ended video does).</summary>
+        public void PlayPause()
+        {
+            Player p = Player;
+            if (p == null || !firstLoad.Enabled || p.Segments.Count == 0) return;
+            everPlayed = true;
+            if (p.Playing) { p.Pause(); ShowPlaying(); return; }
+            if (p.Position >= p.Total - 1e-6)
+            {
+                int seg = Math.Max(0, p.SegmentIndex);
+                p.Seek(p.Plan.Start(seg));
+            }
+            p.Play();
+            ShowPlaying();
+        }
+
+        /// <summary>skipSeconds(+-(Skip Duration)) in the open collection.</summary>
+        public void Skip(bool forward)
+        {
+            Player p = Player;
+            if (p == null || library == null || library.Active == null || p.Segments.Count == 0) return;
+            double target = SkipLength.Target(p.Position, p.Total, skipLength, forward);
+            if (double.IsNaN(target)) return;
+            p.Seek(target);
+            timeline.Seeked(target, p.Total);
+            ShowTimes();
+        }
+
+        /// <summary>Each render tick: the time display and the bar follow the clock (not while the bar is held).</summary>
+        void OnTick()
+        {
+            Player p = Player;
+            if (p == null || p.Segments.Count == 0) return;
+            timeline.Tick(p.Position, p.Total);
+            ShowTimes();
+            if (p.Playing) everPlayed = true;
+            ShowPlaying();
+        }
+
+        void ShowTimes()
+        {
+            controls.SetTimes(timeline.CurrentText, timeline.TotalText);
+            if (!controls.Range.Dragging) controls.Range.Value = timeline.Shown;
+        }
+
+        void ShowPlaying()
+        {
+            Player p = Player;
+            controls.SetPlaying(p != null && p.Playing, everPlayed);
+        }
+
+        /// <summary>
+        /// The render test mode's bar for a collection: the clips' length when
+        /// the fixture gives it (the web's probe), the first segment loaded and
+        /// the start (the event's lead, held within that segment as the video
+        /// holds it) shown, and the autoplay begun, so the bar reads as the
+        /// web's does: the pause button while there is more to play, the play
+        /// button once that segment's end is the collection's end.
+        /// </summary>
+        void StillTimeline(int count, double fallback, double startSec)
+        {
+            SegmentPlan plan = new SegmentPlan(count, fallback);
+            if (!double.IsNaN(renderClipSeconds))
+            {
+                List<double> probed = new List<double>();
+                for (int i = 0; i < count; i++) probed.Add(renderClipSeconds);
+                plan.SetProbed(probed);
+            }
+            int seg;
+            double local;
+            plan.FirstLoad(startSec, out seg, out local);
+            double at = plan.Start(seg) + Math.Min(local, plan.Duration(seg));
+            timeline.Tick(at, plan.Total);
+            if (firstLoad.Opened()) RaiseControls();
+            controls.SetPlaying(at < plan.Total, true);
+            ShowTimes();
         }
 
         /// <summary>selectDayCollection's startOffsetSec: 15 s before the event (its event.json read already), else 0.</summary>
@@ -771,6 +950,8 @@ namespace SentrySix.Ui.Builtin
             if (disposed) return null;
             relay = new MediaRelay(real);
             Player p = new Player(relay, ff, fp, paths, new TelemetryCache(real));
+            p.SetRate(playbackRate);
+            p.Tick += OnTick;
             foreach (string slot in GridGeometry.Slots) p.Attach(slot, grid.Surface(slot));
             p.SegmentOpened += i => grid.SegmentShown(p.View);
             if (grid.FocusSlot != null) p.SetFocus(grid.FocusSlot);
@@ -888,6 +1069,7 @@ namespace SentrySix.Ui.Builtin
 
         void RaiseControls()
         {
+            controls.SetEnabled(firstLoad.Enabled);
             Action h = ControlsChanged;
             if (h != null) h();
         }
@@ -901,6 +1083,15 @@ namespace SentrySix.Ui.Builtin
         void OnSegmentOpened(int index)
         {
             if (firstLoad.Opened()) RaiseControls();
+            // #autoplayToggle (checked): the collection plays once its first segment is in (paused again while put away)
+            Player p = Player;
+            if (autoplay && p != null)
+            {
+                autoplay = false;
+                p.Play();
+                everPlayed = true;
+                Played();
+            }
         }
 
         void OnSegmentFailed(int index, string why)

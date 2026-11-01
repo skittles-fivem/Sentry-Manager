@@ -254,9 +254,8 @@ camera at its own place, Front on top). viewer-swapped: a custom camera
 order (GET /api/studio/settings customCameraOrdersByProfile: Front and
 Back swapped, the pillars swapped). viewer-nomirror: Mirror Cameras off
 (mirrorCameras false). viewer-noglow: the Sentry day with Sentry Camera
-Glow off (sentryCameraHighlight false). The controls bar (and the HW4 /
-HW3 switch in it) is the next part, so the grid fills the stage natively
-while the web's stands above its controls.
+Glow off (sentryCameraHighlight false). The grid stands above the controls bar
+(part 6), which holds the HW4 / HW3 switch.
 
 Camera focus, zoom and pan (part 5): capture.js sends the steps to the
 tile in Studio's frame (a click, wheel steps, a drag from its centre, each
@@ -268,6 +267,27 @@ labels at 12 px. viewer-zoom: the back camera clicked, four wheel steps in
 (2x) and dragged 150 px left and 80 px up (pan -75, -40): the picture is
 not clipped to the tile (the grid clips it) and the zoom indicator
 ("2.0x") has faded by the time of the picture.
+
+The controls bar, timeline and scrubber (part 6): every Viewer render now
+has Studio's .controls under the video area (the time display, the speed
+list, skip back / play / skip forward, the timeline, HW4 / HW3 and the
+settings gear). Without a collection (viewer-novehicle, -scanning,
+-noclips, -readerror, -mixed) it reads 00:00:00 / 00:00:00 with the play
+button disabled (index.html's play_arrow). With one, the web probes the
+clips' length (2 s each) and starts playing; the fixture's
+`viewerClipSeconds` gives the native render that length, and it draws the
+first segment loaded with the autoplay begun: the time at the start (the
+event's 15 s lead held within its 2 s clip, as the video holds it) over
+the collection's total, the pause button while there is more to play,
+the play button where that clip's end is the collection's end
+(viewer-sentry, -saved: 00:02 / 00:02). Playwright's Chromium cannot
+decode the H.264 fixture clips, so the web's clock stays at the start (and
+in viewer-sentry its thumb rests at about three quarters, a leftover of
+the day picked before; the native thumb is at the end). viewer-speed: the
+speed this PC keeps (localStorage / prefs playbackRate "2": the list reads
+2x). viewer-skip: Settings > Skip Duration 10 (GET /api/studio/settings
+skipDuration 10): the skip buttons read 10 (their titles "Skip Backward
+10 seconds" / "Skip Forward 10 seconds").
 
 - builtin overview
 - builtin overview-off
@@ -342,6 +362,8 @@ not clipped to the tile (the grid clips it) and the zoom indicator
 - builtin viewer-noglow
 - builtin viewer-focus
 - builtin viewer-zoom
+- builtin viewer-speed
+- builtin viewer-skip
 
 ## The UI packs' pages (phases 4-7)
 

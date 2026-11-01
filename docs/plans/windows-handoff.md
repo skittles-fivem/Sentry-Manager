@@ -969,6 +969,55 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   size), wheel, drag and double-click by hand, Escape with the keyboard
   focus elsewhere in the window.
 
+### Phase 2: Viewer part 6, controls bar, timeline and scrubber (2026-11-01)
+
+- `Core/ViewerTimeline.cs` (C# 5): `TimeDisplay` (formatTimeHMS, the
+  collection's floor(position) / floor(total)), `PlaybackSpeeds`
+  (SPEED_OPTIONS, the restore from 'playbackRate', setPlaybackSpeed's
+  parseFloat || 1, bumpPlaybackSpeed, JavaScript's parseFloat),
+  `SkipLength` (getSetting('skipDuration') || 15, updateSkipLabels' words
+  and titles, skipSeconds' target, a text length joined as JavaScript's +
+  joins it), `ViewerTimeline` (#progressBar and the time display: Tick,
+  Seeked, Opened, PointerDown / Input / Change / PointerUp, the range's
+  whole steps), `ViewerControlsText`.
+- `Ui/Builtin/ViewerControls.cs`: `StudioControlsBar` (.controls, 60 px;
+  events PlayPressed, SkipPressed, SpeedPicked, SettingsPressed; Markers
+  is #timelineMarkers for part 7), `StudioControlButton` (.control-btn),
+  `StudioRange` (#progressBar: pointerdown, input, pointerup, change).
+  `StudioSelect.Show` (select.value without a change). The floating clip
+  list's max height now leaves the bar out.
+- `StudioViewer`: the bar under the video area (stage, empty screen and
+  loading overlay end 60 px up), enabled with ControlsEnabled, the
+  autoplay after a collection's first segment, the Player's Tick driving
+  the time and bar, the speed kept in the prefs ('playbackRate') and given
+  to the Player, `PlayPause`, `Skip`, `SetSpeed`, `BumpSpeed`, `Speed`,
+  `Controls`, `Timeline` (for part 12's keys and the packs' Viewer pages).
+  Play at the collection's end starts its last segment again (an ended
+  video plays from its start). The render test mode draws the first
+  segment loaded with the autoplay begun (`StillTimeline`), the clips'
+  length from the fixture's new `viewerClipSeconds`.
+- test/windowsNativeViewerTimeline.test.js runs the web's code and writes
+  Core.Tests/Fixtures/expected-viewer-timeline.json; Core.Tests
+  `ViewerTimelineTests` (3 tests, passing under mono; they fail when a
+  tick moves the bar during a seek, or a bump changes past an end).
+- capture.js: CLIP_SECONDS, the fixture's viewerClipSeconds, PAGES and
+  VARIANTS viewer-speed and viewer-skip; RenderFixture.json got those two
+  and viewerClipSeconds (the rest unchanged).
+- Not done here: event markers, dashboard, map, settings modal, keys,
+  export and the phone layout (parts 7-14), so `ViewerPage.Complete`
+  stays false and the Viewer and Footage's Play day / Play recording
+  still open the browser (Footage already calls `ViewerSlot.Open`, so they
+  land in the native Viewer once it is set).
+- Known differences: the speed list's stored rate outside 0.5x-4x plays at
+  the clock's nearest (the web's video takes it as it is); the native
+  scrubber holds the decoders while the bar is held and previews frames
+  (the web seeks its videos on every input, playing on); the bar is not a
+  keyboard stop yet (part 12).
+- To check on Windows: the dotnet build, every viewer render with the
+  bar against the web's, viewer-speed and viewer-skip; by hand: play,
+  pause, the skips, a drag along the bar while playing and paused, the
+  speed list, the end of a collection and play again.
+
 ## UI packs, phases 4-7 (the packs session, 2026-10-31)
 
 A separate session builds the four packs' pages natively while the other

@@ -250,8 +250,8 @@ is done when every item is ticked in both. Run on the owner's PC runner.
 - Phase 2 (built-in Viewer): in progress. The playback engine, the
   telemetry, the clip library (scan and grouping, part 2), the clip
   browser (the clip list panel, part 3), the six-camera grid on the
-  Player (part 4) and camera focus, zoom and pan (part 5) are written; the rest of the Viewer page (Studio's
-  controls bar, dashboard, map, settings modal, export:
+  Player (part 4), camera focus, zoom and pan (part 5) and the controls bar, timeline and scrubber (part 6) are written; the rest of the Viewer page (Studio's
+  event markers, dashboard, map, settings modal, keys, export, phone layout:
   `Ui/Builtin/ViewerPage.cs`) is not, so the Viewer
   still opens in the browser (`ViewerPage.Complete` stays false until it
   is all there; then its browser fallback goes and Footage's Play day /
@@ -491,6 +491,41 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   changed). Render list: viewer-focus, viewer-zoom (capture.js sends the
   steps to the tile in Studio's frame: frame kinds tile-click, tile-wheel,
   tile-pan; the native render replays the variant's viewerFocus).
+  Viewer part 6, the controls bar, timeline and scrubber (type-checked
+  with mcs, not yet built or rendered on Windows): `Core/ViewerTimeline.cs`
+  (`TimeDisplay`: formatTimeHMS and the collection's floor(position) /
+  floor(total); `PlaybackSpeeds`: SPEED_OPTIONS, the restore from
+  localStorage 'playbackRate' (this PC's prefs), setPlaybackSpeed and
+  bumpPlaybackSpeed; `SkipLength`: Settings > Skip Duration ||
+  15, the skip buttons' lengths and titles, skipSeconds' target;
+  `ViewerTimeline`: #progressBar and the time display following the clock
+  but not while the bar is held or a seek runs, a seek's target shown at
+  once, pointerdown / input / change / pointerup, the range's whole
+  steps) and `Ui/Builtin/ViewerControls.cs` (`StudioControlsBar`: .controls
+  60 px under the video area with #timeDisplay, #speedSelect, skip back
+  and forward with their lengths, #playBtn (play_arrow, then
+  updatePlayButton's SVGs), the timeline with #timelineMarkers over
+  #progressBar, #hardwareToggle and the settings gear; `StudioRange`;
+  `StudioControlButton`). The Viewer plays a collection once its first
+  segment is in (#autoplayToggle), the Player's tick drives the time and
+  bar, the drag previews and the release seeks and plays on when it
+  played, the end of the collection pauses (the clock), play there starts
+  the last segment again. For reuse (part 12's keys, the packs' Viewer
+  pages): `StudioViewer.PlayPause`, `Skip(forward)`, `SetSpeed`,
+  `BumpSpeed`, `Speed`, `Controls` (its `Markers` canvas is where part 7
+  draws), `Timeline`, `Player`; the Core classes above take no WPF.
+  test/windowsNativeViewerTimeline.test.js runs timeDisplay.js,
+  skipSeconds.js, playbackTiming.mjs, script.js's speed list, probe,
+  onMasterTimeUpdate, onMasterLoaded, seekNativeDayCollectionBySec (its
+  latest-wins queue on a pretend clock) and the progress bar's listeners,
+  and settingsModal.js's skip length (3 collections, 61 steps; 29 times,
+  19 stored rates, 30 bumps, 12 skip settings) and writes
+  Core.Tests/Fixtures/expected-viewer-timeline.json; Core.Tests
+  ViewerTimelineTests (3 tests, passing under mono). Render list: every
+  Viewer render now has the bar (the fixture's `viewerClipSeconds` is the
+  clips' length the web probes), viewer-speed (2x kept), viewer-skip (Skip
+  Duration 10). Phase 2 is not finished: `ViewerPage.Complete` stays false
+  until parts 7-14 are in.
 - Phase 3 (Encoder): not started; its page opens in the browser.
 - Phases 4-7 (the packs): in progress on wip, one pack at a time (this
   session works in its own files: `Core/Horizon/`, `Ui/Horizon/Hz*.cs`,
@@ -602,7 +637,11 @@ characters outside ASCII is ordered by .NET's invariant culture, not ICU's
 (event folders are timestamps); when the open collection is deleted the
 web's script, until its reload lands, sends the folder to the Recycle Bin a
 second time (nothing is left to move) and may flash a toast, the native
-Viewer starts over at once; the selects' option lists are WPF menus, not
+Viewer starts over at once; the Viewer's stored speed outside 0.5x-4x
+plays at the nearest of those (the web's video takes it as it is), its
+scrubber holds the decoders while the bar is held and previews frames
+(the web seeks on every input and plays on), and its bar is not a
+keyboard stop yet; the selects' option lists are WPF menus, not
 Chrome's popup; the clip list's scroll bar is the app's overlay bar; a
 folder read with no answer from the server reads "Failed to fetch" as the
 browser's; a camera's failure is given the MediaError code Chromium would

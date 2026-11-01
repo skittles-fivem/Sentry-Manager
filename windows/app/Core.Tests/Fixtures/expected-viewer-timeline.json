@@ -1,0 +1,1972 @@
+{
+ "times": [
+  {
+   "s": 0,
+   "text": "00:00"
+  },
+  {
+   "s": 0.4,
+   "text": "00:00"
+  },
+  {
+   "s": 0.999,
+   "text": "00:00"
+  },
+  {
+   "s": 1,
+   "text": "00:01"
+  },
+  {
+   "s": 9.99,
+   "text": "00:09"
+  },
+  {
+   "s": 59,
+   "text": "00:59"
+  },
+  {
+   "s": 59.999,
+   "text": "00:59"
+  },
+  {
+   "s": 60,
+   "text": "01:00"
+  },
+  {
+   "s": 61.5,
+   "text": "01:01"
+  },
+  {
+   "s": 599,
+   "text": "09:59"
+  },
+  {
+   "s": 600,
+   "text": "10:00"
+  },
+  {
+   "s": 3599.9,
+   "text": "59:59"
+  },
+  {
+   "s": 3600,
+   "text": "1:00:00"
+  },
+  {
+   "s": 3601,
+   "text": "1:00:01"
+  },
+  {
+   "s": 3661.5,
+   "text": "1:01:01"
+  },
+  {
+   "s": 7322,
+   "text": "2:02:02"
+  },
+  {
+   "s": 35999,
+   "text": "9:59:59"
+  },
+  {
+   "s": 36000,
+   "text": "10:00:00"
+  },
+  {
+   "s": 86399,
+   "text": "23:59:59"
+  },
+  {
+   "s": 86400,
+   "text": "24:00:00"
+  },
+  {
+   "s": 360000,
+   "text": "100:00:00"
+  },
+  {
+   "s": -0.5,
+   "text": "-1:-1"
+  },
+  {
+   "s": -1,
+   "text": "-1:-1"
+  },
+  {
+   "s": -61,
+   "text": "-2:-1"
+  },
+  {
+   "s": -3600,
+   "text": "00:00"
+  },
+  {
+   "s": -3601,
+   "text": "-1:-1"
+  },
+  {
+   "s": "NaN",
+   "text": "NaN:NaN"
+  },
+  {
+   "s": "Infinity",
+   "text": "Infinity:NaN:NaN"
+  },
+  {
+   "s": 1e-9,
+   "text": "00:00"
+  }
+ ],
+ "speeds": {
+  "options": [
+   {
+    "value": "0.5",
+    "label": "0.5x",
+    "selected": false
+   },
+   {
+    "value": "1",
+    "label": "1x",
+    "selected": true
+   },
+   {
+    "value": "2",
+    "label": "2x",
+    "selected": false
+   },
+   {
+    "value": "3",
+    "label": "3x",
+    "selected": false
+   },
+   {
+    "value": "4",
+    "label": "4x",
+    "selected": false
+   }
+  ],
+  "restore": [
+   {
+    "saved": null,
+    "rate": 1,
+    "select": "1"
+   },
+   {
+    "saved": "",
+    "rate": 1,
+    "select": "1"
+   },
+   {
+    "saved": "1",
+    "rate": 1,
+    "select": "1"
+   },
+   {
+    "saved": "0.5",
+    "rate": 0.5,
+    "select": "0.5"
+   },
+   {
+    "saved": "2",
+    "rate": 2,
+    "select": "2"
+   },
+   {
+    "saved": "3",
+    "rate": 3,
+    "select": "3"
+   },
+   {
+    "saved": "4",
+    "rate": 4,
+    "select": "4"
+   },
+   {
+    "saved": "1.5",
+    "rate": 1.5,
+    "select": "1.5"
+   },
+   {
+    "saved": "1.50",
+    "rate": 1.5,
+    "select": "1.5"
+   },
+   {
+    "saved": "2x",
+    "rate": 2,
+    "select": "2"
+   },
+   {
+    "saved": " 3",
+    "rate": 3,
+    "select": "3"
+   },
+   {
+    "saved": "abc",
+    "rate": 1,
+    "select": "1"
+   },
+   {
+    "saved": "0",
+    "rate": 1,
+    "select": "1"
+   },
+   {
+    "saved": "-1",
+    "rate": -1,
+    "select": "-1"
+   },
+   {
+    "saved": "7",
+    "rate": 7,
+    "select": "7"
+   },
+   {
+    "saved": "Infinity",
+    "rate": "Infinity",
+    "select": "Infinity"
+   },
+   {
+    "saved": ".5",
+    "rate": 0.5,
+    "select": "0.5"
+   },
+   {
+    "saved": "1e0",
+    "rate": 1,
+    "select": "1"
+   },
+   {
+    "saved": "+2",
+    "rate": 2,
+    "select": "2"
+   }
+  ],
+  "bump": [
+   {
+    "rate": 0.5,
+    "dir": 1,
+    "after": 1,
+    "select": "1",
+    "stored": "1"
+   },
+   {
+    "rate": 0.5,
+    "dir": -1,
+    "after": 0.5,
+    "select": "0.5",
+    "stored": null
+   },
+   {
+    "rate": 1,
+    "dir": 1,
+    "after": 2,
+    "select": "2",
+    "stored": "2"
+   },
+   {
+    "rate": 1,
+    "dir": -1,
+    "after": 0.5,
+    "select": "0.5",
+    "stored": "0.5"
+   },
+   {
+    "rate": 2,
+    "dir": 1,
+    "after": 3,
+    "select": "3",
+    "stored": "3"
+   },
+   {
+    "rate": 2,
+    "dir": -1,
+    "after": 1,
+    "select": "1",
+    "stored": "1"
+   },
+   {
+    "rate": 3,
+    "dir": 1,
+    "after": 4,
+    "select": "4",
+    "stored": "4"
+   },
+   {
+    "rate": 3,
+    "dir": -1,
+    "after": 2,
+    "select": "2",
+    "stored": "2"
+   },
+   {
+    "rate": 4,
+    "dir": 1,
+    "after": 4,
+    "select": "4",
+    "stored": null
+   },
+   {
+    "rate": 4,
+    "dir": -1,
+    "after": 3,
+    "select": "3",
+    "stored": "3"
+   },
+   {
+    "rate": 1.5,
+    "dir": 1,
+    "after": 2,
+    "select": "2",
+    "stored": "2"
+   },
+   {
+    "rate": 1.5,
+    "dir": -1,
+    "after": 0.5,
+    "select": "0.5",
+    "stored": "0.5"
+   },
+   {
+    "rate": 0.75,
+    "dir": 1,
+    "after": 1,
+    "select": "1",
+    "stored": "1"
+   },
+   {
+    "rate": 0.75,
+    "dir": -1,
+    "after": 0.5,
+    "select": "0.5",
+    "stored": "0.5"
+   },
+   {
+    "rate": 0.25,
+    "dir": 1,
+    "after": 1,
+    "select": "1",
+    "stored": "1"
+   },
+   {
+    "rate": 0.25,
+    "dir": -1,
+    "after": 0.5,
+    "select": "0.5",
+    "stored": "0.5"
+   },
+   {
+    "rate": 2.5,
+    "dir": 1,
+    "after": 3,
+    "select": "3",
+    "stored": "3"
+   },
+   {
+    "rate": 2.5,
+    "dir": -1,
+    "after": 1,
+    "select": "1",
+    "stored": "1"
+   },
+   {
+    "rate": 5,
+    "dir": 1,
+    "after": 4,
+    "select": "4",
+    "stored": "4"
+   },
+   {
+    "rate": 5,
+    "dir": -1,
+    "after": 3,
+    "select": "3",
+    "stored": "3"
+   },
+   {
+    "rate": 10,
+    "dir": 1,
+    "after": 4,
+    "select": "4",
+    "stored": "4"
+   },
+   {
+    "rate": 10,
+    "dir": -1,
+    "after": 3,
+    "select": "3",
+    "stored": "3"
+   },
+   {
+    "rate": 0,
+    "dir": 1,
+    "after": 2,
+    "select": "2",
+    "stored": "2"
+   },
+   {
+    "rate": 0,
+    "dir": -1,
+    "after": 0.5,
+    "select": "0.5",
+    "stored": "0.5"
+   },
+   {
+    "rate": -1,
+    "dir": 1,
+    "after": 1,
+    "select": "1",
+    "stored": "1"
+   },
+   {
+    "rate": -1,
+    "dir": -1,
+    "after": 0.5,
+    "select": "0.5",
+    "stored": "0.5"
+   },
+   {
+    "rate": 3.5,
+    "dir": 1,
+    "after": 4,
+    "select": "4",
+    "stored": "4"
+   },
+   {
+    "rate": 3.5,
+    "dir": -1,
+    "after": 2,
+    "select": "2",
+    "stored": "2"
+   },
+   {
+    "rate": 1.25,
+    "dir": 1,
+    "after": 2,
+    "select": "2",
+    "stored": "2"
+   },
+   {
+    "rate": 1.25,
+    "dir": -1,
+    "after": 0.5,
+    "select": "0.5",
+    "stored": "0.5"
+   }
+  ]
+ },
+ "skip": [
+  {
+   "setting": {
+    "$undefined": true
+   },
+   "duration": 15,
+   "backLabel": "15",
+   "forwardLabel": "15",
+   "backTitle": "Skip Backward 15 seconds",
+   "forwardTitle": "Skip Forward 15 seconds"
+  },
+  {
+   "setting": null,
+   "duration": 15,
+   "backLabel": "15",
+   "forwardLabel": "15",
+   "backTitle": "Skip Backward 15 seconds",
+   "forwardTitle": "Skip Forward 15 seconds"
+  },
+  {
+   "setting": 0,
+   "duration": 15,
+   "backLabel": "15",
+   "forwardLabel": "15",
+   "backTitle": "Skip Backward 15 seconds",
+   "forwardTitle": "Skip Forward 15 seconds"
+  },
+  {
+   "setting": 5,
+   "duration": 5,
+   "backLabel": "5",
+   "forwardLabel": "5",
+   "backTitle": "Skip Backward 5 seconds",
+   "forwardTitle": "Skip Forward 5 seconds"
+  },
+  {
+   "setting": 10,
+   "duration": 10,
+   "backLabel": "10",
+   "forwardLabel": "10",
+   "backTitle": "Skip Backward 10 seconds",
+   "forwardTitle": "Skip Forward 10 seconds"
+  },
+  {
+   "setting": 15,
+   "duration": 15,
+   "backLabel": "15",
+   "forwardLabel": "15",
+   "backTitle": "Skip Backward 15 seconds",
+   "forwardTitle": "Skip Forward 15 seconds"
+  },
+  {
+   "setting": 30,
+   "duration": 30,
+   "backLabel": "30",
+   "forwardLabel": "30",
+   "backTitle": "Skip Backward 30 seconds",
+   "forwardTitle": "Skip Forward 30 seconds"
+  },
+  {
+   "setting": 60,
+   "duration": 60,
+   "backLabel": "60",
+   "forwardLabel": "60",
+   "backTitle": "Skip Backward 60 seconds",
+   "forwardTitle": "Skip Forward 60 seconds"
+  },
+  {
+   "setting": "",
+   "duration": 15,
+   "backLabel": "15",
+   "forwardLabel": "15",
+   "backTitle": "Skip Backward 15 seconds",
+   "forwardTitle": "Skip Forward 15 seconds"
+  },
+  {
+   "setting": "20",
+   "duration": "20",
+   "backLabel": "20",
+   "forwardLabel": "20",
+   "backTitle": "Skip Backward 20 seconds",
+   "forwardTitle": "Skip Forward 20 seconds"
+  },
+  {
+   "setting": false,
+   "duration": 15,
+   "backLabel": "15",
+   "forwardLabel": "15",
+   "backTitle": "Skip Backward 15 seconds",
+   "forwardTitle": "Skip Forward 15 seconds"
+  },
+  {
+   "setting": 7.5,
+   "duration": 7.5,
+   "backLabel": "7.5",
+   "forwardLabel": "7.5",
+   "backTitle": "Skip Backward 7.5 seconds",
+   "forwardTitle": "Skip Forward 7.5 seconds"
+  }
+ ],
+ "collections": [
+  {
+   "name": "three Tesla minutes, one probe failing, the middle one shorter when it opens",
+   "profileId": "tesla",
+   "fallback": 60,
+   "probes": [
+    59.5,
+    null,
+    61
+   ],
+   "steps": [
+    {
+     "op": "probe",
+     "value": 0,
+     "current": "00:00",
+     "total": "03:00",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      119.5,
+      180.5
+     ],
+     "probed": [
+      59.5,
+      60,
+      61
+     ]
+    },
+    {
+     "op": "tick",
+     "seg": 0,
+     "t": 0,
+     "value": 0,
+     "current": "00:00",
+     "total": "03:00",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      119.5,
+      180.5
+     ]
+    },
+    {
+     "op": "tick",
+     "seg": 0,
+     "t": 12.7,
+     "value": 7.036011080332409,
+     "current": "00:12",
+     "total": "03:00",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      119.5,
+      180.5
+     ]
+    },
+    {
+     "op": "loaded",
+     "seg": 1,
+     "duration": 58,
+     "value": 7.036011080332409,
+     "current": "00:12",
+     "total": "03:00",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "fallback": 60
+    },
+    {
+     "op": "tick",
+     "seg": 1,
+     "t": 0.25,
+     "value": 33.47338935574229,
+     "current": "00:59",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ]
+    },
+    {
+     "op": "tick",
+     "seg": 2,
+     "t": 60.9,
+     "value": 99.94397759103641,
+     "current": "02:58",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ]
+    },
+    {
+     "op": "skip",
+     "seg": 0,
+     "t": 10,
+     "forward": false,
+     "value": 99.94397759103641,
+     "current": "02:58",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "target": 0
+    },
+    {
+     "op": "skip",
+     "seg": 0,
+     "t": 20,
+     "forward": true,
+     "value": 99.94397759103641,
+     "current": "02:58",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "target": 35
+    },
+    {
+     "op": "skip",
+     "seg": 2,
+     "t": 55,
+     "forward": true,
+     "value": 99.94397759103641,
+     "current": "02:58",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "target": 178.5
+    },
+    {
+     "op": "skip",
+     "seg": 1,
+     "t": 3,
+     "forward": false,
+     "duration": 30,
+     "value": 99.94397759103641,
+     "current": "02:58",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "target": 32.5
+    },
+    {
+     "op": "skip",
+     "seg": 2,
+     "t": 0,
+     "forward": true,
+     "duration": 5,
+     "value": 99.94397759103641,
+     "current": "02:58",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "target": 122.5
+    },
+    {
+     "op": "wait",
+     "ms": 200,
+     "value": 99.94397759103641,
+     "current": "02:58",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "at": {
+      "seg": 2,
+      "t": 0
+     }
+    },
+    {
+     "op": "down",
+     "playing": true,
+     "value": 99.94397759103641,
+     "current": "02:58",
+     "total": "02:58",
+     "scrubbing": true,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [],
+     "at": {
+      "seg": 2,
+      "t": 0
+     }
+    },
+    {
+     "op": "input",
+     "pct": 25,
+     "value": 25,
+     "current": "00:44",
+     "total": "02:58",
+     "playing": true,
+     "scrubbing": true,
+     "seeking": true,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [
+      44.625
+     ],
+     "at": {
+      "seg": 0,
+      "t": 44.625
+     }
+    },
+    {
+     "op": "tick",
+     "seg": 0,
+     "t": 44,
+     "scrubbing": true,
+     "value": 25,
+     "current": "00:44",
+     "total": "02:58",
+     "playing": true,
+     "seeking": true,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ]
+    },
+    {
+     "op": "input",
+     "pct": 50,
+     "value": 50,
+     "current": "00:44",
+     "total": "02:58",
+     "playing": true,
+     "scrubbing": true,
+     "seeking": true,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [
+      89.25
+     ],
+     "at": {
+      "seg": 0,
+      "t": 44
+     }
+    },
+    {
+     "op": "input",
+     "pct": 62,
+     "value": 62,
+     "current": "00:44",
+     "total": "02:58",
+     "playing": true,
+     "scrubbing": true,
+     "seeking": true,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [
+      110.67
+     ],
+     "at": {
+      "seg": 0,
+      "t": 44
+     }
+    },
+    {
+     "op": "wait",
+     "ms": 150,
+     "value": 62,
+     "current": "01:50",
+     "total": "02:58",
+     "playing": true,
+     "scrubbing": true,
+     "seeking": true,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "at": {
+      "seg": 1,
+      "t": 51.17
+     }
+    },
+    {
+     "op": "change",
+     "pct": 75,
+     "value": 75,
+     "current": "02:13",
+     "total": "02:58",
+     "playing": true,
+     "scrubbing": false,
+     "seeking": true,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [
+      133.875
+     ],
+     "at": {
+      "seg": 2,
+      "t": 16.375
+     }
+    },
+    {
+     "op": "up",
+     "value": 75,
+     "current": "02:13",
+     "total": "02:58",
+     "playing": true,
+     "scrubbing": false,
+     "seeking": true,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [],
+     "at": {
+      "seg": 2,
+      "t": 16.375
+     }
+    },
+    {
+     "op": "wait",
+     "ms": 300,
+     "value": 75,
+     "current": "02:13",
+     "total": "02:58",
+     "playing": true,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "at": {
+      "seg": 2,
+      "t": 16.375
+     }
+    },
+    {
+     "op": "tick",
+     "seg": 2,
+     "t": 4,
+     "value": 68.0672268907563,
+     "current": "02:01",
+     "total": "02:58",
+     "playing": true,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ]
+    },
+    {
+     "op": "down",
+     "playing": false,
+     "value": 68.0672268907563,
+     "current": "02:01",
+     "total": "02:58",
+     "scrubbing": true,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [],
+     "at": {
+      "seg": 2,
+      "t": 4
+     }
+    },
+    {
+     "op": "input",
+     "pct": 100,
+     "value": 100,
+     "current": "02:58",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": true,
+     "seeking": true,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [
+      178.5
+     ],
+     "at": {
+      "seg": 2,
+      "t": 61
+     }
+    },
+    {
+     "op": "change",
+     "pct": 100,
+     "value": 100,
+     "current": "02:58",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": true,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [
+      178.5
+     ],
+     "at": {
+      "seg": 2,
+      "t": 61
+     }
+    },
+    {
+     "op": "up",
+     "value": 100,
+     "current": "02:58",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": true,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [],
+     "at": {
+      "seg": 2,
+      "t": 61
+     }
+    },
+    {
+     "op": "wait",
+     "ms": 300,
+     "value": 100,
+     "current": "02:58",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "at": {
+      "seg": 2,
+      "t": 61
+     }
+    },
+    {
+     "op": "down",
+     "playing": false,
+     "value": 100,
+     "current": "02:58",
+     "total": "02:58",
+     "scrubbing": true,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [],
+     "at": {
+      "seg": 2,
+      "t": 61
+     }
+    },
+    {
+     "op": "input",
+     "pct": 0,
+     "value": 0,
+     "current": "00:00",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": true,
+     "seeking": true,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [
+      0
+     ],
+     "at": {
+      "seg": 0,
+      "t": 0
+     }
+    },
+    {
+     "op": "up",
+     "value": 0,
+     "current": "00:00",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": true,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [],
+     "at": {
+      "seg": 0,
+      "t": 0
+     }
+    },
+    {
+     "op": "change",
+     "pct": 0,
+     "value": 0,
+     "current": "00:00",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": true,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "requested": [
+      0
+     ],
+     "at": {
+      "seg": 0,
+      "t": 0
+     }
+    },
+    {
+     "op": "wait",
+     "ms": 300,
+     "value": 0,
+     "current": "00:00",
+     "total": "02:58",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      59.5,
+      117.5,
+      178.5
+     ],
+     "at": {
+      "seg": 0,
+      "t": 0
+     }
+    }
+   ],
+   "played": 3
+  },
+  {
+   "name": "the fixture day: two clips of 2 s",
+   "profileId": "tesla",
+   "fallback": 60,
+   "probes": [
+    2,
+    2
+   ],
+   "steps": [
+    {
+     "op": "probe",
+     "value": 0,
+     "current": "00:00",
+     "total": "00:04",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      2,
+      4
+     ],
+     "probed": [
+      2,
+      2
+     ]
+    },
+    {
+     "op": "tick",
+     "seg": 0,
+     "t": 0,
+     "value": 0,
+     "current": "00:00",
+     "total": "00:04",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      2,
+      4
+     ]
+    },
+    {
+     "op": "loaded",
+     "seg": 0,
+     "duration": 2,
+     "value": 0,
+     "current": "00:00",
+     "total": "00:04",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      2,
+      4
+     ],
+     "fallback": 60
+    },
+    {
+     "op": "tick",
+     "seg": 0,
+     "t": 1.3,
+     "value": 32.5,
+     "current": "00:01",
+     "total": "00:04",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      2,
+      4
+     ]
+    },
+    {
+     "op": "tick",
+     "seg": 1,
+     "t": 2,
+     "value": 100,
+     "current": "00:04",
+     "total": "00:04",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      2,
+      4
+     ]
+    },
+    {
+     "op": "skip",
+     "seg": 0,
+     "t": 1,
+     "forward": true,
+     "value": 100,
+     "current": "00:04",
+     "total": "00:04",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      2,
+      4
+     ],
+     "target": 4
+    },
+    {
+     "op": "skip",
+     "seg": 0,
+     "t": 1,
+     "forward": false,
+     "value": 100,
+     "current": "00:04",
+     "total": "00:04",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      2,
+      4
+     ],
+     "target": 0
+    },
+    {
+     "op": "wait",
+     "ms": 200,
+     "value": 100,
+     "current": "00:04",
+     "total": "00:04",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      2,
+      4
+     ],
+     "at": {
+      "seg": 0,
+      "t": 1
+     }
+    },
+    {
+     "op": "down",
+     "playing": true,
+     "value": 100,
+     "current": "00:04",
+     "total": "00:04",
+     "scrubbing": true,
+     "seeking": false,
+     "starts": [
+      0,
+      2,
+      4
+     ],
+     "requested": [],
+     "at": {
+      "seg": 0,
+      "t": 1
+     }
+    },
+    {
+     "op": "input",
+     "pct": 33,
+     "value": 33,
+     "current": "00:01",
+     "total": "00:04",
+     "playing": true,
+     "scrubbing": true,
+     "seeking": true,
+     "starts": [
+      0,
+      2,
+      4
+     ],
+     "requested": [
+      1.32
+     ],
+     "at": {
+      "seg": 0,
+      "t": 1.32
+     }
+    },
+    {
+     "op": "change",
+     "pct": 33,
+     "value": 33,
+     "current": "00:01",
+     "total": "00:04",
+     "playing": true,
+     "scrubbing": false,
+     "seeking": true,
+     "starts": [
+      0,
+      2,
+      4
+     ],
+     "requested": [
+      1.32
+     ],
+     "at": {
+      "seg": 0,
+      "t": 1.32
+     }
+    },
+    {
+     "op": "up",
+     "value": 33,
+     "current": "00:01",
+     "total": "00:04",
+     "playing": true,
+     "scrubbing": false,
+     "seeking": true,
+     "starts": [
+      0,
+      2,
+      4
+     ],
+     "requested": [],
+     "at": {
+      "seg": 0,
+      "t": 1.32
+     }
+    },
+    {
+     "op": "tick",
+     "seg": 0,
+     "t": 1.5,
+     "value": 33,
+     "current": "00:01",
+     "total": "00:04",
+     "playing": true,
+     "scrubbing": false,
+     "seeking": true,
+     "starts": [
+      0,
+      2,
+      4
+     ]
+    },
+    {
+     "op": "wait",
+     "ms": 300,
+     "value": 33,
+     "current": "00:01",
+     "total": "00:04",
+     "playing": true,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      2,
+      4
+     ],
+     "at": {
+      "seg": 0,
+      "t": 1.32
+     }
+    },
+    {
+     "op": "tick",
+     "seg": 0,
+     "t": 1.6,
+     "value": 40,
+     "current": "00:01",
+     "total": "00:04",
+     "playing": true,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      2,
+      4
+     ]
+    }
+   ],
+   "played": 2
+  },
+  {
+   "name": "an hour and more of GM segments, none probed",
+   "profileId": "gm_surroundvision",
+   "fallback": 300,
+   "probes": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "steps": [
+    {
+     "op": "probe",
+     "value": 0,
+     "current": "00:00",
+     "total": "1:10:00",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4200
+     ],
+     "probed": [
+      300,
+      300,
+      300,
+      300,
+      300,
+      300,
+      300,
+      300,
+      300,
+      300,
+      300,
+      300,
+      300,
+      300
+     ]
+    },
+    {
+     "op": "tick",
+     "seg": 0,
+     "t": 0,
+     "value": 0,
+     "current": "00:00",
+     "total": "1:10:00",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4200
+     ]
+    },
+    {
+     "op": "tick",
+     "seg": 12,
+     "t": 299.9,
+     "value": 92.8547619047619,
+     "current": "1:04:59",
+     "total": "1:10:00",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4200
+     ]
+    },
+    {
+     "op": "loaded",
+     "seg": 13,
+     "duration": 0,
+     "value": 92.8547619047619,
+     "current": "1:04:59",
+     "total": "1:10:00",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4200
+     ],
+     "fallback": 300
+    },
+    {
+     "op": "loaded",
+     "seg": 13,
+     "duration": 120.4,
+     "value": 92.8547619047619,
+     "current": "1:04:59",
+     "total": "1:10:00",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4020.4
+     ],
+     "fallback": 300
+    },
+    {
+     "op": "tick",
+     "seg": 13,
+     "t": 120.4,
+     "value": 100,
+     "current": "1:07:00",
+     "total": "1:07:00",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4020.4
+     ]
+    },
+    {
+     "op": "skip",
+     "seg": 13,
+     "t": 120,
+     "forward": true,
+     "duration": 60,
+     "value": 100,
+     "current": "1:07:00",
+     "total": "1:07:00",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4020.4
+     ],
+     "target": 4020.4
+    },
+    {
+     "op": "wait",
+     "ms": 200,
+     "value": 100,
+     "current": "1:07:00",
+     "total": "1:07:00",
+     "playing": false,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4020.4
+     ],
+     "at": {
+      "seg": 13,
+      "t": 120
+     }
+    },
+    {
+     "op": "down",
+     "playing": true,
+     "value": 100,
+     "current": "1:07:00",
+     "total": "1:07:00",
+     "scrubbing": true,
+     "seeking": false,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4020.4
+     ],
+     "requested": [],
+     "at": {
+      "seg": 13,
+      "t": 120
+     }
+    },
+    {
+     "op": "input",
+     "pct": 99,
+     "value": 99,
+     "current": "1:06:20",
+     "total": "1:07:00",
+     "playing": true,
+     "scrubbing": true,
+     "seeking": true,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4020.4
+     ],
+     "requested": [
+      3980.196
+     ],
+     "at": {
+      "seg": 13,
+      "t": 80.19599999999991
+     }
+    },
+    {
+     "op": "input",
+     "pct": 1,
+     "value": 1,
+     "current": "1:06:20",
+     "total": "1:07:00",
+     "playing": true,
+     "scrubbing": true,
+     "seeking": true,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4020.4
+     ],
+     "requested": [
+      40.204
+     ],
+     "at": {
+      "seg": 13,
+      "t": 80.19599999999991
+     }
+    },
+    {
+     "op": "change",
+     "pct": 1,
+     "value": 1,
+     "current": "1:06:20",
+     "total": "1:07:00",
+     "playing": true,
+     "scrubbing": false,
+     "seeking": true,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4020.4
+     ],
+     "requested": [
+      40.204
+     ],
+     "at": {
+      "seg": 13,
+      "t": 80.19599999999991
+     }
+    },
+    {
+     "op": "up",
+     "value": 1,
+     "current": "1:06:20",
+     "total": "1:07:00",
+     "playing": true,
+     "scrubbing": false,
+     "seeking": true,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4020.4
+     ],
+     "requested": [],
+     "at": {
+      "seg": 13,
+      "t": 80.19599999999991
+     }
+    },
+    {
+     "op": "wait",
+     "ms": 300,
+     "value": 1,
+     "current": "00:40",
+     "total": "1:07:00",
+     "playing": true,
+     "scrubbing": false,
+     "seeking": false,
+     "starts": [
+      0,
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2100,
+      2400,
+      2700,
+      3000,
+      3300,
+      3600,
+      3900,
+      4020.4
+     ],
+     "at": {
+      "seg": 0,
+      "t": 40.204
+     }
+    }
+   ],
+   "played": 2
+  }
+ ],
+ "html": {
+  "speedTitle": "Playback speed",
+  "skipBackTitle": "Skip back 15 seconds",
+  "skipForwardTitle": "Skip forward 15 seconds",
+  "settingsTitle": "Settings",
+  "time": [
+   "00:00:00",
+   "00:00:00"
+  ]
+ }
+}

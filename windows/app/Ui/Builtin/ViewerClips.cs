@@ -146,6 +146,13 @@ namespace SentrySix.Ui.Builtin
             Paint();
         }
 
+        /// <summary>select.value = v without a change event: that option shown, or none (blank) when no option has it.</summary>
+        public void Show(string v)
+        {
+            value = v ?? "";
+            Paint();
+        }
+
         int Index()
         {
             for (int i = 0; i < options.Count; i++) if (options[i].Key == value) return i;
@@ -610,7 +617,8 @@ namespace SentrySix.Ui.Builtin
             else
             {
                 w = Math.Max(0, Math.Min(340, W - 40));
-                maxH = Math.Max(0, H - 100);
+                // (100% of the video area: the Viewer less the 60 px controls bar under it)
+                maxH = Math.Max(0, H - StudioControlsBar.Height60 - 100);
                 m = new Thickness(20, 50, 0, 0);
             }
             // (the shadow box under the panel takes the panel's size)

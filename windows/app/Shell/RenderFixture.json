@@ -4,6 +4,7 @@
  "now": "2026-10-31T15:51:06",
  "live": true,
  "vehicle": "model-3",
+ "viewerClipSeconds": 2,
  "api": {
   "GET /api/auth/me": {
    "user": "admin",
@@ -17777,6 +17778,21 @@
      ]
     ]
    ]
+  },
+  "viewer-speed": {
+   "route": "viewer",
+   "prefs": {
+    "playbackRate": "2"
+   }
+  },
+  "viewer-skip": {
+   "route": "viewer",
+   "api": {
+    "GET /api/studio/settings": {
+     "timeFormat": "12h",
+     "skipDuration": 10
+    }
+   }
   }
  },
  "prefs": {}
