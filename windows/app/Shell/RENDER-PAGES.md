@@ -394,3 +394,19 @@ their right ends can differ by a sample or two.
 - horizon dashboard-long
 - horizon dashboard-idle
 - horizon dashboard-logs-all
+### Flux: Nodes
+
+The node cards, Pair a node and "Let another server use this one"
+(flux/pages/nodes.js) on the same answers as the built-in Nodes page's
+states: nodes-empty (the fixture server's own answer: no nodes), nodes
+(an online node with its GPUs, a vehicle first and a finished benchmark;
+an offline one; a pairing code; a main server), nodes-running (a
+benchmark running: Cancel, the Benchmark buttons waiting), nodes-noworker
+(TLS_MODE=off) and nodes-closed (no nodes, a pairing code). One column at
+1180 px and less.
+
+- flux nodes-empty
+- flux nodes
+- flux nodes-running
+- flux nodes-noworker
+- flux nodes-closed
