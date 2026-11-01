@@ -19,7 +19,7 @@ namespace SentrySix.Ui.Flux
     /// another vehicle is picked.
     /// </summary>
     [PackPage("flux", "jobs")]
-    public sealed class FxJobsPage : IPackPage
+    public sealed class FxJobsPage : IPackPage, IPackCommands
     {
         readonly FxJobs m = new FxJobs();
         PackPageContext ctx;
@@ -142,6 +142,12 @@ namespace SentrySix.Ui.Flux
                 try { await m.Load(ctx.Api, Car(), CancellationToken.None); } catch (Exception) { }
                 Draw();
             });
+        }
+
+        /// <summary>commands(): "Clear finished jobs".</summary>
+        public IList<PackCommand> Commands()
+        {
+            return new List<PackCommand> { new PackCommand("Jobs", FxJobs.CommandLabel, "jobs", () => { Clear(); }) };
         }
 
         public void OnTopics(HashSet<string> topics)

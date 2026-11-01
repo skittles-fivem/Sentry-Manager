@@ -167,7 +167,14 @@ namespace SentrySix.Ui.Flux
         static Flex Body(IList<HzPara> paras, params UIElement[] more)
         {
             Flex f = Flex.Col(8);
-            if (paras != null) foreach (HzPara p in paras) f.Children.Add(FxKit.Rich(p.Text, 13.5, (" " + p.Class + " ").Contains(" muted ") ? "muted" : "text-2"));
+            if (paras != null)
+                foreach (HzPara p in paras)
+                {
+                    // .dlg-body (13.5px, text-2); p.muted, p.faint, .small (12.5px) as written
+                    string c = " " + (p.Class ?? "") + " ";
+                    string color = c.Contains(" muted ") ? "muted" : c.Contains(" faint ") ? "faint" : "text-2";
+                    f.Children.Add(FxKit.Rich(p.Text, c.Contains(" small ") ? 12.5 : 13.5, color));
+                }
             foreach (UIElement x in more) if (x != null) f.Children.Add(x);
             return f;
         }

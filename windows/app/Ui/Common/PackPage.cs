@@ -28,6 +28,27 @@ namespace SentrySix.Ui
         bool OnCar();
     }
 
+    /// <summary>A command a page offers its shell's command palette (Flux's page commands()).</summary>
+    public sealed class PackCommand
+    {
+        public string Group, Label, Icon, Hint;
+        public Action Run;
+
+        public PackCommand(string group, string label, string icon, Action run)
+        {
+            Group = group;
+            Label = label;
+            Icon = icon;
+            Run = run;
+        }
+    }
+
+    /// <summary>A pack page with commands for its shell's palette (commands() of the page module).</summary>
+    public interface IPackCommands
+    {
+        IList<PackCommand> Commands();
+    }
+
     /// <summary>The second argument of a pack page's mount(): sub path, query, go, status, alive.</summary>
     public sealed class PackPageContext
     {
@@ -92,6 +113,7 @@ namespace SentrySix.Ui
             shell = ctx.Shell;
             root.Focusable = false;
             root.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+            hosts.Add(root, this);
             if (shell != null)
             {
                 Action<HashSet<string>> onChanged = OnChanged;
@@ -124,6 +146,16 @@ namespace SentrySix.Ui
         public FrameworkElement Root { get { return root; } }
 
         public IPackPage Page { get { return page; } }
+
+        static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FrameworkElement, PackHost> hosts = new System.Runtime.CompilerServices.ConditionalWeakTable<FrameworkElement, PackHost>();
+
+        /// <summary>The pack page mounted in a shell's page content (null for none, or one still loading).</summary>
+        public static IPackPage PageOf(object content)
+        {
+            FrameworkElement fe = content as FrameworkElement;
+            PackHost h;
+            return fe != null && hosts.TryGetValue(fe, out h) && !h.closed ? h.page : null;
+        }
 
         async void Mount()
         {

@@ -27,7 +27,7 @@ namespace SentrySix.Ui.Flux
     /// has the focus.
     /// </summary>
     [PackPage("flux", "nodes")]
-    public sealed class FxNodesPage : IPackPage
+    public sealed class FxNodesPage : IPackPage, IPackCommands
     {
         readonly FxNodes m = new FxNodes();
         PackPageContext ctx;
@@ -68,6 +68,12 @@ namespace SentrySix.Ui.Flux
         public bool OnCar() { return false; }
 
         /// <summary>The palette's "Show a pairing code" (commands()): Show pairing code's click, when that button is there.</summary>
+        /// <summary>commands(): "Show a pairing code" (clicks the page's own button).</summary>
+        public IList<PackCommand> Commands()
+        {
+            return new List<PackCommand> { new PackCommand(FxNodes.CommandGroup, FxNodes.CommandLabel, FxNodes.CommandIcon, ShowPairingCommand) };
+        }
+
         public void ShowPairingCommand()
         {
             if (gone || !FxNodes.CanShowPairing(shown)) return;
