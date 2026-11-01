@@ -792,7 +792,10 @@ is done when every item is ticked in both. Run on the owner's PC runner.
   per part above for the logic.
 - Phase 3 (Encoder): not started; its page opens in the browser.
   (Phase 2's notes, part 15, applied: the Viewer's browser fallback is
-  removed and Footage's Play day / Play recording open the native Viewer.)
+  removed and Footage's Play day / Play recording open the native Viewer.
+  The packs' own Footage pages go to their own #/viewer routes, which keep
+  their "opens in the browser" panel until the packs session draws them on
+  `ViewerSlot` / `StudioViewer`.)
 - Phases 4-7 (the packs): in progress on wip, one pack at a time (this
   session works in its own files: `Core/Horizon/`, `Ui/Horizon/Hz*.cs`,
   later `Core/Flux/`, `Ui/Flux/Fx*.cs` …). Shared pieces, added once for

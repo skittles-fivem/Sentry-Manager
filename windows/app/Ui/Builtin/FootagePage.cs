@@ -20,9 +20,10 @@ namespace SentrySix.Ui.Builtin
     /// it asks and every word come from Core's Footage; this draws it in
     /// web/shell.css's look, with its 1100 px and 760 px rules. What the page
     /// keeps between visits (the filter, page, selection, open days) is the
-    /// shell's PageState["footage"]. Play day, Play recording and Review
-    /// conversion open the Viewer and the Encoder, which open in the browser
-    /// until they are drawn here (phases 2 and 3).
+    /// shell's PageState["footage"]. Play day and Play recording open the
+    /// native Viewer (ViewerSlot.Open with { date } or { folder }, as
+    /// openStudio('viewer', ...)); Review conversion opens the Encoder, which
+    /// opens in the browser until it is drawn here (phase 3).
     /// </summary>
     public sealed class FootagePage : INativePage, IRedrawnPage
     {

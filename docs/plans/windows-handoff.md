@@ -1392,7 +1392,13 @@ New files, all inside the plan's own `windows/app/**` and `tools/parity/**`:
   `BuiltinInterface.Page` are gone; "viewer" is a native page, so the
   nav, Footage's Play day ({ date }) and Play recording ({ folder }) show
   the native Viewer. The language-level and expected-*.json notes of part
-  15 were already met by parts 0-13.
+  15 were already met by parts 0-13. Checked again in its own stage: no
+  `ViewerPage.Complete` left, the nav and both Footage buttons reach
+  `ViewerSlot.Open` / `shell.Navigate("viewer")` with the page native, so
+  `AppController.Navigate` no longer opens the browser for it; FootagePage's
+  summary no longer says the Viewer opens in the browser. The packs' Footage
+  pages (Flux's `PlayDay`, Horizon's) go to their own #/viewer, which is the
+  packs session's to draw on `ViewerSlot` / `StudioViewer`.
 - Not ported: Leaflet's two-finger pinch zoom on the map.
 - To check on Windows: the dotnet build; touch on a real touch screen
   (the promotion of untouched fingers to the mouse, the drags); the two
