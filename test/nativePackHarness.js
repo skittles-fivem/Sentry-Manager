@@ -558,7 +558,7 @@ function asFunction(src) {
   return { body, names };
 }
 
-const GLOBALS = ['window', 'document', 'location', 'history', 'navigator', 'localStorage', 'sessionStorage', 'matchMedia', 'fetch', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'cancelAnimationFrame', 'queueMicrotask', 'Date', 'FormData', 'URLSearchParams', 'URL', 'Event', 'CustomEvent', 'KeyboardEvent', 'HTMLElement', 'Element', 'Node', 'getComputedStyle', 'ResizeObserver', 'IntersectionObserver', 'MutationObserver', 'AbortController', 'Image', 'EventSource', 'innerWidth', 'innerHeight', 'devicePixelRatio', 'performance', 'alert', 'confirm', 'prompt', 'open', 'scrollTo', 'addEventListener', 'removeEventListener', 'dispatchEvent', 'globalThis', 'self', 'console', 'crypto', 'Blob', 'File', 'FileReader', 'TextDecoder', 'TextEncoder'];
+const GLOBALS = ['window', 'document', 'location', 'history', 'navigator', 'localStorage', 'sessionStorage', 'matchMedia', 'fetch', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'cancelAnimationFrame', 'queueMicrotask', 'Date', 'FormData', 'URLSearchParams', 'URL', 'Event', 'CustomEvent', 'KeyboardEvent', 'HTMLElement', 'Element', 'Node', 'getComputedStyle', 'ResizeObserver', 'IntersectionObserver', 'MutationObserver', 'AbortController', 'Image', 'EventSource', 'innerWidth', 'innerHeight', 'devicePixelRatio', 'performance', 'alert', 'confirm', 'prompt', 'open', 'scrollTo', 'addEventListener', 'removeEventListener', 'dispatchEvent', 'globalThis', 'self', 'console', 'crypto', 'Blob', 'File', 'FileReader', 'TextDecoder', 'TextEncoder', 'EventTarget'];
 
 /**
  * A shipped pack's scripts with everything around them pretended.
@@ -695,7 +695,14 @@ function loadPack(pack, o = {}) {
     File: class {},
     FileReader: class {},
     TextDecoder,
-    TextEncoder
+    TextEncoder,
+    // (a page's own event bus: Node's EventTarget takes only Node's events, not the pretend ones)
+    EventTarget: class {
+      constructor() { Object.defineProperty(this, '_on', { value: {}, enumerable: false }); }
+      addEventListener(t, fn) { if (fn) (this._on[t] = this._on[t] || []).push(fn); }
+      removeEventListener(t, fn) { this._on[t] = (this._on[t] || []).filter((f) => f !== fn); }
+      dispatchEvent(ev) { for (const fn of [...(this._on[ev.type] || [])]) { if (typeof fn === 'function') fn.call(this, ev); else fn.handleEvent(ev); } return true; }
+    }
   };
   Object.assign(win, globals, { window: win });
   // ---- the reader's answers

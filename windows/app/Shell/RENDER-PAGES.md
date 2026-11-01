@@ -517,3 +517,18 @@ pictures are scrolled to the boxes it clicked; the native ones are not.
 - flux footage-novehicle
 - flux footage-long
 - flux footage-selected
+
+### Aurora: Jobs
+
+The timeline (aurora/pages/jobs.js) in the pack's glass window on the
+built-in Jobs page's states, asked as GET /api/jobs (Aurora's own scope is
+"All vehicles", and the fixture has one vehicle, so no select): jobs,
+jobs-empty (the orb, Clear finished disabled), jobs-running-only (Clear
+finished disabled), jobs-long, jobs-error (main.js's "Something went
+wrong" with Try again in the window; Clear finished stays).
+
+- aurora jobs
+- aurora jobs-empty
+- aurora jobs-running-only
+- aurora jobs-long
+- aurora jobs-error
