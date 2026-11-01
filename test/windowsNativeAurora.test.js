@@ -70,3 +70,14 @@ test('native app: Aurora\'s aurora/core.js formatters match windows/app/Core.Tes
   assert.equal(by('energy', 412.6), '413 Wh');
   expectFixture(assert, 'expected-aurora-format.json', { about: 'Written by test/windowsNativeAurora.test.js from examples/ui-packs/aurora/web/aurora/core.js; checked by windows/app/Core.Tests (AuroraFormatTests.cs, SentrySix.Core.Aurora.Au).', now: NOW, cases }, 'Aurora\'s core.js formatting changed: rewrite the file with UPDATE_NATIVE_PARITY=1 and port the change to windows/app/Core/Aurora/Au.cs');
 });
+
+test('native app: windows/app/Ui/Aurora/AuIcons.cs is Aurora\'s sprite, symbol for symbol', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const { readSrc, REPO } = require('./nativePackHarness');
+  const want = [...readSrc('aurora', 'index.html').matchAll(/<symbol id="i-([^"]+)"[^>]*>([\s\S]*?)<\/symbol>/g)].map((m) => [m[1], m[2].trim().replace(/\s+/g, ' ')]);
+  const cs = fs.readFileSync(path.join(REPO, 'windows/app/Ui/Aurora/AuIcons.cs'), 'utf8');
+  const have = [...cs.matchAll(/\{ "([a-z0-9-]+)", "((?:[^"\\]|\\.)*)" \}/g)].map((m) => [m[1], JSON.parse(`"${m[2]}"`)]);
+  assert.ok(want.length > 40, 'the sprite is read');
+  assert.deepEqual(have, want, 'regenerate AuIcons.cs from index.html\'s <symbol>s');
+});
