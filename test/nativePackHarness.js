@@ -46,14 +46,14 @@ class Text {
 
 function parse(html, doc, parent) {
   const out = [];
-  const stack = [{ children: out, root: true }];
+  const stack = [{ nodes: out, root: true }];
   const re = /<!--[\s\S]*?-->|<[^>]*>|[^<]+/g;
   let m;
   const src = String(html);
   while ((m = re.exec(src))) {
     const t = m[0];
     const cur = stack[stack.length - 1];
-    if (t[0] !== '<') { const x = new Text(decode(t)); x.parent = cur.root ? parent : cur; cur.children.push(x); continue; }
+    if (t[0] !== '<') { const x = new Text(decode(t)); x.parent = cur.root ? parent : cur; cur.nodes.push(x); continue; }
     if (t.startsWith('<!')) continue;
     if (t[1] === '/') {
       const tag = /^<\/([a-zA-Z0-9-]+)/.exec(t)[1].toLowerCase();
@@ -61,7 +61,7 @@ function parse(html, doc, parent) {
       continue;
     }
     const tm = /^<([a-zA-Z0-9-]+)/.exec(t);
-    if (!tm) { cur.children.push(new Text(t)); continue; }
+    if (!tm) { cur.nodes.push(new Text(t)); continue; }
     const tag = tm[1].toLowerCase();
     const attrs = new Map();
     for (const a of t.slice(tm[0].length).matchAll(/\s([a-zA-Z_:][a-zA-Z0-9_:.-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"']+)))?/g)) {
@@ -70,11 +70,11 @@ function parse(html, doc, parent) {
     }
     const n = new El(tag, attrs, doc);
     n.parent = cur.root ? parent : cur;
-    cur.children.push(n);
+    cur.nodes.push(n);
     if (RAW.has(tag)) {
       const end = src.indexOf(`</${tag}`, re.lastIndex);
       const body = src.slice(re.lastIndex, end < 0 ? src.length : end);
-      if (body) { const x = new Text(body); x.parent = n; n.children.push(x); }
+      if (body) { const x = new Text(body); x.parent = n; n.nodes.push(x); }
       re.lastIndex = end < 0 ? src.length : src.indexOf('>', end) + 1;
       continue;
     }
@@ -97,7 +97,7 @@ class El {
     this.nodeName = this.tagName;
     this.nodeType = 1;
     this.attrs = attrs || new Map();
-    this.children = [];
+    this.nodes = [];
     this.parent = null;
     this.doc = doc;
     this.listeners = {};
@@ -231,10 +231,12 @@ class El {
   submit() { this.dispatch('submit'); }
 
   // ---- tree
-  get childNodes() { return this.children; }
-  get firstChild() { return this.children[0] || null; }
-  get lastChild() { return this.children[this.children.length - 1] || null; }
-  get elementKids() { return this.children.filter((c) => c instanceof El); }
+  get childNodes() { return this.nodes; }
+  /** Elements only, as the DOM's children is (text nodes are in childNodes). */
+  get children() { return this.nodes.filter((c) => c instanceof El); }
+  get firstChild() { return this.nodes[0] || null; }
+  get lastChild() { return this.nodes[this.nodes.length - 1] || null; }
+  get elementKids() { return this.nodes.filter((c) => c instanceof El); }
   get firstElementChild() { return this.elementKids[0] || null; }
   get lastElementChild() { const k = this.elementKids; return k[k.length - 1] || null; }
   get childElementCount() { return this.elementKids.length; }
@@ -246,27 +248,27 @@ class El {
   contains(n) { for (let x = n; x; x = x.parent) if (x === this) return true; return false; }
   adopt(n) {
     if (typeof n === 'string') n = new Text(n);
-    if (n.parent && n.parent.children) n.parent.children = n.parent.children.filter((c) => c !== n);
+    if (n.parent && n.parent.nodes) n.parent.nodes = n.parent.nodes.filter((c) => c !== n);
     n.parent = this;
     return n;
   }
-  append(...ns) { for (const n of ns) { this.children.push(this.adopt(n)); if (this.doc.onAppend && n instanceof El) this.doc.onAppend(this, n); } }
+  append(...ns) { for (const n of ns) { this.nodes.push(this.adopt(n)); if (this.doc.onAppend && n instanceof El) this.doc.onAppend(this, n); } }
   appendChild(n) { this.append(n); return n; }
-  prepend(...ns) { this.children.unshift(...ns.map((n) => this.adopt(n))); }
-  insertBefore(n, ref) { this.adopt(n); const i = ref ? this.children.indexOf(ref) : -1; if (i < 0) this.children.push(n); else this.children.splice(i, 0, n); return n; }
+  prepend(...ns) { this.nodes.unshift(...ns.map((n) => this.adopt(n))); }
+  insertBefore(n, ref) { this.adopt(n); const i = ref ? this.nodes.indexOf(ref) : -1; if (i < 0) this.nodes.push(n); else this.nodes.splice(i, 0, n); return n; }
   before(...ns) { const p = this.parent; if (p) for (const n of ns) p.insertBefore(n, this); }
-  after(...ns) { const p = this.parent; if (!p) return; let ref = this; for (const n of ns) { const i = p.children.indexOf(ref); p.adopt(n); p.children.splice(i + 1, 0, n); ref = n; } }
-  removeChild(n) { this.children = this.children.filter((c) => c !== n); n.parent = null; return n; }
-  replaceChildren(...ns) { for (const c of this.children) c.parent = null; this.children = []; this.append(...ns); }
-  replaceWith(...ns) { const p = this.parent; if (!p) return; const i = p.children.indexOf(this); const add = ns.map((n) => p.adopt(n)); p.children.splice(p.children.indexOf(this), 1, ...add); this.parent = null; void i; }
-  remove() { if (this.parent && this.parent.children) this.parent.children = this.parent.children.filter((c) => c !== this); this.parent = null; }
+  after(...ns) { const p = this.parent; if (!p) return; let ref = this; for (const n of ns) { const i = p.nodes.indexOf(ref); p.adopt(n); p.nodes.splice(i + 1, 0, n); ref = n; } }
+  removeChild(n) { this.nodes = this.nodes.filter((c) => c !== n); n.parent = null; return n; }
+  replaceChildren(...ns) { for (const c of this.nodes) c.parent = null; this.nodes = []; this.append(...ns); }
+  replaceWith(...ns) { const p = this.parent; if (!p) return; const i = p.nodes.indexOf(this); const add = ns.map((n) => p.adopt(n)); p.nodes.splice(p.nodes.indexOf(this), 1, ...add); this.parent = null; void i; }
+  remove() { if (this.parent && this.parent.nodes) this.parent.nodes = this.parent.nodes.filter((c) => c !== this); this.parent = null; }
   cloneNode(deep) { const n = new El(this.tag, new Map(this.attrs), this.doc); if (deep) n.innerHTML = this.innerHTML; return n; }
-  get textContent() { return this.children.map((c) => c.textContent).join(''); }
-  set textContent(t) { for (const c of this.children) c.parent = null; this.children = []; if (String(t ?? '') !== '') this.append(new Text(String(t ?? ''))); }
+  get textContent() { return this.nodes.map((c) => c.textContent).join(''); }
+  set textContent(t) { for (const c of this.nodes) c.parent = null; this.nodes = []; if (String(t ?? '') !== '') this.append(new Text(String(t ?? ''))); }
   get innerText() { return this.textContent; }
   set innerText(t) { this.textContent = t; }
-  set innerHTML(html) { for (const c of this.children) c.parent = null; this.children = parse(html, this.doc, this); }
-  get innerHTML() { return this.children.map((c) => (c instanceof El ? c.outerHTML : encode(c.text))).join(''); }
+  set innerHTML(html) { for (const c of this.nodes) c.parent = null; this.nodes = parse(html, this.doc, this); }
+  get innerHTML() { return this.nodes.map((c) => (c instanceof El ? c.outerHTML : encode(c.text))).join(''); }
   get outerHTML() {
     const a = [...this.attrs].map(([k, v]) => (v === '' ? ` ${k}` : ` ${k}="${encodeAttr(v)}"`)).join('');
     return VOID.has(this.tag) ? `<${this.tag}${a}>` : `<${this.tag}${a}>${this.innerHTML}</${this.tag}>`;
@@ -282,7 +284,7 @@ class El {
   insertAdjacentElement(where, n) { this.insertAdjacentHTML(where, ''); if (where === 'beforeend') this.append(n); else if (where === 'afterbegin') this.prepend(n); else if (where === 'beforebegin') this.before(n); else this.after(n); return n; }
   all() {
     const out = [];
-    const walk = (n) => { for (const c of n.children) if (c instanceof El) { out.push(c); walk(c); } };
+    const walk = (n) => { for (const c of n.nodes) if (c instanceof El) { out.push(c); walk(c); } };
     walk(this);
     return out;
   }
@@ -502,7 +504,7 @@ function makeDocument() {
 function outline(root, mark = () => null) {
   const out = [];
   const walk = (n) => {
-    for (const c of n.children) {
+    for (const c of n.nodes) {
       if (!(c instanceof El)) { const s = c.text.replace(/\s+/g, ' ').trim(); if (s) out.push(s); continue; }
       if (c.hidden || ['template', 'script', 'style', 'svg', 'option'].includes(c.tag) || c.attrs.get('aria-hidden') === 'true') {
         const m = mark(c);

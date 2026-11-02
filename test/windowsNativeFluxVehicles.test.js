@@ -117,7 +117,7 @@ const SESSIONS = [
 function outline(pack, root) {
   const out = [];
   const walk = (n) => {
-    for (const c of n.children) {
+    for (const c of n.childNodes) {
       if (!(c instanceof pack.El)) { const s = c.text.trim(); if (s) out.push(s); continue; }
       if (c.tag === 'svg' || c.tag === 'style') continue;
       const has = (x) => c.classes.includes(x);

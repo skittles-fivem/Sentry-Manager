@@ -260,13 +260,9 @@ function marks(e) {
   return null;
 }
 
-// ui.js split(box) reads its two panes as box.children: a browser's element
-// children, where the pretend DOM's list also holds the text between them
-// (the template's line breaks). The panes are given to it as a browser would.
-const SPLIT = { 'flux/ui.js': { tail: 'split = ((orig) => (box, o) => orig(new Proxy(box, { get: (t, k) => (k === \'children\' ? t.elementKids : typeof t[k] === \'function\' ? t[k].bind(t) : t[k]) }), o))(split);' } };
 
 async function start(answers, vehicle, o) {
-  const pack = loadPack('flux', { now: NOW, answers, confirm: o.confirm, toasts: '#toasts', storage: o.storage, hook: SPLIT });
+  const pack = loadPack('flux', { now: NOW, answers, confirm: o.confirm, toasts: '#toasts', storage: o.storage });
   const core = pack.load('flux/core.js');
   core.state.vehicles = vehicle ? [vehicle] : [];
   core.state.vehicleId = vehicle ? vehicle.id : null;

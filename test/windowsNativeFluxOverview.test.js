@@ -248,12 +248,9 @@ function watchCharts(pack) {
   return seen;
 }
 
-// ui.js split() reads its two panes as box.children, which the pretend DOM
-// gives with the text between them: the panes are its element children
-const HOOK = { 'flux/ui.js': { tail: 'split = ((orig) => function (box, o) { box.children = box.children.filter((c) => c instanceof HTMLElement); return orig(box, o); })(split);' } };
 
 async function start(answers, o) {
-  const pack = loadPack('flux', { now: NOW, answers, confirm: o.confirm, toasts: '#toasts', storage: o.storage, hook: HOOK });
+  const pack = loadPack('flux', { now: NOW, answers, confirm: o.confirm, toasts: '#toasts', storage: o.storage });
   const core = pack.load('flux/core.js');
   const seen = watchCharts(pack);
   const vehicles = o.vehicles === undefined ? [CAR] : o.vehicles;
