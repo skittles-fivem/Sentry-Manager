@@ -851,3 +851,27 @@ dark look: `daylight:theme` dark on both sides).
 - daylight jobs-long
 - daylight jobs-error
 - daylight jobs-dark
+### Flux: Overview
+
+The telemetry console (flux/pages/overview.js, flux/charts.js; the charts
+drawn natively from charts.js's own geometry) on
+test/fixtures/statsSample.json, with the pack's own requests answered by
+the module (tools/parity/packs/flux-overview.js: 15 minutes of history
+ending at the sample, the 24 hours, the log's lines, the cleared logs):
+overview (two open notifications, a conversion running),
+overview-novehicle, overview-error (no numbers: "Can't read the server's
+numbers", empty tiles, charts "collecting samples…", the log's own error
+line), overview-long (long vehicle, host, process and storage names, 40
+cores), overview-nodes (no conversion; a node's power: all servers),
+overview-24h (the 24 hour range, stored on both sides), overview-logs-all
+(the log tail on Everything, stored on both sides). The web polls in real
+time, so a chart's right end and the ages ("5m ago") can differ by a
+sample or a second.
+
+- flux overview
+- flux overview-novehicle
+- flux overview-error
+- flux overview-long
+- flux overview-nodes
+- flux overview-24h
+- flux overview-logs-all
