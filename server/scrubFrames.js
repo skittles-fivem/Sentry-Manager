@@ -36,7 +36,8 @@ function createScrubFrames(options = {}) {
   }
   const timeoutMs = options.timeoutMs || 60_000;
   const maxCached = options.maxCached || MAX_CACHED;
-  const maxRunning = options.concurrency || 3;
+  // a number, or a function read each time (server/workLimits.js)
+  const most = typeof options.concurrency === 'function' ? options.concurrency : () => options.concurrency || 3;
   const inFlight = new Map();
   const queue = [];
   let running = 0;
@@ -145,7 +146,7 @@ function createScrubFrames(options = {}) {
   }
 
   function pump() {
-    while (running < maxRunning && queue.length > 0) {
+    while (running < most() && queue.length > 0) {
       const job = queue.shift();
       running += 1;
       job().finally(() => { running -= 1; pump(); });

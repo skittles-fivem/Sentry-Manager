@@ -273,12 +273,12 @@ if (!isMainThread && workerData?.telemetryClip) {
 }
 
 class Telemetry {
-  constructor({ srcRoot, cacheDir, log }) {
+  constructor({ srcRoot, cacheDir, log, concurrency = 2 }) {
     loadParser(srcRoot); // fail at start-up, not on the first clip
     this.srcRoot = srcRoot;
     this.cacheDir = cacheDir;
     this.log = log;
-    this.limit = limiter(2); // each read keeps a thread busy
+    this.limit = limiter(concurrency); // each read keeps a thread busy
     this.pending = new Map();
     this.sinceSweep = 0;
   }

@@ -38,3 +38,24 @@ disk, not on a share. `data/scrub` holds the Viewer's timeline previews
 two days in the background (not while converting) and otherwise when a clip
 is first opened; it keeps at most about 1 GB and drops the least recently used first.
 Deleting it is safe: previews are made again when needed.
+
+## Background work (Settings → Advanced)
+
+How many clips the background jobs handle at once is picked from the memory
+and CPUs the container really has: a Docker or Kubernetes limit
+(`--memory`, `--cpus`; cgroup v2 `memory.max` / `cpu.max`, or v1
+`memory.limit_in_bytes` / `cpu.cfs_quota_us`) counts, not only what the
+host has. The server takes the smaller of its memory size and its CPU size:
+
+| | Memory | CPUs | Speed index (at most) | Codec checks | Scrub previews | Car data reads | Thumbnails |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Small | under 3 GB | 1–2 | 1 | 2 | 1 | 1 | 1 |
+| Mid-size | 3–7 GB | 3 | 2 | 4 | 2 | 1 | 2 |
+| Full-size | 7 GB or more | 4 or more | 4 | 8 | 3 | 2 | 2 |
+
+A full-size server gets the numbers every server had before. Settings →
+Advanced → Background work (Settings → System in the Original interface)
+shows the numbers in use and the memory and CPUs they were picked from; an
+admin can type any of them (an empty box stays automatic) and they apply at
+once, without a restart. The start-up log has the same line
+(`Background work: ...`).

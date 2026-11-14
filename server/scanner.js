@@ -8,25 +8,29 @@ const { classify, localDay, shouldSkipDir, isConverterArtifact } = require('./fo
  * Tiny promise limiter: at most `max` calls of fn in flight. The queue is read
  * by an index, not shift(): a folder of 30,000 clips queues 30,000 stats at
  * once, and shift() moved the whole array for each (450 ms of an index).
+ * `max` may be a function, read before each start (a limit that can change).
  */
 function limiter(max) {
+  const most = typeof max === 'function' ? max : () => max;
   let active = 0;
   let waiting = [];
   let head = 0;
+  // starts as many as the limit lets (more than one when it was raised)
   const next = () => {
-    if (active >= max || head >= waiting.length) return;
-    active++;
-    const { fn, resolve, reject } = waiting[head];
-    waiting[head++] = null;
-    // drop what has been taken, now and then
-    if (head > 1024 && head * 2 > waiting.length) { waiting = waiting.slice(head); head = 0; }
-    Promise.resolve()
-      .then(fn)
-      .then(resolve, reject)
-      .finally(() => {
-        active--;
-        next();
-      });
+    while (active < most() && head < waiting.length) {
+      active++;
+      const { fn, resolve, reject } = waiting[head];
+      waiting[head++] = null;
+      // drop what has been taken, now and then
+      if (head > 1024 && head * 2 > waiting.length) { waiting = waiting.slice(head); head = 0; }
+      Promise.resolve()
+        .then(fn)
+        .then(resolve, reject)
+        .finally(() => {
+          active--;
+          next();
+        });
+    }
   };
   return (fn) => new Promise((resolve, reject) => {
     waiting.push({ fn, resolve, reject });
