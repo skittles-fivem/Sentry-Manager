@@ -19,3 +19,4 @@ docker build -t ghcr.io/skittles-fivem/sentry-manager:latest .
 | `src/` | Sentry Studio's viewer (`renderer`, `shared`) and converter (`main/converter`); the few web-version changes are commented where they are (telemetry from the server, keeping the cameras together, the HW3 / HW4 layout, the benchmark's levels) |
 | `native/` | The no-replace rename helper for safe replacement |
 | `test/` | Tests (`node --test`), including real conversions with telemetry checks |
+| `tools/contract/` | The API contract ([`api-contract.md`](api-contract.md)): every route and page call read from the source, and goldens recorded from a running server to check another one answers the same ([how](../tools/contract/README.md)) |
