@@ -517,7 +517,9 @@ name = "sentry-lean"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "bytes",
  "chrono",
+ "libc",
  "rusqlite",
  "serde",
  "serde_json",

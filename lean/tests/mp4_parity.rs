@@ -2,11 +2,12 @@
 //! files: lean/parity/mp4Fixtures.js writes the fixtures (real ffmpeg
 //! encodes and synthetic ones from test/fixtures/fixtureBuilders.js) and
 //! what server/mp4codec.js, server/speedReader.js and src/main/converter/mp4.js
-//! read from each; every value here must match exactly.
+//! read from each (and server/speedIndex.js summarize of the samples);
+//! every value here must match exactly.
 //!
 //! Skipped (with a note) when node or ffmpeg is not installed.
 
-use sentry_lean::{mp4, sei};
+use sentry_lean::{mp4, sei, speeds};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -46,9 +47,10 @@ fn rust_side(file: &Path) -> Value {
         Ok(c) => json!(c),
         Err(_) => error(),
     };
-    let samples = match sei::read_samples(file) {
-        Ok(s) => serde_json::to_value(s).unwrap(),
-        Err(_) => error(),
+    let (samples, summary) = match sei::read_samples(file) {
+        Ok(Some(s)) => (serde_json::to_value(&s).unwrap(), speeds::summarize(&s)),
+        Ok(None) => (Value::Null, Value::Null),
+        Err(_) => (error(), Value::Null),
     };
     let speeds = match sei::read_speeds(file) {
         Ok(s) => json!(s),
@@ -62,7 +64,7 @@ fn rust_side(file: &Path) -> Value {
         }),
         Err(_) => error(),
     };
-    json!({ "codec": codec, "samples": samples, "speeds": speeds, "info": info })
+    json!({ "codec": codec, "samples": samples, "summary": summary, "speeds": speeds, "info": info })
 }
 
 #[test]
@@ -73,7 +75,7 @@ fn mp4_and_telemetry_match_node() {
     let mut failures = Vec::new();
     for (name, want) in &expected {
         let got = rust_side(&dir.join(name));
-        for key in ["codec", "samples", "speeds", "info"] {
+        for key in ["codec", "samples", "summary", "speeds", "info"] {
             let (w, g) = (norm(want[key].clone()), norm(got[key].clone()));
             if w != g {
                 let show = |v: &Value| v.to_string().chars().take(400).collect::<String>();
@@ -83,7 +85,7 @@ fn mp4_and_telemetry_match_node() {
     }
     let _ = std::fs::remove_dir_all(&dir);
     assert!(failures.is_empty(), "{} differences:\n{}", failures.len(), failures.join("\n"));
-    eprintln!("{} fixtures x 4 readers: identical", expected.len());
+    eprintln!("{} fixtures x 5 readers: identical", expected.len());
 }
 
 #[test]

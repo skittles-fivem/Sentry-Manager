@@ -7,6 +7,7 @@
 //   codec    server/mp4codec.js videoCodec
 //   samples  server/speedReader.js readSamples
 //   speeds   server/speedReader.js readSpeeds
+//   summary  server/speedIndex.js summarize of those samples (what the speed index keeps)
 //   info     src/main/converter/mp4.js: the video track's sample index,
 //            timescale, durations and sync samples (keyframes)
 //
@@ -23,6 +24,7 @@ const { parseMp4, findBoxes, selectVideoTrack, buildSampleIndex } = require(path
 const { injectAv1Telemetry } = require(path.join(REPO, 'src/main/converter/av1Telemetry'));
 const { readSamples, readSpeeds } = require(path.join(REPO, 'server/speedReader'));
 const { videoCodec } = require(path.join(REPO, 'server/mp4codec'));
+const { summarize } = require(path.join(REPO, 'server/speedIndex'));
 const { record, drivePattern, teslaH264, converted, plain } = require('./clips');
 
 const dir = path.resolve(process.argv[2] || '');
@@ -185,9 +187,11 @@ async function main() {
   const expected = {};
   for (const name of cases) {
     const file = path.join(dir, name);
+    const samples = await attempt(() => readSamples(file));
     expected[name] = {
       codec: await attempt(() => videoCodec(file)),
-      samples: await attempt(() => readSamples(file)),
+      samples,
+      summary: Array.isArray(samples) ? summarize(samples) : null,
       speeds: await attempt(() => readSpeeds(file)),
       info: await attempt(() => info(file))
     };
