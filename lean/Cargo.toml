@@ -1,0 +1,28 @@
+[package]
+name = "sentry-lean"
+version = "0.1.0"
+edition = "2021"
+description = "Lean backend for Sentry Six Manager: the same API as the Node server, in one small binary"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "sentry-lean"
+path = "src/main.rs"
+
+[dependencies]
+axum = { version = "0.7", default-features = false, features = ["http1", "tokio", "query", "json"] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "fs", "macros", "signal", "sync", "time", "io-util"] }
+tokio-util = { version = "0.7", features = ["io"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+sha1_smol = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
