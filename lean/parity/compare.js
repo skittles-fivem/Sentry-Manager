@@ -210,7 +210,11 @@ async function main() {
   console.log(`${checked} requests: the Node and lean servers answer the same`);
 }
 
-main().catch((err) => {
-  console.error(err.stack || err.message);
-  process.exit(2);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(err.stack || err.message);
+    process.exit(2);
+  });
+}
+
+module.exports = { start, settled, LEAN, VID };
