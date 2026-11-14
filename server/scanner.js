@@ -35,6 +35,49 @@ function limiter(max) {
 }
 
 /**
+ * One file of the inventory. A class, so every entry has the same fixed
+ * shape (an object built by spreading took about a third more), and its
+ * day, camera and event folder are shared strings: a car of 22,000 clips
+ * has a few hundred days and events, not 22,000 copies of each.
+ */
+class FileEntry {
+  constructor(rel, st, info, intern = (s) => s) {
+    this.rel = rel;
+    this.size = st.size;
+    this.mtimeMs = st.mtimeMs;
+    // when it reached the share (the archive keeps mtime): archiveGap.js
+    this.ctimeMs = st.ctimeMs;
+    this.birthtimeMs = st.birthtimeMs;
+    this.kind = info.kind;
+    this.type = info.type;
+    this.day = intern(info.day || localDay(st.mtimeMs));
+    this.camera = intern(info.camera);
+    this.eventId = intern(info.eventId);
+    // the clip's video codec, once read for this size and time (inventory.js)
+    this.codec = undefined;
+  }
+
+  // only clips are ever converted (footage.js classify)
+  get encodable() {
+    return this.kind === 'clip';
+  }
+}
+
+/** One copy of each repeated string (a day, a camera, an event folder) for a scan. */
+function interner() {
+  const seen = new Map();
+  return (s) => {
+    if (typeof s !== 'string') return s;
+    const had = seen.get(s);
+    if (had !== undefined) return had;
+    seen.set(s, s);
+    return s;
+  };
+}
+
+const fileEntry = (rel, st, info, intern) => new FileEntry(rel, st, info, intern);
+
+/**
  * Walk the footage root. Network shares make every stat a round trip, so
  * directory reads and stats run in parallel (bounded by `concurrency`).
  */
@@ -47,7 +90,7 @@ function limiter(max) {
 // quiet share that is one call per folder instead of one per file (48,000
 // files: 48,000 round trips to the NAS every 15 minutes).
 const RECENT_MS = 2 * 3600 * 1000;
-async function scanFootage(root, { concurrency = 16, onProgress, previous = null } = {}) {
+async function scanFootage(root, { concurrency = 16, onProgress, onFile = null, previous = null } = {}) {
   const started = Date.now();
   const limit = limiter(concurrency);
   const files = new Map();
@@ -55,6 +98,7 @@ async function scanFootage(root, { concurrency = 16, onProgress, previous = null
   const errors = [];
   let seen = 0;
   let reused = 0;
+  const intern = interner();
 
   async function visit(relDir) {
     let entries;
@@ -92,16 +136,10 @@ async function scanFootage(root, { concurrency = 16, onProgress, previous = null
       }
       tasks.push(limit(() => fsp.stat(path.join(root, rel))).then(
         (st) => {
-          files.set(rel, {
-            rel,
-            size: st.size,
-            mtimeMs: st.mtimeMs,
-            // when it reached the share (the archive keeps mtime): archiveGap.js
-            ctimeMs: st.ctimeMs,
-            birthtimeMs: st.birthtimeMs,
-            ...info,
-            day: info.day || localDay(st.mtimeMs)
-          });
+          const f = fileEntry(rel, st, info, intern);
+          files.set(rel, f);
+          // each file looked at afresh (not one kept from the last scan): the catalog
+          if (onFile) onFile(f);
           seen++;
           if (onProgress && seen % 500 === 0) onProgress(seen);
         },
@@ -117,4 +155,4 @@ async function scanFootage(root, { concurrency = 16, onProgress, previous = null
   return { files, dirs, errors, reused, light: Boolean(previous), scannedAt: Date.now(), durationMs: Date.now() - started };
 }
 
-module.exports = { scanFootage, limiter };
+module.exports = { scanFootage, limiter, fileEntry, interner, FileEntry };
