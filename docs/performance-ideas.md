@@ -23,3 +23,27 @@ disks, an 8,610-clip vehicle) in October 2026. Not started.
 5. **The 15-minute footage scan.** It walks every vehicle's folders (28,000
    files: 0.5 s, up to 40 s while the disks are busy). It could wait while
    a conversion runs, or skip date folders that have not changed.
+
+## The footage catalog (started November 2026)
+
+Each scan's files and every clip's codec are now kept in `/data/manager.db`
+(`catalog_files`, `clip_codecs`; `server/catalog.js`), written in batches as
+the scan goes, and the inventory's file entries are compact (one class, shared
+day / camera / event strings, the codec on the entry). Measured with
+`node --expose-gc tools/inventoryMemory.js` (made-up Tesla archive, all six
+cameras): 22,000 files took 10.9 MB of heap (519 bytes a file), now 7.6 MB
+(360); 100,000 files took 47.6 MB, now 32.1 MB. The catalog was never the
+bulk of the server's memory.
+
+Still in memory, and why: the scan's file map (`inventory.get(id).files`,
+about 290 bytes a file), because a dozen modules read it as a Map
+(speedIndex, integrity, arrivalChecksums, archiveGap, canPrune, canSync,
+scrubPrepare, recycleBin, index.js) and the Recycle Bin deletes from it; the
+recordings, built from it after each scan. Next steps, one consumer at a
+time, each with a before/after test:
+
+1. The first scan after a restart reads the catalog (and its folder times)
+   as the light rescan's `previous`, instead of a stat of every file.
+2. Consumers that only count or sum (storage's last 14 days, arrivedClips,
+   canPrune's clip list) query the catalog (`catalog.summary`, by day).
+3. Then the file map can hold only what the light rescan needs, or nothing.
