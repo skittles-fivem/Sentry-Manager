@@ -777,7 +777,9 @@ async function main() {
   });
   vehicles.on('health', (id, healthy) => {
     if (!healthy) return;
-    bin.reconcile(id).catch((err) => log.warn(`Recycle Bin check of ${id}: ${err.message}`))
+    // footage mounted read-only has no Recycle Bin to settle: only its scan
+    const readOnly = vehicles.share(id)?.status?.()?.readOnly === true;
+    (readOnly ? Promise.resolve() : bin.reconcile(id).catch((err) => log.warn(`Recycle Bin check of ${id}: ${err.message}`)))
       .then(() => inventory.scan(id)).then(() => announce('inventory'), () => {});
   });
 
