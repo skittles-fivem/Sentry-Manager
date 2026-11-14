@@ -1,24 +1,24 @@
 {
   "generatedFrom": "tools/contract/routes.js (static reading of the source; regenerate with `node tools/contract/routes.js`)",
   "totals": {
-    "serverRoutes": 187,
-    "serverRouterRoutes": 170,
+    "serverRoutes": 189,
+    "serverRouterRoutes": 172,
     "serverInlineRoutes": 17,
-    "serverApiRoutes": 178,
-    "serverDistinctApiPaths": 156,
+    "serverApiRoutes": 180,
+    "serverDistinctApiPaths": 157,
     "byAccess": {
-      "admin": 94,
+      "admin": 96,
       "can-token": 3,
       "metrics-token": 1,
       "node-token": 6,
       "public": 6,
       "signed-in": 77
     },
-    "uiCallSites": 789,
-    "uiDistinctCalls": 200,
+    "uiCallSites": 792,
+    "uiDistinctCalls": 202,
     "uiCallSitesBySource": {
       "aurora": 104,
-      "built-in": 232,
+      "built-in": 235,
       "daylight": 110,
       "flux": 113,
       "horizon": 110,
@@ -45,7 +45,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:918",
+      "source": "server/index.js:926",
       "callSites": 25,
       "calledFrom": [
         "aurora",
@@ -66,7 +66,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:944",
+      "source": "server/index.js:952",
       "callSites": 5,
       "calledFrom": [
         "aurora",
@@ -86,7 +86,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:979",
+      "source": "server/index.js:987",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -102,7 +102,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1002",
+      "source": "server/index.js:1010",
       "callSites": 2,
       "calledFrom": [
         "built-in"
@@ -118,7 +118,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1003",
+      "source": "server/index.js:1011",
       "callSites": 2,
       "calledFrom": [
         "built-in"
@@ -134,7 +134,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1004",
+      "source": "server/index.js:1012",
       "callSites": 2,
       "calledFrom": [
         "built-in"
@@ -150,7 +150,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1009",
+      "source": "server/index.js:1017",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -166,7 +166,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1015",
+      "source": "server/index.js:1023",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -182,7 +182,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1019",
+      "source": "server/index.js:1027",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -198,7 +198,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1026",
+      "source": "server/index.js:1034",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -214,7 +214,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1033",
+      "source": "server/index.js:1041",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -230,7 +230,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1034",
+      "source": "server/index.js:1042",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -246,7 +246,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1043",
+      "source": "server/index.js:1051",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -262,7 +262,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1050",
+      "source": "server/index.js:1058",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -278,7 +278,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1068",
+      "source": "server/index.js:1076",
       "callSites": 5,
       "calledFrom": [
         "aurora",
@@ -298,7 +298,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1099",
+      "source": "server/index.js:1107",
       "callSites": 9,
       "calledFrom": [
         "aurora",
@@ -319,7 +319,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1104",
+      "source": "server/index.js:1112",
       "callSites": 13,
       "calledFrom": [
         "aurora",
@@ -340,7 +340,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1119",
+      "source": "server/index.js:1127",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -361,7 +361,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1141",
+      "source": "server/index.js:1149",
       "callSites": 15,
       "calledFrom": [
         "aurora",
@@ -382,7 +382,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1156",
+      "source": "server/index.js:1164",
       "callSites": 8,
       "calledFrom": [
         "aurora",
@@ -403,7 +403,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1169",
+      "source": "server/index.js:1177",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -424,7 +424,7 @@
       "kind": "router",
       "response": "raw",
       "query": [],
-      "source": "server/index.js:1179",
+      "source": "server/index.js:1187",
       "contentType": "application/x-x509-ca-cert",
       "callSites": 6,
       "calledFrom": [
@@ -446,7 +446,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1198",
+      "source": "server/index.js:1206",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -462,7 +462,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1199",
+      "source": "server/index.js:1207",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -478,7 +478,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1220",
+      "source": "server/index.js:1228",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -497,7 +497,7 @@
         "level",
         "limit"
       ],
-      "source": "server/index.js:1227",
+      "source": "server/index.js:1235",
       "callSites": 7,
       "calledFrom": [
         "aurora",
@@ -517,7 +517,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1233",
+      "source": "server/index.js:1241",
       "callSites": 10,
       "calledFrom": [
         "aurora",
@@ -538,7 +538,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1234",
+      "source": "server/index.js:1242",
       "callSites": 7,
       "calledFrom": [
         "aurora",
@@ -559,7 +559,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1248",
+      "source": "server/index.js:1256",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -580,7 +580,7 @@
       "kind": "router",
       "response": "raw",
       "query": [],
-      "source": "server/index.js:1257",
+      "source": "server/index.js:1265",
       "contentType": "application/zip",
       "callSites": 6,
       "calledFrom": [
@@ -602,7 +602,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1265",
+      "source": "server/index.js:1273",
       "callSites": 5,
       "calledFrom": [
         "aurora",
@@ -622,7 +622,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1270",
+      "source": "server/index.js:1278",
       "callSites": 5,
       "calledFrom": [
         "aurora",
@@ -642,7 +642,7 @@
       "kind": "router",
       "response": "raw",
       "query": [],
-      "source": "server/index.js:1271",
+      "source": "server/index.js:1279",
       "contentType": "text/plain; charset=utf-8",
       "callSites": 5,
       "calledFrom": [
@@ -663,7 +663,7 @@
       "kind": "router",
       "response": "raw",
       "query": [],
-      "source": "server/index.js:1281",
+      "source": "server/index.js:1289",
       "contentType": "text/plain; charset=utf-8",
       "callSites": 6,
       "calledFrom": [
@@ -684,7 +684,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1321",
+      "source": "server/index.js:1329",
       "callSites": 3,
       "calledFrom": [
         "built-in",
@@ -701,7 +701,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1322",
+      "source": "server/index.js:1330",
       "callSites": 2,
       "calledFrom": [
         "built-in",
@@ -718,7 +718,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1329",
+      "source": "server/index.js:1337",
       "callSites": 2,
       "calledFrom": [
         "built-in",
@@ -735,7 +735,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1337",
+      "source": "server/index.js:1345",
       "callSites": 4,
       "calledFrom": [
         "built-in",
@@ -752,7 +752,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1341",
+      "source": "server/index.js:1349",
       "callSites": 2,
       "calledFrom": [
         "built-in",
@@ -769,7 +769,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1369",
+      "source": "server/index.js:1377",
       "callSites": 3,
       "calledFrom": [
         "built-in",
@@ -786,7 +786,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1370",
+      "source": "server/index.js:1378",
       "callSites": 2,
       "calledFrom": [
         "built-in",
@@ -803,7 +803,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1374",
+      "source": "server/index.js:1382",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -819,7 +819,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1379",
+      "source": "server/index.js:1387",
       "callSites": 2,
       "calledFrom": [
         "built-in",
@@ -836,7 +836,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1380",
+      "source": "server/index.js:1388",
       "callSites": 2,
       "calledFrom": [
         "built-in",
@@ -853,7 +853,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1385",
+      "source": "server/index.js:1393",
       "callSites": 2,
       "calledFrom": [
         "built-in",
@@ -876,7 +876,7 @@
         "q",
         "to"
       ],
-      "source": "server/index.js:1394",
+      "source": "server/index.js:1402",
       "contentType": "text/plain; charset=utf-8",
       "callSites": 3,
       "calledFrom": [
@@ -894,7 +894,7 @@
       "kind": "router",
       "response": "raw",
       "query": [],
-      "source": "server/index.js:1419",
+      "source": "server/index.js:1427",
       "contentType": "application/zip",
       "callSites": 3,
       "calledFrom": [
@@ -912,7 +912,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1601",
+      "source": "server/index.js:1609",
       "callSites": 3,
       "calledFrom": [
         "built-in",
@@ -929,7 +929,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1602",
+      "source": "server/index.js:1610",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -945,7 +945,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1611",
+      "source": "server/index.js:1619",
       "callSites": 2,
       "calledFrom": [
         "built-in"
@@ -961,7 +961,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1612",
+      "source": "server/index.js:1620",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -977,7 +977,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1621",
+      "source": "server/index.js:1629",
       "callSites": 15,
       "calledFrom": [
         "aurora",
@@ -998,7 +998,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1651",
+      "source": "server/index.js:1659",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1014,7 +1014,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1653",
+      "source": "server/index.js:1661",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1032,7 +1032,7 @@
       "query": [
         "vehicle"
       ],
-      "source": "server/index.js:1660",
+      "source": "server/index.js:1668",
       "callSites": 0,
       "calledFrom": []
     },
@@ -1046,7 +1046,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1661",
+      "source": "server/index.js:1669",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1062,7 +1062,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1666",
+      "source": "server/index.js:1674",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1078,7 +1078,7 @@
       "kind": "router",
       "response": "raw",
       "query": [],
-      "source": "server/index.js:1667",
+      "source": "server/index.js:1675",
       "contentType": "video/mp4",
       "callSites": 1,
       "calledFrom": [
@@ -1095,7 +1095,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1679",
+      "source": "server/index.js:1687",
       "callSites": 7,
       "calledFrom": [
         "aurora",
@@ -1116,7 +1116,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1683",
+      "source": "server/index.js:1691",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1137,7 +1137,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1694",
+      "source": "server/index.js:1702",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1158,7 +1158,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1695",
+      "source": "server/index.js:1703",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1179,7 +1179,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1701",
+      "source": "server/index.js:1709",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1200,7 +1200,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1702",
+      "source": "server/index.js:1710",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1221,7 +1221,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1711",
+      "source": "server/index.js:1719",
       "callSites": 20,
       "calledFrom": [
         "aurora",
@@ -1242,7 +1242,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1746",
+      "source": "server/index.js:1754",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1263,7 +1263,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1752",
+      "source": "server/index.js:1760",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1284,7 +1284,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1759",
+      "source": "server/index.js:1767",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1305,7 +1305,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1766",
+      "source": "server/index.js:1774",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1326,7 +1326,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1767",
+      "source": "server/index.js:1775",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1347,7 +1347,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1775",
+      "source": "server/index.js:1783",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1368,7 +1368,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1782",
+      "source": "server/index.js:1790",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1389,7 +1389,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1788",
+      "source": "server/index.js:1796",
       "callSites": 7,
       "calledFrom": [
         "aurora",
@@ -1410,7 +1410,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1811",
+      "source": "server/index.js:1819",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1431,7 +1431,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1819",
+      "source": "server/index.js:1827",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -1452,7 +1452,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1835",
+      "source": "server/index.js:1843",
       "callSites": 7,
       "calledFrom": [
         "aurora",
@@ -1471,7 +1471,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1840",
+      "source": "server/index.js:1848",
       "callSites": 13,
       "calledFrom": [
         "aurora",
@@ -1494,7 +1494,7 @@
         "limit",
         "offset"
       ],
-      "source": "server/index.js:1871",
+      "source": "server/index.js:1879",
       "callSites": 10,
       "calledFrom": [
         "aurora",
@@ -1515,7 +1515,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:1904",
+      "source": "server/index.js:1912",
       "callSites": 10,
       "calledFrom": [
         "aurora",
@@ -1539,7 +1539,7 @@
         "offset",
         "protected"
       ],
-      "source": "server/index.js:1939",
+      "source": "server/index.js:1947",
       "callSites": 18,
       "calledFrom": [
         "aurora",
@@ -1561,7 +1561,7 @@
       "query": [
         "path"
       ],
-      "source": "server/index.js:1974",
+      "source": "server/index.js:1982",
       "contentType": "application/json; charset=utf-8",
       "callSites": 7,
       "calledFrom": [
@@ -1585,7 +1585,7 @@
       "query": [
         "date"
       ],
-      "source": "server/index.js:1992",
+      "source": "server/index.js:2000",
       "callSites": 3,
       "calledFrom": [
         "aurora",
@@ -1605,7 +1605,7 @@
       "query": [
         "date"
       ],
-      "source": "server/index.js:2000",
+      "source": "server/index.js:2008",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1623,7 +1623,7 @@
       "query": [
         "vehicle"
       ],
-      "source": "server/index.js:2032",
+      "source": "server/index.js:2040",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1639,7 +1639,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2038",
+      "source": "server/index.js:2046",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1655,7 +1655,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2058",
+      "source": "server/index.js:2066",
       "callSites": 0,
       "calledFrom": []
     },
@@ -1669,7 +1669,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2066",
+      "source": "server/index.js:2074",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1687,7 +1687,7 @@
       "query": [
         "weeks"
       ],
-      "source": "server/index.js:2086",
+      "source": "server/index.js:2094",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1703,7 +1703,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2147",
+      "source": "server/index.js:2155",
       "callSites": 2,
       "calledFrom": [
         "built-in"
@@ -1723,7 +1723,7 @@
         "gap",
         "limit"
       ],
-      "source": "server/index.js:2196",
+      "source": "server/index.js:2204",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1739,7 +1739,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2335",
+      "source": "server/index.js:2343",
       "callSites": 2,
       "calledFrom": [
         "built-in"
@@ -1755,7 +1755,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2336",
+      "source": "server/index.js:2344",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1771,7 +1771,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2345",
+      "source": "server/index.js:2353",
       "callSites": 4,
       "calledFrom": [
         "built-in",
@@ -1788,7 +1788,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2358",
+      "source": "server/index.js:2366",
       "callSites": 3,
       "calledFrom": [
         "built-in"
@@ -1804,7 +1804,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2371",
+      "source": "server/index.js:2379",
       "callSites": 4,
       "calledFrom": [
         "built-in"
@@ -1820,7 +1820,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2389",
+      "source": "server/index.js:2397",
       "callSites": 2,
       "calledFrom": [
         "built-in"
@@ -1836,7 +1836,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2401",
+      "source": "server/index.js:2409",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1852,7 +1852,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2430",
+      "source": "server/index.js:2438",
       "callSites": 2,
       "calledFrom": [
         "built-in",
@@ -1869,7 +1869,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2431",
+      "source": "server/index.js:2439",
       "callSites": 2,
       "calledFrom": [
         "built-in",
@@ -1886,7 +1886,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2514",
+      "source": "server/index.js:2522",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1902,7 +1902,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2525",
+      "source": "server/index.js:2533",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1918,7 +1918,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2535",
+      "source": "server/index.js:2543",
       "callSites": 1,
       "calledFrom": [
         "daylight"
@@ -1936,7 +1936,7 @@
       "query": [
         "path"
       ],
-      "source": "server/index.js:2565",
+      "source": "server/index.js:2573",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -1957,7 +1957,7 @@
         "signals",
         "step"
       ],
-      "source": "server/index.js:2590",
+      "source": "server/index.js:2598",
       "contentType": "application/json; charset=utf-8",
       "callSites": 2,
       "calledFrom": [
@@ -1976,7 +1976,7 @@
       "query": [
         "vehicle"
       ],
-      "source": "server/index.js:2676",
+      "source": "server/index.js:2684",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2001,7 +2001,7 @@
         "to",
         "value"
       ],
-      "source": "server/index.js:2678",
+      "source": "server/index.js:2686",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2025,7 +2025,7 @@
         "resume",
         "to"
       ],
-      "source": "server/index.js:2681",
+      "source": "server/index.js:2689",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2046,7 +2046,7 @@
         "probe",
         "to"
       ],
-      "source": "server/index.js:2685",
+      "source": "server/index.js:2693",
       "callSites": 2,
       "calledFrom": [
         "built-in"
@@ -2062,7 +2062,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2700",
+      "source": "server/index.js:2708",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2078,7 +2078,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2900",
+      "source": "server/index.js:2908",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2094,7 +2094,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2914",
+      "source": "server/index.js:2922",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2110,7 +2110,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2922",
+      "source": "server/index.js:2930",
       "callSites": 2,
       "calledFrom": [
         "built-in"
@@ -2126,7 +2126,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2946",
+      "source": "server/index.js:2954",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2142,7 +2142,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2958",
+      "source": "server/index.js:2966",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2158,7 +2158,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2968",
+      "source": "server/index.js:2976",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2174,7 +2174,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2978",
+      "source": "server/index.js:2986",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2190,7 +2190,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2986",
+      "source": "server/index.js:2994",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2206,7 +2206,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2997",
+      "source": "server/index.js:3005",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2222,7 +2222,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3008",
+      "source": "server/index.js:3016",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2238,7 +2238,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3018",
+      "source": "server/index.js:3026",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2254,7 +2254,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3031",
+      "source": "server/index.js:3039",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2272,7 +2272,7 @@
       "query": [
         "limit"
       ],
-      "source": "server/index.js:3043",
+      "source": "server/index.js:3051",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2288,7 +2288,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3055",
+      "source": "server/index.js:3063",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2304,7 +2304,7 @@
       "kind": "router",
       "response": "raw",
       "query": [],
-      "source": "server/index.js:3202",
+      "source": "server/index.js:3210",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2320,7 +2320,7 @@
       "kind": "router",
       "response": "raw",
       "query": [],
-      "source": "server/index.js:3217",
+      "source": "server/index.js:3225",
       "contentType": "text/plain; charset=us-ascii",
       "callSites": 1,
       "calledFrom": [
@@ -2341,7 +2341,7 @@
         "check",
         "key"
       ],
-      "source": "server/index.js:3251",
+      "source": "server/index.js:3259",
       "contentType": "application/zip",
       "callSites": 1,
       "calledFrom": [
@@ -2363,7 +2363,7 @@
         "mode",
         "signals"
       ],
-      "source": "server/index.js:3354",
+      "source": "server/index.js:3362",
       "contentType": "text/csv; charset=utf-8",
       "callSites": 1,
       "calledFrom": [
@@ -2384,7 +2384,7 @@
         "key",
         "since"
       ],
-      "source": "server/index.js:3413",
+      "source": "server/index.js:3421",
       "contentType": "text/csv; charset=utf-8",
       "callSites": 2,
       "calledFrom": [
@@ -2403,7 +2403,7 @@
       "query": [
         "months"
       ],
-      "source": "server/index.js:3439",
+      "source": "server/index.js:3447",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2423,7 +2423,7 @@
         "lon",
         "radius"
       ],
-      "source": "server/index.js:3445",
+      "source": "server/index.js:3453",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -2439,7 +2439,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3462",
+      "source": "server/index.js:3470",
       "callSites": 12,
       "calledFrom": [
         "aurora",
@@ -2460,7 +2460,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3463",
+      "source": "server/index.js:3471",
       "callSites": 5,
       "calledFrom": [
         "aurora",
@@ -2480,7 +2480,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3469",
+      "source": "server/index.js:3477",
       "callSites": 1,
       "calledFrom": [
         "horizon"
@@ -2496,7 +2496,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3486",
+      "source": "server/index.js:3494",
       "callSites": 11,
       "calledFrom": [
         "aurora",
@@ -2516,7 +2516,7 @@
       "kind": "router",
       "response": "raw",
       "query": [],
-      "source": "server/index.js:3500",
+      "source": "server/index.js:3508",
       "callSites": 10,
       "calledFrom": [
         "aurora",
@@ -2537,7 +2537,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3513",
+      "source": "server/index.js:3521",
       "callSites": 5,
       "calledFrom": [
         "aurora",
@@ -2557,7 +2557,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3522",
+      "source": "server/index.js:3530",
       "callSites": 5,
       "calledFrom": [
         "aurora",
@@ -2577,7 +2577,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3538",
+      "source": "server/index.js:3546",
       "callSites": 5,
       "calledFrom": [
         "aurora",
@@ -2597,7 +2597,7 @@
       "kind": "router",
       "response": "raw",
       "query": [],
-      "source": "server/index.js:3545",
+      "source": "server/index.js:3553",
       "callSites": 1,
       "calledFrom": [
         "sentry-six"
@@ -2615,7 +2615,7 @@
       "query": [
         "vehicle"
       ],
-      "source": "server/index.js:3557",
+      "source": "server/index.js:3565",
       "callSites": 7,
       "calledFrom": [
         "aurora",
@@ -2636,7 +2636,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3558",
+      "source": "server/index.js:3566",
       "callSites": 7,
       "calledFrom": [
         "aurora",
@@ -2657,7 +2657,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3564",
+      "source": "server/index.js:3572",
       "callSites": 5,
       "calledFrom": [
         "aurora",
@@ -2677,7 +2677,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3575",
+      "source": "server/index.js:3583",
       "callSites": 5,
       "calledFrom": [
         "aurora",
@@ -2697,7 +2697,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3586",
+      "source": "server/index.js:3594",
       "callSites": 13,
       "calledFrom": [
         "aurora",
@@ -2718,7 +2718,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3587",
+      "source": "server/index.js:3595",
       "callSites": 9,
       "calledFrom": [
         "built-in",
@@ -2738,7 +2738,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3591",
+      "source": "server/index.js:3599",
       "callSites": 5,
       "calledFrom": [
         "built-in",
@@ -2761,7 +2761,7 @@
         "limit",
         "vehicle"
       ],
-      "source": "server/index.js:3601",
+      "source": "server/index.js:3609",
       "callSites": 12,
       "calledFrom": [
         "aurora",
@@ -2782,7 +2782,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3616",
+      "source": "server/index.js:3624",
       "callSites": 12,
       "calledFrom": [
         "aurora",
@@ -2803,7 +2803,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3658",
+      "source": "server/index.js:3666",
       "callSites": 17,
       "calledFrom": [
         "aurora",
@@ -2827,7 +2827,7 @@
       "query": [
         "range"
       ],
-      "source": "server/index.js:3686",
+      "source": "server/index.js:3694",
       "callSites": 7,
       "calledFrom": [
         "aurora",
@@ -2850,7 +2850,7 @@
       "query": [
         "range"
       ],
-      "source": "server/index.js:3690",
+      "source": "server/index.js:3698",
       "contentType": "text/csv; charset=utf-8",
       "callSites": 8,
       "calledFrom": [
@@ -2875,7 +2875,7 @@
         "open",
         "vehicle"
       ],
-      "source": "server/index.js:3699",
+      "source": "server/index.js:3707",
       "callSites": 10,
       "calledFrom": [
         "aurora",
@@ -2896,7 +2896,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3700",
+      "source": "server/index.js:3708",
       "callSites": 8,
       "calledFrom": [
         "aurora",
@@ -2917,7 +2917,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3704",
+      "source": "server/index.js:3712",
       "callSites": 10,
       "calledFrom": [
         "aurora",
@@ -2937,7 +2937,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3709",
+      "source": "server/index.js:3717",
       "callSites": 21,
       "calledFrom": [
         "aurora",
@@ -2958,7 +2958,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3715",
+      "source": "server/index.js:3723",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -2979,7 +2979,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3728",
+      "source": "server/index.js:3736",
       "callSites": 11,
       "calledFrom": [
         "aurora",
@@ -2992,6 +2992,38 @@
     },
     {
       "method": "GET",
+      "path": "/api/settings/work-limits",
+      "area": "Other (settings, interface, updates, snapshots, dashboards)",
+      "auth": "session",
+      "access": "admin",
+      "confirmPassword": false,
+      "kind": "router",
+      "response": "json",
+      "query": [],
+      "source": "server/index.js:3746",
+      "callSites": 2,
+      "calledFrom": [
+        "built-in"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/settings/work-limits",
+      "area": "Other (settings, interface, updates, snapshots, dashboards)",
+      "auth": "session",
+      "access": "admin",
+      "confirmPassword": false,
+      "kind": "router",
+      "response": "json",
+      "query": [],
+      "source": "server/index.js:3747",
+      "callSites": 1,
+      "calledFrom": [
+        "built-in"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/api/updates",
       "area": "Other (settings, interface, updates, snapshots, dashboards)",
       "auth": "session",
@@ -3000,7 +3032,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3734",
+      "source": "server/index.js:3759",
       "callSites": 11,
       "calledFrom": [
         "aurora",
@@ -3021,7 +3053,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3735",
+      "source": "server/index.js:3760",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -3042,7 +3074,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3738",
+      "source": "server/index.js:3763",
       "callSites": 9,
       "calledFrom": [
         "aurora",
@@ -3063,7 +3095,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3749",
+      "source": "server/index.js:3774",
       "callSites": 2,
       "calledFrom": [
         "built-in"
@@ -3079,7 +3111,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3757",
+      "source": "server/index.js:3782",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -3095,7 +3127,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3763",
+      "source": "server/index.js:3788",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -3111,7 +3143,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3767",
+      "source": "server/index.js:3792",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -3127,7 +3159,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3771",
+      "source": "server/index.js:3796",
       "callSites": 1,
       "calledFrom": [
         "built-in"
@@ -3143,7 +3175,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3781",
+      "source": "server/index.js:3806",
       "callSites": 2,
       "calledFrom": [
         "built-in"
@@ -3159,7 +3191,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3800",
+      "source": "server/index.js:3825",
       "callSites": 2,
       "calledFrom": [
         "built-in"
@@ -3175,7 +3207,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3801",
+      "source": "server/index.js:3826",
       "callSites": 2,
       "calledFrom": [
         "built-in"
@@ -3191,7 +3223,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3819",
+      "source": "server/index.js:3844",
       "callSites": 3,
       "calledFrom": [
         "aurora",
@@ -3209,7 +3241,7 @@
       "kind": "router",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3824",
+      "source": "server/index.js:3849",
       "callSites": 3,
       "calledFrom": [
         "aurora",
@@ -3227,7 +3259,7 @@
       "kind": "sse",
       "response": "text/event-stream",
       "query": [],
-      "source": "server/index.js:3979",
+      "source": "server/index.js:4004",
       "note": "Server-Sent Events stream",
       "callSites": 7,
       "calledFrom": [
@@ -3251,7 +3283,7 @@
       "query": [
         "client"
       ],
-      "source": "server/index.js:3993",
+      "source": "server/index.js:4018",
       "note": "Server-Sent Events stream",
       "callSites": 6,
       "calledFrom": [
@@ -3275,7 +3307,7 @@
       "query": [
         "path"
       ],
-      "source": "server/index.js:4004",
+      "source": "server/index.js:4029",
       "note": "file bytes (Range requests), ?path=",
       "callSites": 13,
       "calledFrom": [
@@ -3300,7 +3332,7 @@
       "query": [
         "path"
       ],
-      "source": "server/index.js:4011",
+      "source": "server/index.js:4036",
       "contentType": "image/jpeg",
       "note": "file bytes (Range requests), ?path=",
       "callSites": 1,
@@ -3318,7 +3350,7 @@
       "kind": "inline",
       "response": "json",
       "query": [],
-      "source": "server/index.js:4022",
+      "source": "server/index.js:4047",
       "callSites": 6,
       "calledFrom": [
         "aurora",
@@ -3339,7 +3371,7 @@
       "kind": "inline",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3865",
+      "source": "server/index.js:3890",
       "note": "Prometheus text; Bearer token made in Health; 404 while off",
       "callSites": 1,
       "calledFrom": [
@@ -3356,7 +3388,7 @@
       "kind": "inline",
       "response": "json",
       "query": [],
-      "source": "server/index.js:3881",
+      "source": "server/index.js:3906",
       "note": "plain \"ok\"",
       "callSites": 0,
       "calledFrom": []
@@ -3371,7 +3403,7 @@
       "kind": "inline",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2857",
+      "source": "server/index.js:2865",
       "note": "CAN Bridge API (also on CAN_PORT); Bearer upload token, HTTPS only",
       "callSites": 0,
       "calledFrom": []
@@ -3386,7 +3418,7 @@
       "kind": "inline",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2862",
+      "source": "server/index.js:2870",
       "note": "CAN Bridge API (also on CAN_PORT); Bearer upload token, HTTPS only",
       "callSites": 0,
       "calledFrom": []
@@ -3401,7 +3433,7 @@
       "kind": "inline",
       "response": "json",
       "query": [],
-      "source": "server/index.js:2877",
+      "source": "server/index.js:2885",
       "note": "CAN Bridge API (also on CAN_PORT); Bearer upload token, HTTPS only",
       "callSites": 0,
       "calledFrom": []
@@ -7980,7 +8012,7 @@
       "method": "GET",
       "path": "/api/metrics/settings",
       "raw": "/api/metrics/settings",
-      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:291",
+      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:298",
       "how": "api",
       "route": "GET /api/metrics/settings"
     },
@@ -7988,7 +8020,7 @@
       "method": "POST",
       "path": "/api/metrics/enable",
       "raw": "/api/metrics/enable",
-      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:304",
+      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:311",
       "how": "api({ method })",
       "route": "POST /api/metrics/enable"
     },
@@ -7996,7 +8028,7 @@
       "method": "POST",
       "path": "/api/metrics/disable",
       "raw": "/api/metrics/disable",
-      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:309",
+      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:316",
       "how": "api({ method })",
       "route": "POST /api/metrics/disable"
     },
@@ -8004,7 +8036,7 @@
       "method": "GET",
       "path": "/api/ui-packs/original.zip",
       "raw": "/api/ui-packs/original.zip",
-      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:316",
+      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:323",
       "how": "html link",
       "route": "GET /api/ui-packs/original.zip"
     },
@@ -8012,17 +8044,9 @@
       "method": "PUT",
       "path": "/api/ui-packs/active",
       "raw": "/api/ui-packs/active",
-      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:319",
+      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:326",
       "how": "api({ method })",
       "route": "PUT /api/ui-packs/active"
-    },
-    {
-      "method": "PUT",
-      "path": "/api/settings/appearance",
-      "raw": "/api/settings/appearance",
-      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:333",
-      "how": "api({ method })",
-      "route": "PUT /api/settings/appearance"
     },
     {
       "method": "PUT",
@@ -8033,10 +8057,18 @@
       "route": "PUT /api/settings/appearance"
     },
     {
+      "method": "PUT",
+      "path": "/api/settings/appearance",
+      "raw": "/api/settings/appearance",
+      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:347",
+      "how": "api({ method })",
+      "route": "PUT /api/settings/appearance"
+    },
+    {
       "method": "DELETE",
       "path": "/api/ui-packs/{…}",
       "raw": "/api/ui-packs/${…}",
-      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:363",
+      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:370",
       "how": "api({ method })",
       "route": "DELETE /api/ui-packs/:id"
     },
@@ -8044,7 +8076,7 @@
       "method": "POST",
       "path": "/api/ui-packs/upload",
       "raw": "/api/ui-packs/upload",
-      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:374",
+      "source": "examples/ui-packs/sentry-six/web/s6/pages/settings.js:381",
       "how": "fetch({ method })",
       "route": "POST /api/ui-packs/upload"
     },
@@ -8996,10 +9028,18 @@
       "route": "GET /api/reports"
     },
     {
+      "method": "GET",
+      "path": "/api/settings/work-limits",
+      "raw": "/api/settings/work-limits",
+      "source": "web/app.js:2232",
+      "how": "api",
+      "route": "GET /api/settings/work-limits"
+    },
+    {
       "method": "PUT",
       "path": "/api/settings/power",
       "raw": "/api/settings/power",
-      "source": "web/app.js:2381",
+      "source": "web/app.js:2389",
       "how": "api({ method })",
       "route": "PUT /api/settings/power"
     },
@@ -9007,7 +9047,7 @@
       "method": "GET",
       "path": "/api/ui-packs/original.zip",
       "raw": "/api/ui-packs/original.zip",
-      "source": "web/app.js:2443",
+      "source": "web/app.js:2451",
       "how": "html link",
       "route": "GET /api/ui-packs/original.zip"
     },
@@ -9015,7 +9055,7 @@
       "method": "PUT",
       "path": "/api/ui-packs/active",
       "raw": "/api/ui-packs/active",
-      "source": "web/app.js:2464",
+      "source": "web/app.js:2472",
       "how": "api({ method })",
       "route": "PUT /api/ui-packs/active"
     },
@@ -9023,7 +9063,7 @@
       "method": "DELETE",
       "path": "/api/ui-packs/{…}",
       "raw": "/api/ui-packs/${…}",
-      "source": "web/app.js:2481",
+      "source": "web/app.js:2489",
       "how": "api({ method })",
       "route": "DELETE /api/ui-packs/:id"
     },
@@ -9031,7 +9071,7 @@
       "method": "POST",
       "path": "/api/ui-packs/upload",
       "raw": "/api/ui-packs/upload",
-      "source": "web/app.js:2496",
+      "source": "web/app.js:2504",
       "how": "fetch({ method })",
       "route": "POST /api/ui-packs/upload"
     },
@@ -9039,7 +9079,7 @@
       "method": "GET",
       "path": "/api/security/ca.crt",
       "raw": "/api/security/ca.crt",
-      "source": "web/app.js:2553",
+      "source": "web/app.js:2561",
       "how": "html link",
       "route": "GET /api/security/ca.crt"
     },
@@ -9047,7 +9087,7 @@
       "method": "PUT",
       "path": "/api/security/hostnames",
       "raw": "/api/security/hostnames",
-      "source": "web/app.js:2572",
+      "source": "web/app.js:2580",
       "how": "api({ method })",
       "route": "PUT /api/security/hostnames"
     },
@@ -9055,7 +9095,7 @@
       "method": "POST",
       "path": "/api/vehicles/test-smb",
       "raw": "/api/vehicles/test-smb",
-      "source": "web/app.js:2658",
+      "source": "web/app.js:2666",
       "how": "api({ body })",
       "route": "POST /api/vehicles/test-smb"
     },
@@ -9063,7 +9103,7 @@
       "method": "POST",
       "path": "/api/vehicles",
       "raw": "/api/vehicles",
-      "source": "web/app.js:2697",
+      "source": "web/app.js:2705",
       "how": "api({ body })",
       "route": "POST /api/vehicles"
     },
@@ -9071,7 +9111,7 @@
       "method": "PUT",
       "path": "/api/vehicles/{…}",
       "raw": "/api/vehicles/${…}",
-      "source": "web/app.js:2697",
+      "source": "web/app.js:2705",
       "how": "api({ method })",
       "route": "PUT /api/vehicles/:id"
     },
@@ -9079,7 +9119,7 @@
       "method": "DELETE",
       "path": "/api/vehicles/{…}/saved",
       "raw": "/api/vehicles/${…}/saved",
-      "source": "web/app.js:2710",
+      "source": "web/app.js:2718",
       "how": "api({ method })",
       "route": "DELETE /api/vehicles/:id/saved"
     },
@@ -9087,7 +9127,7 @@
       "method": "DELETE",
       "path": "/api/vehicles/{…}",
       "raw": "/api/vehicles/${…}",
-      "source": "web/app.js:2717",
+      "source": "web/app.js:2725",
       "how": "api({ method })",
       "route": "DELETE /api/vehicles/:id"
     },
@@ -9095,7 +9135,7 @@
       "method": "POST",
       "path": "/api/updates/check",
       "raw": "/api/updates/check",
-      "source": "web/app.js:2728",
+      "source": "web/app.js:2736",
       "how": "api({ body })",
       "route": "POST /api/updates/check"
     },
@@ -9103,7 +9143,7 @@
       "method": "POST",
       "path": "/api/auth/password",
       "raw": "/api/auth/password",
-      "source": "web/app.js:2740",
+      "source": "web/app.js:2748",
       "how": "api({ body })",
       "route": "POST /api/auth/password"
     },
@@ -9111,7 +9151,7 @@
       "method": "GET",
       "path": "/api/events",
       "raw": "/api/events",
-      "source": "web/app.js:2836",
+      "source": "web/app.js:2844",
       "how": "EventSource",
       "route": "GET /api/events"
     },
@@ -9119,7 +9159,7 @@
       "method": "GET",
       "path": "/api/jobs",
       "raw": "/api/jobs?limit=50",
-      "source": "web/app.js:2860",
+      "source": "web/app.js:2868",
       "how": "api",
       "route": "GET /api/jobs"
     },
@@ -9127,7 +9167,7 @@
       "method": "GET",
       "path": "/api/settings",
       "raw": "/api/settings",
-      "source": "web/app.js:2876",
+      "source": "web/app.js:2884",
       "how": "api",
       "route": "GET /api/settings"
     },
@@ -10208,6 +10248,22 @@
       "source": "web/viewerMap.js:490",
       "how": "fetch",
       "route": "GET /api/places/near"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/settings/work-limits",
+      "raw": "/api/settings/work-limits",
+      "source": "web/workLimitsSettings.js:74",
+      "how": "api({ method })",
+      "route": "PUT /api/settings/work-limits"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings/work-limits",
+      "raw": "/api/settings/work-limits",
+      "source": "web/workLimitsSettings.js:89",
+      "how": "api",
+      "route": "GET /api/settings/work-limits"
     }
   ],
   "mismatches": {
@@ -10217,42 +10273,42 @@
         "method": "GET",
         "path": "/api/exports",
         "access": "signed-in",
-        "source": "server/index.js:1660",
+        "source": "server/index.js:1668",
         "external": false
       },
       {
         "method": "PATCH",
         "path": "/api/stars/:id",
         "access": "signed-in",
-        "source": "server/index.js:2058",
+        "source": "server/index.js:2066",
         "external": false
       },
       {
         "method": "GET",
         "path": "/healthz",
         "access": "public",
-        "source": "server/index.js:3881",
+        "source": "server/index.js:3906",
         "external": false
       },
       {
         "method": "GET",
         "path": "/api/can/logs/ping",
         "access": "can-token",
-        "source": "server/index.js:2857",
+        "source": "server/index.js:2865",
         "external": true
       },
       {
         "method": "POST",
         "path": "/api/can/logs/status",
         "access": "can-token",
-        "source": "server/index.js:2862",
+        "source": "server/index.js:2870",
         "external": true
       },
       {
         "method": "POST",
         "path": "/api/can/logs/:name",
         "access": "can-token",
-        "source": "server/index.js:2877",
+        "source": "server/index.js:2885",
         "external": true
       },
       {
