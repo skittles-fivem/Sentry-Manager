@@ -261,7 +261,9 @@ async function readRecords(Reader, real, size, stats = null) {
     fs.closeSync(fd);
   }
   const records = [];
-  for (const f of frames) if (f.sei) records.push([f.timestamp, Buffer.from(f.sei).toString('base64')]);
+  // every record of each frame (Reader.recordsOf: a converted clip's last picture also
+  // carries Tesla's closing record, served where that sample was, one frame later)
+  for (const f of frames) for (const [t, sei] of Reader.recordsOf(f)) records.push([t, Buffer.from(sei).toString('base64')]);
   return { body: JSON.stringify({ v: 1, frames: records }), note };
 }
 
@@ -285,7 +287,8 @@ class Telemetry {
 
   /** Cache key of a file as it is now. */
   static key(real, st) {
-    return crypto.createHash('sha1').update(`${real}|${st.size}|${Math.round(st.mtimeMs)}`).digest('hex');
+    // (t2: every record of a frame; answers cached before that are read again)
+    return crypto.createHash('sha1').update(`t2|${real}|${st.size}|${Math.round(st.mtimeMs)}`).digest('hex');
   }
 
   /** { key, body (JSON text) } for a clip; real must already be checked. */

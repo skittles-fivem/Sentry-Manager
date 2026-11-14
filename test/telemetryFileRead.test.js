@@ -32,7 +32,7 @@ function wholeRead(real) {
     note = `No telemetry in ${path.basename(real)}: ${err.message}`;
   }
   const records = [];
-  for (const f of frames) if (f.sei) records.push([f.timestamp, Buffer.from(f.sei).toString('base64')]);
+  for (const f of frames) for (const [t, sei] of Reader.recordsOf(f)) records.push([t, Buffer.from(sei).toString('base64')]);
   return { body: JSON.stringify({ v: 1, frames: records }), note };
 }
 
@@ -126,6 +126,45 @@ test('telemetry read: built H.265 and AV1 layouts read the same as the whole cli
     fs.writeFileSync(file, bytes);
     await same(file, name);
   }
+});
+
+test('telemetry read: a converted clip gives every record of its original, the closing one too', async (t) => {
+  const dir = tmpDir(t);
+  // the original: 36 pictures and Tesla's closing zero-length sample, each with its own record
+  const n = 36;
+  const durations = [...Array(n).fill(1000), 0];
+  const original = h264Mp4({
+    samples: Array.from({ length: n + 1 }, (_, i) => lengthPrefixedSample([
+      ...(i === 0 ? [Buffer.from([0x67, 0x64, 0x00, 0x1f, 1]), Buffer.from([0x68, 0xee, 0x3c, 0x80])] : []),
+      teslaSeiNal(record(i)), Buffer.concat([Buffer.from([i === 0 ? 0x65 : 0x41]), noise(500, i)])
+    ])),
+    durations
+  });
+  // converted: the closing sample has no picture, so its record rides on the last picture, after that picture's own
+  const converted = h265Mp4({
+    samples: Array.from({ length: n }, (_, i) => lengthPrefixedSample([
+      hevcNal(35, Buffer.from([0x50])),
+      ...(i === 0 ? [hevcNal(32, Buffer.from([1, 2, 3, 4])), hevcNal(33, Buffer.from([5, 6, 7])), hevcNal(34, Buffer.from([8, 9]))] : []),
+      Buffer.concat([Buffer.from([0x66, 0x01]), teslaSeiNal(record(i)).subarray(2)]),
+      ...(i === n - 1 ? [Buffer.concat([Buffer.from([0x66, 0x01]), teslaSeiNal(record(n)).subarray(2)])] : []),
+      Buffer.concat([hevcNal(i === 0 ? 19 : 1), noise(500, i)]),
+      Buffer.from([0x61, 0x01, 0x80])
+    ], 4)),
+    durations: Array(n).fill(1000)
+  });
+  const a = path.join(dir, 'original.mp4');
+  const b = path.join(dir, 'converted.mp4');
+  fs.writeFileSync(a, original);
+  fs.writeFileSync(b, converted);
+  const ra = JSON.parse((await same(a)).body).frames;
+  const rb = JSON.parse((await same(b)).body).frames;
+  assert.equal(ra.length, n + 1);
+  assert.equal(rb.length, n + 1, 'the closing record is not dropped');
+  assert.deepEqual(rb.map((x) => x[1]), ra.map((x) => x[1]), 'the same records, in order');
+  assert.deepEqual(rb.map((x) => x[0]), ra.map((x) => x[0]), 'at the same times: the closing one a frame after the last picture');
+  // the last picture still shows its own record
+  const frames = new Reader(new Uint8Array(converted).buffer).parseFrames(null);
+  assert.equal(Buffer.from(frames.at(-1).sei).toString('base64'), ra.at(-2)[1]);
 });
 
 test('telemetry read: damaged clips and other files give the same notes', async (t) => {
