@@ -14,7 +14,7 @@
 // Anything unexpected throws, and the caller reads the clip the slow way.
 
 const fsp = require('fs/promises');
-const { parseMp4, selectVideoTrack, buildSampleIndex, findBoxes } = require('../src/main/converter/mp4');
+const { parseMp4Parts, boxContent, selectVideoTrack, buildSampleIndex, findBoxes } = require('../src/main/converter/mp4');
 
 const HEAD = 4096;
 const MAX_MOOV = 64 * 1024 * 1024;
@@ -223,20 +223,20 @@ async function readRecords(real, { mode } = {}) {
     const top = await topBoxes(fh, fileSize);
     const moov = top.find((b) => b.type === 'moov');
     if (!moov || moov.size > MAX_MOOV) throw new Error('No usable moov');
-    // the file as the parser sees it: every box header, moov whole, media left empty
-    const image = Buffer.alloc(fileSize);
-    for (const b of top) b.bytes.copy(image, b.start);
-    (await readAt(fh, moov.start, moov.size)).copy(image, moov.start);
-    const tree = parseMp4(image);
+    // the file as the parser sees it: every box header, moov whole, media left
+    // empty (read as zeros, never held in memory)
+    const parts = top.filter((b) => b !== moov).map((b) => ({ start: b.start, bytes: b.bytes }));
+    parts.push({ start: moov.start, bytes: await readAt(fh, moov.start, moov.size) });
+    const tree = parseMp4Parts(fileSize, parts);
     const track = selectVideoTrack(tree);
     const samples = buildSampleIndex(track);
     if (!samples.length) return [];
     const mdhd = findBoxes(track, 'mdhd')[0];
-    const md = image.subarray(Number(mdhd.contentStart), Number(mdhd.end));
+    const md = boxContent(tree, mdhd);
     const scale = md[0] === 1 ? md.readUInt32BE(20) : md.readUInt32BE(12);
     if (!scale) throw new Error('No timescale');
     const stsd = findBoxes(track, 'stsd')[0];
-    const desc = image.subarray(Number(stsd.contentStart), Number(stsd.end));
+    const desc = boxContent(tree, stsd);
     const codec = desc.toString('ascii', 12, 16);
     let lengthSize = 4;
     const cfgAt = desc.indexOf(codec === 'avc1' ? 'avcC' : 'hvcC');
