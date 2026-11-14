@@ -75,7 +75,7 @@ const { VERSIONS, DEFAULT_VERSION, securitySummary } = require('./mountSpec');
 const { TlsManager, localTlsSource, supervisorTlsSource, parseHostnames } = require('./tls');
 const { acmeConfigFromEnv, CHALLENGE_PREFIX } = require('./acme');
 const { canUploadSecure } = require('./canSecure');
-const { Router, HttpError, sendJson, readJson, readRaw, serveFile, sendText } = require('./http');
+const { Router, HttpError, sendJson, sendJsonPatiently, readJson, readRaw, serveFile, sendText } = require('./http');
 const { createStudioTranslations } = require('./studioTranslations');
 const { createUiPacks, originalPack, MAX_ZIP_BYTES: MAX_UI_PACK_BYTES } = require('./uiPacks');
 const { createSmbTester } = require('./smbTest');
@@ -3764,6 +3764,11 @@ async function main() {
   // Converter (Encoder tab) — the Studio converter UI talks to these.
   r.add('POST', '/api/converter/invoke/:name', async (req, res, { params, body }) => {
     if (!bridge) return { ok: false, error: { code: host.lastError?.code || 'CONVERTER_STARTING' } };
+    // the benchmark answers when it is done (minutes): kept alive meanwhile, so its result is not cut off
+    if (params.name === 'runBenchmark') {
+      await sendJsonPatiently(res, () => bridge.invoke(params.name, body, req.headers['x-client-id']));
+      return undefined;
+    }
     return bridge.invoke(params.name, body, req.headers['x-client-id']);
   });
 
