@@ -4,3 +4,5 @@ node_modules/
 /data/
 /.env
 .DS_Store
+# measurement runs (tools/bench): they hold the bench account password
+/bench-runs/
