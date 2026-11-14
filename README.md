@@ -819,5 +819,21 @@ docker build -t ghcr.io/skittles-fivem/sentry-manager:latest .
 
 ## Credits and license
 
+Sentry Six Manager is built on [Sentry Studio](https://github.com/ChadR23/Sentry-Six),
+the Sentry Six viewer and converter. [skittles](https://github.com/skittles-fivem)
+turned it into this server app and built much of it before handing it to the
+Sentry Six project. Thank you, skittles.
+
 The viewer and converter are [Sentry Studio](https://github.com/ChadR23/Sentry-Six)
-by Chad and Scott Vandereems. Released under the [MIT License](LICENSE).
+by Chad and Scott Vandereems.
+
+PolyForm Noncommercial 1.0.0: free for any noncommercial use; commercial use
+requires a separate license. See [LICENSE](LICENSE). Releases up to and
+including commit 0688e30 were under the MIT License and stay so; the Sentry
+Studio Viewer and converter under `src/`, the bundled CAN databases and the
+Material Symbols icons keep their own licenses. See [NOTICE](NOTICE) for the
+breakdown.
+
+This is source-available software, not open source: commercial use is not
+permitted under this license. To inquire about a commercial license, contact
+the authors.
