@@ -246,7 +246,7 @@ class Inventory {
           map.set(f.rel, f);
         }
       }
-      const limit = limiter(8);
+      const limit = limiter(this.codecChecks || 8); // (index.js sets it from workLimits.js)
       const read = [];
       await Promise.all(todo.map((f) => limit(async () => {
         try {
