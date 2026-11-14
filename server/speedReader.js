@@ -3,8 +3,8 @@
 // A clip's speed, one value a second, without reading the whole clip.
 //
 // The viewer's speed graph needs a speed a second, not the dashboard's every
-// frame. Reading the clip for the dashboard (server/telemetry.js) loads the
-// whole file (~80 MB a minute) to pull a record out of each frame; here only
+// frame. Reading the clip for the dashboard (server/telemetry.js) walks every
+// frame's records (reading each frame's head, paged); here only
 // the file's index (moov) and the first few KB of one frame a second are read,
 // as Tesla writes each frame's telemetry record ahead of its picture. A
 // converted clip keeps the records the same way: H.265 in a compatibility
