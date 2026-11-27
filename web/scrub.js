@@ -292,11 +292,15 @@ export function createScrubber() {
     const i = Math.max(0, Math.min(COLS * ROWS - 1, Math.floor(t)));
     const ox = (W - fw) / 2 - (i % COLS) * fw;
     const oy = (H - fh) / 2 - Math.floor(i / COLS) * fh;
+    // at the video's own stacking level, so just over it (the layer comes
+    // after it) and under what the page puts over it: the Viewer lifts the
+    // front tile's video (that tile holds the compact dashboard)
+    const z = /^-?\d+$/.test(cs.zIndex) ? cs.zIndex : '0';
     Object.assign(el.style, {
       left: `${video.offsetLeft}px`, top: `${video.offsetTop}px`, width: `${W}px`, height: `${H}px`,
       backgroundImage: `url("${g.img.src}")`, backgroundSize: `${fw * COLS}px ${fh * ROWS}px`,
       backgroundPosition: `${ox}px ${oy}px`, transform: cs.transform === 'none' ? '' : cs.transform,
-      borderRadius: cs.borderRadius, display: 'block'
+      borderRadius: cs.borderRadius, zIndex: z, display: 'block'
     });
     shown.add(video);
     wanted.delete(video);
