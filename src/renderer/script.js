@@ -44,7 +44,7 @@ import {
 import { initMultiCamFocus, clearMultiFocus, toggleMultiFocus, scheduleResync, syncMultiVideos } from './scripts/ui/multiCamFocus.js';
 import {
     initClipBrowser, renderClipList, highlightSelectedClip,
-    buildDisplayItems, clearThumbnailCache, parseTimestampKeyToEpochMs
+    buildDisplayItems, clearThumbnailCache, parseTimestampKeyToEpochMs, collectionUsesFolder
 } from './scripts/core/clipBrowser.js';
 import { matchClipsTodrives } from './scripts/core/driveGrouper.js';
 import { initDriveBrowser, renderDriveList, setDriveTagFilter } from './scripts/core/driveBrowser.js';
@@ -1416,8 +1416,9 @@ initDraggablePanels([dashboardVis, mapVis]);
 function handleClipDeleted(collectionId, folderPath, unloadOnly = false) {
     console.log('[DELETE] Clip deleted:', collectionId, folderPath, unloadOnly ? '(unload only)' : '');
     
-    // Clear current selection if it was the deleted clip
-    if (state.collection?.active?.id === collectionId) {
+    // Clear current selection if it was the deleted clip, or plays some of it
+    // (a day's RecentClips timeline with minutes from the deleted event)
+    if (state.collection?.active?.id === collectionId || collectionUsesFolder(state.collection?.active, folderPath)) {
         state.collection.active = null;
         pauseNative();
         resetDashboardAndMap();
