@@ -12,10 +12,12 @@
 //
 //   const scrub = createScrubber();
 //   // while dragging, the clip under the pointer and the time in it:
-//   scrub.show([{ video, src: clip.files.front }, ...], t);
+//   scrub.show([{ video, src: clip.files.front }, ...], t);   // every camera shown, at once
 //   scrub.seek(videos, t);          // same clip: the real seek, one at a time
 //   // when the drag ends, after the Viewer's own seek or clip change:
 //   scrub.release(videos);          // previews give way once each video shows its frame
+//                                   // (and at once over a video no longer among them)
+//   scrub.forget(videos);           // drop the seeks still to be sent (another clip comes)
 //   scrub.warm([paths...]);         // fetch grids ahead (the clip opened, its neighbours)
 //
 // A `src` is a clip's file path or its /api/media URL.
@@ -186,7 +188,12 @@ export function createScrubber() {
   const layers = new WeakMap(); // video -> preview element
   const seeks = new WeakMap(); // video -> { want, sent }
   const shown = new Set();
-  const wanted = new WeakMap(); // video -> the preview last asked for
+  // video -> the preview request waiting for its grid ({ path, t }). hide()
+  // drops them all; release() keeps only those of the videos it names (also
+  // when it is called again for them), and those draw only while their video
+  // loads that clip and shows no frame of its own yet (settle drops them then)
+  let wanted = new WeakMap();
+  const waiting = new Set(); // the last release()'s videos whose request still waits
   const released = new WeakSet(); // its drag or load is over: the preview goes when the video shows a frame
   let settling = 0;
   let settleStart = 0;
@@ -198,19 +205,32 @@ export function createScrubber() {
     cancelAnimationFrame(settling);
     const check = () => {
       const age = performance.now() - settleStart;
+      const ownFrame = (v) => age > 60 && !v.seeking && v.readyState >= 2;
       for (const v of [...shown]) {
-        if (released.has(v) && age > 60 && !v.seeking && v.readyState >= 2) hideOne(v, true);
+        if (released.has(v) && ownFrame(v)) hideOne(v, true);
       }
-      const left = [...shown].some((v) => released.has(v));
+      for (const v of [...waiting]) {
+        if (!wanted.has(v) || ownFrame(v)) {
+          wanted.delete(v);
+          waiting.delete(v);
+        }
+      }
+      const left = [...shown].some((v) => released.has(v)) || waiting.size > 0;
       if (left && age < 8000) settling = requestAnimationFrame(check);
-      else if (left) for (const v of [...shown]) if (released.has(v)) hideOne(v, true);
+      else if (left) {
+        for (const v of [...shown]) if (released.has(v)) hideOne(v, true);
+        for (const v of waiting) wanted.delete(v);
+        waiting.clear();
+      }
     };
     settling = requestAnimationFrame(check);
   }
 
   function layerFor(video) {
     let el = layers.get(video);
-    if (el && el.isConnected) return el;
+    // (a video moved to another place gets a layer there)
+    if (el && el.isConnected && el.parentElement === video.parentElement) return el;
+    el?.remove();
     const host = video.parentElement;
     if (!host) return null;
     if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
@@ -228,26 +248,37 @@ export function createScrubber() {
   function draw(video, path, t) {
     const g = grid(path);
     const el = layerFor(video);
-    if (!el) return;
+    if (!el) {
+      wanted.delete(video);
+      return;
+    }
     if (!g?.ready) {
       hideOne(video);
       // drawn when the grid arrives, if this is still wanted and the video
       // still has nothing to show
       if (g) {
-        wanted.set(video, { path, t });
+        const req = { path, t };
+        wanted.set(video, req);
         g.waiters.add(() => {
-          const w = wanted.get(video);
-          if (w && w.path === path && !showsIt(video, path, w.t) && !(video.readyState >= 2 && !video.seeking && pathOf(video.currentSrc) === path)) {
-            draw(video, path, w.t);
-            if (released.has(video)) settle();
-          }
+          // (a newer request took its place, or hide() or a release() without
+          // this video dropped it)
+          if (wanted.get(video) !== req) return;
+          wanted.delete(video);
+          waiting.delete(video);
+          if (showsIt(video, path, t)) return;
+          // once let go, only for the clip the video is loading
+          if (released.has(video) && pathOf(video.currentSrc || video.src) !== path) return;
+          // never over a frame of its own: of this clip, or any once let go
+          if (video.readyState >= 2 && !video.seeking && (pathOf(video.currentSrc) === path || released.has(video))) return;
+          draw(video, path, t);
+          if (released.has(video)) settle();
         });
       }
       return;
     }
     const W = video.offsetWidth;
     const H = video.offsetHeight;
-    if (!W || !H) { hideOne(video); return; }
+    if (!W || !H) { hideOne(video, true); return; }
     const cs = getComputedStyle(video);
     const cw = g.img.naturalWidth / COLS;
     const ch = g.img.naturalHeight / ROWS;
@@ -268,10 +299,14 @@ export function createScrubber() {
       borderRadius: cs.borderRadius, display: 'block'
     });
     shown.add(video);
+    wanted.delete(video);
   }
 
   function hideOne(video, forget = false) {
-    if (forget) wanted.delete(video);
+    if (forget) {
+      wanted.delete(video);
+      waiting.delete(video);
+    }
     const el = layers.get(video);
     if (el) el.style.display = 'none';
     shown.delete(video);
@@ -289,25 +324,32 @@ export function createScrubber() {
     if (s && s.want !== s.sent && Number.isFinite(s.want)) {
       s.sent = s.want;
       try { v.currentTime = s.want; } catch { /* not seekable yet */ }
-    } else if (s && s.path && showsIt(v, s.path, s.want)) {
-      hideOne(v);
+    } else if (s && s.path && Number.isFinite(s.want) && showsIt(v, s.path, s.want)) {
+      hideOne(v, true);
     }
   }
 
   return {
-    // previews of the clip under the pointer: [{ video, src }] and the time in that clip
+    // previews of the clip under the pointer: [{ video, src }] and the time in
+    // that clip. These are all the videos previewed now: a request still
+    // waiting from before is dropped, and so is the preview of any other video
+    // (one taken off the screen meanwhile: a preloaded minute swaps its own in)
     show(pairs, t) {
       cancelAnimationFrame(settling);
+      wanted = new WeakMap();
+      waiting.clear();
+      const now = new Set();
       for (const { video, src } of pairs) {
         if (!video) continue;
+        now.add(video);
         released.delete(video);
         const path = pathOf(src);
-        wanted.set(video, path ? { path, t } : null);
         const s = seeks.get(video);
         if (s) { s.path = path; s.want = s.want ?? t; }
-        if (!path || showsIt(video, path, t)) hideOne(video);
+        if (!path || showsIt(video, path, t)) hideOne(video, true);
         else draw(video, path, t);
       }
+      for (const v of [...shown]) if (!now.has(v)) hideOne(v, true);
     },
     // the real seek within the clip that is loaded, one at a time per video
     seek(videos, t) {
@@ -328,20 +370,42 @@ export function createScrubber() {
     },
     // the drag ended: each preview goes once its video shows the frame
     release(videos) {
+      const kept = new WeakMap();
+      waiting.clear();
       for (const v of videos) {
         if (!v) continue;
         const s = seeks.get(v);
-        if (s) s.want = s.sent = null;
+        if (s) s.want = s.sent = s.path = null;
         released.add(v);
+        const req = wanted.get(v);
+        if (req) {
+          kept.set(v, req);
+          waiting.add(v);
+        }
       }
+      wanted = kept;
+      // a video taken off the screen meanwhile (another took its place) shows
+      // nothing through its preview any more
+      const now = new Set(videos);
+      for (const v of [...shown]) if (!now.has(v)) hideOne(v, true);
       settle();
+    },
+    // seeks not sent yet are dropped: the video is about to show another clip
+    // or place, and must not be sent back to an earlier one
+    forget(videos) {
+      for (const v of videos) {
+        const s = v && seeks.get(v);
+        if (s) s.want = s.sent = s.path = null;
+      }
     },
     warm(srcs) {
       for (const src of srcs || []) grid(pathOf(src));
     },
     hide() {
       cancelAnimationFrame(settling);
-      for (const v of [...shown]) hideOne(v);
+      wanted = new WeakMap();
+      waiting.clear();
+      for (const v of [...shown]) hideOne(v, true);
     }
   };
 }

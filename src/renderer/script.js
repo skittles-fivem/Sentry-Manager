@@ -103,6 +103,7 @@ function mediaSourceKey(entry) {
 
 function resetLibraryScopedResources() {
     libraryGeneration++;
+    cancelDayScrub();
     eventMetaByKey.clear();
     clearThumbnailCache();
     cancelDurationProbes();
@@ -1421,6 +1422,7 @@ function handleClipDeleted(collectionId, folderPath, unloadOnly = false) {
         state.collection.active = null;
         pauseNative();
         resetDashboardAndMap();
+        cancelDayScrub();
         
         // Force release file handles by removing and recreating video elements
         // Chromium's video decoder holds file handles even after clearing src
@@ -1618,6 +1620,7 @@ function refreshFsdEventMarkers() {
  */
 async function selectDriveCollection(drive) {
     cancelDurationProbes();
+    cancelDayScrub();
     // Collect all unique calendar dates this drive spans (from its route timestamp keys)
     const neededDates = [...new Set(drive.routeTimestampKeys.map(k => k.split('_')[0]).filter(Boolean))];
 
@@ -3391,6 +3394,7 @@ function selectClipGroup(groupId) {
     const g = library.clipGroupById.get(groupId);
     if (!g) return;
     cancelDurationProbes();
+    cancelDayScrub();
     setMode('clip');
     selection.selectedGroupId = groupId;
     highlightSelectedClip();
@@ -3414,6 +3418,7 @@ function selectSentryCollection(collectionId) {
 
     const c = it.collection;
     cancelDurationProbes();
+    cancelDayScrub();
     setMode('collection');
     // Ensure a clean start. If we came from an actively playing clip, segment loading clears timers,
     // which can leave playing=true but no timer loop. Pause first so autoplay can reliably start.
@@ -3463,6 +3468,7 @@ function selectDayCollection(dayKey) {
         console.log('Day collection:', coll.id, 'groups:', coll.groups?.length, 'duration:', coll.durationMs);
 
     cancelDurationProbes();
+    cancelDayScrub();
 
     setMode('collection');
     pause();
@@ -3587,7 +3593,7 @@ function selectDayCollection(dayKey) {
         const segIdx = nativeVideo.currentSegmentIdx >= 0 ? nativeVideo.currentSegmentIdx : 0;
         const cumStart = nativeVideo.cumulativeStarts[segIdx] || 0;
         const currentSec = cumStart + (vid?.currentTime || 0);
-        updateTimeDisplayNew(Math.floor(currentSec), Math.floor(totalSec));
+        if (!state.ui.isScrubbing) updateTimeDisplayNew(Math.floor(currentSec), Math.floor(totalSec));
 
         // Timeline length just changed — re-lock export markers to their frames.
         // They're anchored to wall-clock (not %), so they survive this rebuild.
@@ -3761,11 +3767,13 @@ async function ingestSentryEventJson(eventAssetsByKey) {
 
 // Playback Logic
 playBtn.onclick = () => {
-    const isPlaying = state.ui.nativeVideoMode ? nativeVideo.playing : player.playing;
+    const isPlaying = state.ui.nativeVideoMode ? nativePlaying() : player.playing;
     isPlaying ? pause() : play();
     playBtn.blur();
 };
 function previewAtSliderValue() {
+    // the rest of a cancelled drag is ignored (dayDrag, scrubCancelled)
+    if (dayDrag?.cancelled || scrubCancelled) return;
     // Native video mode with day collection: seek across entire day
     if (state.ui.nativeVideoMode && state.collection.active) {
         const pct = +progressBar.value || 0;
@@ -3774,8 +3782,21 @@ function previewAtSliderValue() {
         // Sentry Six Manager: while the slider is dragged, previews of the
         // second under it (any segment) and one seek at a time in the loaded
         // segment; another segment loads when it is let go (web/scrub.js)
-        if (scrubber && state.ui.isScrubbing) {
-            scrubPreview(targetSec, totalSec);
+        if (scrubber && state.ui.isScrubbing && dayDrag) {
+            // the cameras hold still while the timeline is dragged and go on
+            // from the new place once it is let go (commitDayDrag)
+            if (!dayDrag.moved) {
+                dayDrag.moved = true;
+                scrubGen++; // an earlier drag's release no longer applies
+                if (nativeVideo.playing) {
+                    state.ui.scrubPausedFor = state.collection.active;
+                    pauseNative();
+                }
+            }
+            dayDrag.value = pct;
+            // the clip and second previewed: the release seeks there, even if
+            // the clip lengths are measured anew in between
+            dayDrag.at = scrubPreview(targetSec, totalSec);
             return;
         }
         seekNativeDayCollectionBySec(targetSec);
@@ -3852,6 +3873,16 @@ window.sentryViewer = {
 
 // Sentry Six Manager: fast timeline dragging (web/scrub.js)
 let scrubber = null;
+let scrubGen = 0; // each drag of the day's timeline, its release, or leaving the day
+// The drag of a day's (or event's) timeline in progress: the pointer that
+// started it, the collection it is on, the last place it was dragged to (%),
+// whether it has moved, and whether another day or clip cancelled it (then the
+// rest of its gesture is ignored until that pointer is let go).
+let dayDrag = null;
+// any other drag of the slider: the pointer that started it, and whether
+// another day or clip cancelled it (the rest of its gesture is then ignored)
+let scrubPointerId = null;
+let scrubCancelled = false;
 import('/web/scrub.js').then((m) => {
     scrubber = m.createScrubber();
     // the frame and time under the pointer, above the slider (hover with a
@@ -3881,31 +3912,113 @@ function scrubSegmentAt(targetSec) {
     while (segIdx < cumStarts.length - 2 && targetSec >= cumStarts[segIdx + 1]) segIdx++;
     return { segIdx, localSec: Math.max(0, targetSec - (cumStarts[segIdx] || 0)) };
 }
+// the shown camera elements of a segment's plan, and the file each one shows
+const scrubPairs = (plan) => plan.targets.map(t => ({
+    video: videoBySlot[t.slot] || (t.slot === 'main' ? videoMain : null),
+    src: t.entry?.file?.path || null
+}));
 function scrubPreview(targetSec, totalSec) {
     const { segIdx, localSec } = scrubSegmentAt(Math.max(0, Math.min(totalSec, targetSec)));
     const plan = getSegmentPlan(segIdx);
-    if (plan) {
-        scrubber.show(plan.targets.map(t => ({
-            video: videoBySlot[t.slot] || (t.slot === 'main' ? videoMain : null),
-            src: t.entry?.file?.path || null
-        })), localSec);
-    }
+    if (plan) scrubber.show(scrubPairs(plan), localSec);
     if (segIdx === nativeVideo.currentSegmentIdx) scrubber.seek(scrubVideos().filter(v => v.src), localSec);
     updateTimeDisplayNew(Math.floor(targetSec), Math.floor(totalSec));
+    return { segIdx, localSec };
 }
-// previews give way once the final seek (and any segment load) is done
-function scrubRelease() {
+// previews give way once the final seek (and any segment load) is done, or
+// after 5 s; playback the drag paused goes on from the new place once that
+// seek is done. A newer drag, or another day or clip, ends this wait. `at`
+// (the segment and second let go at) is previewed on the cameras shown then:
+// a preloaded minute puts its own elements in the place of those that had
+// the previews, and they are still seeking.
+function scrubRelease(gen, at = null) {
     if (!scrubber) return;
     const start = performance.now();
+    let released = false;
     const wait = () => {
-        if ((nativeVideo.isSeeking || nativeVideo._pendingSeekSec != null) && performance.now() - start < 5000) requestAnimationFrame(wait);
-        else scrubber.release(scrubVideos());
+        if (gen !== scrubGen) return;
+        const seeking = nativeVideo.isSeeking || nativeVideo._pendingSeekSec != null;
+        const waited = performance.now() - start;
+        if (!released && (!seeking || waited >= 5000)) {
+            released = true;
+            const plan = at && at.segIdx === nativeVideo.currentSegmentIdx ? getSegmentPlan(at.segIdx) : null;
+            if (plan) scrubber.show(scrubPairs(plan), at.localSec);
+            scrubber.release(scrubVideos());
+        }
+        if (seeking && waited < 60000) {
+            requestAnimationFrame(wait);
+            return;
+        }
+        const paused = state.ui.scrubPausedFor;
+        state.ui.scrubPausedFor = null;
+        if (paused && !seeking && paused === state.collection.active && !viewerAway) playNative();
+        else if (paused) updatePlayButton();
     };
     requestAnimationFrame(wait);
 }
 
+// the drag of the day's timeline let go: the final seek, to the last place
+// it was dragged to, then the previews give way and playback it paused goes
+// on (scrubRelease)
+function commitDayDrag() {
+    const drag = dayDrag;
+    dayDrag = null;
+    state.ui.isScrubbing = false;
+    if (!drag || drag.cancelled || !drag.moved) return;
+    if (drag.day !== state.collection.active || !state.ui.nativeVideoMode) {
+        cancelDayScrub();
+        return;
+    }
+    const gen = ++scrubGen;
+    // a camera still on its way to an earlier place of the drag stops there
+    scrubber?.forget(scrubVideos());
+    const cumStarts = nativeVideo.cumulativeStarts;
+    const totalSec = cumStarts[cumStarts.length - 1] || 1;
+    let targetSec = (drag.value / 100) * totalSec;
+    let at = null;
+    if (drag.at && drag.at.segIdx < cumStarts.length - 1) {
+        // within the previewed clip, also if it measured shorter since (its
+        // end then, not the next clip, which may be hours later)
+        const start = cumStarts[drag.at.segIdx] || 0;
+        const end = cumStarts[drag.at.segIdx + 1];
+        const last = drag.at.segIdx >= cumStarts.length - 2;
+        targetSec = Math.min(start + drag.at.localSec, last ? end : Math.max(start, end - 0.05));
+        at = { segIdx: drag.at.segIdx, localSec: targetSec - start };
+    }
+    seekNativeDayCollectionBySec(targetSec);
+    scrubRelease(gen, at);
+}
+
+// another day or clip opens, or the footage is read again: a drag of the
+// day's timeline ends without its seek (the rest of its gesture is ignored),
+// its previews go, and playback it paused stays paused
+function cancelDayScrub() {
+    scrubGen++;
+    if (dayDrag) {
+        dayDrag.cancelled = true;
+        state.ui.isScrubbing = false;
+    }
+    if (scrubPointerId != null) {
+        scrubCancelled = true;
+        state.ui.isScrubbing = false;
+    }
+    if (state.ui.scrubPausedFor) {
+        state.ui.scrubPausedFor = null;
+        updatePlayButton();
+    }
+    scrubber?.forget(scrubVideos());
+    scrubber?.hide();
+}
+
 // Commit when the user releases the slider (click or drag end)
 progressBar.addEventListener('change', () => {
+    if (scrubCancelled) return;
+    // a drag of the day's timeline: committed with its last place, or (when
+    // cancelled) ignored
+    if (dayDrag) {
+        if (!dayDrag.cancelled) commitDayDrag();
+        return;
+    }
     state.ui.isScrubbing = false;
     if (state.ui.collectionScrubPreviewTimer) { clearTimeout(state.ui.collectionScrubPreviewTimer); state.ui.collectionScrubPreviewTimer = null; }
     
@@ -3914,7 +4027,7 @@ progressBar.addEventListener('change', () => {
         const pct = +progressBar.value || 0;
         const totalSec = nativeVideo.cumulativeStarts[nativeVideo.cumulativeStarts.length - 1] || 1;
         seekNativeDayCollectionBySec((pct / 100) * totalSec);
-        scrubRelease();
+        scrubRelease(++scrubGen);
         return;
     }
     if (state.ui.nativeVideoMode && nativeVideo.master) {
@@ -3936,13 +4049,101 @@ progressBar.addEventListener('change', () => {
     previewAtSliderValue();
     maybeAutoplayAfterSeek();
 });
-progressBar.addEventListener('pointerdown', () => {
+progressBar.addEventListener('pointerdown', (e) => {
+    // only the primary button or a touch drags, and one pointer at a time (a
+    // cancelled drag's pointer may be gone without its let-go: a new one
+    // takes its place)
+    if (e.button !== 0) return;
+    const busy = (dayDrag && !dayDrag.cancelled) ? dayDrag.pointerId : (scrubCancelled ? null : scrubPointerId);
+    if (busy != null && busy !== e.pointerId) {
+        e.preventDefault();
+        return;
+    }
+    // the same pointer pressing again before its last drag ended (its let-go
+    // lost, or not handled yet): that drag ends first
+    if (dayDrag && !dayDrag.cancelled) commitDayDrag();
+    scrubCancelled = false;
+    // a drag of the day's (or event's) timeline with previews (dayDrag)
+    if (scrubber && state.ui.nativeVideoMode && state.collection.active) {
+        dayDrag = { pointerId: e.pointerId, day: state.collection.active, value: +progressBar.value || 0, moved: false, cancelled: false };
+        scrubPointerId = null;
+        state.ui.isScrubbing = true;
+        state.ui.wasPlayingBeforeScrub = false; // it goes on by itself (scrubRelease)
+        return;
+    }
+    dayDrag = null;
+    scrubPointerId = e.pointerId;
     state.ui.isScrubbing = true;
     // Remember if we were playing before the scrub started
     state.ui.wasPlayingBeforeScrub = state.ui.nativeVideoMode ? nativeVideo.playing : player.playing;
 });
-progressBar.addEventListener('pointerup', () => { state.ui.isScrubbing = false; maybeAutoplayAfterSeek(); });
-progressBar.addEventListener('pointercancel', () => { state.ui.isScrubbing = false; });
+// a key that moves the slider ends a cancelled drag's latch (its pointer's
+// let-go may never have come)
+const SLIDER_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown']);
+progressBar.addEventListener('keydown', (e) => {
+    if (!SLIDER_KEYS.has(e.key)) return;
+    if (dayDrag?.cancelled) dayDrag = null;
+    if (scrubCancelled) {
+        scrubCancelled = false;
+        scrubPointerId = null;
+    }
+});
+// A drag ends when its pointer is let go, anywhere (it may be off the
+// slider), when that pointer is cancelled, or when the window loses focus.
+// A drag of the day's timeline: its change event commits it; one that sends
+// none (it ended where it began, or was cut short) is committed here with the
+// last place it was dragged to. A cancelled one just ends at its pointer's
+// let-go (a lost focus keeps it, so its leftover events stay ignored).
+// Any other drag ends as it did on the slider (playback that was on goes on
+// after a let-go).
+const endDayDrag = (e, afterChange) => {
+    const drag = dayDrag;
+    if (!drag || (e && e.pointerId !== drag.pointerId)) return;
+    const end = () => {
+        if (dayDrag !== drag) return;
+        if (drag.cancelled) dayDrag = null;
+        else commitDayDrag();
+    };
+    if (afterChange) setTimeout(end, 0); // the change event, if any, comes first
+    else end();
+};
+window.addEventListener('pointerup', (e) => {
+    if (dayDrag) {
+        endDayDrag(e, true);
+        return;
+    }
+    if (scrubPointerId == null || e.pointerId !== scrubPointerId) return;
+    scrubPointerId = null;
+    if (scrubCancelled) {
+        // (its change event, if any, comes first and is ignored)
+        setTimeout(() => { if (scrubPointerId == null) scrubCancelled = false; }, 0);
+        return;
+    }
+    state.ui.isScrubbing = false;
+    maybeAutoplayAfterSeek();
+}, true);
+window.addEventListener('pointercancel', (e) => {
+    if (dayDrag) {
+        endDayDrag(e, false);
+        return;
+    }
+    if (scrubPointerId == null || e.pointerId !== scrubPointerId) return;
+    scrubPointerId = null;
+    if (scrubCancelled) {
+        setTimeout(() => { if (scrubPointerId == null) scrubCancelled = false; }, 0);
+        return;
+    }
+    state.ui.isScrubbing = false;
+}, true);
+window.addEventListener('blur', () => {
+    if (dayDrag) {
+        if (!dayDrag.cancelled) endDayDrag(null, true);
+        return;
+    }
+    if (scrubPointerId == null || scrubCancelled) return;
+    scrubPointerId = null;
+    state.ui.isScrubbing = false;
+});
 
 // Keyboard controls
 document.addEventListener('keydown', (e) => {
@@ -3998,6 +4199,8 @@ function play() {
 }
 
 function pause() {
+    // stopped: a drag that paused playback does not start it again
+    state.ui.scrubPausedFor = null;
     // Use native video pause in native mode
     if (state.ui.nativeVideoMode) {
         pauseNative();
@@ -4016,8 +4219,13 @@ function pause() {
     stopSteeringAnimation();
 }
 
+// playing, or about to go on once a drag of the day's timeline is let go
+function nativePlaying() {
+    return nativeVideo.playing || (!!state.ui.scrubPausedFor && state.ui.scrubPausedFor === state.collection.active);
+}
+
 function updatePlayButton() {
-    const isPlaying = state.ui.nativeVideoMode ? nativeVideo.playing : player.playing;
+    const isPlaying = state.ui.nativeVideoMode ? nativePlaying() : player.playing;
     playBtn.innerHTML = isPlaying 
         ? '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
         : '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
@@ -4397,6 +4605,7 @@ const nativeVideo = {
     isTransitioning: false, // Guard to prevent double-triggering segment transitions
     isSeeking: false,       // Guard to prevent progress bar updates during user-initiated seeks
     _pendingSeekSec: null,  // Queued seek target for "latest wins" pattern
+    _pendingSeekColl: null, // the collection that queued it
     lastSeiTimeMs: -Infinity, // Track last timestamp where SEI data was found
     dashboardReset: false,  // Track if dashboard has been reset for no-SEI section
     telemetryRafId: null,   // requestAnimationFrame ID for ~60Hz telemetry polling
@@ -4609,6 +4818,10 @@ window.addEventListener('message', (e) => {
     if (window.parent === window || e.source !== window.parent || e.origin !== location.origin) return;
     if (e.data?.type === 'pause') {
         viewerAway = true;
+        if (state.ui.scrubPausedFor) {
+            state.ui.scrubPausedFor = null;
+            updatePlayButton();
+        }
         segmentPreloader.cancel();
     } else if (e.data?.type === 'shown') {
         viewerAway = false;
@@ -4854,8 +5067,11 @@ function onMasterTimeUpdate() {
         const currentSec = cumStart + currentVidSec;
         const totalSec = nativeVideo.cumulativeStarts[nativeVideo.cumulativeStarts.length - 1] || 1;
         
-        updateTimeDisplayNew(Math.floor(currentSec), Math.floor(totalSec));
-        updateRecordingTime({ collection: state.collection.active, segIdx, videoCurrentTime: nativeVideo.master?.currentTime || 0 });
+        // (while the timeline is dragged, the time shown is the drag's)
+        if (!state.ui.isScrubbing) {
+            updateTimeDisplayNew(Math.floor(currentSec), Math.floor(totalSec));
+            updateRecordingTime({ collection: state.collection.active, segIdx, videoCurrentTime: nativeVideo.master?.currentTime || 0 });
+        }
         
         // Progress bar as smooth percentage (skip if user is scrubbing)
         if (!skipProgressUpdate) {
@@ -5333,6 +5549,12 @@ function playNative() {
         console.error('playNative: No master video or src');
         return;
     }
+    // a drag of the day's timeline holds the cameras: they play once it is let go
+    if (dayDrag && dayDrag.moved && !dayDrag.cancelled && dayDrag.day === state.collection.active) {
+        state.ui.scrubPausedFor = state.collection.active;
+        updatePlayButton();
+        return;
+    }
     
     nativeVideo.playing = true;
     player.playing = true;
@@ -5474,10 +5696,12 @@ async function seekNativeDayCollectionBySec(targetSec) {
     // When the current seek finishes it will pick up the queued target.
     if (nativeVideo.isSeeking) {
         nativeVideo._pendingSeekSec = targetSec;
+        nativeVideo._pendingSeekColl = state.collection.active;
         return;
     }
     
     nativeVideo.isSeeking = true;
+    const coll = state.collection.active;
     
     try {
         const totalSec = cumStarts[cumStarts.length - 1];
@@ -5499,6 +5723,8 @@ async function seekNativeDayCollectionBySec(targetSec) {
         const wasPlaying = nativeVideo.playing;
         if (segIdx !== nativeVideo.currentSegmentIdx) {
             await loadNativeSegment(segIdx);
+            // another day or clip opened meanwhile: this seek is not for it
+            if (state.collection.active !== coll) return;
         }
         
         // Seek within segment
@@ -5512,10 +5738,13 @@ async function seekNativeDayCollectionBySec(targetSec) {
             vid.currentTime = Math.min(localSec, seekLimit);
             syncMultiVideos(vid.currentTime);
             
-            // Update progress bar and time display immediately
-            const pct = (clampedSec / totalSec) * 100;
-            progressBar.value = Math.min(100, pct);
-            updateTimeDisplayNew(Math.floor(clampedSec), Math.floor(totalSec));
+            // Update progress bar and time display immediately (not under a
+            // drag of the timeline: that shows its own place)
+            if (!state.ui.isScrubbing) {
+                const pct = (clampedSec / totalSec) * 100;
+                progressBar.value = Math.min(100, pct);
+                updateTimeDisplayNew(Math.floor(clampedSec), Math.floor(totalSec));
+            }
             
             // Resume playback if it was playing before seek
             if (wasPlaying) {
@@ -5529,9 +5758,12 @@ async function seekNativeDayCollectionBySec(targetSec) {
         setTimeout(() => {
             nativeVideo.isSeeking = false;
             const pending = nativeVideo._pendingSeekSec;
+            const pendingColl = nativeVideo._pendingSeekColl;
             if (pending != null) {
                 nativeVideo._pendingSeekSec = null;
-                seekNativeDayCollectionBySec(pending);
+                nativeVideo._pendingSeekColl = null;
+                // (only for the collection it was asked on)
+                if (pendingColl === state.collection.active) seekNativeDayCollectionBySec(pending);
             }
         }, 100);
     }

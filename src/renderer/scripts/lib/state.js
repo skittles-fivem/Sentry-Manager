@@ -83,6 +83,8 @@ function createInitialState() {
       // Scrubbing flags/timers
       isScrubbing: false,
       collectionScrubPreviewTimer: null,
+      // the day's collection whose playback a timeline drag paused
+      scrubPausedFor: null,
 
       // Floating panel visibility toggles
       dashboardEnabled: true,
