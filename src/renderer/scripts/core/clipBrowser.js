@@ -7,6 +7,9 @@ import { escapeHtml, cssEscape, filePathToUrl } from '../lib/utils.js';
 import { formatEventTime } from '../ui/clipListHelpers.js';
 import { t } from '../lib/i18n.js';
 import { notify } from '../ui/notifications.js';
+import { collectionUsesFolder } from '../../../shared/dashcamCollections.mjs';
+
+export { collectionUsesFolder };
 
 // Dependencies injected at init
 let getState = null;
@@ -442,7 +445,8 @@ function showFinalDeleteConfirmModal(folderPath, collectionId) {
         
         try {
             const state = getState?.();
-            const isCurrentlyPlaying = state?.collection?.active?.id === collectionId;
+            const active = state?.collection?.active;
+            const isCurrentlyPlaying = active?.id === collectionId || collectionUsesFolder(active, folderPath);
             
             // If this is the currently playing clip, we need to reload the window to release file handles
             // Chromium's video decoder holds handles that can't be released from renderer

@@ -66,6 +66,103 @@ function buildCollection(id, day, clipType, groups, options) {
   return collection;
 }
 
+// Saving a clip or a Sentry event makes the car move those minutes out of
+// RecentClips into the event folder, which leaves a hole in the day's
+// footage. As SentryUSB's player does, a hole between two RecentClips clips
+// wider than one missing minute and at most 30 minutes is filled with the
+// event clips of those minutes: one per minute, SavedClips before
+// SentryClips. An event clip at most 30 s after a clip already there is the
+// same footage under another path (Tesla stamps such twins 0-1 s apart).
+const GAP_FILL_MIN_MS = 90 * 1000;
+const GAP_FILL_MAX_MS = 30 * 60 * 1000;
+const GAP_FILL_DUP_MS = 30 * 1000;
+
+// a clip's wall-clock stamp counted as SentryUSB does, without a time zone:
+// the gaps are the same on every server and across a daylight saving change;
+// an impossible date or time (Feb 30, 25:00) is no stamp at all, as there
+function clipStampMs(timestampKey) {
+  const match = String(timestampKey || '').match(
+    /^(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})$/
+  );
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second] = match.map(Number);
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
+  date.setUTCHours(hour, minute, second, 0);
+  const same = date.getUTCFullYear() === year && date.getUTCMonth() === month - 1
+    && date.getUTCDate() === day && date.getUTCHours() === hour
+    && date.getUTCMinutes() === minute && date.getUTCSeconds() === second;
+  return same ? date.getTime() : null;
+}
+
+const byTimestampKey = (a, b) =>
+  String(a.timestampKey || '').localeCompare(String(b.timestampKey || ''));
+
+function fillRecentHoles(recent, dayData) {
+  const recentMs = [...new Set(recent
+    .map(group => clipStampMs(group.timestampKey))
+    .filter(ms => ms != null))].sort((a, b) => a - b);
+  const holes = [];
+  for (let i = 1; i < recentMs.length; i++) {
+    const gap = recentMs[i] - recentMs[i - 1];
+    if (gap > GAP_FILL_MIN_MS && gap <= GAP_FILL_MAX_MS) {
+      holes.push([recentMs[i - 1], recentMs[i]]);
+    }
+  }
+  if (!holes.length) return recent;
+
+  // the first event clip of each minute stamp: SavedClips, then SentryClips,
+  // each by event folder
+  const picked = new Map();
+  for (const events of [dayData.saved, dayData.sentry]) {
+    for (const eventId of [...events.keys()].sort()) {
+      for (const group of [...events.get(eventId)].sort(byTimestampKey)) {
+        const ms = clipStampMs(group.timestampKey);
+        if (ms != null && !picked.has(ms)) picked.set(ms, group);
+      }
+    }
+  }
+  const lastRecentAtOrBefore = ms => {
+    let lo = 0;
+    let hi = recentMs.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (recentMs[mid] <= ms) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo > 0 ? recentMs[lo - 1] : null;
+  };
+
+  const fills = [];
+  let lastFilled = -Infinity;
+  for (const ms of [...picked.keys()].sort((a, b) => a - b)) {
+    if (!holes.some(([start, end]) => ms > start && ms < end)) continue;
+    if (ms - lastRecentAtOrBefore(ms) <= GAP_FILL_DUP_MS) continue;
+    if (ms - lastFilled <= GAP_FILL_DUP_MS) continue;
+    // in the day these minutes are footage like the rest, not an event the
+    // Viewer jumps to, marks or pins on the map: a copy without the event
+    const fill = { ...picked.get(ms) };
+    for (const key of ['eventId', 'eventMeta', 'eventJsonFile', 'eventPngFile', 'eventMp4File']) {
+      delete fill[key];
+    }
+    fills.push(fill);
+    lastFilled = ms;
+  }
+  return fills.length ? [...recent, ...fills].sort(byTimestampKey) : recent;
+}
+
+// Whether a collection plays files from inside a folder: a day's RecentClips
+// timeline also plays the minutes the car moved into Saved and Sentry events.
+export function collectionUsesFolder(collection, folderPath) {
+  if (!collection?.groups?.length || !folderPath) return false;
+  const norm = path => String(path || '').replace(/\\/g, '/');
+  const inside = norm(folderPath).replace(/\/+$/, '') + '/';
+  return collection.groups.some(group =>
+    [...(group.filesByCamera?.values() || [])]
+      .some(entry => norm(entry?.file?.path).startsWith(inside))
+  );
+}
+
 export function buildDashcamCollections(groups, options = {}) {
   const normalizedOptions = {
     ...options,
@@ -118,7 +215,7 @@ export function buildDashcamCollections(groups, options = {}) {
         id,
         day,
         'RecentClips',
-        sortGroups(dayData.recent),
+        fillRecentHoles(sortGroups(dayData.recent), dayData),
         normalizedOptions
       ));
     }
