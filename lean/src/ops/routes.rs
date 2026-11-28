@@ -439,32 +439,27 @@ impl Ops {
     /// footage paths, share names, IP addresses or e-mails.
     fn support_bundle(&self) -> Reply {
         let ctx = &*self.ctx;
-        let mut swaps: Vec<(String, String)> = Vec::new();
+        // (paths anywhere; user and vehicle names as whole words only)
+        let mut swaps: Vec<Swap> = Vec::new();
         for (i, v) in ctx.vehicles().iter().enumerate() {
             for p in &v.roots {
                 if p.encode_utf16().count() > 1 {
-                    swaps.push((p.clone(), format!("<footage-{}>", i + 1)));
+                    swaps.push((p.clone(), format!("<footage-{}>", i + 1), false));
                 }
             }
             if let Some(s) = v.share.as_ref().filter(|s| !s.is_empty()) {
-                swaps.push((s.clone(), format!("<share-{}>", i + 1)));
+                swaps.push((s.clone(), format!("<share-{}>", i + 1), false));
             }
             if let Some(u) = v.username.as_ref().filter(|s| !s.is_empty()) {
-                swaps.push((u.clone(), format!("<share-user-{}>", i + 1)));
+                swaps.push((u.clone(), format!("<share-user-{}>", i + 1), true));
             }
             if !v.name.is_empty() {
-                swaps.push((v.name.clone(), format!("<vehicle-{}>", i + 1)));
+                swaps.push((v.name.clone(), format!("<vehicle-{}>", i + 1), true));
             }
         }
-        swaps.push((ctx.data_dir().to_string_lossy().into_owned(), "<data>".into()));
-        swaps.sort_by_key(|s| std::cmp::Reverse(s.0.encode_utf16().count()));
-        let scrub = |text: &str| -> String {
-            let mut t = text.to_string();
-            for (from, to) in &swaps {
-                t = t.split(from.as_str()).collect::<Vec<_>>().join(to);
-            }
-            bundle_patterns(&t)
-        };
+        swaps.push((ctx.data_dir().to_string_lossy().into_owned(), "<data>".into(), false));
+        let swap = bundle_swaps(swaps);
+        let scrub = |text: &str| -> String { bundle_patterns(&swap(text)) };
         let lines = ctx.log_search(now_ms() - 7 * 86_400_000, Level::Info, 50_000);
         let results = self.health.last().unwrap_or_else(|| self.health.run(ctx, Some(&self.snapshots), false));
         let system = ctx.system_summary(true);
@@ -480,6 +475,37 @@ impl Ops {
         let disp = format!("attachment; filename=\"sentry-six-manager-support-{}.zip\"", &super::js::iso(now_ms())[..10]);
         let len = zip.len().to_string();
         Reply::raw(200, &[("Content-Type", "application/zip"), ("Content-Length", &len), ("Cache-Control", "no-store"), ("Content-Disposition", &disp)], zip)
+    }
+}
+
+/// (text, placeholder, whole words only)
+type Swap = (String, String, bool);
+
+/// The support bundle's first pass: each footage path, share, user and vehicle
+/// name with its placeholder, in one pass (a placeholder is never rewritten
+/// again). A user or vehicle name is replaced only as a whole word, so a short
+/// one ("me") leaves "timeout" and "memory" alone.
+fn bundle_swaps(mut swaps: Vec<Swap>) -> impl Fn(&str) -> String {
+    use fancy_regex::Regex;
+    swaps.retain(|s| !s.0.is_empty());
+    swaps.sort_by_key(|s| std::cmp::Reverse(s.0.encode_utf16().count()));
+    let mut to: HashMap<String, String> = HashMap::new();
+    let mut alts = Vec::new();
+    for (from, ph, word) in &swaps {
+        if to.contains_key(from) {
+            continue;
+        }
+        to.insert(from.clone(), ph.clone());
+        let e = fancy_regex::escape(from);
+        alts.push(if *word { format!(r"(?<![A-Za-z0-9_]){e}(?![A-Za-z0-9_])") } else { e.into_owned() });
+    }
+    let re = if alts.is_empty() { None } else { Regex::new(&alts.join("|")).ok() };
+    move |text: &str| -> String {
+        match &re {
+            Some(re) => re.replace_all(text, |c: &fancy_regex::Captures| to.get(&c[0]).cloned().unwrap_or_else(|| c[0].to_string())).into_owned(),
+            // (no pattern could be made: every one anywhere, as before, rather than none)
+            None => swaps.iter().fold(text.to_string(), |t, (from, ph, _)| t.split(from.as_str()).collect::<Vec<_>>().join(ph)),
+        }
     }
 }
 
@@ -635,6 +661,9 @@ mod tests {
         let z = call(&o, "GET", "/api/support-bundle", &[], Value::Null, false);
         assert_eq!(&z.body[..2], b"PK");
         // (as Node's: a compressed IPv6 address is not caught by this pass)
+        let swap = bundle_swaps(vec![("me".into(), "<share-user-1>".into(), true), ("share".into(), "<vehicle-1>".into(), true), ("/mnt/cam".into(), "<footage-1>".into(), false), ("TeslaCam".into(), "<share-1>".into(), false)]);
+        assert_eq!(swap("timeout memory: me lost /mnt/cam/x, share TeslaCam2 at //nas/TeslaCam"), "timeout memory: <share-user-1> lost <footage-1>/x, <vehicle-1> <share-1>2 at //nas/<share-1>");
+        assert_eq!(bundle_swaps(Vec::new())("as is"), "as is");
         assert_eq!(bundle_patterns("from 10.0.0.2 by a@b.co at fe80::1:2 and 2001:db8:0:0:1:2:3:4"), "from <ip> by <email> at fe80::1:2 and <ip6>");
     }
 

@@ -215,6 +215,12 @@ pub struct Reports {
     remote: Mutex<Option<Remote>>,
     clock_offset: Mutex<i64>,
     flushing: Mutex<()>,
+    /// outbox entries being tried now (an enqueue's own try and a flush never both send one)
+    inflight: Mutex<std::collections::HashSet<String>>,
+    /// crashes.json is read and written by one at a time
+    crash_lock: Mutex<()>,
+    /// a crash send is waiting to run (a burst of 500s makes one)
+    crash_send_pending: std::sync::atomic::AtomicBool,
     sched: Mutex<Sched>,
     sources: std::sync::OnceLock<Sources>,
     /// what manager.db could not give the timers lately: logged once until it can
@@ -260,6 +266,36 @@ fn write_private(file: &Path, data: &[u8]) -> std::io::Result<()> {
     let mut f = fs::OpenOptions::new().write(true).create(true).truncate(true).mode(0o600).open(file)?;
     f.write_all(data)?;
     Ok(())
+}
+
+/// An outbox entry marked as being tried until this is dropped.
+struct InFlight<'a> {
+    set: &'a Mutex<std::collections::HashSet<String>>,
+    id: String,
+}
+
+impl Drop for InFlight<'_> {
+    fn drop(&mut self) {
+        if let Ok(mut s) = self.set.lock() {
+            s.remove(&self.id);
+        }
+    }
+}
+
+/// A file name next to `file` no other writer uses at the same time.
+fn tmp_name(file: &Path) -> PathBuf {
+    PathBuf::from(format!("{}.{}.{}.tmp", file.display(), std::process::id(), rand_hex(6)))
+}
+
+fn write_atomic(file: &Path, data: &[u8]) -> std::io::Result<()> {
+    let tmp = tmp_name(file);
+    match write_private(&tmp, data).and_then(|_| fs::rename(&tmp, file)) {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            let _ = fs::remove_file(&tmp);
+            Err(e)
+        }
+    }
 }
 
 /// Node's PKCS#8 for an Ed25519 key: this prefix and the 32-byte seed.
@@ -318,6 +354,9 @@ impl Reports {
             remote: Mutex::new(None),
             clock_offset: Mutex::new(0),
             flushing: Mutex::new(()),
+            inflight: Mutex::new(std::collections::HashSet::new()),
+            crash_lock: Mutex::new(()),
+            crash_send_pending: std::sync::atomic::AtomicBool::new(false),
             sched: Mutex::new(Sched::default()),
             sources: std::sync::OnceLock::new(),
             unread: crate::core::db::LogOnce::default(),
@@ -602,9 +641,14 @@ impl Reports {
         let pow = self.pow.lock().unwrap().clone();
         let stamp = pow(&p::envelope_hash(&env0), &nonce, bits)?;
         // sharing turned off meanwhile: an automatic report does not go after all
-        if auto_kind(e["kind"].as_str().unwrap_or("")) && !truthy(&self.settings().map_err(|e| e.to_string())?["share"]) {
+        let settings = self.settings().map_err(|e| e.to_string())?;
+        if auto_kind(e["kind"].as_str().unwrap_or("")) && !truthy(&settings["share"]) {
             self.drop_entry(e);
             return Ok(json!({ "result": "dropped", "message": "Sharing is off." }));
+        }
+        // "Send anonymously" turned on meanwhile: one made with the install's identifiers does not go
+        if let Some(r) = self.drop_if_identified(e, &settings) {
+            return Ok(r);
         }
         let body = p::sign(&env0, &self.signing_key(truthy(&e["anonymous"])), ts, &nonce, &stamp, bits);
         let res = self.transport("POST", &format!("{}/v1/report", self.endpoint().map_err(|e| e.to_string())?), Some(body.to_string().into_bytes()))?;
@@ -684,12 +728,46 @@ impl Reports {
                 self.drop_entry(&e);
                 continue;
             }
+            if let Some(r) = self.drop_if_identified(&e, &settings) {
+                out.push(r);
+                continue;
+            }
+            if !all && e["nextAt"].as_f64().unwrap_or(0.0) as i64 > self.now() {
+                continue;
+            }
+            let Some(_tried) = self.claim(&e) else { continue };
+            // (read again: the enqueue that was trying it may have sent it or put it off meanwhile)
+            let Some(fresh) = fs::read(self.entry_file(&e)).ok().and_then(|b| serde_json::from_slice::<Value>(&b).ok()).filter(|v| v.is_object()) else { continue };
+            e = fresh;
             if !all && e["nextAt"].as_f64().unwrap_or(0.0) as i64 > self.now() {
                 continue;
             }
             out.push(self.attempt(&mut e));
         }
         out
+    }
+
+    /// Marks an entry as being tried; None when another thread is trying it.
+    fn claim(&self, e: &Value) -> Option<InFlight<'_>> {
+        let id = e["id"].as_str().unwrap_or("").to_string();
+        if !self.inflight.lock().unwrap().insert(id.clone()) {
+            return None;
+        }
+        Some(InFlight { set: &self.inflight, id })
+    }
+
+    /// A waiting report built with the install's identifiers while reports
+    /// are now to go anonymously: dropped, never sent (a manual one says so).
+    fn drop_if_identified(&self, e: &Value, settings: &Value) -> Option<Value> {
+        if !truthy(&settings["anonymous"]) || truthy(&e["anonymous"]) {
+            return None;
+        }
+        self.drop_entry(e);
+        let msg = "A report waiting to be sent was discarded: \"Send anonymously\" was turned on after it was made.";
+        if !auto_kind(e["kind"].as_str().unwrap_or("")) {
+            self.note_outcome(e, None, Some(msg));
+        }
+        Some(json!({ "result": "dropped", "message": msg }))
     }
 
     // ---- building a report
@@ -833,6 +911,8 @@ impl Reports {
         if e["env"].to_string().len() > p::MAX_BODY - 4096 {
             return Err(err(413, "This report is too large to send."));
         }
+        // (marked before it is saved: the minute's flush leaves it to this try)
+        let _tried = self.claim(&e);
         self.save_entry(&e);
         self.trim_outbox();
         Ok(self.attempt(&mut e))
@@ -862,6 +942,20 @@ impl Reports {
         fs::read(&self.crash_file).ok().and_then(|b| serde_json::from_slice::<Value>(&b).ok()).and_then(|v| v.as_array().cloned()).unwrap_or_default()
     }
 
+    /// crashes.json for this thread alone; after 2 s without it, None (a panic
+    /// noted while this thread holds it must not wait for itself for ever).
+    fn lock_crashes(&self) -> Option<std::sync::MutexGuard<'_, ()>> {
+        let until = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        loop {
+            match self.crash_lock.try_lock() {
+                Ok(g) => return Some(g),
+                Err(std::sync::TryLockError::Poisoned(g)) => return Some(g.into_inner()),
+                Err(std::sync::TryLockError::WouldBlock) if std::time::Instant::now() < until => std::thread::sleep(std::time::Duration::from_millis(5)),
+                Err(std::sync::TryLockError::WouldBlock) => return None,
+            }
+        }
+    }
+
     fn crash_at(c: &Value) -> Option<i64> {
         c["at"].as_str().and_then(super::js::parse_date)
     }
@@ -870,19 +964,20 @@ impl Reports {
     pub fn note_crash(self: &Arc<Self>, name: &str, message: &str, stack: &str, source: &str) {
         let now = self.now();
         ensure_dir(&self.dir);
+        let one = self.lock_crashes();
         let mut list: Vec<Value> = self.read_crashes().into_iter().filter(|c| Self::crash_at(c).is_some_and(|a| now - a < OUTBOX_DAYS * DAY_MS)).collect();
         if list.len() > 19 {
             list.drain(..list.len() - 19);
         }
         list.push(json!({ "at": iso(now), "name": cut(if name.is_empty() { "Error" } else { name }, 120), "message": cut(message, p::LIMIT_CRASH_MESSAGE), "stack": cut(stack, p::LIMIT_CRASH_STACK), "source": source, "sent": false }));
-        let tmp = PathBuf::from(format!("{}.tmp", self.crash_file.display()));
-        if write_private(&tmp, Value::Array(list).to_string().as_bytes()).is_ok() {
-            let _ = fs::rename(&tmp, &self.crash_file);
-        }
-        if source == "error" {
+        let _ = write_atomic(&self.crash_file, Value::Array(list).to_string().as_bytes());
+        drop(one);
+        // (one send waits at a time: the crashes noted meanwhile go with it)
+        if source == "error" && !self.crash_send_pending.swap(true, std::sync::atomic::Ordering::SeqCst) {
             let me = Arc::clone(self);
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_secs(5));
+                me.crash_send_pending.store(false, std::sync::atomic::Ordering::SeqCst);
                 me.send_crashes();
             });
         }
@@ -913,9 +1008,12 @@ impl Reports {
         if !self.configured {
             return Vec::new();
         }
+        // which ones go is chosen and noted under the lock; they are made and sent after it
+        let Some(one) = self.lock_crashes() else { return Vec::new() };
         let Some(state) = self.shared("crash report") else { return Vec::new() };
         let now = self.now();
         let mut list = self.read_crashes();
+        let mut chosen = Vec::new();
         let mut sent_log: Vec<Value> = state["crashSent"].as_array().cloned().unwrap_or_default().into_iter().filter(|x| now - x["at"].as_f64().unwrap_or(0.0) as i64 > -1 && now - (x["at"].as_f64().unwrap_or(0.0) as i64) < DAY_MS).collect();
         let mut out = Vec::new();
         for c in list.iter_mut() {
@@ -930,15 +1028,18 @@ impl Reports {
                 continue;
             }
             sent_log.push(json!({ "sig": sig, "at": now }));
-            let crash = json!({ "at": c["at"], "name": c["name"], "message": c["message"], "stack": c["stack"], "source": if c["source"] == "error" { "error" } else { "crash" } });
+            chosen.push(json!({ "at": c["at"], "name": c["name"], "message": c["message"], "stack": c["stack"], "source": if c["source"] == "error" { "error" } else { "crash" } }));
+        }
+        let _ = write_atomic(&self.crash_file, Value::Array(list).to_string().as_bytes());
+        if let Err(e) = self.set_state(json!({ "crashSent": sent_log })) {
+            self.ctx.log("reports", Level::Warn, &format!("Reports: the crash reports sent were not counted: {e}"));
+        }
+        drop(one);
+        for crash in chosen {
             match self.build_payload("crash", None, None, true, Some(crash)).and_then(|pl| self.enqueue(&pl)) {
                 Ok(r) => out.push(r),
                 Err(e) => self.ctx.log("reports", Level::Warn, &format!("Reports: the crash report was not made: {}", e.message)),
             }
-        }
-        let _ = write_private(&self.crash_file, Value::Array(list).to_string().as_bytes());
-        if let Err(e) = self.set_state(json!({ "crashSent": sent_log })) {
-            self.ctx.log("reports", Level::Warn, &format!("Reports: the crash reports sent were not counted: {e}"));
         }
         out
     }
@@ -1047,6 +1148,13 @@ impl Reports {
                 if auto_kind(e["kind"].as_str().unwrap_or("")) {
                     self.drop_entry(&e);
                 }
+            }
+        }
+        // anonymous turned on: what waits with the install's identifiers does not go
+        // (deliver checks again just before sending, for a try already under way)
+        if !truthy(&before["anonymous"]) && truthy(&next["anonymous"]) {
+            for e in self.outbox() {
+                self.drop_if_identified(&e, &next);
             }
         }
         if turned_on {
@@ -1555,5 +1663,93 @@ mod tests {
         assert!(rep.outbox().is_empty() && t.0.lock().unwrap().is_empty());
         let said = "Reports: the heartbeat was not made: The heartbeat could not be made: manager.db: database disk image is malformed";
         assert!(ctx.logs.lock().unwrap().iter().any(|(_, _, l)| l == said));
+    }
+
+    /// Answers the receiver's settings and a 503 for every report: they wait in the outbox.
+    struct Busy(M<Vec<String>>);
+    impl Transport for Busy {
+        fn request(&self, r: &HttpReq) -> Result<HttpRes, String> {
+            self.0.lock().unwrap().push(format!("{} {}", r.method, r.url));
+            let body = if r.url.ends_with("/v1/config") { json!({ "difficulty": 0 }) } else { json!({ "ok": false }) };
+            Ok(HttpRes { status: if r.url.ends_with("/v1/config") { 200 } else { 503 }, headers: Vec::new(), body: body.to_string().into_bytes() })
+        }
+    }
+
+    fn posts(t: &Busy) -> usize {
+        t.0.lock().unwrap().iter().filter(|l| l.starts_with("POST")).count()
+    }
+
+    #[test]
+    fn send_anonymously_turned_on_drops_what_waits_with_the_installs_identifiers() {
+        let ctx = FakeCtx::new();
+        let t = Arc::new(Busy(M::new(Vec::new())));
+        let clock = Arc::new(M::new(store::now_ms()));
+        let c2 = clock.clone();
+        let rep = Reports::new(ctx.clone(), env(&[("REPORTS_PUBLIC_KEY", &key_line())]), json!({}), t.clone(), Some(Arc::new(move || *c2.lock().unwrap())));
+        rep.set_settings(&json!({ "share": true })).unwrap();
+        let daily = rep.build_payload("daily", None, None, true, None).unwrap();
+        assert_eq!(rep.enqueue(&daily).unwrap()["result"], "retry");
+        let pv = rep.preview(&json!({ "kind": "support", "message": "help", "attach": false })).unwrap();
+        assert_eq!(rep.send_preview(&pv["previewId"]).unwrap()["result"], "retry");
+        assert_eq!(rep.outbox().len(), 2);
+        let n = posts(&t);
+        rep.set_settings(&json!({ "anonymous": true })).unwrap();
+        *clock.lock().unwrap() += 7 * 3_600_000;
+        rep.flush(true);
+        assert_eq!(posts(&t), n, "nothing identified goes after anonymous was turned on");
+        assert!(rep.outbox().is_empty());
+        assert!(rep.status().unwrap()["lastError"]["message"].as_str().unwrap().contains("Send anonymously"));
+        // one made anonymously still waits and goes
+        let anon = rep.build_payload("daily", None, None, true, None).unwrap();
+        rep.enqueue(&anon).unwrap();
+        assert_eq!(rep.outbox().len(), 1);
+        *clock.lock().unwrap() += 7 * 3_600_000;
+        rep.flush(true);
+        assert_eq!(posts(&t), n + 2);
+    }
+
+    #[test]
+    fn a_report_being_tried_is_not_tried_again_by_the_flush() {
+        let ctx = FakeCtx::new();
+        let t = Arc::new(Busy(M::new(Vec::new())));
+        let rep = Reports::new(ctx.clone(), env(&[("REPORTS_PUBLIC_KEY", &key_line())]), json!({}), t.clone(), None);
+        let pl = rep.build_payload("feedback", Some(&json!("x")), None, false, None).unwrap();
+        rep.enqueue(&pl).unwrap();
+        let e = rep.outbox().remove(0);
+        let n = posts(&t);
+        {
+            let _tried = rep.claim(&e).unwrap();
+            assert!(rep.claim(&e).is_none());
+            rep.flush(true);
+            assert_eq!(posts(&t), n, "left to the try under way");
+        }
+        rep.flush(true);
+        assert_eq!(posts(&t), n + 1);
+    }
+
+    #[test]
+    fn crashes_noted_and_sent_at_the_same_time_are_all_kept_and_each_sent_once() {
+        let ctx = FakeCtx::new();
+        let t = Arc::new(Counting(M::new(Vec::new())));
+        let rep = Reports::new(ctx.clone(), env(&[("REPORTS_PUBLIC_KEY", &key_line())]), json!({}), t.clone(), None);
+        let threads: Vec<_> = (0..12)
+            .map(|i| {
+                let r = rep.clone();
+                std::thread::spawn(move || r.note_crash("Error", &format!("boom {i}"), "", "crash"))
+            })
+            .collect();
+        threads.into_iter().for_each(|h| h.join().unwrap());
+        assert_eq!(rep.read_crashes().len(), 12, "no note lost");
+        rep.set_settings(&json!({ "share": true })).unwrap();
+        let threads: Vec<_> = (0..4)
+            .map(|_| {
+                let r = rep.clone();
+                std::thread::spawn(move || r.send_crashes().len())
+            })
+            .collect();
+        let sent: usize = threads.into_iter().map(|h| h.join().unwrap()).sum();
+        assert_eq!(sent, 6, "6 a day, none twice");
+        assert_eq!(rep.outbox().iter().filter(|e| e["kind"] == "crash").count(), 6);
+        assert!(rep.read_crashes().iter().all(|c| c["sent"] == true));
     }
 }
