@@ -352,6 +352,11 @@ pub fn handle(app: &Arc<App>, who: &Caller, method: &str, seg: &[&str], query: &
                 .collect();
             let rels: Vec<String> = recs.iter().flat_map(|r| r.files().map(|(f, _)| f.to_string())).collect();
             tri!(bin::set_protected(app, &v.id, &rels, on));
+            if on {
+                // (protected by hand now: removing a star no longer unprotects these)
+                let ids: Vec<String> = recs.iter().map(|r| r.id.clone()).collect();
+                tri!(super::stars::protected_by_hand(app, &v.id, &ids));
+            }
             app.rebuild(&v.id, None);
             app.core.announce("inventory");
             ok(json!({ "ok": true, "count": recs.len() }))
@@ -454,7 +459,7 @@ pub fn handle(app: &Arc<App>, who: &Caller, method: &str, seg: &[&str], query: &
         ("GET", ["stars"]) => Some(super::stars::list(app, qv("vehicle")).map(Reply::Json)),
         ("POST", ["stars"]) => Some(super::stars::add(app, who, b).map(Reply::Json)),
         ("PATCH", ["stars", id]) => Some(super::stars::edit(app, id, b).map(Reply::Json)),
-        ("DELETE", ["stars", id]) => Some(super::stars::remove(app, id).map(Reply::Json)),
+        ("DELETE", ["stars", id]) => Some(super::stars::remove(app, who, id).map(Reply::Json)),
         _ => None,
     }
 }

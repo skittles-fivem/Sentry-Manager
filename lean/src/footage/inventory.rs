@@ -140,7 +140,7 @@ fn hash_id(s: &str) -> String {
 fn dirname(rel: &str) -> &str {
     rel.rfind('/').map_or(".", |i| &rel[..i])
 }
-fn basename(rel: &str) -> &str {
+pub(crate) fn basename(rel: &str) -> &str {
     rel.rfind('/').map_or(rel, |i| &rel[i + 1..])
 }
 
