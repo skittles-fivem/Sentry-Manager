@@ -43,7 +43,8 @@ export async function render(ctx) {
       row.querySelector('[data-restore]').onclick = (e) => busy(e.currentTarget, async () => {
         try {
           const out = await api(`/api/bin/${enc(item.id)}/restore`, { body: {} });
-          toast(out.conflicts ? `Restored ${out.restored} file(s). ${out.conflicts} couldn’t be, because a file with that name exists.` : 'Restored. It’s back in Footage.', { kind: out.conflicts ? 'bad' : 'good' });
+          const why = [out.conflicts ? `${out.conflicts} couldn’t be, because a file with that name exists` : '', out.missing ? `${out.missing} weren’t found in the Recycle Bin` : '', out.failed ? `${out.failed} couldn’t be moved back: ${out.error || 'unknown error'}` : ''].filter(Boolean).join('. ');
+          toast(why ? `Restored ${out.restored} file(s). ${why}.` : 'Restored. It’s back in Footage.', { kind: why ? 'bad' : 'good' });
         } catch (err) { fail(err); }
         await loadVehicles().catch(() => {});
         refresh();

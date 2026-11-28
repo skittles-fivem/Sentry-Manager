@@ -74,8 +74,10 @@ async function renderPage(el, ctx) {
             signal: controller.signal,
           });
           if (!active()) break;
-          if (action === 'restore' && result.conflicts) {
-            failures.push('a file with that name exists');
+          if (action === 'restore' && (result.conflicts || result.missing || result.failed)) {
+            if (result.conflicts) failures.push('a file with that name exists');
+            if (result.missing) failures.push('a file was not found in the Recycle Bin');
+            if (result.failed) failures.push('a file could not be moved back: ' + (result.error || 'unknown error'));
           } else {
             completed++;
             items = items.filter((item) => item.id !== id);

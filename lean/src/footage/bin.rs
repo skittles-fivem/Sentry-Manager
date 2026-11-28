@@ -625,7 +625,7 @@ fn not_here(vehicle: &str) -> Fail {
 pub fn restore(app: &Arc<App>, item_id: &str) -> Res<Value> {
     let item = app.core.db().bin_item(item_id)?.ok_or_else(not_in_bin)?;
     let vid = item.vehicle_id.clone();
-    let (out, kept) = with_lock(app, &vid, || -> Res<((usize, usize), DbResult<()>)> {
+    let (out, kept) = with_lock(app, &vid, || -> Res<(Value, DbResult<()>)> {
         let item = app.core.db().bin_item(item_id)?.ok_or_else(not_in_bin)?;
         if item.files.iter().any(|f| f.pending) {
             return Err(still_moving());
@@ -637,10 +637,15 @@ pub fn restore(app: &Arc<App>, item_id: &str) -> Res<Value> {
         let mut left: Vec<BinFile> = Vec::new();
         let mut missing = 0;
         let mut restored = 0;
+        // (could not be moved back, a name taken aside: the first reason is told)
+        let mut failed = 0;
+        let mut error: Option<String> = None;
         let mut back: Vec<String> = Vec::new();
         for f in &item.files {
             let (Ok(from), Ok(to)) = (safe_join(&root, &f.bin_rel), safe_join(&root, &f.rel)) else {
-                left.push(BinFile { conflict: true, ..f.clone() });
+                failed += 1;
+                error.get_or_insert_with(|| format!("{} is not a name inside the vehicle's folder", f.rel));
+                left.push(BinFile { conflict: false, ..f.clone() });
                 continue;
             };
             // (a bin copy that is not there stays listed: it is not restored, nor forgotten)
@@ -656,8 +661,12 @@ pub fn restore(app: &Arc<App>, item_id: &str) -> Res<Value> {
             // following no symlink out of the share (safe_fs)
             let r = safe_fs::mkdirp_inside(&root, to.parent().unwrap_or(&root)).and_then(|_| safe_fs::rename_inside(&root, &from, &to));
             if let Err(e) = r {
-                log(app, Level::Warn, &format!("Restore of {} refused: {}", f.rel, if safe_fs::is_escape(&e) { e.to_string() } else { io_message(&e, "rename", &from, Some(&to)) }));
-                left.push(BinFile { conflict: true, ..f.clone() });
+                let why = if safe_fs::is_escape(&e) { e.to_string() } else { io_message(&e, "rename", &from, Some(&to)) };
+                log(app, Level::Warn, &format!("Restore of {} refused: {why}", f.rel));
+                failed += 1;
+                error.get_or_insert(why);
+                // (not a name taken: the file stays in the bin, to be restored again)
+                left.push(BinFile { conflict: false, ..f.clone() });
                 continue;
             }
             restored += 1;
@@ -673,18 +682,26 @@ pub fn restore(app: &Arc<App>, item_id: &str) -> Res<Value> {
         let source = vehicle.source_key();
         lock.moved.lock().unwrap().retain(|(s, r)| !(*s == source && back.contains(r)));
         lock.restores.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        let taken = left.len() - missing;
+        let taken = left.len() - missing - failed;
         let detail = format!(
-            "{restored} file(s) restored{}{}",
+            "{restored} file(s) restored{}{}{}",
             if taken == 0 { String::new() } else { format!(", {taken} could not (a file with that name exists)") },
-            if missing == 0 { String::new() } else { format!(", {missing} not found in the Recycle Bin") }
+            if missing == 0 { String::new() } else { format!(", {missing} not found in the Recycle Bin") },
+            match &error {
+                Some(e) if failed > 0 => format!(", {failed} could not be moved back: {e}"),
+                _ => String::new(),
+            }
         );
         // (the files are back either way: an Activity row that was not kept is only logged)
         match app.core.job_start("restore", Some(&item.vehicle_id), &format!("Restore {}", item.label)) {
             Ok(job) => app.core.job_finish(job, if left.is_empty() { "done" } else { "failed" }, &detail, None),
             Err(e) => log(app, Level::Warn, &format!("Restore of {} ({detail}): its Activity row was not kept: {e}", item.label)),
         }
-        Ok(((restored, left.len()), kept))
+        let mut out = json!({ "restored": restored, "conflicts": taken, "missing": missing, "failed": failed });
+        if let Some(e) = error {
+            out["error"] = json!(e);
+        }
+        Ok((out, kept))
     })?;
     // the files are back: a full scan (as inventory.scan(id)), in the background, that walks after
     // they are (not one that began before)
@@ -695,7 +712,7 @@ pub fn restore(app: &Arc<App>, item_id: &str) -> Res<Value> {
         a.core.announce("inventory");
     });
     kept?;
-    Ok(json!({ "restored": out.0, "conflicts": out.1 }))
+    Ok(out)
 }
 
 /// Delete one item for good (someone's action, or the bin emptied after N days). { bytes }
@@ -851,10 +868,10 @@ mod tests {
         assert_eq!(std::fs::metadata(car.join(&f.bin_rel)).unwrap().ino(), st.ino(), "the same file, moved");
         assert!(holds_original(&c.app, &x) && !holds_original(&c.app, &ev.join("2026-08-30_20-53-04-back.mp4")));
         // Restore: refused while the converted copy has the name, then the original back as the clip
-        assert_eq!(restore(&c.app, &id).unwrap(), json!({ "restored": 0, "conflicts": 1 }));
+        assert_eq!(restore(&c.app, &id).unwrap(), json!({ "restored": 0, "conflicts": 1, "missing": 0, "failed": 0 }));
         assert_eq!(std::fs::read(&x).unwrap(), b"converted");
         std::fs::remove_file(&x).unwrap();
-        assert_eq!(restore(&c.app, &id).unwrap(), json!({ "restored": 1, "conflicts": 0 }));
+        assert_eq!(restore(&c.app, &id).unwrap(), json!({ "restored": 1, "conflicts": 0, "missing": 0, "failed": 0 }));
         assert_eq!(std::fs::read(&x).unwrap(), b"original");
         assert!(c.app.core.db().bin_item(&id).unwrap().is_none());
         // and deleted for good
@@ -888,7 +905,7 @@ mod tests {
         assert!(super::super::deleted_clips::list(c.app.core.db(), "car", super::super::js::now()).unwrap().is_empty(), "not noted as deleted for good");
         // back where it was: restored
         std::fs::rename(c.dir.join("old-bin"), car.join(BIN_DIR)).unwrap();
-        assert_eq!(restore(&c.app, &id).unwrap(), json!({ "restored": 1, "conflicts": 0 }));
+        assert_eq!(restore(&c.app, &id).unwrap(), json!({ "restored": 1, "conflicts": 0, "missing": 0, "failed": 0 }));
         assert_eq!(std::fs::read(&x).unwrap(), b"original");
     }
 }

@@ -188,6 +188,23 @@ const EV: &str = "TeslaCam/SentryClips/2020-01-02_12-30-00/2020-01-02_12-29-00-f
 const EVT: &str = "TeslaCam/SentryClips/2020-01-02_12-30-00/thumb.png";
 
 #[test]
+fn a_restore_that_cannot_move_a_file_back_says_why_and_not_that_the_name_is_taken() {
+    let f = fixture("binfail", &[(A, b"clip"), (A2, b"clip!")]);
+    let a = id_at(&f.app, "2020-01-01 08:00:00");
+    call(&f, "POST", "vehicles/car/trash", json!({ "ids": [a] })).unwrap();
+    let id = f.core.db().bin_items(Some("car")).unwrap()[0].id.clone();
+    // (the clips' folder is a file now: nothing can be put back in it)
+    std::fs::remove_dir_all(f.root.join("TeslaCam/RecentClips")).unwrap();
+    write(&f.root, "TeslaCam/RecentClips", b"not a folder");
+    let r = call(&f, "POST", &format!("bin/{id}/restore"), json!({})).unwrap();
+    assert_eq!((r["restored"].as_u64(), r["conflicts"].as_u64(), r["missing"].as_u64(), r["failed"].as_u64()), (Some(0), Some(0), Some(0), Some(2)), "{r}");
+    assert!(r["error"].as_str().is_some_and(|e| !e.is_empty()), "{r}");
+    let left = f.core.db().bin_item(&id).unwrap().unwrap();
+    assert!(left.files.len() == 2 && left.files.iter().all(|x| !x.conflict), "not marked as a name taken");
+    assert!(f.root.join(&left.files[0].bin_rel).is_file(), "still in the bin");
+}
+
+#[test]
 fn trash_restore_and_delete_forever() {
     let f = fixture("bin", &[(A, b"clip"), (A2, b"clip!"), (B, b"other"), (EV, b"event"), (EVT, b"png")]);
     let a = id_at(&f.app, "2020-01-01 08:00:00");
@@ -211,7 +228,7 @@ fn trash_restore_and_delete_forever() {
     // restore: a file whose spot is taken stays in the bin
     write(&f.root, A2, b"new one");
     let r = call(&f, "POST", &format!("bin/{id}/restore"), json!({})).unwrap();
-    assert_eq!(r, json!({ "restored": 1, "conflicts": 1 }));
+    assert_eq!(r, json!({ "restored": 1, "conflicts": 1, "missing": 0, "failed": 0 }));
     assert_eq!(std::fs::read(f.root.join(A)).unwrap(), b"clip");
     let left = f.core.db().bin_item(&id).unwrap().unwrap();
     assert_eq!(left.files, vec![BinFile { rel: A2.into(), bin_rel: format!("{BIN_DIR}/{id}/{A2}.binned"), size: 5, pending: false, conflict: true }]);

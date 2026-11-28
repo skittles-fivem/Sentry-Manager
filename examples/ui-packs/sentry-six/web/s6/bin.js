@@ -15,9 +15,18 @@ export function expiresIn(item, policy, now = Date.now()) {
 
 export function restoreResult(results) {
   const restored = results.reduce((n, r) => n + Number(r.restored || 0), 0);
-  const conflicts = results.reduce((n, r) => n + Number(r.conflicts || 0), 0);
+  const sum = (k) => results.reduce((n, r) => n + Number(r[k] || 0), 0);
+  const conflicts = sum('conflicts');
+  const missing = sum('missing');
+  const failed = sum('failed');
+  const error = results.find((r) => Number(r.failed) > 0)?.error || 'unknown error';
+  const why = [
+    conflicts ? `${conflicts} could not be restored (a file with that name exists)` : '',
+    missing ? `${missing} not found in the Recycle Bin` : '',
+    failed ? `${failed} could not be moved back: ${error}` : '',
+  ].filter(Boolean).join('; ');
   return {
-    text: `Restored ${plural(restored, 'file')}${conflicts ? `; ${conflicts} could not be restored (a file with that name exists)` : ''}.`,
-    bad: conflicts > 0,
+    text: `Restored ${plural(restored, 'file')}${why ? `; ${why}` : ''}.`,
+    bad: Boolean(why),
   };
 }

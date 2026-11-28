@@ -1892,7 +1892,8 @@
       row.querySelector('[data-restore]').onclick = async () => {
         try {
           const out = await api(`/api/bin/${encodeURIComponent(id)}/restore`, { body: {} });
-          toast(out.conflicts ? `Restored ${out.restored} file(s); ${out.conflicts} could not be (a file with that name exists).` : 'Restored.', out.conflicts > 0);
+          const why = [out.conflicts ? `${out.conflicts} could not be (a file with that name exists)` : '', out.missing ? `${out.missing} not found in the Recycle Bin` : '', out.failed ? `${out.failed} could not be moved back: ${out.error || 'unknown error'}` : ''].filter(Boolean).join('; ');
+          toast(why ? `Restored ${out.restored} file(s); ${why}.` : 'Restored.', Boolean(why));
         } catch (err) {
           toast(err.message, true);
         }
