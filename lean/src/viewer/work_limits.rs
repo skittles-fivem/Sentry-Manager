@@ -182,8 +182,9 @@ pub fn big_cpus(r: &Resources) -> u32 {
 }
 
 /// The automatic numbers of a tier. Small and medium are fixed; big is its numbers for four
-/// CPUs, more on a machine with more: the speed index and scrub previews one per two CPUs,
-/// codec checks one per CPU, telemetry reads and thumbnails one per four (never past MAX).
+/// CPUs, more on a machine with more: the speed index one per two CPUs, codec checks one per
+/// CPU, scrub previews, telemetry reads and thumbnails one per four (never past MAX). (A scrub
+/// preview of an HEVC clip is an ffmpeg of about 270 MB: one per four CPUs, not two.)
 /// Four CPUs or fewer get exactly the big tier's numbers.
 pub fn auto_for(tier: &str, r: &Resources) -> [u32; 5] {
     let base = TIERS.iter().find(|t| t.0 == tier).unwrap().1;
@@ -191,7 +192,7 @@ pub fn auto_for(tier: &str, r: &Resources) -> [u32; 5] {
         return base;
     }
     let c = big_cpus(r);
-    let per = [c / 2, c, c / 2, c / 4, c / 4];
+    let per = [c / 2, c, c / 4, c / 4, c / 4];
     let mut out = base;
     for i in 0..5 {
         out[i] = base[i].max(per[i]).min(MAX[i]);
@@ -287,16 +288,16 @@ mod tests {
         assert_eq!(auto(0.0, 4.0), [4, 8, 3, 2, 2]);
         // more CPUs, more at once
         assert_eq!(auto(16.0, 6.0), [4, 8, 3, 2, 2]);
-        assert_eq!(auto(16.0, 8.0), [4, 8, 4, 2, 2]);
-        assert_eq!(auto(24.0, 12.0), [6, 12, 6, 3, 3]);
-        assert_eq!(auto(16.0, 12.0), [5, 10, 5, 2, 2], "16 GB: ten at most");
+        assert_eq!(auto(16.0, 8.0), [4, 8, 3, 2, 2]);
+        assert_eq!(auto(24.0, 12.0), [6, 12, 3, 3, 3]);
+        assert_eq!(auto(16.0, 12.0), [5, 10, 3, 2, 2], "16 GB: ten at most");
         assert_eq!(auto(64.0, 64.0), [8, 32, 8, 8, 8]);
         // a Ryzen 7 255 (16 threads, 29 GB), no CPU limit
-        assert_eq!(auto(29.0, 16.0), [8, 16, 8, 4, 4]);
+        assert_eq!(auto(29.0, 16.0), [8, 16, 4, 4, 4]);
         assert_eq!(pick_limits(r(29.0, 16.0), None).tier, "big");
         // the same with 9 GB: no more than one each per 1.5 GB
         assert_eq!(auto(9.0, 16.0), [4, 8, 3, 2, 2]);
-        assert_eq!(auto(12.0, 16.0), [4, 8, 4, 2, 2]);
+        assert_eq!(auto(12.0, 16.0), [4, 8, 3, 2, 2]);
         // set by hand still wins
         let l = pick_limits(r(29.0, 16.0), Some(&json!({ "speedIndex": 2 })));
         assert_eq!((l.get("speedIndex"), l.get("codecChecks")), (2, 16));
@@ -314,11 +315,11 @@ mod tests {
         let rd = reader(&[("/sys/fs/cgroup/cpu.max", "1050000 100000")]);
         let r = resources_from(&rd, host, 16.0);
         assert_eq!(r.cpus, 10.5);
-        assert_eq!(pick_limits(r, None).auto, [5, 10, 5, 2, 2]);
+        assert_eq!(pick_limits(r, None).auto, [5, 10, 3, 2, 2]);
         // no limit: the 16 threads
         let r = resources_from(&reader(&[("/sys/fs/cgroup/cpu.max", "max 100000")]), host, 16.0);
         assert_eq!((r.cpus, r.cpus_from), (16.0, "host"));
-        assert_eq!(pick_limits(r, None).auto, [8, 16, 8, 4, 4]);
+        assert_eq!(pick_limits(r, None).auto, [8, 16, 4, 4, 4]);
         // a memory limit of 8 GB on the same machine
         let rd = reader(&[("/sys/fs/cgroup/memory.max", "8589934592")]);
         assert_eq!(pick_limits(resources_from(&rd, host, 16.0), None).auto, [4, 8, 3, 2, 2]);
