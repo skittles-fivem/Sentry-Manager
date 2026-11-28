@@ -399,3 +399,40 @@ fn planning_with_a_nodes_devices_the_node_goes_to_one_vehicle_as_a_whole() {
     let plan = plan_lanes(&[a], &roots(&["a"]), Some("/cars/a"), &[json!({ "id": GPU, "kind": "gpu" }), g2, c2], &json!({}));
     assert_eq!(plan["/cars/a"], vec![json!({ "device": GPU, "concurrency": 2 })]);
 }
+
+#[test]
+fn a_job_that_ends_with_more_after_it_starts_the_next_one_without_waiting_for_the_interval() {
+    let d = tempdir().unwrap();
+    let s = Arc::new(FakeService::default());
+    let clips = Arc::new(Mutex::new(HashMap::from([("/cars/a".to_string(), 3)])));
+    let mut o = AutoOptions::new(s.clone(), scanner_of(clips, Arc::new(Mutex::new(vec![]))), d.path().to_path_buf());
+    o.tick_ms = 600_000;
+    let auto = Auto::new(o);
+    auto.start();
+    auto.configure(&shared(json!({ "enabled": true, "config": car("/cars/a", "h265") }))).unwrap();
+    let until = |n: usize| {
+        let t = std::time::Instant::now();
+        while s.started().len() < n && t.elapsed() < Duration::from_secs(10) {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        s.started().len()
+    };
+    assert_eq!(until(1), 1);
+    // a job that is not this one's, and its own job still running: nothing new
+    auto.job_ended("someone-else");
+    auto.job_ended("job-1");
+    std::thread::sleep(Duration::from_millis(200));
+    assert_eq!(s.started().len(), 1);
+    s.set("job-1", |j| {
+        j["state"] = json!("completed");
+        j["moreAfter"] = json!("RecentClips/1.mp4");
+        j["items"] = json!([{ "state": "skipped", "resultCode": "already-converted", "relativePath": "RecentClips/0.mp4", "sourceBytes": 100, "mtimeMs": 1 }]);
+    });
+    auto.job_ended("job-1");
+    assert_eq!(until(2), 2, "the next job started long before the 10-minute tick");
+    let st = auto.get_state();
+    assert_eq!(st["status"]["activeJobId"], "job-2");
+    assert_eq!(st["status"]["lastNewFiles"], 2, "the folder was checked again before it");
+    assert!(auto.is_known(&car("/cars/a", "h265").as_object().map(|m| { let mut m = m.clone(); m.insert("autoConvert".into(), json!(true)); Value::Object(m) }).unwrap(), &json!({ "relativePath": "RecentClips/0.mp4", "sourceBytes": 100, "mtimeMs": 1 })), "the ended job was recorded first");
+    auto.stop();
+}

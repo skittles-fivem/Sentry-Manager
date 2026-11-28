@@ -234,8 +234,13 @@ impl Converter {
         let _ = auto_cell.set(auto.clone());
         // each verified clip leaves its empty snapshot folder: removed once a job ends
         let (s4, b4, t4) = (service.clone(), bench.clone(), temp_path.clone());
+        let a4 = Arc::downgrade(&auto);
         service.subscribe(Arc::new(move |e: &Value| {
             if e["type"] == "snapshot" && ["completed", "failed", "cancelled"].contains(&e["snapshot"]["state"].as_str().unwrap_or("")) {
+                // an automatic job that ended: the next one starts now, not at the next tick
+                if let (Some(a), Some(id)) = (a4.upgrade(), e["jobId"].as_str()) {
+                    a.job_ended(id);
+                }
                 let (s, b, t) = (s4.clone(), b4.clone(), t4.clone());
                 std::thread::spawn(move || {
                     std::thread::sleep(std::time::Duration::from_secs(1));
