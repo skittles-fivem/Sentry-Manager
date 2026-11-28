@@ -405,11 +405,12 @@ fn roots(app: &App) -> Vec<PathBuf> {
 
 fn media(app: &App, method: &Method, headers: &HeaderMap, q: &HashMap<String, String>) -> Res {
     let p = q.get("path").cloned().unwrap_or_default();
-    let roots = roots(app);
-    match media::resolve_inside(&p, &roots) {
+    // (the roots' real paths found once, for both checks)
+    let roots = media::RealRoots::of(&roots(app));
+    match media::resolve_inside_real(&p, &roots) {
         // footage playing (bytes of a clip sent, not a HEAD or a refusal): background reading
         // slows to one clip at a time while they go out, and for a while after
-        Some(real) if !media::hidden_path(&path_str(&real)) => media::send_media_held(method, headers, &real, &roots, || {
+        Some(real) if !media::hidden_path(&path_str(&real)) => media::send_media_held_real(method, headers, &real, &roots, || {
             (method == Method::GET).then(|| crate::viewer::get().map(|viewer| viewer.watching())).flatten()
         }),
         _ => error(StatusCode::FORBIDDEN, "Outside the vehicle shares."),

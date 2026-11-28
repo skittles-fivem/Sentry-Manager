@@ -85,12 +85,35 @@ pub fn resolve_inside(p: &str, roots: &[PathBuf]) -> Option<PathBuf> {
     roots.iter().filter_map(|r| std::fs::canonicalize(r).ok()).any(|r| real.starts_with(&r)).then_some(real)
 }
 
+/// The real paths of the roots (after symlinks; one that has none is left out), found once for
+/// the checks of one request.
+pub struct RealRoots(Vec<PathBuf>);
+
+impl RealRoots {
+    pub fn of(roots: &[PathBuf]) -> RealRoots {
+        RealRoots(roots.iter().filter_map(|r| std::fs::canonicalize(r).ok()).collect())
+    }
+
+    fn hold(&self, real: &Path) -> bool {
+        self.0.iter().any(|r| real.starts_with(r))
+    }
+}
+
+/// resolve_inside with the roots' real paths found already.
+pub fn resolve_inside_real(p: &str, roots: &RealRoots) -> Option<PathBuf> {
+    if p.is_empty() || p.contains('\0') || !p.starts_with('/') {
+        return None;
+    }
+    let real = std::fs::canonicalize(p).ok()?;
+    roots.hold(&real).then_some(real)
+}
+
 fn empty(status: StatusCode) -> Response<Body> {
     Response::builder().status(status).body(Body::empty()).unwrap()
 }
 
 /// Open a regular file read-only, not through a final symlink, and check where the descriptor really is.
-fn open_confined(abs: &Path, roots: &[PathBuf]) -> Option<(File, std::fs::Metadata)> {
+fn open_confined(abs: &Path, roots: &RealRoots) -> Option<(File, std::fs::Metadata)> {
     let f = std::fs::OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW).open(abs).ok()?;
     let md = f.metadata().ok()?;
     if !md.is_file() {
@@ -98,8 +121,7 @@ fn open_confined(abs: &Path, roots: &[PathBuf]) -> Option<(File, std::fs::Metada
     }
     use std::os::fd::AsRawFd;
     let real = std::fs::read_link(format!("/proc/self/fd/{}", f.as_raw_fd())).ok()?;
-    let inside = roots.iter().filter_map(|r| std::fs::canonicalize(r).ok()).any(|r| real.starts_with(&r));
-    inside.then_some((f, md))
+    roots.hold(&real).then_some((f, md))
 }
 
 /// A footage file with Range support (studioApi.js sendMedia).
@@ -110,6 +132,11 @@ pub fn send_media(method: &Method, headers: &HeaderMap, abs: &Path, roots: &[Pat
 /// send_media, and while bytes of the file are sent, what `hold` makes is kept: made only for a
 /// file found and a range that can be answered, kept until a whole file streamed out is done.
 pub fn send_media_held<H: Send + 'static>(method: &Method, headers: &HeaderMap, abs: &Path, roots: &[PathBuf], hold: impl FnOnce() -> Option<H>) -> Response<Body> {
+    send_media_held_real(method, headers, abs, &RealRoots::of(roots), hold)
+}
+
+/// send_media_held with the roots' real paths found already.
+pub fn send_media_held_real<H: Send + 'static>(method: &Method, headers: &HeaderMap, abs: &Path, roots: &RealRoots, hold: impl FnOnce() -> Option<H>) -> Response<Body> {
     let Some((mut file, md)) = open_confined(abs, roots) else { return empty(StatusCode::NOT_FOUND) };
     let size = md.size();
     let mtime_ms = crate::scanner::ms_of(md.mtime(), md.mtime_nsec());
