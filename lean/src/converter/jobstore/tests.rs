@@ -111,6 +111,31 @@ fn a_damaged_journal_line_that_adds_clips_is_refused() {
     fs::remove_dir_all(&root).unwrap();
 }
 
+/// Every poll lists the jobs: a damaged job is copied aside once, not once per poll.
+#[test]
+fn a_damaged_job_is_copied_aside_once_however_often_it_is_read() {
+    let root = tmp("corrupt-once");
+    let store = quiet(&root);
+    store.create(&initial("job-c", vec![clip(0)])).unwrap();
+    fs::write(root.join("job-c/job.json"), b"{ not json").unwrap();
+    let copies = || fs::read_dir(root.join("job-c")).unwrap().filter(|e| e.as_ref().unwrap().file_name().to_string_lossy().starts_with("job.json.corrupt-")).count();
+    for _ in 0..5 {
+        assert!(store.summaries().unwrap().is_empty());
+    }
+    assert_eq!(copies(), 1);
+    for _ in 0..3 {
+        assert_eq!(quiet(&root).load("job-c").unwrap_err().code, "CORRUPT_MANIFEST");
+        let _ = quiet(&root).list();
+    }
+    assert_eq!(copies(), 1, "the same damage is not copied again");
+    // other damage is copied aside too
+    fs::write(root.join("job-c/job.json"), b"{ still not json").unwrap();
+    assert!(store.summaries().unwrap().is_empty());
+    assert_eq!(copies(), 2);
+    assert!(root.join("job-c/job.json").exists(), "the job file itself is kept");
+    fs::remove_dir_all(&root).unwrap();
+}
+
 #[test]
 fn refusals() {
     let root = tmp("refuse");
