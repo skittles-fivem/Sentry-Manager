@@ -635,6 +635,38 @@ fn a_share_unreachable_at_the_restart_does_not_stop_the_converter_and_the_job_re
     fs::remove_dir_all(&base).unwrap();
 }
 
+/// What the background retry recovers is the job as the restart left it: one the user has acted on
+/// meanwhile (its job file changed) is theirs, and not recovered behind their back.
+#[test]
+fn a_job_changed_while_its_share_was_unreachable_is_not_recovered_behind_the_users_back() {
+    if !available() {
+        eprintln!("skipped: needs ffmpeg with libx265 and node");
+        return;
+    }
+    let base = make_base("crash-unreachable-changed", 1);
+    let died = crash(&base, "backup-renamed", "replace", "direct", 1, false);
+    use std::os::unix::process::ExitStatusExt;
+    assert_eq!(died.status.signal(), Some(libc::SIGKILL), "the converter died: {}", String::from_utf8_lossy(&died.stderr).chars().take(600).collect::<String>());
+    let share = base.join("footage/TeslaCam");
+    let away = base.join("footage/TeslaCam.away");
+    fs::rename(&share, &away).unwrap();
+    fs::write(&share, b"not a folder").unwrap();
+    let c = open(&base, "ffmpeg", "ffprobe", None);
+    c.start().expect("the converter starts while one job cannot be recovered yet");
+    let id = c.store.list().unwrap()[0].id().to_string();
+    let before = c.store.load(&id).unwrap().unwrap();
+    // (stands for a command of the user's: the job file is written again)
+    c.store.transition(&id, Patch::new()).unwrap();
+    fs::remove_file(&share).unwrap();
+    fs::rename(&away, &share).unwrap();
+    std::thread::sleep(std::time::Duration::from_secs(4));
+    let after = c.store.load(&id).unwrap().unwrap();
+    assert_eq!(after.state(), before.state(), "not recovered by the retry: {}", c.service.get(&id).unwrap());
+    assert_eq!(after.revision(), before.revision() + 1);
+    c.shutdown();
+    fs::remove_dir_all(&base).unwrap();
+}
+
 fn holding_probe(base: &Path) -> String {
     let b = base.to_string_lossy();
     wrapper(base, "ffprobe", &format!("case \"$*\" in *07-42-00-front*) [ -f \"{b}/released\" ] || {{ touch \"{b}/reached\"; while [ ! -f \"{b}/released\" ]; do sleep 0.05; done; }} ;; esac"))
