@@ -1118,7 +1118,7 @@ fn a_cleanup_that_meets_footage_it_cannot_read_is_tried_again_soon_not_tomorrow(
     let a = "TeslaCam/RecentClips/2026-11-10_06-00-00-front.mp4";
     let b = "TeslaCam/SentryClips/2026-11-10_07-00-00/2026-11-10_06-59-00-front.mp4";
     let f = fixture("policy-retry", &[(a, b"x"), (b, b"x")]);
-    policies::set(&f.app, "car", &json!({ "enabled": true, "runAt": "00:00" })).unwrap();
+    policies::set(&f.app, &admin(), "car", &json!({ "enabled": true, "runAt": "00:00" })).unwrap();
     let event = f.root.join("TeslaCam/SentryClips/2026-11-10_07-00-00");
     mode(&event, 0o000);
     if std::fs::read_dir(&event).is_ok() {
