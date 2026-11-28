@@ -204,15 +204,14 @@ fn vehicle_of(srv: &Server, src: &str) -> Option<crate::footage::vehicles::Vehic
 
 /// index.js slimJob: a job as kept, its counts without its clip list
 fn slim(s: &Value) -> Value {
-    let mut out = s.clone();
-    if s["items"].as_array().is_some_and(|a| !a.is_empty()) {
-        let (converted, skipped, failed) = counts(s);
-        let (clips, _) = job_progress(s);
-        out["items"] = json!([]);
-        out["itemCounts"] = json!({ "converted": converted, "skipped": skipped, "failed": failed });
-        out["progressClips"] = json!(clips);
-    }
-    out
+    let (Some(m), true) = (s.as_object(), s["items"].as_array().is_some_and(|a| !a.is_empty())) else { return s.clone() };
+    let (converted, skipped, failed) = counts(s);
+    let (clips, _) = job_progress(s);
+    // (a copy without its clip list: the list is not copied only to be emptied)
+    let mut out: serde_json::Map<String, Value> = m.iter().map(|(k, v)| (k.clone(), if k == "items" { json!([]) } else { v.clone() })).collect();
+    out.insert("itemCounts".into(), json!({ "converted": converted, "skipped": skipped, "failed": failed }));
+    out.insert("progressClips".into(), json!(clips));
+    Value::Object(out)
 }
 
 /// What index.js does with each job snapshot: the savings and the stats' job mark (ops), and,

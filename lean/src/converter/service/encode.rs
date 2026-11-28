@@ -280,7 +280,10 @@ impl Service {
         let rt2 = rt.clone();
         let id2 = item_id.to_string();
         let act2 = last_activity.clone();
+        // (dropped when the reader ends: ffmpeg's progress output is closed, it is ending)
+        let (reader_alive, reader_ended) = std::sync::mpsc::channel::<()>();
         let reader = std::thread::spawn(move || {
+            let _alive = reader_alive;
             let mut buffered = String::new();
             let mut progress = Map::new();
             let mut chunk = [0u8; 4096];
@@ -360,6 +363,8 @@ impl Service {
         // a cancel or stop asks ffmpeg to end (SIGTERM); one that has not ended a few seconds later
         // is killed, so a Cancel does not wait out the stall timeout
         let mut stop_seen: Option<std::time::Instant> = None;
+        // looked at every 50 ms, and soon after its output closed (1 ms, then longer)
+        let mut after_close = Duration::from_millis(1);
         let result = loop {
             match child.try_wait() {
                 Ok(Some(status)) => {
@@ -402,7 +407,10 @@ impl Service {
                 });
                 break Err("encoder-stalled");
             }
-            std::thread::sleep(Duration::from_millis(50));
+            if let Err(std::sync::mpsc::RecvTimeoutError::Disconnected) = reader_ended.recv_timeout(Duration::from_millis(50)) {
+                std::thread::sleep(after_close);
+                after_close = (after_close * 2).min(Duration::from_millis(50));
+            }
         };
         {
             let mut s = rt.lock();

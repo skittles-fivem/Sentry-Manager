@@ -524,18 +524,29 @@ impl Service {
             if stopped(rt) {
                 return false;
             }
+            // a clip passed over: the clips found before it still go to the workers on time
+            // (the same batches' rule as after a clip found, by the time since the last one)
+            let mut passed = |pending: &mut Vec<Value>, pending_work: &mut usize, last_flush: &mut i64| -> bool {
+                if *pending_work > 0 && self.discovery_due(rt, pending.len(), *last_flush, *pending_work) {
+                    if let Err(e) = flush(pending, pending_work, last_flush) {
+                        failure = Some(e);
+                        return false;
+                    }
+                }
+                true
+            };
             if let Some(after) = &resume_after {
                 if super::super::scanner::compare_scan_paths(d.value["relativePath"].as_str().unwrap_or(""), after, &order) != std::cmp::Ordering::Greater {
-                    return true;
+                    return passed(&mut pending, &mut pending_work, &mut last_flush);
                 }
             }
             let key = identity(&d.value);
             if known.contains(&key) {
-                return true;
+                return passed(&mut pending, &mut pending_work, &mut last_flush);
             }
             if let Some(skip) = &self.0.o.skip_discovered {
                 if skip(&config, &d.value) {
-                    return true;
+                    return passed(&mut pending, &mut pending_work, &mut last_flush);
                 }
             }
             if known.len() >= self.0.o.job_clip_limit {

@@ -132,7 +132,7 @@ fn server_stats(ctx: &Arc<dyn OpsCtx>, notes: &Arc<notes::Notes>, converting: &A
             }
     });
     let c = ctx.clone();
-    o.read_shares = Arc::new(move || stats::shares_of(&c.data_dir(), &c.vehicles()));
+    o.read_shares = Arc::new(move || stats::shares_from(&c.data_dir(), c.vehicle_shares()));
     let c = ctx.clone();
     o.active_encodes = Arc::new(move || c.active_encodes());
     o.ffmpeg_path = ctx.ffmpeg_path();
@@ -486,32 +486,42 @@ impl Ops {
     /// price could not be read).
     pub fn stats_answer(&self) -> store::DbResult<Value> {
         *self.stats_asked_at.lock().unwrap() = store::now_ms();
-        self.stats.touch(None);
-        let mut snap = self.stats.snapshot();
         let ctx = &*self.ctx;
-        let pw = store::get(&ctx.read_db(), "power")?.unwrap_or(Value::Null);
-        let t = store::now_ms();
-        let price_now = power::price_at(&pw, t);
-        let (rows, combined) = node_power::combine(&snap["power"], &ctx.node_powers(), price_now);
-        if combined.is_object() {
-            let mut combined = combined;
-            combined["peakW"] = self.stats.peak("all", combined["totalW"].as_f64()).map_or(Value::Null, js::num);
-            let rows: Vec<Value> = rows
-                .into_iter()
-                .map(|mut r| {
-                    let id = js::to_string(&r["id"]);
-                    r["peakW"] = self.stats.peak(&format!("node:{id}"), r["totalW"].as_f64()).map_or(Value::Null, js::num);
-                    r
-                })
-                .collect();
-            snap["power"]["nodes"] = json!(rows);
-            snap["power"]["combined"] = combined;
-        }
+        // (read before the engine is held, so a sample never waits on manager.db or the nodes;
+        // a price that cannot be read still counts as a page watching)
+        let pw = store::get(&ctx.read_db(), "power");
+        let pw = match pw {
+            Ok(pw) => pw.unwrap_or(Value::Null),
+            Err(e) => {
+                self.stats.touch(None);
+                return Err(e);
+            }
+        };
+        let nodes = ctx.node_powers();
+        let (mut snap, (t, price_now), energy) = self.stats.watched(|snap, peak| {
+            let t = store::now_ms();
+            let price_now = power::price_at(&pw, t);
+            let (rows, combined) = node_power::combine(&snap["power"], &nodes, price_now);
+            if combined.is_object() {
+                let mut combined = combined;
+                combined["peakW"] = peak("all", combined["totalW"].as_f64()).map_or(Value::Null, js::num);
+                let rows: Vec<Value> = rows
+                    .into_iter()
+                    .map(|mut r| {
+                        let id = js::to_string(&r["id"]);
+                        r["peakW"] = peak(&format!("node:{id}"), r["totalW"].as_f64()).map_or(Value::Null, js::num);
+                        r
+                    })
+                    .collect();
+                snap["power"]["nodes"] = json!(rows);
+                snap["power"]["combined"] = combined;
+            }
+            (t, price_now)
+        });
         snap["price"] = match price_now {
             None => Value::Null,
             Some(now) => json!({ "currency": pw["currency"], "mode": pw["mode"], "now": js::num(now), "rate": power::rate_name_at(&pw, t) }),
         };
-        let energy = self.stats.energy();
         snap["encoder"] = ctx.encoder_block(&snap, &energy);
         Ok(snap)
     }

@@ -672,3 +672,47 @@ fn energy_per_job_from_the_engine() {
     assert_eq!(r.stats.peak("all", Some(100.0)), Some(300.0));
     r.stats.stop();
 }
+
+// RealTimers: one thread for all, in deadline order; a cleared timer never runs; a timer
+// set from a timer runs; a panicking timer ends only itself.
+#[test]
+fn real_timers_run_in_order_and_skip_cleared_ones() {
+    let t = Arc::new(RealTimers::default());
+    let (tx, rx) = mpsc::channel::<&'static str>();
+    let send = |s: &'static str| {
+        let tx = tx.clone();
+        Box::new(move || {
+            let _ = tx.send(s);
+        }) as Box<dyn FnOnce() + Send>
+    };
+    t.set_timeout(1500, send("c"));
+    t.set_timeout(20, send("a"));
+    let gone = t.set_timeout(30, send("never"));
+    t.set_timeout(25, Box::new(|| panic!("a timer that fails")));
+    let (t2, tx2) = (t.clone(), tx.clone());
+    t.set_timeout(
+        40,
+        Box::new(move || {
+            let tx2 = tx2.clone();
+            t2.set_timeout(0, Box::new(move || {
+                let _ = tx2.send("b");
+            }));
+        }),
+    );
+    t.clear_timeout(gone);
+    let got: Vec<&str> = (0..3).map(|_| rx.recv_timeout(Duration::from_secs(5)).unwrap()).collect();
+    assert_eq!(got, ["a", "b", "c"]);
+    assert!(rx.recv_timeout(Duration::from_millis(100)).is_err());
+}
+
+// shares_from gives what shares_of gives from the full vehicle list
+#[test]
+fn shares_from_matches_shares_of() {
+    let v = |name: &str, roots: &[&str], t: Option<&str>| crate::ops::ctx::VehicleInfo { name: name.into(), roots: roots.iter().map(|s| s.to_string()).collect(), source_type: t.map(String::from), ..Default::default() };
+    let list = vec![v("A", &["/footage/a", "/footage/a/studio"], Some("smb")), v("B", &[], Some("path")), v("C", &["/x"], None)];
+    let a = shares_of(Path::new("/data"), &list);
+    let b = shares_from(Path::new("/data"), list.into_iter().map(|v| (v.name, v.roots.into_iter().next(), v.source_type)));
+    let f = |s: &[ShareSpec]| s.iter().map(|x| format!("{}|{}|{}|{}", x.label, x.path, x.vehicle, x.network)).collect::<Vec<_>>();
+    assert_eq!(f(&a), f(&b));
+    assert_eq!(f(&a)[1], "A|/footage/a|true|true");
+}

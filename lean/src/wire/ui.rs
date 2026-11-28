@@ -148,6 +148,7 @@ fn ui_req(c: &CoreCtx, body: bytes::Bytes) -> crate::ui::http::Req {
         headers: c.headers.clone(),
         body,
         peer: c.conn.peer,
+        shown: Default::default(),
     }
 }
 
@@ -201,6 +202,7 @@ pub fn page(srv: &Arc<Server>, w: WebReq) -> crate::core::http::Res {
         headers: w.headers.clone(),
         body: bytes::Bytes::new(),
         peer: None,
+        shown: Default::default(),
     };
     as_who(who, || {
         let long_cache = w.version.as_deref().is_some_and(|v| v == ui.asset_version(&req));

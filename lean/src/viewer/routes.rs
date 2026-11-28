@@ -425,7 +425,8 @@ impl Viewer {
                     let mut out = drive_data::describe_drive(d, tags.as_ref(), &|k| by_key.get(k).map(|c| **c), &|c| stats_for(c), &label);
                     // (the drive's first and last minutes, as the car names its Recent clips)
                     if let (Some(f), Some(first), Some(last)) = (has_can.as_ref(), d.keys.first(), d.keys.last()) {
-                        out["can"] = json!(f(vec![format!("RecentClips/{first}-front.mp4"), format!("RecentClips/{last}-front.mp4")], Some(first)));
+                        let rels = [format!("RecentClips/{first}-front.mp4"), format!("RecentClips/{last}-front.mp4")];
+                        out["can"] = json!(f(&mut rels.iter().map(String::as_str), Some(first)));
                     }
                     out
                 })
@@ -447,7 +448,7 @@ impl Viewer {
             .map(|d| {
                 let mut m = drives::describe(d, &|c| stats_for(c), &label);
                 if let (Some(f), Some(first), Some(last)) = (has_can.as_ref(), d.clips.first(), d.clips.last()) {
-                    m.insert("can".into(), json!(f(vec![first.rel.to_string(), last.rel.to_string()], Some(first.key))));
+                    m.insert("can".into(), json!(f(&mut [first.rel, last.rel].into_iter(), Some(first.key))));
                 }
                 m
             })
@@ -507,7 +508,7 @@ impl Viewer {
         let tz = self.ctx.vehicle(vid).map(|v| v.timezone).unwrap_or_default();
         Ok(Some(page.iter().map(|rec| {
             let ev = if rec.event_id.is_some() { self.spots.get(&*self.ctx, vid, files.as_ref(), rec).and_then(|s| s.pos) } else { None };
-            let covered = has_can.as_ref().is_some_and(|f| f(rec.clip_rels().map(String::from).collect(), rec.start_key.as_deref()));
+            let covered = has_can.as_ref().is_some_and(|f| f(&mut rec.clip_rels(), rec.start_key.as_deref()));
             let side = recording_place::CanSide { gps: &self.can_gps, keys: if covered { keys.clone() } else { Vec::new() }, tz: &tz };
             recording_place::tag(&self.speed_index, vid, files.as_ref(), rec, ev, &list, Some(&side))
         }).collect()))

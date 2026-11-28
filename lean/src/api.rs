@@ -315,8 +315,23 @@ fn local_disk(file: &std::fs::File) -> bool {
     if unsafe { libc::fstatfs(file.as_raw_fd(), &mut st) } != 0 {
         return false;
     }
+    local_fs_type(st.f_type as u32)
+}
+
+/// local_disk of what is at a path (statfs)
+pub(crate) fn local_disk_at(p: &Path) -> bool {
+    use std::os::unix::ffi::OsStrExt;
+    let Ok(c) = std::ffi::CString::new(p.as_os_str().as_bytes()) else { return false };
+    let mut st: libc::statfs = unsafe { std::mem::zeroed() };
+    if unsafe { libc::statfs(c.as_ptr(), &mut st) } != 0 {
+        return false;
+    }
+    local_fs_type(st.f_type as u32)
+}
+
+fn local_fs_type(t: u32) -> bool {
     // ext2/3/4, xfs, btrfs, f2fs, fat, exfat, ntfs3, zfs, tmpfs
-    matches!(st.f_type as u32, 0xEF53 | 0x5846_5342 | 0x9123_683E | 0xF2F5_2010 | 0x4D44 | 0x2011_BAB0 | 0x7366_746E | 0x2FC1_2FC1 | 0x0102_1994)
+    matches!(t, 0xEF53 | 0x5846_5342 | 0x9123_683E | 0xF2F5_2010 | 0x4D44 | 0x2011_BAB0 | 0x7366_746E | 0x2FC1_2FC1 | 0x0102_1994)
 }
 
 /// Unchanged for the last few seconds, so a write still to come cannot keep its stamp
@@ -392,23 +407,31 @@ fn roots(app: &App) -> Vec<PathBuf> {
 /// Studio's readable guard when the viewer runs (the vehicles' folders, the converted copies and
 /// other output folders, the thumbnails, filmstrips and exports, its deny list kept), else, or
 /// when that guard refuses, the vehicles' folders alone as before. Never the Recycle Bin.
+#[cfg(test)]
 fn media_target(p: &str, vehicle_roots: &[PathBuf], guard: Option<crate::viewer::studio::Guard>) -> Option<(PathBuf, Vec<PathBuf>)> {
+    media_target_real(p, vehicle_roots, &media::RealRoots::of(vehicle_roots), guard)
+}
+
+/// media_target with the vehicles' real paths found already.
+fn media_target_real(p: &str, vehicle_roots: &[PathBuf], real_roots: &media::RealRoots, guard: Option<crate::viewer::studio::Guard>) -> Option<(PathBuf, Vec<PathBuf>)> {
     let found = guard.and_then(|g| g.resolve(p).map(|real| (real, g.roots)));
-    let found = found.or_else(|| media::resolve_inside(p, vehicle_roots).map(|real| (real, vehicle_roots.to_vec())));
+    let found = found.or_else(|| media::resolve_inside_real(p, real_roots).map(|real| (real, vehicle_roots.to_vec())));
     found.filter(|(real, _)| !media::hidden_path(&path_str(real)))
 }
 
 fn media(app: &App, method: &Method, headers: &HeaderMap, q: &HashMap<String, String>) -> Res {
     let p = q.get("path").cloned().unwrap_or_default();
     let vehicle_roots = roots(app);
+    // (the vehicles' real paths found once, for both checks)
+    let real_roots = media::RealRoots::of(&vehicle_roots);
     let viewer = crate::viewer::get();
     let guard = viewer.map(|v| crate::viewer::studio::readable(&*v.ctx));
-    match media_target(&p, &vehicle_roots, guard) {
+    match media_target_real(&p, &vehicle_roots, &real_roots, guard) {
         // footage playing (bytes of a clip sent, not a HEAD or a refusal): background reading
         // slows to one clip at a time while they go out, and for a while after (not for a
         // filmstrip, thumbnail or other file outside the vehicles' folders)
         Some((real, allowed)) => {
-            let footage = vehicle_roots.iter().filter_map(|r| std::fs::canonicalize(r).ok()).any(|r| real.starts_with(&r));
+            let footage = real_roots.holds(&real);
             media::send_media_held(method, headers, &real, &allowed, || (footage && method == Method::GET).then(|| viewer.map(|v| v.watching())).flatten())
         }
         None => error(StatusCode::FORBIDDEN, "Outside the vehicle shares."),

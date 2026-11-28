@@ -238,7 +238,7 @@ impl Packs {
     }
 
     fn pick(&self, saved: Option<String>) -> Option<String> {
-        [saved, self.default_id.clone()].into_iter().flatten().find(|id| valid_id(id) && self.read_meta(id).is_some())
+        [saved, self.default_id.clone()].into_iter().flatten().find(|id| valid_id(id) && (self.builtin.contains_key(id) || self.read_meta(id).is_some()))
     }
 
     /// The choice kept; Err((400, refusal)), or Err((500, what failed)) when it was not kept.
@@ -257,12 +257,17 @@ impl Packs {
     /// The folder the chosen pack serves `kind` from, or None.
     pub fn root(&self, kind: &str) -> Option<PathBuf> {
         let id = self.active()?;
+        self.root_of(&id, kind)
+    }
+
+    /// The folder pack `id` (the chosen one) serves `kind` from, or None.
+    pub fn root_of(&self, id: &str, kind: &str) -> Option<PathBuf> {
         if !KINDS.contains(&kind) {
             return None;
         }
-        let folder = match self.builtin.get(&id) {
+        let folder = match self.builtin.get(id) {
             Some(b) => b.root.join(kind),
-            None => self.dir.join(&id).join("files").join(kind),
+            None => self.dir.join(id).join("files").join(kind),
         };
         folder.exists().then_some(folder)
     }

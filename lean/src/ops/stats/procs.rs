@@ -79,7 +79,8 @@ pub struct Reaped {
 pub struct ProcessTable {
     proc_root: PathBuf,
     pub app_pid: i64,
-    prev: HashMap<String, f64>,
+    /// ticks by (pid, start time's bits)
+    prev: HashMap<(i64, u64), f64>,
     prev_uptime: Option<f64>,
     page_size: Option<f64>,
     pub scope: &'static str,
@@ -88,7 +89,7 @@ pub struct ProcessTable {
     pub app: Vec<i64>,
     pub app_set: HashSet<i64>,
     pub reaped: Reaped,
-    prev_kids: Option<HashMap<String, (f64, f64, bool)>>,
+    prev_kids: Option<HashMap<(i64, u64), (f64, f64, bool)>>,
     prev_app_child_ticks: Option<f64>,
     pub uptime: Option<f64>,
 }
@@ -153,11 +154,15 @@ impl ProcessTable {
     pub fn sample(&mut self, total_ticks: Option<f64>) {
         let uptime = read_uptime(&self.proc_root);
         let mut list = Vec::new();
+        // (one buffer for every stat file, as read_text reads each)
+        let mut buf = Vec::with_capacity(1024);
         for name in list_dir(&self.proc_root, 100000) {
             if name.is_empty() || !name.bytes().all(|c| c.is_ascii_digit()) {
                 continue;
             }
-            if let Some(p) = parse_stat(read_text(self.proc_root.join(&name).join("stat")).as_deref()) {
+            buf.clear();
+            let read = std::fs::File::open(self.proc_root.join(&name).join("stat")).and_then(|mut f| std::io::Read::read_to_end(&mut f, &mut buf));
+            if let Some(p) = read.ok().and_then(|_| parse_stat(Some(&String::from_utf8_lossy(&buf)))) {
                 list.push(p);
             }
         }
@@ -166,8 +171,8 @@ impl ProcessTable {
         let born_after = self.prev_uptime.map_or(f64::INFINITY, |u| u * HZ);
         let tt = total_ticks.unwrap_or(f64::NAN);
         for p in &mut list {
-            let key = format!("{}:{}", p.pid, p.start);
-            next.insert(key.clone(), p.ticks);
+            let key = (p.pid, p.start.to_bits());
+            next.insert(key, p.ticks);
             let delta = match self.prev.get(&key) {
                 Some(b) => Some((p.ticks - b).max(0.0)),
                 None if p.start >= born_after => Some(p.ticks),
@@ -220,7 +225,7 @@ impl ProcessTable {
         let mut kids = HashMap::new();
         for p in &self.list {
             if p.ppid == self.app_pid {
-                kids.insert(format!("{}:{}", p.pid, p.start), (p.ticks, p.child_ticks, is_ffmpeg(&p.comm)));
+                kids.insert((p.pid, p.start.to_bits()), (p.ticks, p.child_ticks, is_ffmpeg(&p.comm)));
             }
         }
         let (mut ticks, mut ff) = (0.0, 0.0);

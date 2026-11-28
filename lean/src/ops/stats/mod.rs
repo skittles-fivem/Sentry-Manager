@@ -78,41 +78,76 @@ pub trait Timers: Send + Sync {
     fn clear_timeout(&self, id: u64);
 }
 
-/// Real timers: a thread per timer, woken at once when it is cleared.
+/// Real timers: one thread runs them all in deadline order (started with the
+/// first timer, gone after a minute with none). A cleared timer never runs.
 #[derive(Default)]
 pub struct RealTimers {
-    live: Arc<(Mutex<HashSet<u64>>, Condvar)>,
+    q: Arc<(Mutex<TimerQueue>, Condvar)>,
     next: AtomicU64,
+}
+
+type TimerFn = Box<dyn FnOnce() + Send>;
+
+#[derive(Default)]
+struct TimerQueue {
+    due: std::collections::BTreeMap<(std::time::Instant, u64), TimerFn>,
+    at: HashMap<u64, std::time::Instant>,
+    running: bool,
+}
+
+impl RealTimers {
+    fn run(q: Arc<(Mutex<TimerQueue>, Condvar)>) {
+        let (lock, cv) = &*q;
+        let mut s = lock.lock().unwrap();
+        loop {
+            let now = std::time::Instant::now();
+            match s.due.keys().next().copied() {
+                Some(k) if k.0 <= now => {
+                    let f = s.due.remove(&k).expect("listed");
+                    s.at.remove(&k.1);
+                    drop(s);
+                    // (a timer that panics ends only itself, as on a thread of its own)
+                    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+                    s = lock.lock().unwrap();
+                }
+                Some(k) => s = cv.wait_timeout(s, k.0 - now).unwrap().0,
+                None => {
+                    let (next, r) = cv.wait_timeout(s, Duration::from_secs(60)).unwrap();
+                    s = next;
+                    if r.timed_out() && s.due.is_empty() {
+                        s.running = false;
+                        return;
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl Timers for RealTimers {
     fn set_timeout(&self, ms: i64, f: Box<dyn FnOnce() + Send>) -> u64 {
         let id = self.next.fetch_add(1, Ordering::Relaxed) + 1;
-        self.live.0.lock().unwrap().insert(id);
-        let live = self.live.clone();
-        std::thread::spawn(move || {
-            let (lock, cv) = &*live;
-            let deadline = std::time::Instant::now() + Duration::from_millis(ms.max(0) as u64);
-            let mut set = lock.lock().unwrap();
-            loop {
-                if !set.contains(&id) {
-                    return;
-                }
-                let now = std::time::Instant::now();
-                if now >= deadline {
-                    break;
-                }
-                set = cv.wait_timeout(set, deadline - now).unwrap().0;
-            }
-            set.remove(&id);
-            drop(set);
-            f();
-        });
+        let deadline = std::time::Instant::now() + Duration::from_millis(ms.max(0) as u64);
+        let (lock, cv) = &*self.q;
+        let mut s = lock.lock().unwrap();
+        s.due.insert((deadline, id), f);
+        s.at.insert(id, deadline);
+        if !s.running {
+            s.running = true;
+            let q = self.q.clone();
+            std::thread::spawn(move || RealTimers::run(q));
+        }
+        drop(s);
+        cv.notify_all();
         id
     }
     fn clear_timeout(&self, id: u64) {
-        let (lock, cv) = &*self.live;
-        lock.lock().unwrap().remove(&id);
+        let (lock, cv) = &*self.q;
+        let mut s = lock.lock().unwrap();
+        if let Some(at) = s.at.remove(&id) {
+            s.due.remove(&(at, id));
+        }
+        drop(s);
         cv.notify_all();
     }
 }
@@ -524,12 +559,13 @@ impl Stats {
         out
     }
 
-    fn sample_once(&self, e: &mut Engine) -> Value {
+    /// A sample: the new snapshot goes into `body`.
+    fn sample_once(&self, e: &mut Engine) {
         let t = self.now();
         // two samples a moment apart would turn rounding noise into numbers
         if let Some(last) = e.last_sample_at {
             if t >= last && t - last < MIN_GAP_MS {
-                return self.body.lock().unwrap().clone();
+                return;
             }
         }
         e.last_sample_at = Some(t);
@@ -626,12 +662,11 @@ impl Stats {
         next["alerts"] = json!(alerts);
         next["unlock"] = json!(self.unlock_hints(e, t, pw.cpu_w));
         next["sparks"] = e.history.sparks(t);
-        *self.body.lock().unwrap() = next.clone();
+        *self.body.lock().unwrap() = next;
         e.dirty = true;
         if t - e.last_save >= SAVE_EVERY_MS {
             self.save(e);
         }
-        next
     }
 
     fn busy(&self) -> bool {
@@ -743,12 +778,28 @@ impl Stats {
     /// A page is watching: sample for the next 15 s (or hold_ms, up to 2 minutes).
     pub fn touch(&self, hold_ms: Option<i64>) {
         let mut e = self.e.lock().unwrap();
+        self.touch_in(&mut e, hold_ms);
+    }
+
+    fn touch_in(&self, e: &mut Engine, hold_ms: Option<i64>) {
         if e.stopped {
             return;
         }
         let hold = hold_ms.filter(|h| *h != 0).unwrap_or(WATCH_MS).clamp(WATCH_MS, 120_000);
         e.watch_until = Some(e.watch_until.unwrap_or(0).max(self.now() + hold));
-        self.start(&mut e);
+        self.start(e);
+    }
+
+    /// GET /api/stats's part, under one hold of the engine: touch(None), the
+    /// snapshot (which `f` may change, noting peaks with its second argument,
+    /// as `peak`) and then the energy summary (as `energy`).
+    pub fn watched<R>(&self, f: impl FnOnce(&mut Value, &mut dyn FnMut(&str, Option<f64>) -> Option<f64>) -> R) -> (Value, R, Value) {
+        let mut e = self.e.lock().unwrap();
+        self.touch_in(&mut e, None);
+        let mut snap = self.body.lock().unwrap().clone();
+        let r = f(&mut snap, &mut |key, w| self.peak_in(&mut e, key, w));
+        let energy = e.energy.summary(self.now());
+        (snap, r, energy)
     }
 
     /// A node's total W read at t while `encoding`: its share of the running job's energy.
@@ -761,8 +812,12 @@ impl Stats {
 
     /// The highest W seen for 'all' or 'node:<id>', after noting w (the reading now) for it.
     pub fn peak(&self, key: &str, w: Option<f64>) -> Option<f64> {
-        let t = self.now();
         let mut e = self.e.lock().unwrap();
+        self.peak_in(&mut e, key, w)
+    }
+
+    fn peak_in(&self, e: &mut Engine, key: &str, w: Option<f64>) -> Option<f64> {
+        let t = self.now();
         let before = e.energy.peak(key);
         e.energy.note_peak(key, w, t as f64);
         let after = e.energy.peak(key);
@@ -849,7 +904,8 @@ impl Stats {
             let t = self.now();
             self.probe(&mut e, t);
         }
-        self.sample_once(&mut e)
+        self.sample_once(&mut e);
+        self.body.lock().unwrap().clone()
     }
 
     /// Returns when no background read or share check is in flight (tests; at most 2 s).
@@ -882,9 +938,14 @@ impl Stats {
 /// Where the stats engine finds this server's own data folder's path (for the
 /// "Data volume" share) and the vehicles' shares, as index.js readShares.
 pub fn shares_of(data: &Path, vehicles: &[crate::ops::ctx::VehicleInfo]) -> Vec<filesystems::ShareSpec> {
+    shares_from(data, vehicles.iter().map(|v| (v.name.clone(), v.roots.first().cloned(), v.source_type.clone())))
+}
+
+/// As `shares_of`, from each vehicle's (name, first root, source type) (OpsCtx::vehicle_shares).
+pub fn shares_from(data: &Path, vehicles: impl IntoIterator<Item = (String, Option<String>, Option<String>)>) -> Vec<filesystems::ShareSpec> {
     let mut out = vec![filesystems::ShareSpec { label: "Data volume".into(), path: data.to_string_lossy().into_owned(), vehicle: false, network: false }];
-    for v in vehicles {
-        out.push(filesystems::ShareSpec { label: v.name.clone(), path: v.roots.first().cloned().unwrap_or_default(), vehicle: true, network: v.source_type.as_deref() == Some("smb") });
+    for (name, root, source_type) in vehicles {
+        out.push(filesystems::ShareSpec { label: name, path: root.unwrap_or_default(), vehicle: true, network: source_type.as_deref() == Some("smb") });
     }
     out
 }

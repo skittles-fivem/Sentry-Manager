@@ -987,8 +987,8 @@ pub fn normalize_top(top: &Map<String, Value>, items: impl FnOnce() -> R<Vec<std
     out.insert("config".into(), normalize_config(get(top, "config"))?);
     // (items: placed after config when written)
     let items = items()?;
-    let mut seen = std::collections::HashSet::with_capacity(items.len());
-    if !items.iter().all(|i| seen.insert(i.id())) {
+    let mut seen = super::IdKeySet::with_capacity_and_hasher(items.len(), Default::default());
+    if !items.iter().all(|i| seen.insert(i.id_key())) {
         return invalid();
     }
     out.insert("counters".into(), Value::Object(normalize_counters(get(top, "counters"), &COUNTER_FIELDS)?));

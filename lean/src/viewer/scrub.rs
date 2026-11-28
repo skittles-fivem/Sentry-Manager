@@ -303,6 +303,33 @@ pub struct ScrubFrames {
     probe_limit: Duration,
     most: Box<dyn Fn() -> usize + Send + Sync>,
     q: Mutex<Queue>,
+    /// folders' clip names as listed lately (next_clip_of), by folder
+    listings: Mutex<HashMap<PathBuf, Listing>>,
+}
+
+/// The folders whose clip names are kept (a RecentClips folder can hold tens of thousands).
+const LISTINGS_KEPT: usize = 4;
+
+/// A folder's stamp: (device, inode, mtime, mtime ns, ctime, ctime ns). An entry made, removed or
+/// renamed in it changes its mtime and ctime.
+type DirStamp = (u64, u64, i64, i64, i64, i64);
+
+/// A folder's clip names (is_clip_name), sorted, as listed while it had this stamp.
+struct Listing {
+    stamp: DirStamp,
+    used: u64,
+    names: Arc<Vec<String>>,
+}
+
+fn dir_stamp(md: &std::fs::Metadata) -> DirStamp {
+    (md.dev(), md.ino(), md.mtime(), md.mtime_nsec(), md.ctime(), md.ctime_nsec())
+}
+
+/// A folder unchanged for the last few seconds (an entry made now cannot keep its stamp), on a
+/// local disk (where the stamp is the kernel's own, not a network or FUSE mount's cached copy).
+fn listing_keepable(dir: &Path, md: &std::fs::Metadata, now: SystemTime) -> bool {
+    let settled = now.duration_since(std::time::UNIX_EPOCH).is_ok_and(|d| md.ctime() <= d.as_secs() as i64 - 3);
+    settled && crate::api::local_disk_at(dir)
 }
 
 fn is_clip_name(name: &str) -> Option<String> {
@@ -318,7 +345,7 @@ fn is_clip_name(name: &str) -> Option<String> {
 
 impl ScrubFrames {
     pub fn new(dir: PathBuf, ffmpeg: String, ffprobe: Option<String>, most: impl Fn() -> usize + Send + Sync + 'static) -> Arc<ScrubFrames> {
-        Arc::new(ScrubFrames { dir, ffmpeg, ffprobe, run_limit: TIMEOUT, probe_limit: PROBE_TIMEOUT, most: Box::new(most), q: Mutex::new(Queue::default()) })
+        Arc::new(ScrubFrames { dir, ffmpeg, ffprobe, run_limit: TIMEOUT, probe_limit: PROBE_TIMEOUT, most: Box::new(most), q: Mutex::new(Queue::default()), listings: Mutex::default() })
     }
 
     fn prune(&self) {
@@ -471,14 +498,49 @@ impl ScrubFrames {
     }
 
     /// The next clip of the same camera in the same folder, if any.
-    fn next_clip_of(video: &Path) -> Option<PathBuf> {
+    fn next_clip_of(&self, video: &Path) -> Option<PathBuf> {
         let name = video.file_name()?.to_string_lossy().into_owned();
         let cam = is_clip_name(&name)?;
         let suffix = format!("-{cam}.mp4");
         let dir = video.parent()?;
-        let mut names: Vec<String> = std::fs::read_dir(dir).ok()?.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| is_clip_name(n).is_some() && n.to_lowercase().ends_with(&suffix) && *n > name).collect();
+        let names = self.clip_names(dir)?;
+        let from = names.partition_point(|n| *n <= name);
+        names[from..].iter().find(|n| n.to_lowercase().ends_with(&suffix)).map(|n| dir.join(n))
+    }
+
+    /// A folder's clip names, sorted: as listed before while its stamp is the same, else listed now.
+    fn clip_names(&self, dir: &Path) -> Option<Arc<Vec<String>>> {
+        self.clip_names_at(dir, SystemTime::now())
+    }
+
+    fn clip_names_at(&self, dir: &Path, now: SystemTime) -> Option<Arc<Vec<String>>> {
+        let before = std::fs::metadata(dir).ok();
+        if let Some(md) = &before {
+            let mut kept = self.listings.lock().unwrap();
+            let tick = kept.values().map(|l| l.used).max().unwrap_or(0) + 1;
+            if let Some(l) = kept.get_mut(dir).filter(|l| l.stamp == dir_stamp(md)) {
+                l.used = tick;
+                return Some(l.names.clone());
+            }
+        }
+        let mut names: Vec<String> = std::fs::read_dir(dir).ok()?.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| is_clip_name(n).is_some()).collect();
         names.sort();
-        names.first().map(|n| dir.join(n))
+        let names = Arc::new(names);
+        // (kept only when the folder did not change while it was listed)
+        let after = std::fs::metadata(dir).ok();
+        if let (Some(b), Some(a)) = (&before, &after) {
+            if dir_stamp(b) == dir_stamp(a) && listing_keepable(dir, b, now) {
+                let mut kept = self.listings.lock().unwrap();
+                let tick = kept.values().map(|l| l.used).max().unwrap_or(0) + 1;
+                if kept.len() >= LISTINGS_KEPT && !kept.contains_key(dir) {
+                    if let Some(oldest) = kept.iter().min_by_key(|(_, l)| l.used).map(|(p, _)| p.clone()) {
+                        kept.remove(&oldest);
+                    }
+                }
+                kept.insert(dir.to_path_buf(), Listing { stamp: dir_stamp(b), used: tick, names: names.clone() });
+            }
+        }
+        Some(names)
     }
 
     /// The grid of a clip, made first when needed (None when it cannot be made).
@@ -500,7 +562,7 @@ impl ScrubFrames {
         }
         let target = self.cache_path_for(video)?;
         if next {
-            if let Some(n) = Self::next_clip_of(video) {
+            if let Some(n) = self.next_clip_of(video) {
                 let me = self.clone();
                 std::thread::spawn(move || {
                     me.get(&n, false, false, true);
@@ -828,8 +890,37 @@ mod tests {
         for n in ["2026-10-01_10-00-00-front.mp4", "2026-10-01_10-01-00-back.mp4", "2026-10-01_10-02-00-front.mp4", "2026-10-01_10-03-00-front.mp4"] {
             std::fs::write(dir.join(n), b"x").unwrap();
         }
-        assert_eq!(ScrubFrames::next_clip_of(&dir.join("2026-10-01_10-00-00-front.mp4")), Some(dir.join("2026-10-01_10-02-00-front.mp4")));
-        assert_eq!(ScrubFrames::next_clip_of(&dir.join("2026-10-01_10-03-00-front.mp4")), None);
+        let frames = ScrubFrames::new(dir.join("scrub"), "ffmpeg".into(), None, || 1);
+        assert_eq!(frames.next_clip_of(&dir.join("2026-10-01_10-00-00-front.mp4")), Some(dir.join("2026-10-01_10-02-00-front.mp4")));
+        assert_eq!(frames.next_clip_of(&dir.join("2026-10-01_10-03-00-front.mp4")), None);
+        assert_eq!(frames.next_clip_of(&dir.join("2026-10-01_10-00-30-FRONT.mp4")), Some(dir.join("2026-10-01_10-02-00-front.mp4")), "any case");
+        assert_eq!(frames.next_clip_of(&dir.join("2026-10-01_09-00-00-back.mp4")), Some(dir.join("2026-10-01_10-01-00-back.mp4")));
+        assert!(frames.listings.lock().unwrap().is_empty(), "a folder changed in the last seconds is listed every time");
+    }
+
+    #[test]
+    fn a_folder_listed_lately_is_listed_again_once_it_changes() {
+        let dir = testkit::tmp("scrub-listing");
+        for n in ["2026-10-01_10-00-00-front.mp4", "2026-10-01_10-02-00-front.mp4", "notes.txt", "2026-10-01_10-01-00-front.MP4"] {
+            std::fs::write(dir.join(n), b"x").unwrap();
+        }
+        let frames = ScrubFrames::new(dir.join("scrub"), "ffmpeg".into(), None, || 1);
+        let later = SystemTime::now() + Duration::from_secs(10);
+        let names = frames.clip_names_at(&dir, later).unwrap();
+        assert_eq!(*names, ["2026-10-01_10-00-00-front.mp4", "2026-10-01_10-01-00-front.MP4", "2026-10-01_10-02-00-front.mp4"]);
+        // (kept only on a local disk)
+        let local = crate::api::local_disk_at(&dir);
+        assert_eq!(Arc::ptr_eq(&names, &frames.clip_names_at(&dir, later).unwrap()), local, "kept while the folder is the same");
+        std::fs::write(dir.join("2026-10-01_10-00-30-front.mp4"), b"x").unwrap();
+        assert_eq!(frames.next_clip_of(&dir.join("2026-10-01_10-00-00-front.mp4")), Some(dir.join("2026-10-01_10-00-30-front.mp4")), "a clip added since");
+        std::fs::remove_file(dir.join("2026-10-01_10-00-30-front.mp4")).unwrap();
+        assert_eq!(frames.next_clip_of(&dir.join("2026-10-01_10-00-00-front.mp4")), Some(dir.join("2026-10-01_10-01-00-front.MP4")), "and removed");
+        for i in 0..LISTINGS_KEPT + 2 {
+            let d = dir.join(format!("d{i}"));
+            std::fs::create_dir_all(&d).unwrap();
+            frames.clip_names_at(&d, later + Duration::from_secs(10)).unwrap();
+        }
+        assert_eq!(frames.listings.lock().unwrap().len(), if local { LISTINGS_KEPT } else { 0 }, "only a few folders kept");
     }
 
     #[test]
