@@ -110,15 +110,16 @@ impl UiCtx for CoreUi {
         if crate::media::hidden_path(&real.to_string_lossy()) {
             return None;
         }
-        let v = app.vehicles.vehicle_for_path(&real)?;
+        // (`real` is a real path: a vehicle whose folder is a symlink is found by its real folder)
+        let (v, _) = vehicle_of_real(app, &real)?;
         Some((real, VehicleRef { id: v.id, name: v.name }))
     }
     fn speeds_for(&self, real: &Path) -> Option<Vec<Option<f64>>> {
         // index.js speedsFor: the speed index's clip(), for the vehicle the clip is in
         let s = self.srv()?;
         let viewer = s.viewer()?.clone();
-        let v = s.app().vehicles.vehicle_for_path(real)?;
-        let rel = real.strip_prefix(std::fs::canonicalize(&v.root).unwrap_or(v.root.clone())).ok()?.to_string_lossy().into_owned();
+        let (v, root) = vehicle_of_real(s.app(), real)?;
+        let rel = real.strip_prefix(&root).ok()?.to_string_lossy().into_owned();
         let md = std::fs::metadata(real).ok()?;
         use std::os::unix::fs::MetadataExt;
         let mtime = crate::scanner::ms_of(md.mtime(), md.mtime_nsec());
@@ -208,4 +209,12 @@ pub fn page(srv: &Arc<Server>, w: WebReq) -> crate::core::http::Res {
         let long_cache = w.version.as_deref().is_some_and(|v| v == ui.asset_version(&req));
         ui.page(&req, &crate::ui::Unversioned { path: w.path.clone(), version: w.version.clone(), long_cache })
     })
+}
+
+/// The vehicle whose folder holds `real` (a real path) and the root it is below: the folder as
+/// named, or its real path for a folder that goes through a symlink; no share that is not
+/// answering is asked.
+fn vehicle_of_real(app: &crate::app::App, real: &Path) -> Option<(crate::footage::vehicles::Vehicle, PathBuf)> {
+    let vehicles = &app.vehicles;
+    crate::footage::vehicles::vehicle_root_in_quick(vehicles.list(), real, |v| vehicles.share(&v.id).is_none_or(|sh| sh.is_healthy())).ok().flatten()
 }

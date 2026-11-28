@@ -107,6 +107,9 @@ struct State {
     roots: HashMap<String, (f64, bool)>,
     hashed_bytes: u64,
     hashed_ms: f64,
+    /// vehicles removed (forget) while a pass may still hold them: nothing more is noted or saved
+    /// for them
+    removed: HashSet<String>,
 }
 
 struct Cand {
@@ -222,11 +225,15 @@ impl Arrival {
             loop {
                 inner.again.store(false, Ordering::SeqCst);
                 more = inner.pass();
-                if !(inner.again.load(Ordering::SeqCst) && !inner.stopped.load(Ordering::SeqCst)) {
-                    break;
+                // (`again` is looked at under the lock kick() sets it under: a kick that comes
+                // as this pass ends either sees running cleared and starts its own, or is run here)
+                let mut r = lock(&inner.running);
+                if inner.again.load(Ordering::SeqCst) && !inner.stopped.load(Ordering::SeqCst) {
+                    continue;
                 }
+                *r = false;
+                break;
             }
-            *lock(&inner.running) = false;
             inner.done.notify_all();
             if more && !inner.stopped.load(Ordering::SeqCst) {
                 Inner::soon(&inner);
@@ -288,8 +295,8 @@ impl Arrival {
     /// converted(outputPath): our in-place conversion saved this clip; its identity is ours, never hashed.
     pub fn converted(&self, output_path: &str) {
         let inner = &self.0;
-        let Some(vid) = inner.ctx.vehicle_for_path(output_path) else { return };
-        let root = inner.ctx.root_of(&vid);
+        // (the converter's output path is under the real folder: rel against the root it matched)
+        let Some((vid, root)) = inner.ctx.vehicle_root_for_path(output_path) else { return };
         let rel = js::relative(&root.to_string_lossy(), &js::resolve(output_path));
         if rel.is_empty() || rel.starts_with("..") {
             return;
@@ -386,6 +393,7 @@ impl Arrival {
             st.enabled.remove(vid);
             st.pending_of.remove(vid);
             st.backlogs.remove(vid);
+            st.removed.insert(vid.to_string());
         }
         let _ = std::fs::remove_file(inner.files.snapshot(vid));
         let _ = std::fs::remove_file(inner.files.journal(vid));
@@ -460,6 +468,9 @@ impl Inner {
     fn note(&self, vid: &str, rel: &str, id: (u64, f64, u64), kind: &str) {
         let e = Entry::new(id.0, id.1, id.2, self.now(), kind);
         let mut st = lock(&self.st);
+        if st.removed.contains(vid) {
+            return;
+        }
         index(&mut st, &self.files, vid).files.insert(rel.to_string(), e.clone());
         st.pending_ops.entry(vid.to_string()).or_default().push(Op::Set(rel.to_string(), e));
     }
@@ -467,6 +478,9 @@ impl Inner {
     /// Drop the entries whose clip is gone from the inventory.
     fn prune(&self, vid: &str, present: &HashSet<String>) {
         let mut st = lock(&self.st);
+        if st.removed.contains(vid) {
+            return;
+        }
         let idx = index(&mut st, &self.files, vid);
         let gone: Vec<String> = idx.files.keys().filter(|k| !present.contains(*k)).cloned().collect();
         for rel in &gone {
@@ -487,6 +501,9 @@ impl Inner {
         let _ = std::fs::create_dir_all(&self.files.dir);
         let all: Vec<(String, Vec<Op>)> = std::mem::take(&mut st.pending_ops).into_iter().collect();
         for (vid, ops) in all {
+            if st.removed.contains(&vid) {
+                continue;
+            }
             let exists = self.files.exists(&vid);
             let compact_min = self.o.compact_min as f64;
             let idx = index(&mut st, &self.files, &vid);
@@ -610,13 +627,23 @@ impl Inner {
         Ok(h.finalize().iter().map(|b| format!("{b:02x}")).collect())
     }
 
-    fn busy_now(&self, abs: &str) -> bool {
-        let me = js::resolve(abs);
-        self.ctx.busy_paths().iter().any(|p| js::resolve(p) == me)
+    /// A conversion has this clip in hand: its paths are under the job's real sourceRoot, the
+    /// clip's under the vehicle's folder as named, so both spellings are compared.
+    fn busy_now(&self, vid: &str, c: &Cand) -> bool {
+        let busy = self.ctx.busy_paths();
+        if busy.is_empty() {
+            return false;
+        }
+        let me = js::resolve(&c.abs);
+        let real = self.ctx.real_root_of(vid).map(|r| js::resolve(&r.join(&c.rel).to_string_lossy()));
+        busy.iter().map(|p| js::resolve(p)).any(|p| p == me || real.as_ref() == Some(&p))
     }
 
     /// One clip.
     fn one(&self, v: &Car, c: &Cand) -> Outcome {
+        if lock(&self.st).removed.contains(&v.id) {
+            return Outcome::Gone;
+        }
         let Ok(md) = std::fs::metadata(&c.abs) else { return Outcome::Gone };
         if !md.is_file() {
             return Outcome::Gone;
@@ -632,7 +659,7 @@ impl Inner {
         if self.ctx.holds(&c.abs) {
             return Outcome::Held;
         }
-        if self.busy_now(&c.abs) {
+        if self.busy_now(&v.id, c) {
             return Outcome::Busy;
         }
         // (renamed into place just now: ctime; still being written: mtime; in
@@ -666,7 +693,7 @@ impl Inner {
         if after_id != id {
             return Outcome::Changed;
         }
-        if self.busy_now(&c.abs) || self.ctx.holds(&c.abs) {
+        if self.busy_now(&v.id, c) || self.ctx.holds(&c.abs) {
             return Outcome::Busy;
         }
         let root = self.ctx.root_of(&v.id).to_string_lossy().into_owned();
@@ -690,7 +717,13 @@ impl Inner {
             waiting: u64,
         }
         let mut cars: Vec<CarWork> = Vec::new();
-        for v in self.ctx.vehicles() {
+        let vehicles = self.ctx.vehicles();
+        {
+            // (an id that is a vehicle again is no longer removed)
+            let mut st = lock(&self.st);
+            st.removed.retain(|id| !vehicles.iter().any(|v| &v.id == id));
+        }
+        for v in vehicles {
             if self.stopped() {
                 break;
             }
@@ -795,6 +828,16 @@ impl Inner {
             }
         }
         self.save();
+        // (a vehicle removed during the pass keeps nothing the pass noted of it)
+        let mut st = lock(&self.st);
+        let removed: Vec<String> = st.removed.iter().cloned().collect();
+        for vid in &removed {
+            st.indexes.remove(vid);
+            st.pending_ops.shift_remove(vid);
+            st.enabled.remove(vid);
+            st.pending_of.remove(vid);
+            st.backlogs.remove(vid);
+        }
         more
     }
 }

@@ -583,6 +583,12 @@ fn real_root(root: &Path, healthy: bool) -> Option<Option<PathBuf>> {
     e.0.clone()
 }
 
+/// The real path of a vehicle folder as `real_root` finds it (kept, and never asked of a share
+/// `healthy` says is not answering); None when it is not known or not there.
+pub fn real_root_quick(root: &Path, healthy: bool) -> Option<PathBuf> {
+    real_root(root, healthy).flatten()
+}
+
 /// How soon a vehicle folder whose share gave an error (not a definite answer) is asked again.
 const REAL_ROOT_RETRY: std::time::Duration = std::time::Duration::from_secs(30);
 
@@ -613,14 +619,24 @@ fn keep_real_root(answer: &mut Option<Option<PathBuf>>, asked: &mut Option<std::
 /// real folder is known, and the share of another has not answered yet, so it is not known
 /// (the caller looks again later rather than count the job as in no vehicle).
 pub fn vehicle_in_quick(list: Vec<Vehicle>, p: &Path, healthy: impl Fn(&Vehicle) -> bool) -> Result<Option<Vehicle>, String> {
+    Ok(vehicle_root_in_quick(list, p, healthy)?.map(|(v, _)| v))
+}
+
+/// vehicle_in_quick, with the root it matched: the folder the vehicle is named by when `p` is
+/// spelled under it, else that folder's real path (so a path below it is relative to the root
+/// returned, whichever spelling `p` has).
+pub fn vehicle_root_in_quick(list: Vec<Vehicle>, p: &Path, healthy: impl Fn(&Vehicle) -> bool) -> Result<Option<(Vehicle, PathBuf)>, String> {
     let abs = super::safe_fs::resolve(p);
     if let Some(i) = list.iter().position(|v| is_inside(&abs, &v.root)) {
-        return Ok(list.into_iter().nth(i));
+        return Ok(list.into_iter().nth(i).map(|v| {
+            let root = v.root.clone();
+            (v, root)
+        }));
     }
     let mut unknown = None;
     for (i, v) in list.iter().enumerate() {
         match real_root(&v.root, healthy(v)) {
-            Some(Some(r)) if is_inside(&abs, &r) => return Ok(list.into_iter().nth(i)),
+            Some(Some(r)) if is_inside(&abs, &r) => return Ok(list.into_iter().nth(i).map(|v| (v, r))),
             None if unknown.is_none() => unknown = Some(v.name.clone()),
             _ => {}
         }
@@ -750,6 +766,11 @@ mod tests {
         assert!(asked.lock().unwrap().is_empty(), "the folder it is named by needs no share");
         let real = std::fs::canonicalize(dir.join("tank/car/TeslaCam")).unwrap();
         assert_eq!(vehicle_in_quick(list(), &real, &healthy).unwrap().unwrap().id, "car", "a symlinked folder by its real path");
+        // with the root each spelling is below (a path relative to it is the clip's rel)
+        let (car, root) = vehicle_root_in_quick(list(), &real, &healthy).unwrap().unwrap();
+        assert_eq!((car.id.as_str(), root), ("car", std::fs::canonicalize(dir.join("tank/car")).unwrap()));
+        let (car, root) = vehicle_root_in_quick(list(), &dir.join("footage/car/TeslaCam"), &healthy).unwrap().unwrap();
+        assert_eq!((car.id.as_str(), root), ("car", dir.join("footage/car")));
         // a share that is not healthy is not asked for its real path: until it has answered, a
         // job that may be in it is not known to be in no vehicle (its savings are kept to retry)
         let van = std::fs::canonicalize(dir.join("tank/van/TeslaCam")).unwrap();

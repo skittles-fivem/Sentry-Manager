@@ -99,6 +99,14 @@ pub struct TestCtx {
     pub audits: Mutex<Vec<String>>,
     pub settings: Mutex<HashMap<String, bool>>,
     pub converter_log: Mutex<Vec<(String, String)>>,
+    /// the vehicle's folder as named, through a symlink to `base` (its real folder)
+    pub alias: Mutex<Option<PathBuf>>,
+}
+
+impl TestCtx {
+    fn roots(&self) -> Vec<PathBuf> {
+        self.alias.lock().unwrap().iter().cloned().chain([self.base.clone()]).collect()
+    }
 }
 
 impl ArrivalCtx for TestCtx {
@@ -106,12 +114,20 @@ impl ArrivalCtx for TestCtx {
         vec![Car { id: "car1".into(), name: "Car".into(), timezone: "UTC".into() }]
     }
     fn root_of(&self, _vid: &str) -> PathBuf {
-        self.base.clone()
+        self.alias.lock().unwrap().clone().unwrap_or_else(|| self.base.clone())
     }
     fn vehicle_for_path(&self, p: &str) -> Option<String> {
+        self.vehicle_root_for_path(p).map(|(id, _)| id)
+    }
+    fn vehicle_root_for_path(&self, p: &str) -> Option<(String, PathBuf)> {
         let a = super::js::resolve(p);
-        let b = self.base.to_string_lossy();
-        (a == b || a.starts_with(&format!("{b}/"))).then(|| "car1".to_string())
+        self.roots().into_iter().find(|r| {
+            let b = r.to_string_lossy();
+            a == b || a.starts_with(&format!("{b}/"))
+        }).map(|r| ("car1".to_string(), r))
+    }
+    fn real_root_of(&self, _vid: &str) -> Option<PathBuf> {
+        self.alias.lock().unwrap().is_some().then(|| self.base.clone())
     }
     fn inventory(&self, _vid: &str) -> Option<InventoryView> {
         self.inv.lock().unwrap().clone()
@@ -991,4 +1007,80 @@ fn before_replace_records_the_original_or_keeps_it_with_the_error_line() {
     }
     fs::set_permissions(&ro, fs::Permissions::from_mode(0o755)).unwrap();
     let _ = fs::remove_dir_all(&root);
+}
+
+/// A vehicle whose folder is named through a symlink (`alias` -> `base`): its clips are spelled
+/// under the alias, the converter's under the real folder.
+fn setup_aliased() -> (S, PathBuf) {
+    let s = setup(Setup::default());
+    let alias = PathBuf::from(format!("{}-alias", s.base.display()));
+    std::os::unix::fs::symlink(&s.base, &alias).unwrap();
+    *s.ctx.alias.lock().unwrap() = Some(alias.clone());
+    (s, alias)
+}
+
+// a conversion's clip in hand is under the job's real sourceRoot: the clip spelled under a
+// vehicle folder that is a symlink still waits
+#[test]
+fn a_clip_in_hand_under_the_real_folder_waits_for_a_vehicle_named_through_a_symlink() {
+    let (s, alias) = setup_aliased();
+    let rel = s.clip_rel(&name(0.0, "front"));
+    s.write(&rel, &random(1000));
+    s.ctx.busy.lock().unwrap().insert(s.base.join(&rel).to_string_lossy().into_owned());
+    s.run();
+    assert!(s.lines().is_empty(), "busy by its real path");
+    assert_eq!(n(&s.view(), "pending"), 1.0);
+    s.ctx.busy.lock().unwrap().clear();
+    s.ctx.busy.lock().unwrap().insert(alias.join(&rel).to_string_lossy().into_owned());
+    s.run();
+    assert!(s.lines().is_empty(), "busy by the path it is named by");
+    s.ctx.busy.lock().unwrap().clear();
+    s.run();
+    assert_eq!(s.rels(), vec![rel]);
+    let _ = fs::remove_file(&alias);
+}
+
+// the converter's output path is a real path: its clip is noted as ours, never hashed
+#[test]
+fn our_conversion_under_the_real_folder_is_noted_for_a_vehicle_named_through_a_symlink() {
+    let (s, alias) = setup_aliased();
+    let rel = s.clip_rel(&name(0.0, "front"));
+    let real = s.base.join(&rel);
+    s.write(&rel, &random(2000));
+    s.encoded.lock().unwrap().insert(real.to_string_lossy().into_owned());
+    s.arrival.converted(&real.to_string_lossy());
+    s.run();
+    assert!(s.lines().is_empty(), "our own output gets no line");
+    assert_eq!(n(&s.view(), "pending"), 0.0);
+    let _ = fs::remove_file(&alias);
+}
+
+// a vehicle removed while a pass works on its clips: what the pass notes of it after is not
+// kept, and its index files are not written again
+#[test]
+fn a_vehicle_removed_during_a_pass_does_not_get_its_index_files_back() {
+    let me: Arc<std::sync::OnceLock<Arrival>> = Arc::new(std::sync::OnceLock::new());
+    let calls = Arc::new(AtomicUsize::new(0));
+    let (m, c) = (me.clone(), calls.clone());
+    let s = setup(Setup {
+        idle_fn: Some(Box::new(move || {
+            // (before the second clip: the vehicle goes)
+            if c.fetch_add(1, Ordering::SeqCst) == 1 {
+                if let Some(a) = m.get() {
+                    a.forget("car1");
+                }
+            }
+            true
+        })),
+        ..Default::default()
+    });
+    let _ = me.set(s.arrival.clone());
+    for i in 0..4 {
+        s.write(&s.clip_rel(&name(i as f64 * 60_000.0, "front")), &random(1000));
+    }
+    s.run();
+    let (snap, journal) = s.arrival.index_files("car1");
+    assert!(calls.load(Ordering::SeqCst) >= 2);
+    assert!(!snap.exists() && !journal.exists(), "no index files for a removed vehicle");
+    assert_eq!(n(&s.view(), "pending"), 0.0);
 }
