@@ -64,18 +64,16 @@ impl Notes {
         Ok(Some(id))
     }
 
-    /// Announced only when one was open (a healthy share resolves its alerts on every check).
+    /// (announced even when nothing was open, as the live-update contract has it)
     pub fn resolve(&self, key: &str) -> DbResult<()> {
-        if store::resolve(&self.ctx.db(), key)? > 0 {
-            self.ctx.announce("notifications");
-        }
+        store::resolve(&self.ctx.db(), key)?;
+        self.ctx.announce("notifications");
         Ok(())
     }
 
     pub fn dismiss(&self, id: f64) -> DbResult<()> {
-        if store::resolve_id(&self.ctx.db(), id)? > 0 {
-            self.ctx.announce("notifications");
-        }
+        store::resolve_id(&self.ctx.db(), id)?;
+        self.ctx.announce("notifications");
         Ok(())
     }
 
@@ -245,14 +243,13 @@ mod tests {
     }
 
     #[test]
-    fn space_hovering_near_a_mark_keeps_one_alert_and_a_healthy_check_announces_nothing() {
+    fn space_hovering_near_a_mark_keeps_one_alert() {
         let ctx = FakeCtx::new();
         let notes = Notes::with_grace(ctx.clone(), 0);
         let v = VehicleInfo { id: "car".into(), name: "Car".into(), ..Default::default() };
         let at = |free: f64| ShareStatus { healthy: true, writable: Some(true), free_bytes: Some(free), total_bytes: Some(1000.0), ..Default::default() };
         let open = |notes: &Notes| notes.list(true, None).unwrap().iter().map(|n| (n["level"].as_str().unwrap().to_string(), n["title"].as_str().unwrap().to_string())).collect::<Vec<_>>();
         notes.sync_share(&v, Some(&at(500.0))).unwrap();
-        assert!(ctx.announced().is_empty(), "nothing was open, nothing changed");
         notes.sync_share(&v, Some(&at(98.0))).unwrap();
         assert_eq!(open(&notes), vec![("warning".to_string(), "Car: share running low on space".to_string())]);
         for free in [102.0, 99.0, 105.0, 101.0] {
@@ -270,9 +267,6 @@ mod tests {
         assert!(open(&notes).is_empty(), "cleared above 11%");
         notes.sync_share(&v, Some(&at(105.0))).unwrap();
         assert!(open(&notes).is_empty(), "between the marks nothing opens");
-        ctx.announced.lock().unwrap().clear();
-        notes.sync_share(&v, Some(&at(500.0))).unwrap();
-        assert!(ctx.announced().is_empty(), "a healthy check with nothing open announces nothing");
     }
 
     #[test]
