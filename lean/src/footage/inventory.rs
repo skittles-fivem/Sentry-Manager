@@ -38,7 +38,13 @@ impl Codecs {
 
     /// The codec read of `rel` (a rel not in the list is left out).
     pub fn set(&mut self, rel: &str, c: Option<&str>) {
-        let Some(i) = self.list.position(rel) else { return };
+        if let Some(i) = self.list.position(rel) {
+            self.set_at(i, c);
+        }
+    }
+
+    /// set() of the file at place `i` of the list.
+    pub fn set_at(&mut self, i: usize, c: Option<&str>) {
         self.code[i] = match c {
             None => 1,
             Some(c) => match self.names.iter().position(|n| *n == c) {

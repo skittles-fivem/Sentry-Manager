@@ -664,7 +664,7 @@ impl App {
     fn codec_map(&self, vid: &str, list: &Arc<FileList>) -> Codecs {
         // (the rows as they are read; none when they cannot all be read, as codecs() fails)
         let mut codecs = Codecs::none(list.clone());
-        match self.catalog.each_codec(vid, |rel, c| codecs.set(rel, c)) {
+        match self.catalog.each_codec(vid, |rel, _, _, c| codecs.set(rel, c)) {
             Ok(()) => codecs,
             Err(_) => Codecs::none(list.clone()),
         }
@@ -678,12 +678,14 @@ impl App {
         for _ in 0..4 {
             let list = self.state.read().unwrap().get(vid).map(|e| e.file_list.clone());
             let Some(list) = list else { return };
-            let known = self.catalog.codecs(vid).unwrap_or_default();
-            let gone: Vec<String> = known.keys().filter(|r| !list.contains_key(r)).cloned().collect();
+            let known = KnownCodecs::read(&self.catalog, vid, &list);
+            let gone: Vec<String> = known.gone.iter().map(|(rel, ..)| rel.clone()).collect();
             let todo: Vec<&FileEntry> = list
                 .iter()
-                .filter(|f| f.kind == footage::Kind::Clip && f.rel.to_lowercase().ends_with(".mp4"))
-                .filter(|f| known.get(&f.rel).is_none_or(|(s, m, _)| *s != f.size || *m != f.mtime_ms))
+                .enumerate()
+                .filter(|(_, f)| f.kind == footage::Kind::Clip && f.rel.to_lowercase().ends_with(".mp4"))
+                .filter(|(i, f)| known.read[*i].is_none_or(|(s, m)| s != f.size || m != f.mtime_ms))
+                .map(|(_, f)| f)
                 .collect();
             let save = |rows: &[(String, u64, f64, Option<String>)], gone: &[String]| match self.catalog.update_codecs(vid, rows, gone) {
                 Ok(()) => true,
@@ -702,7 +704,7 @@ impl App {
                 |rows| save(rows, &[]),
             );
             let (codecs, known) = if n_read == 0 && gone.is_empty() {
-                (Codecs::new(list.clone(), known.into_iter().map(|(rel, (_, _, c))| (rel, c))), None)
+                (known.codecs, None)
             } else {
                 save(&rest, &gone);
                 // (a save that failed after committing some of its 1,000-row chunks still changed the
@@ -713,7 +715,7 @@ impl App {
             // a newer list: the rows forgotten for this one that it still holds come back first
             let back: Option<Vec<_>> = match self.state.write().unwrap().get_mut(vid) {
                 Some(e) if !Arc::ptr_eq(&e.file_list, &list) => Some(
-                    known.map_or_else(Vec::new, |k| gone.iter().filter(|r| e.file_list.contains_key(r)).filter_map(|r| k.get(r).map(|(s, m, c)| (r.clone(), *s, *m, c.clone()))).collect()),
+                    known.map_or_else(Vec::new, |k| k.gone.into_iter().filter(|(r, ..)| e.file_list.contains_key(r)).collect()),
                 ),
                 Some(e) => {
                     e.codecs = Arc::new(codecs);
@@ -732,6 +734,30 @@ impl App {
             self.core.announce("inventory");
         }
         // (the speed index is the viewer area's: speeds in the Node server's day files)
+    }
+}
+
+/// The clip codecs the catalog has (catalog.codecs()), by the places of their files in a file list:
+/// what was read of each (size, mtime), the codecs, and the rows of files not in the list.
+struct KnownCodecs {
+    read: Vec<Option<(u64, f64)>>,
+    codecs: Codecs,
+    gone: Vec<(String, u64, f64, Option<String>)>,
+}
+
+impl KnownCodecs {
+    /// None known when the rows cannot all be read (as catalog.codecs() fails).
+    fn read(catalog: &crate::catalog::Catalog, vid: &str, list: &Arc<FileList>) -> KnownCodecs {
+        let none = || KnownCodecs { read: vec![None; list.len()], codecs: Codecs::none(list.clone()), gone: Vec::new() };
+        let mut k = none();
+        let read = catalog.each_codec(vid, |rel, size, m, c| match list.position(rel) {
+            Some(i) => {
+                k.read[i] = Some((size, m));
+                k.codecs.set_at(i, c);
+            }
+            None => k.gone.push((rel.to_string(), size, m, c.map(String::from))),
+        });
+        if read.is_ok() { k } else { none() }
     }
 }
 

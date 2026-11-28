@@ -306,15 +306,15 @@ impl Catalog {
 
     /// codecs() a row at a time, read where it is: `f(rel, codec)` for each, as codecs() reads it
     /// (an error where codecs() fails, after the rows before it).
-    pub fn each_codec(&self, vehicle: &str, mut f: impl FnMut(&str, Option<&str>)) -> rusqlite::Result<()> {
+    pub fn each_codec(&self, vehicle: &str, mut f: impl FnMut(&str, u64, f64, Option<&str>)) -> rusqlite::Result<()> {
         let c = self.conn();
         let mut q = c.prepare("SELECT rel, size, mtime_ms, codec FROM clip_codecs WHERE vehicle_id = ?1")?;
         let mut rows = q.query([vehicle])?;
         while let Some(r) = rows.next()? {
             let rel = text(r, 0)?;
-            r.get::<_, i64>(1)?;
-            r.get::<_, f64>(2)?;
-            f(rel, text_or_null(r, 3)?);
+            let size = r.get::<_, i64>(1)? as u64;
+            let mtime_ms = r.get::<_, f64>(2)?;
+            f(rel, size, mtime_ms, text_or_null(r, 3)?);
         }
         Ok(())
     }
@@ -478,7 +478,7 @@ mod tests {
         cat.update_codecs("v1", &rows, &[]).unwrap();
         let read = |v: &str| {
             let mut c = inventory::Codecs::none(list.clone());
-            cat.each_codec(v, |rel, x| c.set(rel, x)).map(|()| c.iter().map(|(r, x)| (r.to_string(), x.map(String::from))).collect::<Vec<_>>())
+            cat.each_codec(v, |rel, _, _, x| c.set(rel, x)).map(|()| c.iter().map(|(r, x)| (r.to_string(), x.map(String::from))).collect::<Vec<_>>())
         };
         let whole = |v: &str| cat.codecs(v).map(|m| inventory::Codecs::new(list.clone(), m.into_iter().map(|(rel, (_, _, c))| (rel, c))).iter().map(|(r, x)| (r.to_string(), x.map(String::from))).collect::<Vec<_>>());
         assert_eq!(read("v1").unwrap(), whole("v1").unwrap());
