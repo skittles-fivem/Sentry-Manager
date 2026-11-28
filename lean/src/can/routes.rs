@@ -256,6 +256,10 @@ pub struct Can {
     now_cache: Mutex<indexmap::IndexMap<String, (f64, Option<Value>)>>,
     /// the background checks of logs not judged yet are running
     backfilling: AtomicBool,
+    /// held across every read-modify-write of the 'can' and 'can-vehicles' settings (the
+    /// upload threads stamp tokens while an admin revokes one or turns uploads off: an update
+    /// read before must never be written back over it)
+    cfg_lock: Mutex<()>,
 }
 
 /// Logs judged at a time by the background checks (then a pause, so uploads and the
@@ -367,6 +371,7 @@ impl Can {
                 progress_due: AtomicBool::new(false),
                 now_cache: Mutex::new(indexmap::IndexMap::new()),
                 backfilling: AtomicBool::new(false),
+                cfg_lock: Mutex::new(()),
             }
         })
         .with_footage_hook()
@@ -542,6 +547,11 @@ impl Can {
             return Ok((enabled, at, vec![t]));
         }
         Ok((enabled, at, c.get("tokens").and_then(|t| t.as_array()).cloned().unwrap_or_default()))
+    }
+    /// The lock of the 'can' settings' read-modify-writes (a panic while it was held leaves
+    /// nothing half written: the settings are written whole).
+    fn cfg_guard(&self) -> std::sync::MutexGuard<'_, ()> {
+        self.cfg_lock.lock().unwrap_or_else(|e| e.into_inner())
     }
     fn save_can_cfg(&self, enabled: bool, at: &Value, tokens: &[Value]) -> Result<(), String> {
         self.ctx.set_setting("can", json!({ "enabled": enabled, "at": if json::truthy(Some(at)) { at.clone() } else { Value::Null }, "tokens": tokens }))
@@ -1097,6 +1107,7 @@ impl Can {
             Some(id) => Some(self.vehicle_or_404(&logs::js_string(id))?.id),
             None => None,
         };
+        let guard = self.cfg_guard();
         let mut map = self.can_map().map_err(|e| failed(&*self.ctx, &e))?;
         match &vid {
             Some(id) => {
@@ -1107,6 +1118,7 @@ impl Can {
             }
         }
         self.ctx.set_setting("can-vehicles", Value::Object(map.clone())).map_err(|e| failed(&*self.ctx, &e))?;
+        drop(guard);
         self.ctx.audit("info", &format!("CAN car {} is {}: {}", key, vid.as_deref().unwrap_or("no vehicle"), req.who.by));
         self.index.kick();
         Ok(ok(json!({ "map": map })))
@@ -1206,10 +1218,12 @@ impl Can {
     fn enable(&self, req: &Req) -> R {
         confirmed(req)?;
         let body = body_json(req)?;
+        let guard = self.cfg_guard();
         let (_, at, mut tokens) = self.can_cfg().map_err(|e| failed(&*self.ctx, &e))?;
         let at = if json::truthy(Some(&at)) { at } else { n(util::now_ms()) };
         let made = if tokens.is_empty() { Some(self.new_token_entry(&mut tokens, body.get("vehicleId"), None)?) } else { None };
         self.save_can_cfg(true, &at, &tokens).map_err(|e| failed(&*self.ctx, &e))?;
+        drop(guard);
         self.ctx.audit("warn", &format!("CAN Bridge uploads turned on{}: {}", made.as_ref().map(|m| format!(" (token \"{}\")", m.1["label"].as_str().unwrap_or(""))).unwrap_or_default(), req.who.by));
         self.sync_port();
         Ok(ok(json!({ "enabled": true, "token": made.as_ref().map(|m| m.0.clone()), "tokenId": made.as_ref().map(|m| m.1["id"].clone()), "fingerprint": self.ctx.cert_fingerprint(), "port": self.ctx.can_port() })))
@@ -1217,8 +1231,10 @@ impl Can {
 
     fn disable(&self, req: &Req) -> R {
         confirmed(req)?;
+        let guard = self.cfg_guard();
         let (_, at, tokens) = self.can_cfg().map_err(|e| failed(&*self.ctx, &e))?;
         self.save_can_cfg(false, &at, &tokens).map_err(|e| failed(&*self.ctx, &e))?;
+        drop(guard);
         self.ctx.audit("warn", &format!("CAN Bridge uploads turned off: {}", req.who.by));
         self.sync_port();
         Ok(ok(json!({ "enabled": false })))
@@ -1227,19 +1243,23 @@ impl Can {
     fn new_token(&self, req: &Req) -> R {
         confirmed(req)?;
         let body = body_json(req)?;
+        let guard = self.cfg_guard();
         let (enabled, at, mut tokens) = self.can_cfg().map_err(|e| failed(&*self.ctx, &e))?;
         let (token, entry) = self.new_token_entry(&mut tokens, body.get("vehicleId"), body.get("label"))?;
         self.save_can_cfg(enabled, &at, &tokens).map_err(|e| failed(&*self.ctx, &e))?;
+        drop(guard);
         self.ctx.audit("warn", &format!("CAN Bridge token \"{}\" made: {}", entry["label"].as_str().unwrap_or(""), req.who.by));
         Ok(ok(json!({ "token": token, "id": entry["id"], "fingerprint": self.ctx.cert_fingerprint(), "port": self.ctx.can_port() })))
     }
 
     fn revoke(&self, req: &Req, id: &str) -> R {
         confirmed(req)?;
+        let guard = self.cfg_guard();
         let (enabled, at, tokens) = self.can_cfg().map_err(|e| failed(&*self.ctx, &e))?;
         let Some(t) = tokens.iter().find(|x| x.get("id").and_then(|i| i.as_str()) == Some(id)).cloned() else { return Err(he(404, "No such token.")) };
         let rest: Vec<Value> = tokens.into_iter().filter(|x| x.get("id").and_then(|i| i.as_str()) != Some(id)).collect();
         self.save_can_cfg(enabled, &at, &rest).map_err(|e| failed(&*self.ctx, &e))?;
+        drop(guard);
         self.ctx.audit("warn", &format!("CAN Bridge token \"{}\" revoked: {}", t.get("label").map(|l| json::js_str(Some(l))).unwrap_or_default(), req.who.by));
         Ok(ok(json!({ "ok": true })))
     }
@@ -2228,6 +2248,8 @@ impl Can {
     /// claimToken/bindToken: the car key a token is for (tied now when it is not yet); an error
     /// when the settings cannot be read or the tie was not kept (a token is tied to one car once).
     fn claim(&self, tok_id: &str, key: &str, bind: bool) -> Result<Option<String>, String> {
+        // read, changed and written back under the lock: a token revoked meanwhile stays gone
+        let _guard = self.cfg_guard();
         let (enabled, at, mut tokens) = self.can_cfg()?;
         let Some(t) = tokens.iter_mut().find(|x| x.get("id").and_then(|i| i.as_str()) == Some(tok_id)) else { return Ok(None) };
         let mut tied = None;
@@ -2576,5 +2598,87 @@ mod token_tests {
         assert_eq!(with("Bearer wrong"), None);
         assert_eq!(with("Bearer "), None);
         assert_eq!(Can::token_in(&HeaderMap::new(), &tokens), None);
+    }
+
+    /// Settings in memory, each write a little slow (as manager.db's can be), so a
+    /// read-modify-write that is not locked loses to the one beside it.
+    struct SlowCtx {
+        data: PathBuf,
+        settings: Mutex<HashMap<String, Value>>,
+    }
+    impl CanCtx for SlowCtx {
+        fn data_dir(&self) -> PathBuf {
+            self.data.clone()
+        }
+        fn setting(&self, key: &str) -> Result<Option<Value>, String> {
+            Ok(self.settings.lock().unwrap().get(key).cloned())
+        }
+        fn set_setting(&self, key: &str, value: Value) -> Result<(), String> {
+            std::thread::sleep(Duration::from_millis(2));
+            self.settings.lock().unwrap().insert(key.to_string(), value);
+            Ok(())
+        }
+        fn vehicles(&self) -> Vec<Car> {
+            Vec::new()
+        }
+        fn scan_of(&self, _: &str) -> Option<super::super::ctx::Scan> {
+            None
+        }
+        fn rescan(&self, _: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn announce(&self, _: &str) {}
+        fn audit(&self, _: &str, _: &str) {}
+        fn log(&self, _: &str, _: &str) {}
+    }
+
+    #[test]
+    fn a_token_revoked_while_its_bridge_uploads_stays_revoked() {
+        let data = std::env::temp_dir().join(format!("can-cfg-lock-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&data);
+        std::fs::create_dir_all(&data).unwrap();
+        for round in 0..5 {
+            let ctx = Arc::new(SlowCtx { data: data.join(round.to_string()), settings: Mutex::new(HashMap::new()) });
+            ctx.settings.lock().unwrap().insert(
+                "can".into(),
+                json!({ "enabled": true, "at": null, "tokens": [{ "id": "t1", "hash": util::sha256_hex(b"x"), "key": "abcdef123456", "vehicleId": null, "label": "One", "lastUsedAt": null }] }),
+            );
+            let can = Can::new(ctx.clone());
+            let stop = Arc::new(AtomicBool::new(false));
+            let uploads: Vec<_> = (0..4)
+                .map(|_| {
+                    let (can, stop) = (can.clone(), stop.clone());
+                    std::thread::spawn(move || {
+                        while !stop.load(Ordering::SeqCst) {
+                            let _ = can.claim("t1", "abcdef123456", true);
+                        }
+                    })
+                })
+                .collect();
+            std::thread::sleep(Duration::from_millis(20));
+            let req = Req {
+                method: Method::DELETE,
+                path: "/api/can/tokens/t1".into(),
+                query: HashMap::new(),
+                headers: HeaderMap::new(),
+                body: Bytes::new(),
+                remote: "127.0.0.1".into(),
+                local_port: 0,
+                encrypted: true,
+                who: Default::default(),
+                confirmed: true,
+                closed: Arc::new(AtomicBool::new(false)),
+            };
+            let r = can.handle(&req).unwrap();
+            assert_eq!(r.status().as_u16(), 200);
+            std::thread::sleep(Duration::from_millis(30));
+            stop.store(true, Ordering::SeqCst);
+            for u in uploads {
+                u.join().unwrap();
+            }
+            let tokens = ctx.settings.lock().unwrap()["can"]["tokens"].clone();
+            assert_eq!(tokens, json!([]), "round {round}: the revoked token came back");
+        }
+        let _ = std::fs::remove_dir_all(&data);
     }
 }
