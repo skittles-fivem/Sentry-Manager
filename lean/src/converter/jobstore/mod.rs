@@ -48,7 +48,12 @@ pub struct Item {
 
 impl Item {
     fn normalize(raw: &Value) -> R<Arc<Item>> {
-        let value = normalize::normalize_item(raw)?;
+        let value = match normalize::normalize_item(raw)? {
+            // (its fields held at their number: a map filled one field at a time keeps room for
+            // up to half as many again, about 1 KB a clip; the order is kept)
+            Value::Object(m) => Value::Object(m.into_iter().collect()),
+            v => v,
+        };
         let budget = normalize::preflight(&value)?;
         let id = value["id"].as_str().unwrap_or("").into();
         Ok(Arc::new(Item { value, budget, id }))
