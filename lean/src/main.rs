@@ -24,7 +24,26 @@ fn main() {
         std::thread::sleep(Duration::from_secs(60));
         unsafe { libc::malloc_trim(0) };
     });
-    tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().expect("runtime").block_on(run(fd));
+    let workers = http_workers(sentry_lean::viewer::work_limits::detect_resources().cpus);
+    tokio::runtime::Builder::new_multi_thread().worker_threads(workers).enable_all().build().expect("runtime").block_on(run(fd));
+}
+
+/// The threads that answer the pages (TLS, the network; the routes' own work runs on blocking
+/// threads): two, and one more per four CPUs past eight this container may use, at most four.
+/// Each is about 100 KB of memory while it is idle.
+fn http_workers(cpus: f64) -> usize {
+    let c = if cpus.is_finite() { cpus.floor().max(0.0) as usize } else { 0 };
+    (2 + c.saturating_sub(8) / 4).min(4)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn http_workers_from_the_cpus() {
+        use super::http_workers;
+        assert_eq!([1.0, 2.0, 4.0, 8.0, 11.9].map(http_workers), [2, 2, 2, 2, 2]);
+        assert_eq!([12.0, 16.0, 64.0, f64::NAN].map(http_workers), [3, 4, 4, 2]);
+    }
 }
 
 async fn run(fd: Option<std::os::fd::OwnedFd>) {
