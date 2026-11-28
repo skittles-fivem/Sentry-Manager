@@ -571,6 +571,13 @@ async fn an_upload_refused_by_its_headers_is_answered_before_its_body() {
     early(&heard(&mut s).await, "403", "wrong_car");
     let mut s = expecting(addr, "K_20261122T101600Z_43.log.xz", "wrong", 12, 0, 12, &sha).await;
     early(&heard(&mut s).await, "401", "bad_token");
+    // without Expect, a wrong token or none is refused before the body is read: 17 MB
+    // declared, none of it sent, and the 401 comes at once (the body is never held)
+    for auth in ["Authorization: Bearer wrong\r\n", ""] {
+        let mut s = tokio::net::TcpStream::connect(addr).await.unwrap();
+        s.write_all(format!("POST /api/can/logs/K_20261122T101600Z_43.log.xz HTTP/1.1\r\nHost: x\r\n{auth}Content-Length: 17000000\r\nUpload-Offset: 0\r\nUpload-Length: 17000000\r\nUpload-SHA256: {sha}\r\n\r\n").as_bytes()).await.unwrap();
+        early(&heard(&mut s).await, "401", "bad_token");
+    }
     // without Expect the body is read first, as before, and the answer is the same
     let mut s = tokio::net::TcpStream::connect(addr).await.unwrap();
     s.write_all(format!("POST /api/can/logs/{name} HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer {tok}\r\nContent-Length: 12\r\nUpload-Offset: 0\r\nUpload-Length: 12\r\nUpload-SHA256: {other}\r\nConnection: close\r\n\r\nother bytes!").as_bytes()).await.unwrap();

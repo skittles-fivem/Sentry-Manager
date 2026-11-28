@@ -2308,8 +2308,9 @@ impl Can {
     }
 
     /// The upload API's first checks, once per request (uploads on, HTTPS, the token, the
-    /// token's pace): the token, or the answer.
-    fn upload_gate(&self, req: &Req, raw_path: &str) -> Result<UploadGate, Res> {
+    /// token's pace): the token, or the answer. Made before the body is read (see
+    /// `wire::can::serve_upload`); Ok: read the body, then `upload_gated` with this.
+    pub fn upload_gate(&self, req: &Req, raw_path: &str) -> Result<UploadGate, Res> {
         let (enabled, _, tokens) = match self.can_cfg() {
             Ok(c) => c,
             Err(e) => return Err(self.upload_failed(&e)),
