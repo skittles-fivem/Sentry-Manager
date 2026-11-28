@@ -336,11 +336,11 @@ impl Ops {
     /// and its saved space goes onto its vehicle's total (savings.record).
     /// Also for the jobs listed at the start (savings of jobs from before).
     pub fn job_snapshot(&self, s: &JobSnapshot) {
-        // (decided under `converting`, marked after it is let go: the stats engine's lock is
-        // never taken while it is held, as the engine asks is_busy under its own)
-        let mark: Option<Option<String>> = {
+        // (decided and marked under `converting`, so two snapshots mark in the order they decide;
+        // the stats engine never waits on `converting`: is_busy only tries it)
+        {
             let mut c = self.converting.lock().unwrap();
-            if s.running {
+            let mark: Option<Option<String>> = if s.running {
                 if c.job.as_deref() != Some(s.id.as_str()) {
                     c.job = Some(s.id.clone());
                     c.benchmarking.is_none().then(|| Some(s.id.clone()))
@@ -352,10 +352,10 @@ impl Ops {
                 c.benchmarking.is_none().then_some(None)
             } else {
                 None
+            };
+            if let Some(m) = mark {
+                self.stats.mark_job(m.as_deref());
             }
-        };
-        if let Some(m) = mark {
-            self.stats.mark_job(m.as_deref());
         }
         self.record_savings(s);
     }
@@ -444,8 +444,8 @@ impl Ops {
         c.next += 1;
         let t = MeterToken { wh: before["wh"].as_f64().unwrap_or(0.0), seconds: before["seconds"].as_f64().unwrap_or(0.0), at: store::now_ms(), id: c.next };
         c.benchmarking = Some(t);
-        drop(c);
         self.stats.mark_job(Some("benchmark"));
+        drop(c);
         t
     }
 
@@ -455,10 +455,8 @@ impl Ops {
             let mut c = self.converting.lock().unwrap();
             if c.benchmarking == Some(token) {
                 // a conversion's own count carries on
-                let job = c.job.clone();
                 c.benchmarking = None;
-                drop(c);
-                self.stats.mark_job(job.as_deref());
+                self.stats.mark_job(c.job.as_deref());
             }
         }
         let after = self.stats.energy()["byJob"]["benchmark"].clone();
