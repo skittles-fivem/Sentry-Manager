@@ -626,6 +626,11 @@ pub fn vehicle_in_quick(list: Vec<Vehicle>, p: &Path, healthy: impl Fn(&Vehicle)
 /// spelled under it, else that folder's real path (so a path below it is relative to the root
 /// returned, whichever spelling `p` has).
 pub fn vehicle_root_in_quick(list: Vec<Vehicle>, p: &Path, healthy: impl Fn(&Vehicle) -> bool) -> Result<Option<(Vehicle, PathBuf)>, String> {
+    vehicle_root_or_unknown(list, p, healthy).map_err(|unknown| format!("the real folder of vehicle {} is not known yet: its share has not answered", unknown[0].name))
+}
+
+/// vehicle_root_in_quick, Err naming every vehicle whose real folder is not known yet (at least one)
+pub fn vehicle_root_or_unknown(list: Vec<Vehicle>, p: &Path, healthy: impl Fn(&Vehicle) -> bool) -> Result<Option<(Vehicle, PathBuf)>, Vec<Vehicle>> {
     let abs = super::safe_fs::resolve(p);
     if let Some(i) = list.iter().position(|v| is_inside(&abs, &v.root)) {
         return Ok(list.into_iter().nth(i).map(|v| {
@@ -633,18 +638,18 @@ pub fn vehicle_root_in_quick(list: Vec<Vehicle>, p: &Path, healthy: impl Fn(&Veh
             (v, root)
         }));
     }
-    let mut unknown = None;
+    let mut unknown = Vec::new();
     for (i, v) in list.iter().enumerate() {
         match real_root(&v.root, healthy(v)) {
             Some(Some(r)) if is_inside(&abs, &r) => return Ok(list.into_iter().nth(i).map(|v| (v, r))),
-            None if unknown.is_none() => unknown = Some(v.name.clone()),
+            None => unknown.push(i),
             _ => {}
         }
     }
-    match unknown {
-        Some(name) => Err(format!("the real folder of vehicle {name} is not known yet: its share has not answered")),
-        None => Ok(None),
+    if unknown.is_empty() {
+        return Ok(None);
     }
+    Err(list.into_iter().enumerate().filter(|(i, _)| unknown.contains(i)).map(|(_, v)| v).collect())
 }
 
 /// index.js describeSource (audit lines)

@@ -113,11 +113,13 @@ impl ArrivalCtx for CoreArrival {
 pub fn holds(s: &Server, abs: &str) -> bool {
     let Some(can) = s.can().cloned() else { return false };
     // (a converter's clip is spelled under the real folder: a vehicle whose folder is a symlink
-    // is found by that too; while a share that may hold it has not answered, it is held)
+    // is found by that too; while a share that may hold it has not answered, it is held when
+    // that vehicle's last status says a clip of this name is still being copied. A clip of no
+    // vehicle, under an extra root, is not held by a share that is down.)
     let v = match vehicle_at(s, abs) {
         Ok(Some((v, _))) => v,
         Ok(None) => return false,
-        Err(_) => return true,
+        Err(unknown) => return unknown_holds(unknown.iter().map(|v| can.usb.get(&v.id).and_then(|st| crate::arrival::holds::TransferStatus::parse(&st.raw_json))), crate::scanner::now_ms(), abs),
     };
     // (a share that stopped answering is not looked at here: the arrival would wait on it)
     if s.app().vehicles.share(&v.id).is_none_or(|sh| sh.is_healthy()) {
@@ -127,19 +129,49 @@ pub fn holds(s: &Server, abs: &str) -> bool {
     crate::arrival::holds::holds(status.as_ref(), crate::scanner::now_ms(), abs)
 }
 
+/// holds() for a clip in none of the vehicles whose folder is known: held only when the last
+/// status of a vehicle whose folder is not known yet (`statuses`) holds a clip of its name; a
+/// vehicle with no Sentry USB status holds nothing.
+fn unknown_holds(statuses: impl Iterator<Item = Option<crate::arrival::holds::TransferStatus>>, now_ms: f64, abs: &str) -> bool {
+    statuses.flatten().any(|t| crate::arrival::holds::holds(Some(&t), now_ms, abs))
+}
+
 /// The vehicle whose folder holds `path`, spelled under the folder it is named by or under its
 /// real folder (a converter job's sourceRoot is the real path), with the root it matched; no
 /// share that is not answering is asked (vehicle_root_in_quick). Err: a share that may hold it
-/// has not answered yet.
-fn vehicle_at(s: &Server, path: &str) -> Result<Option<(crate::footage::vehicles::Vehicle, PathBuf)>, String> {
+/// has not answered yet (the vehicles whose real folder is not known).
+fn vehicle_at(s: &Server, path: &str) -> Result<Option<(crate::footage::vehicles::Vehicle, PathBuf)>, Vec<crate::footage::vehicles::Vehicle>> {
     if path.is_empty() {
         return Ok(None);
     }
     let vehicles = &s.app().vehicles;
-    crate::footage::vehicles::vehicle_root_in_quick(vehicles.list(), std::path::Path::new(path), |v| vehicles.share(&v.id).is_none_or(|sh| sh.is_healthy()))
+    crate::footage::vehicles::vehicle_root_or_unknown(vehicles.list(), std::path::Path::new(path), |v| vehicles.share(&v.id).is_none_or(|sh| sh.is_healthy()))
 }
 
 pub fn make(srv: &Arc<Server>) -> Arc<crate::arrival::Area> {
     let ctx: Arc<dyn ArrivalCtx> = Arc::new(CoreArrival { srv: Arc::downgrade(srv), state: srv.state.clone() });
     Arc::new(crate::arrival::Area::open(ctx, &srv.state.config.data))
+}
+
+#[cfg(test)]
+mod unknown_holds_tests {
+    use super::*;
+    use crate::arrival::holds::TransferStatus;
+    use serde_json::json;
+
+    #[test]
+    fn a_clip_of_no_known_vehicle_is_held_only_by_a_transfer_of_its_name() {
+        let start = 1_794_144_660u64;
+        let now = (start + 60) as f64 * 1000.0;
+        let copying = TransferStatus::parse(&json!({ "schema": 1, "state": "transferring", "transfer": { "started_unix": start,
+            "first_clip": "RecentClips/2026-11-08/2026-11-08_13-00-00-front.mp4", "last_clip": "RecentClips/2026-11-08/2026-11-08_13-30-00-back.mp4",
+            "expected_finish_unix": start + 600, "give_up_unix": start + 1500 } }));
+        let idle = TransferStatus::parse(&json!({ "schema": 1, "state": "idle" }));
+        let archive = "/mnt/archive/2025-01-02/2025-01-02_10-00-00-front.mp4";
+        // (the share of a vehicle without Sentry USB, or one not copying, is down: an extra root's clips go on)
+        assert!(!unknown_holds([None].into_iter(), now, archive));
+        assert!(!unknown_holds([idle.clone(), None].into_iter(), now, archive));
+        assert!(!unknown_holds([copying.clone()].into_iter(), now, archive), "not a clip of the transfer");
+        assert!(unknown_holds([idle, copying].into_iter(), now, "/share/real/RecentClips/2026-11-08/2026-11-08_13-10-00-front.mp4"), "a clip the vehicle is still copying");
+    }
 }
