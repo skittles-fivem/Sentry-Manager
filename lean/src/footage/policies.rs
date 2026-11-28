@@ -4,7 +4,7 @@
 //! deleted for good unless "empty the Recycle Bin after N days" (binDays) is
 //! set: then, at the policy's run, what sat in the bin longer goes.
 
-use super::ctx::{Fail, Level, Res};
+use super::ctx::{Caller, Fail, Level, Res};
 use super::inventory::Recording;
 use super::js;
 use crate::app::App;
@@ -129,13 +129,44 @@ pub fn get(app: &App, vid: &str) -> Res<Value> {
     Ok(Value::Object(out))
 }
 
-pub fn set(app: &App, vid: &str, input: &Value) -> Res<Value> {
+/// Whether `next` lets cleanup take or delete more than `prev` did: a limit added or
+/// lowered (days kept, the Recycle Bin's days, the GB), or a policy with limits turned on.
+pub fn deletes_more(prev: &Value, next: &Value) -> bool {
+    let limit = |p: &Value, k: &str, c: Option<&str>| {
+        let v = match c {
+            Some(c) => p.get("keepDays").and_then(|x| x.get(c)),
+            None => p.get(k),
+        };
+        let n = js::number(v);
+        (js::truthy(v) && n.is_finite()).then_some(n)
+    };
+    let tighter = |k: &str, c: Option<&str>| match (limit(prev, k, c), limit(next, k, c)) {
+        (_, None) => false,
+        (None, Some(_)) => true,
+        (Some(a), Some(b)) => b < a,
+    };
+    let any_limit = ["binDays", "maxGB"].iter().any(|k| limit(next, k, None).is_some()) || CATEGORIES.iter().any(|c| limit(next, "", Some(c)).is_some());
+    let enabled = |p: &Value| js::truthy(p.get("enabled"));
+    tighter("binDays", None) || tighter("maxGB", None) || CATEGORIES.iter().any(|c| tighter("", Some(c))) || (!enabled(prev) && enabled(next) && any_limit)
+}
+
+/// PUT /policy: a change that lets cleanup take or delete more needs the password again,
+/// as emptying the Recycle Bin does (a policy run deletes for good after binDays).
+pub fn set(app: &App, who: &Caller, vid: &str, input: &Value) -> Res<Value> {
     // (a vehicle list that cannot be read is an error, not "no such vehicle")
     if app.vehicles.try_get(vid)?.is_none() {
         return Err(Fail::new(404, "No such vehicle."));
     }
-    let next = normalize(input, &get(app, vid)?)?;
+    let prev = get(app, vid)?;
+    let next = normalize(input, &prev)?;
+    if deletes_more(&prev, &next) {
+        who.require_confirmed()?;
+    }
     app.core.db().set(&format!("policy:{vid}"), &next)?;
+    if rule_key(&prev) != rule_key(&next) || js::truthy(prev.get("enabled")) != js::truthy(next.get("enabled")) {
+        let show = |p: &Value| json!({ "enabled": js::truthy(p.get("enabled")), "keepDays": p.get("keepDays"), "binDays": p.get("binDays"), "maxGB": p.get("maxGB") }).to_string();
+        app.core.audit(Level::Info, &format!("Cleanup policy of {vid} changed: {} -> {}: {}", show(&prev), show(&next), who.by()));
+    }
     Ok(next)
 }
 
@@ -332,6 +363,33 @@ mod tests {
     }
 
     #[test]
+    fn a_policy_that_deletes_more_needs_the_password_again() {
+        let d = default_policy();
+        let with = |x: Value| normalize(&x, &d).unwrap();
+        assert!(!deletes_more(&d, &d));
+        assert!(!deletes_more(&d, &with(json!({ "runAt": "04:00" }))));
+        assert!(!deletes_more(&d, &with(json!({ "enabled": true }))), "on, with nothing to take");
+        assert!(deletes_more(&d, &with(json!({ "binDays": 1 }))));
+        assert!(deletes_more(&d, &with(json!({ "maxGB": 10 }))));
+        assert!(deletes_more(&d, &with(json!({ "keepDays": { "Saved": 30 } }))));
+        let kept = with(json!({ "keepDays": { "Recent": 7 }, "binDays": 30 }));
+        assert!(deletes_more(&kept, &normalize(&json!({ "enabled": true }), &kept).unwrap()));
+        assert!(deletes_more(&kept, &normalize(&json!({ "binDays": 1 }), &kept).unwrap()));
+        assert!(deletes_more(&kept, &normalize(&json!({ "keepDays": { "Recent": 6 } }), &kept).unwrap()));
+        assert!(!deletes_more(&kept, &normalize(&json!({ "keepDays": { "Recent": 8 }, "binDays": null }), &kept).unwrap()), "keeping longer");
+
+        let f = with_a_clip("policy-confirm");
+        let mut who = Caller { user: Some("admin".into()), client: "127.0.0.1".into(), admin_here: true, confirmed: false };
+        assert_eq!(set(&f.app, &who, "car", &json!({ "runAt": "04:00" })).unwrap()["runAt"], json!("04:00"));
+        let err = set(&f.app, &who, "car", &json!({ "enabled": true, "binDays": 1 })).unwrap_err();
+        assert_eq!(err.status, 403);
+        assert_eq!(get(&f.app, "car").unwrap()["binDays"], Value::Null, "not kept");
+        who.confirmed = true;
+        assert_eq!(set(&f.app, &who, "car", &json!({ "enabled": true, "binDays": 1 })).unwrap()["binDays"], json!(1));
+        assert_eq!(f.core.audits.lock().unwrap().iter().filter(|l| l.contains("Cleanup policy of car changed")).count(), 1, "the run time alone is not audited");
+    }
+
+    #[test]
     fn a_session_past_midnight_is_aged_by_its_newest_clip() {
         use crate::scanner::{FileEntry, FileList};
         let rels = ["TeslaCam/RecentClips/2025-03-01_23-59-00-front.mp4", "TeslaCam/RecentClips/2025-03-02_00-00-00-front.mp4", "TeslaCam/RecentClips/2025-03-02_00-01-00-front.mp4"];
@@ -351,6 +409,10 @@ mod tests {
         assert_eq!(select_expired(&recs, &policy, at("2025-03-03"), "UTC").len(), 1);
     }
 
+    fn admin() -> Caller {
+        Caller { user: Some("admin".into()), client: "127.0.0.1".into(), admin_here: true, confirmed: true }
+    }
+
     fn with_a_clip(name: &str) -> crate::footage::testing::OnCore {
         let f = crate::footage::testing::on_core(name);
         let clip = f.dir.join("footage/car/TeslaCam/RecentClips/2020-01-01_08-00-00-front.mp4");
@@ -363,10 +425,10 @@ mod tests {
     #[test]
     fn a_policy_that_cannot_be_read_is_not_written_over_nor_run_and_is_said_once() {
         let f = with_a_clip("policy-read");
-        set(&f.app, "car", &json!({ "enabled": true, "runAt": "00:00", "keepDays": { "Recent": 30 }, "maxGB": 100 })).unwrap();
+        set(&f.app, &admin(), "car", &json!({ "enabled": true, "runAt": "00:00", "keepDays": { "Recent": 30 }, "maxGB": 100 })).unwrap();
         let before = f.kept("policy:car");
         f.db.fail_setting_reads("policy:car");
-        assert_eq!(set(&f.app, "car", &json!({ "keepDays": { "Sentry": 7 } })).unwrap_err().status, 0);
+        assert_eq!(set(&f.app, &admin(), "car", &json!({ "keepDays": { "Sentry": 7 } })).unwrap_err().status, 0);
         assert_eq!(f.kept("policy:car"), before, "the rest of the policy is not lost");
         assert_eq!(preview(&f.app, "car").unwrap_err().status, 0);
         let now = chrono::Local::now();
@@ -378,21 +440,21 @@ mod tests {
     #[test]
     fn a_vehicle_list_that_cannot_be_read_is_an_error_for_a_policy_save_and_preview_never_no_such_vehicle() {
         let f = with_a_clip("policy-vehicles");
-        set(&f.app, "car", &json!({ "enabled": true, "keepDays": { "Recent": 1 } })).unwrap();
+        set(&f.app, &admin(), "car", &json!({ "enabled": true, "keepDays": { "Recent": 1 } })).unwrap();
         let before = f.kept("policy:car");
         assert_eq!(preview(&f.app, "car").unwrap()["recordings"], 1);
         f.db.fail_setting_reads("vehicles");
-        assert_eq!(set(&f.app, "car", &json!({ "enabled": false })).unwrap_err().status, 0, "not a 404");
+        assert_eq!(set(&f.app, &admin(), "car", &json!({ "enabled": false })).unwrap_err().status, 0, "not a 404");
         assert_eq!(preview(&f.app, "car").unwrap_err().status, 0, "not a preview that moves nothing");
         assert_eq!(f.kept("policy:car"), before);
         f.db.mend_reads();
-        assert_eq!(set(&f.app, "nope", &json!({})).unwrap_err().status, 404);
+        assert_eq!(set(&f.app, &admin(), "nope", &json!({})).unwrap_err().status, 404);
     }
 
     #[test]
     fn a_cleanup_whose_run_cannot_be_noted_is_tried_again_in_15_minutes_not_at_every_minute() {
         let f = with_a_clip("policy-noted");
-        set(&f.app, "car", &json!({ "enabled": true, "runAt": "00:00" })).unwrap();
+        set(&f.app, &admin(), "car", &json!({ "enabled": true, "runAt": "00:00" })).unwrap();
         f.db.conn().execute_batch("CREATE TEMP TRIGGER refused BEFORE UPDATE ON settings WHEN NEW.key = 'policy:car' BEGIN SELECT RAISE(ABORT, 'disk I/O error'); END;").unwrap();
         let now = chrono::Local::now();
         assert!(tick(&f.app, now), "the day's run");

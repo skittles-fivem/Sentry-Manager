@@ -432,11 +432,16 @@ pub fn handle(app: &Arc<App>, who: &Caller, method: &str, seg: &[&str], query: &
         }
         ("PUT", ["vehicles", id, "policy"]) => {
             let v = tri!(vehicle_or_404(app, id));
-            let policy = tri!(super::policies::set(app, &v.id, b));
+            let policy = tri!(super::policies::set(app, who, &v.id, b));
             ok(json!({ "policy": policy, "preview": tri!(super::policies::preview(app, &v.id)) }))
         }
         ("POST", ["vehicles", id, "policy", "run"]) => {
-            tri!(vehicle_or_404(app, id));
+            let v = tri!(vehicle_or_404(app, id));
+            // (a run with binDays deletes for good what sat in the bin longer: the password again,
+            // as emptying the Recycle Bin)
+            if js::truthy(tri!(super::policies::get(app, &v.id)).get("binDays")) {
+                tri!(who.require_confirmed());
+            }
             let expect = b.get("expect").filter(|e| e.is_object() || e.is_array());
             let out = super::policies::run(app, id, expect);
             // (a run that stopped at its scan changed the vehicle's state too: its error)
