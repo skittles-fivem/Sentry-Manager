@@ -82,7 +82,8 @@ export async function api(path, { method, body, check = () => {}, timeout, ...re
       throw new DOMException('Cancelled', 'AbortError');
     check();
     rest.signal?.throwIfAborted();
-    return api(path, { method, body, check, ...rest }, true);
+    // (the same time limit as the first ask)
+    return api(path, { method, body, check, timeout, ...rest }, true);
   }
   if (!res.ok)
     throw Object.assign(new Error(data.error || res.statusText), {
