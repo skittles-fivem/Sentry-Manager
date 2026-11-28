@@ -142,6 +142,9 @@ fn refusals() {
     assert_eq!(store.save(&v).unwrap().revision(), 5);
     // duplicate clips
     assert_eq!(store.transition("job-c", Patch::new().items(vec![ItemIn::Raw(clip(0)), ItemIn::Raw(clip(0))])).unwrap_err().code, "INVALID_MANIFEST");
+    let kept = store.load("job-c").unwrap().unwrap().items[0].clone();
+    assert_eq!(store.transition("job-c", Patch::new().items(vec![ItemIn::Trusted(kept.clone()), ItemIn::Raw(clip(1)), ItemIn::Raw(kept.value().clone())])).unwrap_err().code, "INVALID_MANIFEST");
+    assert_eq!(store.transition("job-c", Patch::new().items(vec![ItemIn::Trusted(kept.clone()), ItemIn::Trusted(kept)])).unwrap_err().code, "INVALID_MANIFEST");
     // a corrupt job.json is quarantined; list() skips it, the others stay
     store.create(&initial("job-d", vec![])).unwrap();
     fs::write(root.join("job-d/job.json"), b"{not json").unwrap();

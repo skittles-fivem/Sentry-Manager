@@ -41,13 +41,65 @@ const DIRECTORY_SYNC_UNSUPPORTED: [&str; 6] = ["EISDIR", "EINVAL", "EPERM", "EAC
 pub struct Item {
     value: Value,
     budget: Budget,
+    /// value["id"] (the value never changes): looked up once, not on every change of the job
+    id: Box<str>,
+    /// the id hashed once (with this process's random key), for the check that no two clips
+    /// of a job share an id
+    id_hash: u64,
 }
+
+/// The key every clip's id is hashed with: random per process (as a HashSet's own is).
+fn id_hasher() -> &'static std::collections::hash_map::RandomState {
+    static K: std::sync::OnceLock<std::collections::hash_map::RandomState> = std::sync::OnceLock::new();
+    K.get_or_init(std::collections::hash_map::RandomState::new)
+}
+
+/// A clip's id with its hash taken once (`Item::id_key`): equal when the ids are.
+pub struct IdKey<'a> {
+    hash: u64,
+    id: &'a str,
+}
+impl PartialEq for IdKey<'_> {
+    fn eq(&self, o: &Self) -> bool {
+        self.id == o.id
+    }
+}
+impl Eq for IdKey<'_> {}
+impl std::hash::Hash for IdKey<'_> {
+    fn hash<H: std::hash::Hasher>(&self, h: &mut H) {
+        h.write_u64(self.hash);
+    }
+}
+
+/// Hashes an `IdKey` as the hash it carries.
+#[derive(Default)]
+pub struct IdKeyHasher(u64);
+impl std::hash::Hasher for IdKeyHasher {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+    fn write(&mut self, bytes: &[u8]) {
+        // (only write_u64 is used; anything else still hashes every byte)
+        for b in bytes {
+            self.0 = self.0.rotate_left(8) ^ u64::from(*b);
+        }
+    }
+    fn write_u64(&mut self, n: u64) {
+        self.0 = n;
+    }
+}
+pub type IdKeySet<'a> = std::collections::HashSet<IdKey<'a>, std::hash::BuildHasherDefault<IdKeyHasher>>;
 
 impl Item {
     fn normalize(raw: &Value) -> R<Arc<Item>> {
         let value = normalize::normalize_item(raw)?;
         let budget = normalize::preflight(&value)?;
-        Ok(Arc::new(Item { value, budget }))
+        let id: Box<str> = value["id"].as_str().unwrap_or("").into();
+        let id_hash = std::hash::BuildHasher::hash_one(id_hasher(), &*id);
+        Ok(Arc::new(Item { value, budget, id, id_hash }))
+    }
+    pub fn id_key(&self) -> IdKey<'_> {
+        IdKey { hash: self.id_hash, id: &self.id }
     }
     pub fn value(&self) -> &Value {
         &self.value
@@ -56,7 +108,7 @@ impl Item {
         self.value.get(key)
     }
     pub fn id(&self) -> &str {
-        self.value["id"].as_str().unwrap_or("")
+        &self.id
     }
     /// Its state, as the store validated it.
     pub fn state(&self) -> ItemState {
@@ -305,10 +357,11 @@ fn check_moves(current: &Manifest, next: &Manifest) -> R<()> {
     current.state().to(next.state())?;
     let mut by_id: Option<HashMap<&str, &Arc<Item>>> = None;
     for (i, item) in next.items.iter().enumerate() {
-        let at = current.items.get(i).filter(|c| c.id() == item.id());
-        if at.is_some_and(|c| Arc::ptr_eq(c, item)) {
+        // (the same clip at the same place: not looked into)
+        if current.items.get(i).is_some_and(|c| Arc::ptr_eq(c, item)) {
             continue;
         }
+        let at = current.items.get(i).filter(|c| c.id() == item.id());
         let before = match at {
             Some(c) => Some(c),
             None => by_id.get_or_insert_with(|| current.items.iter().map(|c| (c.id(), c)).collect()).get(item.id()).copied(),
