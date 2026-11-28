@@ -153,6 +153,8 @@ struct JobData {
     settings_used: Option<JobSettings>,
     benchmark: bool,
     child: Option<Arc<Mutex<Child>>>,
+    /// disk space promised to it and not yet written (State::reserved)
+    reserved: u64,
 }
 
 struct Job {
@@ -183,6 +185,9 @@ struct State {
     jobs: IndexMap<String, Arc<Job>>,
     waiting: Vec<Arc<Job>>,
     bad_tokens: HashMap<String, Vec<i64>>,
+    /// disk space promised to the clips held and not yet written (their inputs as they
+    /// arrive, their encodes): uploads at the same time cannot each count the same free space
+    reserved: u64,
 }
 
 /// One of this server's own devices as listed to a main.
@@ -620,6 +625,7 @@ impl NodeWorker {
             let mut st = self.0.state.lock().unwrap();
             st.waiting.retain(|j| !Arc::ptr_eq(j, job));
             st.jobs.shift_remove(&id);
+            Self::reserve_in(&mut st, job, 0);
         }
         let (child, input, output) = {
             let d = job.d.lock().unwrap();
@@ -630,6 +636,22 @@ impl NodeWorker {
         }
         let _ = std::fs::remove_file(input);
         let _ = std::fs::remove_file(output);
+    }
+
+    /// Sets the space a job still has promised (under the state lock).
+    fn reserve_in(st: &mut State, job: &Job, bytes: u64) {
+        let mut d = job.d.lock().unwrap();
+        st.reserved = st.reserved.saturating_sub(d.reserved).saturating_add(bytes);
+        d.reserved = bytes;
+    }
+
+    fn reserve(&self, job: &Job, bytes: u64) {
+        let mut st = self.0.state.lock().unwrap();
+        // (a job stopped meanwhile has given its share back for good)
+        if job.stopped.load(Ordering::SeqCst) {
+            return;
+        }
+        Self::reserve_in(&mut st, job, bytes);
     }
 
     fn stop_by_id(&self, id: &str) {
@@ -1057,6 +1079,8 @@ impl NodeWorker {
             }
             Err("every encoder failed".into())
         })();
+        // (written or given up: what is on disk now is in the free space itself)
+        self.reserve(job, 0);
         if let Err(message) = result {
             if job.stopped.load(Ordering::SeqCst) {
                 return;
@@ -1107,7 +1131,7 @@ impl NodeWorker {
                 input: self.0.work_dir.join(format!("{id}-in.mp4")), output: self.0.work_dir.join(format!("{id}-out.mp4")),
                 out_time_us: None, fps: None, speed: None, encoder: None, error: None, output_bytes: None,
                 seen_at: self.now(), ended_at: 0, input_bytes: length, device: settings_used.device.clone(),
-                settings_used: None, benchmark, child: None,
+                settings_used: None, benchmark, child: None, reserved: 0,
             }),
         });
         {
@@ -1117,12 +1141,15 @@ impl NodeWorker {
                 return WorkerReply::error(503, "All of this node's slots are busy.");
             }
             // room for the clip and its encode, and some to spare for this server
+            // (less what other clips held here were promised and have not written yet)
+            let need = length.saturating_mul(3);
             if let Ok(free) = disk_free(&self.0.work_dir) {
-                if free < length.saturating_mul(3).saturating_add(DISK_SPARE) {
+                if free.saturating_sub(st.reserved) < need.saturating_add(DISK_SPARE) {
                     return WorkerReply::error(507, "This node is short of disk space.");
                 }
             }
             st.jobs.insert(id.clone(), job.clone());
+            Self::reserve_in(&mut st, &job, need);
         }
         let input = job.d.lock().unwrap().input.clone();
         let file = {
@@ -1171,6 +1198,8 @@ impl NodeWorker {
             self.stop_job(&job);
             return WorkerReply::error(415, "Not an MP4 clip.");
         }
+        // (the clip is on disk now: its encode is what is still to be written)
+        self.reserve(&job, length.saturating_mul(2));
         let mut reply = WorkerReply::json(200, &json!({ "id": id }));
         reply.unsent = Some((Arc::downgrade(&self.0), id.clone()));
         {
@@ -1255,6 +1284,9 @@ impl NodeWorker {
             return Ok(WorkerReply::error(403, "Wrong pairing code."));
         }
         st.pairing = None;
+        // (the right code: tokens this address had refused, such as the one of an earlier
+        // pairing, no longer lock it out)
+        st.bad_tokens.remove(r.address);
         drop(st);
         let token = base64url(&random_bytes(32));
         let s = self.settings()?;

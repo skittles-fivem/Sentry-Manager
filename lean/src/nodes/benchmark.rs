@@ -31,8 +31,12 @@ fn camera_of(name: &str) -> Option<&str> {
     }
     let digits = |r: std::ops::Range<usize>| b[r].iter().all(u8::is_ascii_digit);
     let ok = digits(0..4) && b[4] == b'-' && digits(5..7) && b[7] == b'-' && digits(8..10) && b[10] == b'_' && digits(11..13) && b[13] == b'-' && digits(14..16) && b[16] == b'-' && digits(17..19) && b[19] == b'-';
-    let cam = &name[20..name.len() - 4];
-    (ok && CAMERAS.contains(&cam)).then_some(cam)
+    if !ok {
+        return None;
+    }
+    // (bytes 0..20 are ASCII here, so 20 starts a character)
+    let cam = name.get(20..name.len() - 4)?;
+    CAMERAS.contains(&cam).then_some(cam)
 }
 
 fn event_folder(name: &str) -> bool {
