@@ -15,14 +15,46 @@ pub struct RunResult {
     pub code: Option<i32>,
     pub stdout: String,
     pub stderr: String,
+    /// it missed its deadline and was killed, or an earlier run is still stuck
+    pub timed_out: bool,
 }
 
 pub type Runner = dyn Fn(&str, &[&str], Duration) -> RunResult + Send + Sync;
 
+/// The stderr `run` answers with, starting nothing, while an earlier run of the
+/// same program with the same arguments is still stuck where SIGKILL waits
+/// (nvidia-smi on a wedged driver): one stuck process per tool, not one per call.
+pub const STILL_HUNG: &str = "still hung from an earlier run";
+
+/// Programs (with their arguments) a killed run of which has not ended yet.
+static HUNG: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+
+fn hung_key<S: AsRef<std::ffi::OsStr>>(cmd: &str, args: &[S]) -> String {
+    let mut k = cmd.to_string();
+    for a in args {
+        k.push('\0');
+        k.push_str(&a.as_ref().to_string_lossy());
+    }
+    k
+}
+
+fn hung() -> std::sync::MutexGuard<'static, Vec<String>> {
+    HUNG.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 /// Runs a program with a timeout (proc.js run).
 pub fn run(cmd: &str, args: &[&str], timeout: Duration) -> RunResult {
+    run_os(cmd, args, timeout)
+}
+
+/// `run` with arguments that need not be UTF-8 (file paths).
+pub fn run_os<S: AsRef<std::ffi::OsStr>>(cmd: &str, args: &[S], timeout: Duration) -> RunResult {
     use std::io::Read;
     use std::process::{Command, Stdio};
+    let key = hung_key(cmd, args);
+    if hung().contains(&key) {
+        return RunResult { code: None, stderr: STILL_HUNG.into(), timed_out: true, ..Default::default() };
+    }
     let Ok(mut child) = Command::new(cmd).args(args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn() else {
         return RunResult { code: None, ..Default::default() };
     };
@@ -49,8 +81,8 @@ pub fn run(cmd: &str, args: &[&str], timeout: Duration) -> RunResult {
             Err(_) => {
                 // (our own child)
                 let _ = child.kill();
-                reap(child, Duration::from_secs(2));
-                return RunResult { code: None, ..r };
+                reap_as(child, Duration::from_secs(2), Some(key));
+                return RunResult { code: None, timed_out: true, ..r };
             }
         }
     }
@@ -63,11 +95,12 @@ pub fn run(cmd: &str, args: &[&str], timeout: Duration) -> RunResult {
                 return r;
             }
             Ok(None) if std::time::Instant::now() < deadline => std::thread::sleep(Duration::from_millis(10)),
-            _ => {
+            Ok(None) => {
                 let _ = child.kill();
-                reap(child, Duration::from_secs(2));
-                return RunResult { code: None, ..r };
+                reap_as(child, Duration::from_secs(2), Some(key));
+                return RunResult { code: None, timed_out: true, ..r };
             }
+            Err(_) => return RunResult { code: None, ..r },
         }
     }
 }
@@ -75,33 +108,105 @@ pub fn run(cmd: &str, args: &[&str], timeout: Duration) -> RunResult {
 /// Reaps a killed child for up to `grace`; one that still has not gone
 /// (stuck in the kernel, where SIGKILL waits) is reaped by a thread of its
 /// own, so the caller never blocks on it.
-pub fn reap(mut child: std::process::Child, grace: Duration) {
+pub fn reap(child: std::process::Child, grace: Duration) {
+    reap_as(child, grace, None);
+}
+
+/// `reap`; a child still there after `grace` keeps `key` in HUNG until it ends.
+fn reap_as(mut child: std::process::Child, grace: Duration, key: Option<String>) {
     let until = std::time::Instant::now() + grace;
-    while std::time::Instant::now() < until {
+    loop {
         match child.try_wait() {
-            Ok(None) => std::thread::sleep(Duration::from_millis(10)),
+            Ok(None) if std::time::Instant::now() < until => std::thread::sleep(Duration::from_millis(10)),
+            Ok(None) => break,
             _ => return,
         }
     }
+    if let Some(k) = &key {
+        hung().push(k.clone());
+    }
     std::thread::spawn(move || {
         let _ = child.wait();
+        if let Some(k) = key {
+            let mut h = hung();
+            if let Some(i) = h.iter().position(|x| *x == k) {
+                h.remove(i);
+            }
+        }
     });
 }
 
-/// detect_gpus with the real host and runner, kept for a minute: Settings,
-/// the health check and the heartbeat ask often, and each run starts vainfo
-/// per render node and nvidia-smi. One detection at a time; the others wait
-/// for its answer instead of starting their own.
-pub fn detect_gpus_cached() -> Value {
-    static CACHE: std::sync::Mutex<Option<(std::time::Instant, Value)>> = std::sync::Mutex::new(None);
-    let mut c = CACHE.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some((at, v)) = c.as_ref() {
-        if at.elapsed() < Duration::from_secs(60) {
-            return v.clone();
+/// Waits for our child until `timeout`, then kills and reaps it (`reap`).
+/// None: it did not end in time (or could not be waited for).
+pub fn wait_or_kill(mut child: std::process::Child, timeout: Duration) -> Option<std::process::ExitStatus> {
+    let until = std::time::Instant::now() + timeout;
+    loop {
+        match child.try_wait() {
+            Ok(Some(s)) => return Some(s),
+            Ok(None) if std::time::Instant::now() < until => std::thread::sleep(Duration::from_millis(10)),
+            _ => {
+                let _ = child.kill();
+                reap(child, Duration::from_secs(2));
+                return None;
+            }
         }
     }
-    let v = detect_gpus(&DetectOptions::default(), &run);
-    *c = Some((std::time::Instant::now(), v.clone()));
+}
+
+/// One detection with the real host and runner, and how long to keep it: a
+/// minute, or ten when a tool did not answer in time (each refresh would wait
+/// for it again).
+fn detect_now() -> (Value, Duration) {
+    let slow = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let late = slow.clone();
+    let runner = move |cmd: &str, args: &[&str], t: Duration| {
+        let r = run(cmd, args, t);
+        if r.timed_out {
+            late.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+        r
+    };
+    let v = detect_gpus(&DetectOptions::default(), &runner);
+    (v, Duration::from_secs(if slow.load(std::sync::atomic::Ordering::Relaxed) { 600 } else { 60 }))
+}
+
+/// detect_gpus with the real host and runner, kept for a minute: Settings,
+/// the health check, the heartbeat and a main asking a node all ask, and each
+/// run starts vainfo per render node and nvidia-smi. Only the very first call
+/// waits for a detection; after that a stale answer is given at once while one
+/// refresh runs on a thread of its own.
+pub fn detect_gpus_cached() -> Value {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    type Cached = Option<(std::time::Instant, Duration, Value)>;
+    static CACHE: std::sync::Mutex<Cached> = std::sync::Mutex::new(None);
+    static FIRST: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    static REFRESHING: AtomicBool = AtomicBool::new(false);
+    let cache = || CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((at, ttl, v)) = cache().as_ref() {
+        if at.elapsed() >= *ttl && !REFRESHING.swap(true, Ordering::SeqCst) {
+            struct Done;
+            impl Drop for Done {
+                fn drop(&mut self) {
+                    REFRESHING.store(false, Ordering::SeqCst);
+                }
+            }
+            let spawned = std::thread::Builder::new().name("gpu-detect".into()).spawn(move || {
+                let _done = Done;
+                let (v, ttl) = detect_now();
+                *CACHE.lock().unwrap_or_else(|e| e.into_inner()) = Some((std::time::Instant::now(), ttl, v));
+            });
+            if spawned.is_err() {
+                REFRESHING.store(false, Ordering::SeqCst);
+            }
+        }
+        return v.clone();
+    }
+    let _first = FIRST.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((_, _, v)) = cache().as_ref() {
+        return v.clone();
+    }
+    let (v, ttl) = detect_now();
+    *cache() = Some((std::time::Instant::now(), ttl, v.clone()));
     v
 }
 
@@ -192,6 +297,8 @@ pub fn detect_gpus(o: &DetectOptions, run_impl: &Runner) -> Value {
         }
     }
     let mut gpus: Vec<Value> = Vec::new();
+    // tools that did not answer in time (a stuck GPU driver), said in the hints
+    let mut stuck: Vec<String> = Vec::new();
     for node in all {
         let vendor_id = read_sys(o.sys_drm.join(&node).join("device/vendor"));
         let vendor = vendor_of(vendor_id.as_deref());
@@ -208,6 +315,9 @@ pub fn detect_gpus(o: &DetectOptions, run_impl: &Runner) -> Value {
         if is_passed && vendor != Some("nvidia") {
             let dev = entry["node"].as_str().unwrap().to_string();
             let va = run_impl("vainfo", &["--display", "drm", "--device", &dev], Duration::from_secs(10));
+            if va.timed_out {
+                stuck.push(format!("vainfo ({dev})"));
+            }
             let mut driver = None;
             if va.code == Some(0) || !va.stdout.is_empty() {
                 let info = parse_vainfo(&format!("{}\n{}", va.stdout, va.stderr));
@@ -227,6 +337,9 @@ pub fn detect_gpus(o: &DetectOptions, run_impl: &Runner) -> Value {
         gpus.push(entry);
     }
     let smi = run_impl("nvidia-smi", &["--query-gpu=name,driver_version", "--format=csv,noheader"], Duration::from_secs(10));
+    if smi.timed_out {
+        stuck.push("nvidia-smi".into());
+    }
     let nvidia: Vec<Value> = if smi.code == Some(0) {
         smi.stdout.trim().split('\n').filter(|l| !l.is_empty()).map(|l| {
             let parts: Vec<&str> = l.split(',').map(str::trim).collect();
@@ -248,6 +361,9 @@ pub fn detect_gpus(o: &DetectOptions, run_impl: &Runner) -> Value {
             let name = g["name"].as_str().filter(|s| !s.is_empty()).unwrap_or(g["node"].as_str().unwrap_or(""));
             hints.push(format!("{name}: the VA-API driver reports no H.265 encoder."));
         }
+    }
+    for t in &stuck {
+        hints.push(format!("{t} did not answer within 10 seconds and was stopped: the GPU driver may be stuck. It is not started again while an earlier run is still stuck; restarting the host clears it."));
     }
     if gpus.iter().any(|g| g["vendor"] == json!("nvidia")) && nvidia.is_empty() {
         hints.push("An NVIDIA GPU is on the host but not available in the container. Use the NVIDIA Container Toolkit (gpus: all) with NVIDIA_DRIVER_CAPABILITIES=compute,video,utility.".into());
@@ -362,7 +478,7 @@ mod tests {
     }
 
     fn ok(out: &str) -> RunResult {
-        RunResult { code: Some(0), stdout: out.into(), stderr: String::new() }
+        RunResult { code: Some(0), stdout: out.into(), ..Default::default() }
     }
 
     fn fail() -> RunResult {
@@ -381,7 +497,7 @@ mod tests {
         assert_eq!(out["hints"], json!([]));
         assert_eq!(out["nvidia"], json!([{ "name": "NVIDIA GeForce RTX 4070 Ti", "driver": "617.42" }]));
         // without a working VA-API driver: still the bridge, no warning
-        let out = detect_gpus(&o, &runner(RunResult { code: Some(1), stdout: String::new(), stderr: "vaInitialize failed".into() }, ok(SMI)));
+        let out = detect_gpus(&o, &runner(RunResult { code: Some(1), stderr: "vaInitialize failed".into(), ..Default::default() }, ok(SMI)));
         assert_eq!(out["gpus"][0]["virtual"], true);
         assert_eq!(out["hints"], json!([]));
         let _ = std::fs::remove_dir_all(dir);
@@ -423,6 +539,44 @@ mod tests {
         o.arch = "arm64".into();
         assert_eq!(detect_gpus(&o, &none)["hints"], json!([]));
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_stuck_tool_is_not_started_again_and_is_named_in_the_hints() {
+        // a child that is still there after its grace: as one SIGKILL cannot end
+        let child = std::process::Command::new("sleep").arg("1").spawn().unwrap();
+        let key = hung_key("sleep", &["1"]);
+        reap_as(child, Duration::ZERO, Some(key.clone()));
+        let started = std::time::Instant::now();
+        let r = run("sleep", &["1"], Duration::from_secs(5));
+        assert_eq!((r.code, r.stderr.as_str(), r.timed_out), (None, STILL_HUNG, true));
+        assert!(started.elapsed() < Duration::from_millis(500), "nothing was started");
+        // once it ends it can run again
+        let until = std::time::Instant::now() + Duration::from_secs(10);
+        while hung().contains(&key) && std::time::Instant::now() < until {
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        assert!(!hung().contains(&key));
+        assert_eq!(run("sleep", &["0"], Duration::from_secs(5)).code, Some(0));
+        // a run past its deadline says so
+        let r = run("sleep", &["5"], Duration::from_millis(100));
+        assert!(r.timed_out && r.code.is_none());
+        // and the detection names it
+        let (dir, o) = fake_host(false);
+        let late = RunResult { timed_out: true, ..Default::default() };
+        let out = detect_gpus(&o, &runner(fail(), late));
+        assert!(out["hints"].as_array().unwrap().iter().any(|h| h.as_str().unwrap().starts_with("nvidia-smi did not answer")), "{}", out["hints"]);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn wait_or_kill_has_a_deadline() {
+        let c = std::process::Command::new("sleep").arg("5").spawn().unwrap();
+        let started = std::time::Instant::now();
+        assert!(wait_or_kill(c, Duration::from_millis(100)).is_none());
+        assert!(started.elapsed() < Duration::from_secs(3));
+        let c = std::process::Command::new("true").spawn().unwrap();
+        assert!(wait_or_kill(c, Duration::from_secs(5)).is_some_and(|s| s.success()));
     }
 
     #[test]

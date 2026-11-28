@@ -32,14 +32,8 @@ pub fn device_groups(dev: &Path, pgid: u32) -> Vec<u32> {
 
 /// `setpriv --version` runs? (`hasSetpriv`)
 pub fn has_setpriv(setpriv: &str) -> bool {
-    std::process::Command::new(setpriv)
-        .arg("--version")
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
+    // (with a deadline: the supervisor starts nothing until this answers)
+    crate::ops::gpu::run(setpriv, &["--version"], std::time::Duration::from_secs(10)).code == Some(0)
 }
 
 /// Dropping the bounding set needs CAP_SETPCAP (bit 8) in our effective set. (`canDropBoundingSet`)

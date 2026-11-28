@@ -156,24 +156,13 @@ pub struct NodeBenchmark(Arc<Inner>);
 
 /// ffprobe's format duration in seconds (30 s at most).
 fn duration_of(ffprobe: &str, file: &Path) -> Result<Option<f64>, String> {
-    let mut child = std::process::Command::new(ffprobe)
-        .args(["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0"]).arg(file)
-        .stdin(std::process::Stdio::null()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::null())
-        .spawn().map_err(|e| e.to_string())?;
-    let started = Instant::now();
-    loop {
-        if child.try_wait().map_err(|e| e.to_string())?.is_some() {
-            break;
-        }
-        if started.elapsed() > Duration::from_secs(30) {
-            let _ = child.kill();
-        }
-        std::thread::sleep(Duration::from_millis(20));
+    let args: [&std::ffi::OsStr; 7] = ["-v".as_ref(), "error".as_ref(), "-show_entries".as_ref(), "format=duration".as_ref(), "-of".as_ref(), "csv=p=0".as_ref(), file.as_os_str()];
+    // (killed after 30 s; one stuck where SIGKILL waits is reaped on a thread of its own)
+    let r = crate::ops::gpu::run_os(ffprobe, &args, Duration::from_secs(30));
+    if r.code.is_none() && !r.timed_out {
+        return Err(format!("{ffprobe} could not be started"));
     }
-    let mut out = String::new();
-    use std::io::Read;
-    child.stdout.take().map(|mut s| s.read_to_string(&mut out));
-    let s = out.trim().parse::<f64>().ok().filter(|s| s.is_finite() && *s > 0.0);
+    let s = r.stdout.trim().parse::<f64>().ok().filter(|s| s.is_finite() && *s > 0.0);
     Ok(s)
 }
 

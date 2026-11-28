@@ -139,11 +139,13 @@ pub fn read_chunks(file: &Path, opts: &Opts, found: &mut Found, mut on_chunk: im
     let mut stopped = false;
     let mut _slot: Option<Slot> = None;
     let mut buf = vec![0u8; 64 * 1024];
-    let finish = |child: &mut std::process::Child, kill: bool| {
+    // (xz has ended or is ending once its output did; one stuck reading a dead share,
+    // where even SIGKILL waits, is reaped on a thread of its own and not waited for)
+    let finish = |mut child: std::process::Child, kill: bool| {
         if kill {
             let _ = child.kill();
         }
-        child.wait().ok().and_then(|s| s.code())
+        crate::ops::gpu::wait_or_kill(child, std::time::Duration::from_secs(if kill { 2 } else { 30 })).and_then(|s| s.code())
     };
     loop {
         let n = match out.read(&mut buf) {
@@ -169,7 +171,7 @@ pub fn read_chunks(file: &Path, opts: &Opts, found: &mut Found, mut on_chunk: im
                 match slot(opts.download, opts.slot_wait) {
                     Ok(s) => _slot = Some(s),
                     Err(e) => {
-                        finish(&mut child, true);
+                        finish(child, true);
                         return Err(e);
                     }
                 }
@@ -188,18 +190,22 @@ pub fn read_chunks(file: &Path, opts: &Opts, found: &mut Found, mut on_chunk: im
         }
     }
     if stopped {
-        finish(&mut child, true);
+        finish(child, true);
         return Ok(());
     }
     if columns.is_none() && !head.is_empty() {
         found.format = Some(FORMAT_CANDUMP);
         if !on_chunk(&head) {
-            finish(&mut child, true);
+            finish(child, true);
             return Ok(());
         }
     }
-    let code = finish(&mut child, too_big);
-    let stderr = errs.join().unwrap_or_default();
+    let code = finish(child, too_big);
+    let until = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    while !errs.is_finished() && std::time::Instant::now() < until {
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    let stderr = if errs.is_finished() { errs.join().unwrap_or_default() } else { String::new() };
     let why = {
         let t = stderr.trim();
         if t.is_empty() { format!("exit {}", code.map_or("null".to_string(), |c| c.to_string())) } else { t.chars().take(200).collect() }

@@ -96,14 +96,17 @@ pub fn dns_permitted(name: &str, extra: &[String]) -> bool {
 }
 
 fn openssl(args: &[&str]) -> Result<(), String> {
-    let out = std::process::Command::new("openssl").args(args).stdin(std::process::Stdio::null()).output().map_err(|e| format!("openssl {} failed: {e}", args[0]))?;
-    if !out.status.success() {
-        let err = String::from_utf8_lossy(&out.stderr);
-        let tail: Vec<&str> = err.trim().lines().collect();
-        let t = tail[tail.len().saturating_sub(3)..].join("\n");
-        return Err(format!("openssl {} failed: {}", args[0], if t.is_empty() { out.status.code().unwrap_or(-1).to_string() } else { t }));
+    // (EC keys and certificates take well under a second; a minute is the most it is waited for)
+    let out = crate::ops::gpu::run("openssl", args, std::time::Duration::from_secs(60));
+    if out.code == Some(0) {
+        return Ok(());
     }
-    Ok(())
+    if out.timed_out {
+        return Err(format!("openssl {} failed: it did not finish within a minute", args[0]));
+    }
+    let tail: Vec<&str> = out.stderr.trim().lines().collect();
+    let t = tail[tail.len().saturating_sub(3)..].join("\n");
+    Err(format!("openssl {} failed: {}", args[0], if !t.is_empty() { t } else if let Some(c) = out.code { c.to_string() } else { "it could not be run".into() }))
 }
 
 /// The first certificate of a PEM text, as DER.

@@ -32,6 +32,8 @@ pub const MAX_SLOTS: i64 = 8;
 const DEFAULT_SLOTS: i64 = 2;
 const DONE_TTL_MS: i64 = 10 * 60_000;
 const STALL_MS: u64 = 10 * 60_000;
+/// How long an ffmpeg that was killed (stalled, or its job stopped) is waited for.
+const KILLED_GRACE: Duration = Duration::from_secs(30);
 const ORPHAN_MS: i64 = 5 * 60_000;
 const USES: [&str; 3] = ["gpu", "gpu-cpu", "cpu"];
 pub const QUEUE: i64 = 15;
@@ -1009,23 +1011,43 @@ impl NodeWorker {
                 }
             })
         });
+        // (None: killed, stalled or stopped, and still not gone a while later: stuck where
+        // even SIGKILL waits; it is reaped on a thread of its own and this attempt failed)
+        let mut killed: Option<std::time::Instant> = None;
         let status = loop {
             if let Ok(Some(st)) = child.lock().unwrap().try_wait() {
-                break st;
+                break Some(st);
             }
             if last.lock().unwrap().elapsed() > Duration::from_millis(STALL_MS) {
                 let _ = child.lock().unwrap().kill();
+                killed.get_or_insert_with(std::time::Instant::now);
+            }
+            if job.stopped.load(Ordering::SeqCst) {
+                killed.get_or_insert_with(std::time::Instant::now);
+            }
+            if killed.is_some_and(|k| k.elapsed() > KILLED_GRACE) {
+                let _ = child.lock().unwrap().kill();
+                let c = child.clone();
+                std::thread::spawn(move || {
+                    while matches!(c.lock().unwrap().try_wait(), Ok(None)) {
+                        std::thread::sleep(Duration::from_secs(1));
+                    }
+                });
+                break None;
             }
             std::thread::sleep(Duration::from_millis(25));
         };
-        if let Some(t) = out_thread {
-            let _ = t.join();
-        }
-        if let Some(t) = err_thread {
-            let _ = t.join();
+        // (its pipes close when it ends; a stuck one keeps them open: its readers are left)
+        if status.is_some() {
+            if let Some(t) = out_thread {
+                let _ = t.join();
+            }
+            if let Some(t) = err_thread {
+                let _ = t.join();
+            }
         }
         job.d.lock().unwrap().child = None;
-        let ok = status.success();
+        let ok = status.is_some_and(|s| s.success());
         if !ok && !job.stopped.load(Ordering::SeqCst) {
             let text = errors.lock().unwrap().clone();
             let mut cleaned = String::new();
@@ -1044,7 +1066,13 @@ impl NodeWorker {
             }
             let trimmed = super::js_trim(&cleaned);
             let why = tail_units(trimmed, 200);
-            let why = if why.is_empty() { format!("exit {}", status.code().map(|c| c.to_string()).unwrap_or_else(|| "null".into())) } else { why };
+            let why = if !why.is_empty() {
+                why
+            } else if status.is_none() {
+                "it did not end when it was stopped".into()
+            } else {
+                format!("exit {}", status.and_then(|s| s.code()).map(|c| c.to_string()).unwrap_or_else(|| "null".into()))
+            };
             self.ctx().log(Level::Warn, &format!("Node: {}{} could not encode a clip from {main_name}: {why}", attempt.encoder, if attempt.decode.is_empty() { "" } else { " (GPU decode)" }));
         }
         Ok(ok)
