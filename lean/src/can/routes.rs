@@ -770,7 +770,7 @@ impl Can {
     fn drop_log(&self, key: &str, name: &str) {
         self.index.remove_log(key, name);
         if let Some(nm) = parse_name(name) {
-            self.sync.indexed(key, (nm.started_at - 2 * 60_000) as f64, (nm.started_at + 30 * 60_000) as f64);
+            self.sync.indexed(key, (nm.started_at - super::index::LOG_BEFORE_MS) as f64, (nm.started_at + super::index::LOG_AFTER_MS) as f64);
         }
     }
 

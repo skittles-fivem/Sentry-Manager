@@ -240,12 +240,31 @@ pub struct Job {
 #[derive(Debug, Clone, Default)]
 pub struct Indexed {
     pub frames: u64,
+    /// frames left out: their time is outside the minutes a log of this name can hold
+    /// (`log_window`), so taking the log out again could not find them
+    pub outside: u64,
     pub minutes: u64,
     pub from: Option<f64>,
     pub to: Option<f64>,
     pub profile: String,
     pub car_changed: bool,
     pub truncated: Option<String>,
+}
+
+/// The minutes a log may write, from its name's start: 2 minutes before it to 30 after (a
+/// CAN Bridge log is at most 10 minutes long; the rest is room for its clock). `remove_log`
+/// takes the log out of exactly these, so frames timed elsewhere are never indexed.
+pub const LOG_BEFORE_MS: i64 = 2 * 60_000;
+pub const LOG_AFTER_MS: i64 = 30 * 60_000;
+
+/// How often one log's frames may step from one minute to another (a real log steps forward
+/// a few times, about once a minute): each step reads and writes that minute's files again,
+/// so a log that jumps back and forth is refused once it has stepped this often.
+pub const MAX_MINUTE_STEPS: u64 = 1000;
+
+/// The window of minutes (their numbers, ms / 60000) a log started at `started_at` may write.
+pub fn log_window(started_at: i64) -> (f64, f64) {
+    (((started_at - LOG_BEFORE_MS) as f64 / 60000.0).floor(), ((started_at + LOG_AFTER_MS) as f64 / 60000.0).floor())
 }
 
 pub type ProfileOf = Box<dyn Fn(&CanIndex, &str) -> String + Send + Sync>;
@@ -554,15 +573,21 @@ impl CanIndex {
         let bus_of = bus_map_of(&side, &dbc.buses);
         let internal = internal_buses_of(&side);
         let mut b = Builder::new(name, &fmt_now, trust, bus_of, internal, &dbc, raw_only);
+        b.window = parse_name(name).map(|nm| log_window(nm.started_at));
         let mut found = reader::Found::default();
         let mut write_err: Option<std::io::Error> = None;
         let mut bad_time = false;
+        let mut jumpy = false;
         let opts = reader::Opts { xz: self.xz.clone(), max_unpacked: self.max_unpacked, ..Default::default() };
         reader::read_lines(&file, &opts, &mut found, reader::MAX_LINE, |line| {
             match b.line(line) {
                 Step::Ok => {}
                 Step::BadTime => {
                     bad_time = true;
+                    return false;
+                }
+                Step::TooManySteps => {
+                    jumpy = true;
                     return false;
                 }
             }
@@ -580,6 +605,10 @@ impl CanIndex {
         }
         if let Some(e) = write_err {
             return Err(LogError { message: e.to_string(), retry: false, busy: false, refused: false });
+        }
+        if jumpy {
+            // (what it wrote before stays until the log is taken out: all of it is in its window)
+            return Err(LogError { message: format!("its frame times jump between minutes more than {} times, more than a CAN Bridge log's do", MAX_MINUTE_STEPS), retry: false, busy: false, refused: false });
         }
         b.close_minute();
         if let Some(why) = &found.truncated {
@@ -601,7 +630,7 @@ impl CanIndex {
         let found_vin = b.vin.found.clone().or(from_side);
         let car_changed = found_vin.as_ref().is_some_and(|f| self.note_car(key, f));
         let minutes = b.written + if b.minute.is_some() { 1 } else { 0 };
-        Ok(Indexed { frames: b.frames, minutes, from: b.first, to: b.last_t, profile, car_changed, truncated: found.truncated.map(|w| format!("xz stopped early: {}", w)) })
+        Ok(Indexed { frames: b.frames, outside: b.outside, minutes, from: b.first, to: b.last_t, profile, car_changed, truncated: found.truncated.map(|w| format!("xz stopped early: {}", w)) })
     }
 
     fn write_out(&self, key: &str, name: &str, raw_only: bool, w: Write) -> std::io::Result<()> {
@@ -704,10 +733,21 @@ impl CanIndex {
                         if r.car_changed && self.profile_for(&job.key) != job.profile {
                             self.again.store(true, Ordering::SeqCst);
                         }
+                        // taken out (deleted, or "use anyway" turned off) while it was indexed:
+                        // what was written after that comes out again, and it is not marked done
+                        if !self.can_dir.join(&job.key).join(&job.name).is_file() || !(self.usable)(&job.key, &job.name).0 {
+                            self.remove_log(&job.key, &job.name);
+                            (self.on_indexed)(&job.key, r.from, r.to);
+                            self.status.lock().unwrap().pending -= 1;
+                            continue;
+                        }
                         self.with_done(|d| d.insert(format!("{}/{}", job.key, job.name), Value::String(job.stamp.clone())));
                         self.save_done();
                         self.status.lock().unwrap().indexed += 1;
                         (self.log)("info", &format!("CAN index: {}: {} frames, {} minute(s)", job.name, r.frames, r.minutes));
+                        if r.outside > 0 {
+                            (self.log)("warn", &format!("CAN index: {}: {} frame(s) left out, timed outside the minutes its name allows", job.name, r.outside));
+                        }
                         if let Some(t) = &r.truncated {
                             let e = format!("{}: {} (what was read before is indexed)", job.name, t);
                             (self.log)("warn", &format!("CAN index: {}", e));
@@ -928,8 +968,8 @@ impl CanIndex {
     pub fn remove_log(&self, key: &str, name: &str) -> usize {
         let Some(nm) = parse_name(name) else { return 0 };
         let mut count = 0;
-        let mut t = nm.started_at - 2 * 60_000;
-        while t <= nm.started_at + 30 * 60_000 {
+        let mut t = nm.started_at - LOG_BEFORE_MS;
+        while t <= nm.started_at + LOG_AFTER_MS {
             let lock = self.lock_of(key);
             let _g = lock.lock().unwrap();
             if self.remove_from_minute(key, &minute_key(t as f64), name) {
@@ -1378,6 +1418,7 @@ struct RawLast {
 enum Step {
     Ok,
     BadTime,
+    TooManySteps,
 }
 
 struct Builder<'a> {
@@ -1407,6 +1448,12 @@ struct Builder<'a> {
     first: Option<f64>,
     last_t: Option<f64>,
     decoded: Vec<(&'a dbc::Signal, f64)>,
+    /// the minute numbers this log may write (`log_window`); None: any
+    window: Option<(f64, f64)>,
+    /// frames left out for their time outside `window`
+    outside: u64,
+    /// steps from one minute to another so far
+    steps: u64,
 }
 
 fn ws(c: u8) -> bool {
@@ -1523,6 +1570,9 @@ impl<'a> Builder<'a> {
             first: None,
             last_t: None,
             decoded: Vec::new(),
+            window: None,
+            outside: 0,
+            steps: 0,
         }
     }
 
@@ -1583,9 +1633,17 @@ impl<'a> Builder<'a> {
         let Some((sec, frac, iface, idh, hex)) = parse_line(l) else { return Step::Ok };
         let t = sec.parse::<f64>().unwrap_or(f64::INFINITY) * 1000.0 + format!("0.{}", frac).parse::<f64>().unwrap_or(0.0) * 1000.0;
         let no = (t / 60000.0).floor();
+        if self.window.is_some_and(|(lo, hi)| no < lo || no > hi) {
+            self.outside += 1;
+            return Step::Ok;
+        }
         if self.minute_no != Some(no) {
             if self.minute.is_some() {
                 self.written += 1;
+                self.steps += 1;
+                if self.steps > MAX_MINUTE_STEPS {
+                    return Step::TooManySteps;
+                }
             }
             self.close_minute();
             self.minute_no = Some(no);
@@ -1723,4 +1781,58 @@ impl<'a> Builder<'a> {
 
 fn num_or_null(x: f64) -> Value {
     if x.is_finite() { n(x) } else { Value::Null }
+}
+
+#[cfg(test)]
+mod window_tests {
+    use super::*;
+
+    const KEY: &str = "abcdef123456";
+    const NAME: &str = "abcdef123456_20261122T101500Z_1.log.xz";
+
+    /// A CAN area with one log of these candump lines (xz, as the bridge sends it).
+    fn area(tag: &str, lines: &[String]) -> (CanIndex, PathBuf) {
+        let root = std::env::temp_dir().join(format!("can-index-window-{}-{}", std::process::id(), tag));
+        let _ = std::fs::remove_dir_all(&root);
+        let logs = root.join("can").join(KEY);
+        std::fs::create_dir_all(&logs).unwrap();
+        let plain = logs.join("plain.log");
+        std::fs::write(&plain, lines.join("\n") + "\n").unwrap();
+        let st = std::process::Command::new("xz").arg("-zc").arg(&plain).output().unwrap();
+        assert!(st.status.success());
+        std::fs::write(logs.join(NAME), st.stdout).unwrap();
+        std::fs::remove_file(&plain).unwrap();
+        (CanIndex::new(root.join("can"), root.join("can-index")), root)
+    }
+
+    fn at(ms_after_name: i64) -> String {
+        let t = parse_name(NAME).unwrap().started_at + ms_after_name;
+        format!("({}.{:06}) can0 123#0011223344556677", t / 1000, (t % 1000) * 1000)
+    }
+
+    #[test]
+    fn frames_timed_far_from_the_logs_name_are_left_out_so_taking_it_out_leaves_nothing() {
+        // two frames in its minutes, then a clock that jumped 3 hours on
+        let (ix, root) = area("far", &[at(1_000), at(61_000), at(3 * 3600_000), at(3 * 3600_000 + 60_000)]);
+        let r = ix.index_log(KEY, NAME, false, Some("unsigned"), None).unwrap();
+        assert_eq!((r.frames, r.outside), (2, 2));
+        assert_eq!(ix.minute_times(KEY, f64::NEG_INFINITY, f64::INFINITY).len(), 2);
+        ix.remove_log(KEY, NAME);
+        assert_eq!(ix.minute_times(KEY, f64::NEG_INFINITY, f64::INFINITY), Vec::<f64>::new(), "nothing of the log is left in the index");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_log_whose_frames_jump_between_minutes_without_end_is_refused() {
+        let lines: Vec<String> = (0..(MAX_MINUTE_STEPS as i64 + 10)).map(|i| at(if i % 2 == 0 { 1_000 } else { 61_000 })).collect();
+        let (ix, root) = area("jumpy", &lines);
+        let e = ix.index_log(KEY, NAME, false, Some("unsigned"), None).err().expect("refused");
+        assert!(!e.retry && e.message.contains("jump"), "{}", e.message);
+        // a log that steps forward minute by minute is indexed as before
+        let (ix, root2) = area("steady", &(0..10).map(|m| at(m * 60_000 + 5_000)).collect::<Vec<_>>());
+        let r = ix.index_log(KEY, NAME, false, Some("unsigned"), None).unwrap();
+        assert_eq!((r.frames, r.outside, r.minutes), (10, 0, 10));
+        let _ = std::fs::remove_dir_all(&root);
+        let _ = std::fs::remove_dir_all(&root2);
+    }
 }
