@@ -19,6 +19,28 @@ const wait = (ms, signal) =>
       { once: true },
     );
   });
+/** One signal that aborts when any of these does (AbortSignal.any is
+ *  missing before Safari 17.4 and Chromium 116, so it is built by hand there). */
+export const anySignal = (signals) => {
+  if (typeof AbortSignal.any === 'function') return AbortSignal.any(signals);
+  const c = new AbortController();
+  for (const s of signals) {
+    if (s.aborted) {
+      c.abort(s.reason);
+      break;
+    }
+    s.addEventListener('abort', () => c.abort(s.reason), { once: true, signal: c.signal });
+  }
+  return c.signal;
+};
+/** A signal that aborts after ms (AbortSignal.timeout is missing before
+ *  Safari 16 and Chromium 103). */
+export const timeoutSignal = (ms) => {
+  if (typeof AbortSignal.timeout === 'function') return AbortSignal.timeout(ms);
+  const c = new AbortController();
+  setTimeout(() => c.abort(new DOMException('The operation timed out.', 'TimeoutError')), ms);
+  return c.signal;
+};
 /** How long a read may wait for its answer; a change waits (some run long,
  *  and one given up on could still happen on the server). */
 export const READ_TIMEOUT = 20000;
@@ -34,11 +56,14 @@ export async function api(path, { method, body, check = () => {}, timeout, ...re
   for (let attempt = 0; ; attempt++) {
     const clock = ms ? new AbortController() : null;
     const timer = clock ? setTimeout(() => clock.abort(), ms) : null;
-    const signal = clock
-      ? rest.signal
-        ? AbortSignal.any([rest.signal, clock.signal])
-        : clock.signal
-      : rest.signal;
+    // the caller giving up stops this attempt too (forwarded by hand: works
+    // on every browser, and the listener goes with the attempt)
+    const forward = clock && rest.signal ? () => clock.abort(rest.signal.reason) : null;
+    if (forward) {
+      if (rest.signal.aborted) forward();
+      else rest.signal.addEventListener('abort', forward, { once: true });
+    }
+    const signal = clock ? clock.signal : rest.signal;
     try {
       res = await fetch(path, {
         ...rest,
@@ -72,6 +97,7 @@ export async function api(path, { method, body, check = () => {}, timeout, ...re
       check();
     } finally {
       clearTimeout(timer);
+      if (forward) rest.signal.removeEventListener('abort', forward);
     }
   }
   check();
@@ -246,7 +272,7 @@ export function scope(keyParts = () => [], { signal, alive = () => true } = {}) 
       ...options,
       check,
       signal: options.signal
-        ? AbortSignal.any([controller.signal, options.signal])
+        ? anySignal([controller.signal, options.signal])
         : controller.signal,
     }),
   );
@@ -255,7 +281,7 @@ export function scope(keyParts = () => [], { signal, alive = () => true } = {}) 
     const yes = await confirmDialog({
       ...options,
       signal: options.signal
-        ? AbortSignal.any([controller.signal, options.signal])
+        ? anySignal([controller.signal, options.signal])
         : controller.signal,
     });
     return valid() && yes;
