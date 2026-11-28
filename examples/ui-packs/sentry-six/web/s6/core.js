@@ -19,17 +19,30 @@ const wait = (ms, signal) =>
       { once: true },
     );
   });
-export async function api(path, { method, body, check = () => {}, ...rest } = {}, retried = false) {
+/** How long a read may wait for its answer; a change waits (some run long,
+ *  and one given up on could still happen on the server). */
+export const READ_TIMEOUT = 20000;
+export const LATE_TEXT = 'The server took too long to answer. Try again in a moment.';
+export async function api(path, { method, body, check = () => {}, timeout, ...rest } = {}, retried = false) {
   check();
   rest.signal?.throwIfAborted();
   const verb = method || (body === undefined ? 'GET' : 'POST');
+  const ms = timeout ?? (verb === 'GET' ? READ_TIMEOUT : 0);
   let res, data;
   // a busy server can drop a connection now and then: reads are tried again
   // quietly; a change (POST, PUT, DELETE) is not, so it never happens twice
   for (let attempt = 0; ; attempt++) {
+    const clock = ms ? new AbortController() : null;
+    const timer = clock ? setTimeout(() => clock.abort(), ms) : null;
+    const signal = clock
+      ? rest.signal
+        ? AbortSignal.any([rest.signal, clock.signal])
+        : clock.signal
+      : rest.signal;
     try {
       res = await fetch(path, {
         ...rest,
+        ...(signal ? { signal } : {}),
         method: verb,
         credentials: 'same-origin',
         headers: {
@@ -47,11 +60,18 @@ export async function api(path, { method, body, check = () => {}, ...rest } = {}
       });
       break;
     } catch (e) {
-      if (e?.name === 'AbortError' || rest.signal?.aborted) throw e;
+      // the caller gave up: never retried
+      if (rest.signal?.aborted) throw e;
+      // no answer in time: shown at once, with Try again (offline)
+      if (clock?.signal.aborted)
+        throw Object.assign(new Error(LATE_TEXT), { offline: true, timeout: true, cause: e });
+      if (e?.name === 'AbortError') throw e;
       if (verb !== 'GET' || attempt >= 3)
         throw Object.assign(new Error(OFFLINE_TEXT), { offline: true, cause: e });
       await wait([500, 1500, 4000][attempt], rest.signal);
       check();
+    } finally {
+      clearTimeout(timer);
     }
   }
   check();

@@ -35,7 +35,8 @@ const ERRORS = {
   INVALID_AUTO_WINDOW: 'Choose different start and end hours.',
   RECOVERY_REQUIRED: 'This job stopped in the middle of replacing an original. Resume it to finish safely.',
   CONVERTER_STARTING: 'The converter is still starting. Try again in a moment.',
-  NETWORK_ERROR: 'Could not reach the server.'
+  NETWORK_ERROR: 'Could not reach the server.',
+  TIMEOUT: 'The server took too long to answer.'
 };
 const errText = (e) => (e?.code === 'DEVICE_UNSUPPORTED' && e.details ? `${e.details.device} can't encode ${String(e.details.codec).toUpperCase()}. Set it to 0 or pick another codec.` : ERRORS[e?.code] || `Converter: ${e?.code || 'failed'}`);
 const unwrap = (r) => {

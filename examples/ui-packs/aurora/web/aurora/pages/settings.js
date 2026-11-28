@@ -15,7 +15,7 @@ const SECTIONS = [
   ['security', 'Security', 'lock'], ['system', 'System', 'cpu'], ['power', 'Electricity', 'bolt'], ['nodes', 'Nodes', 'nodes'], ['help', 'Help & feedback', 'chat']
 ];
 // Help & feedback is for admins only (a watch-only account does not see it, and /api/reports refuses it)
-const isAdmin = () => fetch('/api/auth/me', { credentials: 'same-origin' }).then((r) => r.json()).then((m) => m?.role === 'admin').catch(() => false);
+const isAdmin = () => api('/api/auth/me', { timeoutMs: 8000 }).then((m) => m?.role === 'admin').catch(() => false);
 const WEEK = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']];
 const MAX_RATES = 12;
 const priceText = (n) => (fin(n) ? String(n) : '');
@@ -42,7 +42,9 @@ export default {
         if (section === 'nodes') inner = await nodesPage.mount({ ...ctx, body: box, params: [] });
         else await SECTION[section](box, sub, ctx);
       } catch (err) {
-        if (!dead) box.innerHTML = `<p class="note bad">${esc(err.message)}</p>`;
+        if (dead) return;
+        box.innerHTML = `<div class="note bad"><p>${esc(err.message)}</p><button class="btn" type="button" data-retry>Try again</button></div>`;
+        box.querySelector('[data-retry]').onclick = () => { box.innerHTML = '<p class="loading">Loading…</p>'; draw(); };
       }
     };
     await draw();
@@ -242,8 +244,8 @@ async function iface(box) {
       <p class="lead">How Sentry Six Manager looks and works for everyone who signs in. <b>Sentry Six</b> is the main interface; the others come with the app or were uploaded.</p>
       ${ui.original ? `<div class="note warn" style="margin-top:12px">This browser shows the original interface because you opened <span class="mono">/original</span>${ui.active ? `; everyone else sees <b>${esc(ui.packs.find((x) => x.id === ui.active)?.name || '')}</b>` : ''}. <div class="actions start"><a class="btn sm" href="/original?off=1">Show the chosen interface</a></div></div>` : ''}
       <label class="field" style="margin-top:16px;max-width:420px">Interface for everyone<select class="input" id="ui-pick">${ui.packs.map((x) => `<option value="${esc(x.id)}"${x.id === ui.active ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>
-      <div style="margin-top:16px">${ui.packs.map((x) => `<div class="pack-row"><div style="min-width:0"><b>${esc(x.name)}</b>${x.id === ui.active ? ' <span class="chip green">In use</span>' : ''}${x.description ? `<br><span class="muted small">${esc(x.description)}</span>` : ''}<br><span class="muted tiny">${x.author ? `by ${esc(x.author)} · ` : ''}${(x.replaces || []).map((k) => (k === 'web' ? 'pages' : 'Viewer and Encoder')).join(', ')} · ${x.files} files · uploaded ${esc(day(x.uploadedAt))}</span></div>
-        <button class="btn sm danger" type="button" data-ui-del="${esc(x.id)}">${icon('trash')} Delete</button></div>`).join('')}</div>
+      <div style="margin-top:16px">${ui.packs.map((x) => `<div class="pack-row"><div style="min-width:0"><b>${esc(x.name)}</b>${x.id === ui.active ? ' <span class="chip green">In use</span>' : ''}${x.description ? `<br><span class="muted small">${esc(x.description)}</span>` : ''}<br><span class="muted tiny">${x.author ? `by ${esc(x.author)} · ` : ''}${(x.replaces || []).map((k) => (k === 'web' ? 'pages' : 'Viewer and Encoder')).join(', ')} · ${x.files} files${x.builtin ? ' · built in' : ` · uploaded ${esc(day(x.uploadedAt))}`}</span></div>
+        ${x.builtin ? '' : `<button class="btn sm danger" type="button" data-ui-del="${esc(x.id)}">${icon('trash')} Delete</button>`}</div>`).join('')}</div>
       <div class="actions start">
         <label class="btn primary file-pick">${icon('upload')} Upload a pack (.zip)<input type="file" id="ui-file" accept=".zip,application/zip" aria-label="Upload an interface pack"></label>
         <a class="btn" href="/api/ui-packs/original.zip" download>${icon('download')} Download the original to start from</a>

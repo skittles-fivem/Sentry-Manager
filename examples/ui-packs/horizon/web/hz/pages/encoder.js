@@ -35,7 +35,8 @@ const WHY = {
   INVALID_AUTO_WINDOW: 'Pick different start and end hours.',
   RECOVERY_REQUIRED: 'This job stopped while replacing an original. Resume it to finish safely.',
   CONVERTER_STARTING: 'The converter is still starting. Try again in a moment.',
-  NETWORK_ERROR: 'The server cannot be reached.'
+  NETWORK_ERROR: 'The server cannot be reached.',
+  TIMEOUT: 'The server took too long to answer.'
 };
 const why = (e) => (e?.code === 'DEVICE_UNSUPPORTED' && e.details ? `${e.details.device} cannot encode ${String(e.details.codec).toUpperCase()}. Set it to 0 or choose the other codec.` : WHY[e?.code] || `Converter: ${e?.code || 'failed'}`);
 const must = (r) => {

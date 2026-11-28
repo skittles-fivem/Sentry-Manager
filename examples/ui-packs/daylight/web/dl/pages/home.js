@@ -134,6 +134,10 @@ export async function render(ctx) {
   let snap;
   let days = null;
   let health = null;
+  // why the latest days or the server's numbers could not be read (shown, with Try again)
+  let daysErr = null;
+  let healthErr = null;
+  const problem = (text, attr) => `<div class="note note-bad">${icon('alert')}<span>${esc(text)}</span></div><p style="margin-top:12px"><button class="btn btn-sm" type="button" ${attr}>Try again</button></p>`;
 
   const draw = () => {
     const now = new Date();
@@ -144,7 +148,7 @@ export async function render(ctx) {
         <p class="lede">Here’s how your Tesla footage is doing today.</p></div></div>
       <section class="status-grid" aria-label="At a glance">${safeCard()}${spaceCard()}${convertCard(snap)}${needsCard()}</section>
       ${state.vehicles.length ? `<section class="section"><div class="section-head"><h2>Latest days</h2><a class="btn btn-ghost btn-sm" href="#/footage">All footage ${icon('next')}</a></div>
-        <div class="days-strip" id="latest-days">${days === null ? '<div class="loading"><span class="spin"></span><span>Loading…</span></div>' : days.length ? days.map(dayTile).join('') : `<p class="muted">No footage yet. It shows up here once ${esc(vehicle()?.name || 'the car')} has recorded some.</p>`}</div></section>
+        <div class="days-strip" id="latest-days">${days === null ? (daysErr ? problem(`Couldn’t load the latest days: ${daysErr}`, 'data-days-retry') : '<div class="loading"><span class="spin"></span><span>Loading…</span></div>') : days.length ? days.map(dayTile).join('') : `<p class="muted">No footage yet. It shows up here once ${esc(vehicle()?.name || 'the car')} has recorded some.</p>`}</div></section>
       <section class="section"><div class="section-head"><h2>Your vehicles</h2><a class="btn btn-ghost btn-sm" href="#/settings/vehicles">Manage ${icon('next')}</a></div>
         <div class="vehicle-cards">${state.vehicles.map(vehicleCard).join('')}</div></section>` : ''}
       <section class="section"><div class="section-head"><h2>Server</h2><a class="btn btn-ghost btn-sm" href="#/server">Details &amp; logs ${icon('next')}</a></div>
@@ -158,7 +162,7 @@ export async function render(ctx) {
       <div class="dc-body"><span class="dc-title">${esc(dayShort(d.day))}</span><span class="dc-meta">${footMinutes(d.minutes)} · ${bytes(d.bytes)}</span></div></a>`;
   };
   const healthBody = (s) => {
-    if (!s) return '<div class="loading"><span class="spin"></span><span>Asking the server…</span></div>';
+    if (!s) return healthErr ? problem(`Can’t read the server’s numbers: ${healthErr}`, 'data-health-retry') : '<div class="loading"><span class="spin"></span><span>Asking the server…</span></div>';
     const mem = s.memory && fin(s.memory.totalB) ? s.memory.usedB / s.memory.totalB : null;
     const alerts = (s.alerts || []).length;
     return `<div class="row-between"><div><p class="a" style="font-size:19px;font-weight:700">${alerts ? `${plural(alerts, 'warning')} on the server` : 'Running smoothly'}</p>
@@ -171,12 +175,13 @@ export async function render(ctx) {
     ? `<div class="stat"><span>Power, all servers</span><b>${fin(s.power.combined.totalW) ? `${Math.round(s.power.combined.totalW)} W` : '—'}</b></div>`
     : `<div class="stat"><span>Power</span><b>${fin(s.power?.totalW) ? `${Math.round(s.power.totalW)} W` : '—'}</b>${!fin(s.power?.cpuW) && CPU_NA_SHORT[s.power?.cpuUnavailable] ? `<small class="muted">${CPU_NA_SHORT[s.power.cpuUnavailable]}</small>` : ''}</div>`}
         <div class="stat"><span>Data folder free</span><b>${fin(s.filesystems?.[0]?.freeB) ? bytes(s.filesystems[0].freeB) : '—'}</b></div>
-      </div>`;
+      </div>${healthErr ? `<p class="muted small" style="margin-top:10px">The last update didn’t come through (${esc(healthErr)}); trying again.</p>` : ''}`;
   };
 
   draw();
   wire();
   function wire() {
+    wireRetry();
     view.querySelectorAll('[data-scan]').forEach((b) => {
       b.onclick = () => busy(b, () => api(`/api/vehicles/${encodeURIComponent(b.dataset.scan)}/scan`, { body: {} })
         .then(() => toast('Looking for new footage. This takes a moment.'), fail));
@@ -204,15 +209,37 @@ export async function render(ctx) {
     wire();
   };
 
-  const v = vehicle();
-  if (v) {
-    api(`/api/vehicles/${encodeURIComponent(v.id)}/days?limit=4`).then((d) => { days = d.days; redraw(); }, () => { days = []; redraw(); });
+  function wireRetry() {
+    const d = view.querySelector('[data-days-retry]');
+    if (d) d.onclick = () => { daysErr = null; redraw(); loadDays(); };
+    const h = view.querySelector('[data-health-retry]');
+    if (h) h.onclick = () => { healthErr = null; drawHealth(); loadHealth(); };
   }
-  const loadHealth = () => api('/api/stats', { timeoutMs: 8000 }).then((s) => {
-    health = s;
+  // a failed read says so: never an empty list ('No footage yet') or a spinner for ever
+  const loadDays = () => {
+    const car = vehicle();
+    if (!car) return;
+    api(`/api/vehicles/${encodeURIComponent(car.id)}/days?limit=4`).then((d) => { days = d.days; daysErr = null; redraw(); }, (err) => {
+      daysErr = err.message;
+      if (days === null) redraw();
+    });
+  };
+  loadDays();
+  const drawHealth = () => {
     const el = view.querySelector('#health');
-    if (el) liveDraw(el, () => { el.innerHTML = healthBody(health); }, 'dl:health');
-  }, () => {});
+    if (el) liveDraw(el, () => { el.innerHTML = healthBody(health); wireRetry(); }, 'dl:health');
+  };
+  const loadHealth = () => api('/api/stats', { timeoutMs: 8000 }).then((s) => {
+    if (!ctx.alive()) return;
+    health = s;
+    healthErr = null;
+    drawHealth();
+  }, (err) => {
+    if (!ctx.alive()) return;
+    const was = healthErr;
+    healthErr = err.message;
+    if (was !== healthErr) drawHealth();
+  });
   setTimeout(loadHealth, 1500); // the second sample has real CPU numbers
   ctx.every(10000, loadHealth);
 
@@ -229,7 +256,11 @@ export async function render(ctx) {
   ctx.cleanup(stop);
   ctx.on('topics', (topics) => {
     if (topics.some((t) => ['vehicles', 'inventory', 'notifications', 'bin'].includes(t))) {
-      if (topics.includes('inventory') && vehicle()) api(`/api/vehicles/${encodeURIComponent(vehicle().id)}/days?limit=4`).then((d) => { days = d.days; liveDraw(view.firstElementChild || view, () => ctx.alive() && redraw(), 'dl:home'); }, () => {});
+      if (topics.includes('inventory') && vehicle()) api(`/api/vehicles/${encodeURIComponent(vehicle().id)}/days?limit=4`).then((d) => { days = d.days; daysErr = null; liveDraw(view.firstElementChild || view, () => ctx.alive() && redraw(), 'dl:home'); }, (err) => {
+        // the days shown stay; with none yet, why
+        daysErr = err.message;
+        if (days === null) liveDraw(view.firstElementChild || view, () => ctx.alive() && redraw(), 'dl:home');
+      });
       else liveDraw(view.firstElementChild || view, () => ctx.alive() && redraw(), 'dl:home');
     }
   });

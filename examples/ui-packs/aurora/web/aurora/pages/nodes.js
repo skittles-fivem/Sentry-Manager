@@ -73,7 +73,8 @@ export default {
     async function draw() {
       let d;
       try { d = await load(); } catch (err) {
-        body.innerHTML = `<p class="note bad">${esc(err.message)}</p>`;
+        if (dead) return;
+        body.innerHTML = `<div class="note bad"><p>${esc(err.message)}</p><button class="btn sm" type="button" data-nodes-retry>Try again</button></div>`;
         return;
       }
       if (dead) return;
@@ -133,6 +134,7 @@ export default {
     }));
     body.addEventListener('click', async (e) => {
       const t = e.target;
+      if (t.closest('[data-nodes-retry]')) { body.innerHTML = '<p class="loading">Looking for nodes…</p>'; draw(); return; }
       const b = t.closest('[data-bench]');
       if (b) return once(async () => { await api(`/api/nodes/${encodeURIComponent(b.dataset.bench)}/benchmark`, { body: { codec: b.dataset.codec } }).catch((err) => toast(err.message, 'bad')); })();
       const bc = t.closest('[data-bench-cancel]');

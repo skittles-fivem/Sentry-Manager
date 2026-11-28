@@ -100,6 +100,8 @@ export class ApiError extends Error {
   }
 }
 
+/** How long a read may take before it gives up. */
+export const READ_TIMEOUT = 20000;
 /** JSON request; asks for the password again when the server wants it. */
 export async function api(path, opts = {}, retried = false) {
   const init = { credentials: 'same-origin', headers: { ...(opts.headers || {}) } };
@@ -110,8 +112,11 @@ export async function api(path, opts = {}, retried = false) {
     init.headers['Content-Type'] = 'application/json';
     init.body = JSON.stringify(opts.body);
   }
-  const ctrl = opts.timeoutMs ? new AbortController() : null;
-  const timer = ctrl ? setTimeout(() => ctrl.abort(), opts.timeoutMs) : null;
+  // a read gives up after 20 s; a change waits (some run long, and one given
+  // up on could still happen on the server). timeoutMs 0 waits for ever.
+  const ms = opts.timeoutMs ?? (method === 'GET' ? READ_TIMEOUT : 0);
+  const ctrl = ms ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), ms) : null;
   if (ctrl) init.signal = ctrl.signal;
   let res;
   try {
@@ -121,12 +126,14 @@ export async function api(path, opts = {}, retried = false) {
     if (ctrl?.signal.aborted) throw new ApiError('The server took too long to answer.', 0);
     throw new ApiError('Can’t reach Sentry Six Manager right now. Check your connection and try again.', 0);
   }
+  // the answer's body is under the same clock
+  const data = await res.json().catch(() => ({}));
   clearTimeout(timer);
   if (res.status === 401 && !path.startsWith('/api/auth/')) {
     signIn();
     throw new ApiError('Signed out', 401);
   }
-  const data = await res.json().catch(() => ({}));
+  if (ctrl?.signal.aborted) throw new ApiError('The server took too long to answer.', 0);
   if (res.status === 403 && data.code === 'CONFIRM_PASSWORD' && !retried) {
     await confirmPassword();
     return api(path, opts, true);
@@ -165,9 +172,12 @@ export class ConverterError extends Error {
     this.details = details;
   }
 }
+/** Converter calls that only read give up after 30 s; the rest (start, a
+ *  benchmark, a check) can take long and wait. */
+const QUICK_CONV = /^(get|devices$|subscribeProgress$|unsubscribeProgress$)/;
 /** One converter call; resolves with its value or throws ConverterError. */
 export async function invoke(name, payload) {
-  const out = await api(`/api/converter/invoke/${name}`, { method: 'POST', body: payload === undefined ? undefined : payload, headers: { 'X-Client-Id': clientId } });
+  const out = await api(`/api/converter/invoke/${name}`, { method: 'POST', body: payload === undefined ? undefined : payload, headers: { 'X-Client-Id': clientId }, timeoutMs: QUICK_CONV.test(name) ? 30000 : 0 });
   if (!out || out.ok !== true) throw new ConverterError(out?.error?.code || 'OPERATION_FAILED', out?.error?.details);
   return out.value;
 }

@@ -27,7 +27,8 @@ async function renderPage(el, ctx) {
   }
   const [d, h, j] = await Promise.all([
     api(`/api/vehicles/${encodeURIComponent(v.id)}/days?limit=40`),
-    api('/api/health'),
+    // (the first read after a start runs every check)
+    api('/api/health', { timeout: 60000 }),
     api('/api/jobs'),
   ]);
   if (!alive()) return;

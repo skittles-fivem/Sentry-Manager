@@ -402,13 +402,15 @@ export default {
     $('#log-arch').addEventListener('toggle', (e) => { if (e.target.open) loadArchives(); });
 
     // ---- polling ----
-    async function poll() {
-      if (!alive) return;
+    // one chain at a time: a range switch mid-poll starts a new one, the old one stops
+    let chain = 0;
+    async function poll(mine = chain) {
+      if (!alive || mine !== chain) return;
       if (document.visibilityState === 'visible') {
         try {
           const wantDay = range === '24h' && Date.now() - hist24At > 60000;
           const [s, h] = await Promise.all([api('/api/stats', { timeoutMs: 10000 }), wantDay ? api('/api/stats/history?range=24h', { timeoutMs: 20000 }).catch(() => null) : null]);
-          if (!alive) return;
+          if (!alive || mine !== chain) return;
           snap = s;
           error = null;
           if (h) { hist24 = h; hist24At = Date.now(); }
@@ -416,18 +418,19 @@ export default {
           liveDraw(TILES, drawTiles);
           drawCharts();
         } catch (err) {
+          if (!alive || mine !== chain) return;
           error = err.message;
           if (snap) liveDraw(TILES, drawTiles);
           else $('#ov-host').innerHTML = `<span class="bad-text">Can't read the server's numbers: ${esc(err.message)}</span>`;
         }
       }
-      timer = setTimeout(poll, 2000);
+      timer = setTimeout(() => poll(mine), 2000);
     }
     let logTick = 0;
     logs.timer = setInterval(() => {
       if (logs.auto && document.visibilityState === 'visible' && ++logTick % 2 === 0) loadLogs();
     }, 2500);
-    wireSeg(el, 'range', (v) => { range = v; store.set('ov:range', v); hist24At = 0; if (v === '24h') { clearTimeout(timer); poll(); } else drawCharts(); });
+    wireSeg(el, 'range', (v) => { range = v; store.set('ov:range', v); hist24At = 0; if (v === '24h') { chain++; clearTimeout(timer); poll(); } else drawCharts(); });
 
     drawKpis();
     drawVehicles();
@@ -440,6 +443,7 @@ export default {
     return {
       unmount() {
         alive = false;
+        chain++;
         clearTimeout(timer);
         clearInterval(logs.timer);
         Object.values(charts).forEach((c) => c.destroy());

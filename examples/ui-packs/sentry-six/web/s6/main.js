@@ -180,7 +180,7 @@ export async function render(vehicleChanged = false, { quiet = false } = {}) {
     } else teardown();
   } catch (e) {
     if (ticket !== seq || e?.name === 'AbortError' || quiet) return;
-    page.innerHTML = `<div class="card"><p>${esc(offline(e) ? OFFLINE_TEXT : e.message)}</p><div class="form-actions">${offline(e) ? '<button class="btn solid" data-again>Try again</button>' : ''}<a class="btn" href="/original">Open Original</a></div></div>`;
+    page.innerHTML = `<div class="card"><p>${esc(offline(e) && !e.timeout ? OFFLINE_TEXT : e.message)}</p><div class="form-actions">${offline(e) ? '<button class="btn solid" data-again>Try again</button>' : ''}<a class="btn" href="/original">Open Original</a></div></div>`;
     page.querySelector('[data-again]')?.addEventListener('click', () => render());
   } finally {
     // a quiet redraw that was not kept (failed, or overtaken by another)

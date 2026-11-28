@@ -11,7 +11,9 @@ async function renderPage(el, ctx) {
     hist = null,
     stopped = false,
     timer = null,
-    loading = false;
+    loading = false,
+    // why the last sample could not be read ('' once one comes)
+    failed = '';
   const more = {},
     seen = new Map();
   el.innerHTML =
@@ -25,7 +27,9 @@ async function renderPage(el, ctx) {
   function draw() {
     if (stopped || !ctx.alive()) return;
     el.querySelector('[data-host]').innerHTML = hostLine(snap?.host);
-    el.querySelector('[data-stats]').innerHTML = snap
+    el.querySelector('[data-stats]').innerHTML = !snap && failed
+      ? `<div class="card"><p>${esc(failed)}</p><div class="form-actions"><button class="btn solid" data-again>Try again</button></div></div>`
+      : snap
       ? serverBody(snap, {
           admin,
           range,
@@ -46,20 +50,33 @@ async function renderPage(el, ctx) {
     loading = true;
     try {
       const values = await Promise.all([
-        api('/api/stats'),
-        range === '24h' ? api('/api/stats/history?range=24h') : null,
+        api('/api/stats', { timeout: 10000 }),
+        range === '24h' ? api('/api/stats/history?range=24h', { timeout: 20000 }) : null,
       ]);
       snap = values[0];
       hist = values[1];
+      failed = '';
       draw();
     } catch (e) {
-      if (!stopped && ctx.alive()) toast(e.message, true);
+      if (e?.name === 'AbortError' || stopped || !ctx.alive()) return;
+      // said once, not on every poll; with nothing shown yet, in place of the numbers
+      if (e.message !== failed) {
+        failed = e.message;
+        if (snap) toast(e.message, true);
+        else draw();
+      }
     } finally {
       loading = false;
       if (!stopped && ctx.alive() && !document.hidden) timer = setTimeout(poll, 2000);
     }
   }
   el.onclick = act(async (e) => {
+    if (e.target.closest('[data-again]')) {
+      failed = '';
+      el.querySelector('[data-stats]').textContent = 'Reading the server…';
+      await poll();
+      return;
+    }
     const b = e.target.closest('[data-range]'),
       m = e.target.closest('[data-nd-more]');
     if (b) {

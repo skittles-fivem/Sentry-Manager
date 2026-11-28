@@ -194,6 +194,12 @@ export default {
     let pollTimer = 0;
     let dead = false;
     let days = null;
+    let daysFor = null; // the car the days shown are of
+    let daysSeq = 0;
+    // why the latest days or the server's numbers could not be read (shown, with Try again)
+    let daysErr = null;
+    let statsErr = null;
+    const problem = (text, attr) => `<div class="note bad"><p>${esc(text)}</p><button class="btn sm" type="button" ${attr}>Try again</button></div>`;
 
     body.innerHTML = `<div id="hero"></div>
       <div class="widgets">
@@ -212,7 +218,9 @@ export default {
     const drawServer = () => {
       const box = $('#w-server', body);
       const open = $$('details', box).map((d) => d.open);
-      box.innerHTML = serverHtml(stats, hist);
+      box.innerHTML = !stats && statsErr
+        ? problem(`Can’t read the server’s numbers: ${statsErr}`, 'data-stats-retry')
+        : serverHtml(stats, hist) + (statsErr ? `<p class="muted tiny">The last update didn’t come through (${esc(statsErr)}); trying again.</p>` : '');
       $$('details', box).forEach((d, i) => { if (open[i]) d.open = true; });
     };
     const drawEncoder = () => { $('#w-encoder', body).innerHTML = encoderHtml(snap, stats?.encoder); };
@@ -238,21 +246,32 @@ export default {
       const v = current();
       const el = $('#w-days-body', body);
       if (!v) { el.innerHTML = '<p class="muted">No vehicle yet.</p>'; return; }
-      if (!days) return;
+      if (!days) {
+        el.innerHTML = daysErr ? problem(`Couldn’t load the latest days: ${daysErr}`, 'data-days-retry') : '<p class="loading">Loading…</p>';
+        return;
+      }
       el.innerHTML = days.length ? `<div class="mini-days">${days.slice(0, 6).map((d) => {
         const p = dayParts(d.day);
-        return `<a class="mini-day" href="#/footage/${encodeURIComponent(d.day)}" aria-label="${esc(d.day)}, ${plural(d.recordings, 'recording')}">${d.thumbId ? `<img class="thumb-img" loading="lazy" alt="" src="/api/vehicles/${encodeURIComponent(v.id)}/recordings/${encodeURIComponent(d.thumbId)}/thumbnail">` : ''}<span>${esc(p.wd)} ${esc(p.dd)} ${esc(p.mon)}</span></a>`;
+        return `<a class="mini-day" href="#/footage/${encodeURIComponent(d.day)}" aria-label="${esc(d.day)}, ${plural(d.recordings, 'recording')}">${d.thumbId ? `<img class="thumb-img" loading="lazy" alt="" src="/api/vehicles/${encodeURIComponent(daysFor)}/recordings/${encodeURIComponent(d.thumbId)}/thumbnail">` : ''}<span>${esc(p.wd)} ${esc(p.dd)} ${esc(p.mon)}</span></a>`;
       }).join('')}</div>` : '<p class="muted">No footage yet.</p>';
     };
+    // only the newest ask for the car now picked is drawn; a failed one says so
     const loadDays = async () => {
       const v = current();
+      const mine = ++daysSeq;
+      if (v && daysFor !== v.id) { days = null; daysErr = null; }
       if (!v) { drawDays(); return; }
+      let got = null;
+      let err = null;
       try {
-        days = (await api(`/api/vehicles/${encodeURIComponent(v.id)}/days?limit=6`)).days;
-      } catch {
-        days = [];
+        got = (await api(`/api/vehicles/${encodeURIComponent(v.id)}/days?limit=6`)).days || [];
+      } catch (e) {
+        err = e.message;
       }
-      if (!dead) drawDays();
+      if (dead || mine !== daysSeq || current()?.id !== v.id) return;
+      if (got) { days = got; daysFor = v.id; daysErr = null; } else daysErr = err;
+      // the days shown stay when a refresh fails
+      if (got || !days) drawDays();
     };
     const loadLogs = async () => {
       try {
@@ -279,12 +298,15 @@ export default {
       }
     };
 
+    let polling = false; // one poll at a time (Try again while one waits does nothing more)
     const poll = async () => {
+      if (dead || polling) return;
       clearTimeout(pollTimer);
-      if (dead) return;
+      polling = true;
       if (!document.hidden) {
         try {
           stats = await api('/api/stats', { timeoutMs: 10000 });
+          statsErr = null;
           if (hist) {
             for (const [k, val] of [['cpu', stats.cpu?.usage], ['memory', stats.memory?.totalB ? ((stats.memory.totalB - (stats.memory.availableB ?? 0)) / stats.memory.totalB) * 100 : null], ['rxBps', (stats.network?.interfaces || []).reduce((n, i) => n + (i.rxBps || 0), 0)]]) {
               (hist[k] ||= []).push(val ?? null);
@@ -297,8 +319,15 @@ export default {
             liveDraw($('#w-attention', body), drawAttention);
             liveDraw($('#w-encoder', body), drawEncoder);
           }
-        } catch { /* next poll */ }
+        } catch (err) {
+          // tried again on the next poll; until one answers, the widget says why
+          if (!dead && err.message !== statsErr) {
+            statsErr = err.message;
+            liveDraw($('#w-server', body), drawServer);
+          }
+        }
       }
+      polling = false;
       pollTimer = setTimeout(poll, 2000);
     };
 
@@ -314,7 +343,9 @@ export default {
 
     body.addEventListener('click', async (e) => {
       const car = e.target.closest('[data-car]');
-      if (car) { setVehicle(car.dataset.car); drawHero(); drawKeep(); loadDays(); return; }
+      if (car) { setVehicle(car.dataset.car); drawHero(); drawKeep(); loadDays(); drawDays(); return; }
+      if (e.target.closest('[data-days-retry]')) { daysErr = null; drawDays(); loadDays(); return; }
+      if (e.target.closest('[data-stats-retry]')) { statsErr = null; drawServer(); poll(); return; }
       if (e.target.closest('#scan')) {
         const v = current();
         if (!v) return;

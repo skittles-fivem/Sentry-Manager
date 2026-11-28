@@ -182,7 +182,12 @@ impl Packs {
         }
         let text = std::fs::read_to_string(self.meta_file(id)).ok()?;
         match serde_json::from_str::<Value>(&text).ok()? {
-            Value::Object(m) if m.get("id").and_then(Value::as_str) == Some(id) => Some(m),
+            // an uploaded pack says so, whatever its pack.json holds (older ones have no key),
+            // so an interface can offer Delete for it and only for it
+            Value::Object(mut m) if m.get("id").and_then(Value::as_str) == Some(id) => {
+                m.insert("builtin".into(), json!(false));
+                Some(m)
+            }
             _ => None,
         }
     }
@@ -635,6 +640,7 @@ pub mod tests {
         let id = meta["id"].as_str().unwrap().to_string();
         assert!(id.starts_with("dark-mint-") && id.len() == "dark-mint-".len() + 6);
         assert_eq!(packs.list().iter().map(|m| m["id"].clone()).collect::<Vec<_>>(), [json!(id)]);
+        assert_eq!(packs.list()[0]["builtin"], false, "an uploaded pack is marked, so it can be deleted");
         assert_eq!(packs.active(), None, "installing does not switch");
         packs.set_active(Some(&id)).unwrap();
         assert_eq!(packs.active().as_deref(), Some(id.as_str()));
