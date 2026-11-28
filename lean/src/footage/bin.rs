@@ -227,14 +227,28 @@ fn put_back(root: &Path, planned: &[BinFile], moved: &[BinFile]) -> Vec<BinFile>
     stuck
 }
 
-/// Move recordings to the bin. Protected or busy recordings are refused.
-pub fn trash(app: &Arc<App>, vid: &str, ids: &[String], reason: &str) -> Res<Trashed> {
+/// What a move to the bin needs before it starts: the vehicle, its folder (refused while its
+/// share is not writable) and its scanned footage. A caller that answers before the move runs
+/// asks this first, so a refusal reaches the user instead of only the log.
+pub fn ready(app: &App, vid: &str) -> Res<(Vehicle, PathBuf, crate::app::VehicleState)> {
     let (vehicle, root) = root_of(app, vid)?;
     let inv = app.state_of(vid).filter(|s| s.scanned).ok_or_else(|| Fail::new(409, "Footage has not been scanned yet."))?;
     // (the recordings of the footage the vehicle had before are not paths in this one)
     if inv.root != vehicle.source_key() {
         return Err(Fail::new(409, "The footage folder changed and has not been scanned yet."));
     }
+    Ok((vehicle, root, inv))
+}
+
+/// Move recordings to the bin. Protected or busy recordings are refused.
+pub fn trash(app: &Arc<App>, vid: &str, ids: &[String], reason: &str) -> Res<Trashed> {
+    trash_then(app, vid, ids, reason, |_| None)
+}
+
+/// `trash`, then `after` with what moved, before the Activity row is finished: what it
+/// returns (the "also delete its CAN data" result) is kept on that row as `can`.
+pub fn trash_then(app: &Arc<App>, vid: &str, ids: &[String], reason: &str, after: impl FnOnce(&Trashed) -> Option<Value>) -> Res<Trashed> {
+    let (vehicle, root, inv) = ready(app, vid)?;
     let wanted: HashSet<&str> = ids.iter().map(String::as_str).collect();
     let recordings: Vec<_> = inv.recordings.iter().filter(|r| wanted.contains(r.id.as_str())).cloned().collect();
     let sizes: std::collections::HashMap<&str, u64> = inv.file_list.iter().map(|f| (f.rel.as_str(), f.size)).collect();
@@ -351,7 +365,18 @@ pub fn trash(app: &Arc<App>, vid: &str, ids: &[String], reason: &str) -> Res<Tra
     let failed = db_failed.is_some() || result.skipped.iter().any(|s| s.reason == "error");
     let skipped = if result.skipped.is_empty() { String::new() } else { format!(", {} skipped: {}", result.skipped.len(), skip_why(&result.skipped)) };
     let stopped = db_failed.as_ref().map(|e| format!(", stopped: {e}")).unwrap_or_default();
-    app.core.job_finish(job, if failed { "failed" } else { "done" }, &format!("{} moved ({}){skipped}{stopped}", result.moved.len(), format_bytes(result.bytes as f64)), Some(result.json()));
+    let mut out = result.json();
+    let mut can_note = String::new();
+    if db_failed.is_none() {
+        if let Some(can) = after(&result) {
+            can_note = match can.get("skip").and_then(Value::as_str) {
+                Some(why) => format!(", CAN data not deleted: {why}"),
+                None => format!(", CAN data: {} log(s) deleted", can.get("removed").and_then(Value::as_u64).unwrap_or(0)),
+            };
+            out["can"] = can;
+        }
+    }
+    app.core.job_finish(job, if failed { "failed" } else { "done" }, &format!("{} moved ({}){skipped}{stopped}{can_note}", result.moved.len(), format_bytes(result.bytes as f64)), Some(out));
     if !result.skipped.is_empty() {
         log(app, Level::Warn, &format!("{}: {} recording(s) not moved to the Recycle Bin: {}", vehicle.name, result.skipped.len(), skip_why(&result.skipped)));
     }

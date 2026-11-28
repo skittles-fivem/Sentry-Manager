@@ -24,6 +24,8 @@ struct TestCore {
     inner: LocalCore,
     busy: Mutex<HashSet<PathBuf>>,
     jobs: Mutex<Vec<(String, String)>>,
+    /// what each finished job kept as its result
+    results: Mutex<Vec<Option<Value>>>,
     /// what the CAN area answers with cannot be read (its key-to-car map)
     can_unread: std::sync::atomic::AtomicBool,
 }
@@ -48,6 +50,7 @@ impl Ctx for TestCore {
         self.inner.job_start(typ, vid, title)
     }
     fn job_finish(&self, id: i64, status: &str, detail: &str, result: Option<Value>) {
+        self.results.lock().unwrap().push(result.clone());
         self.jobs.lock().unwrap().push((status.into(), detail.into()));
         self.inner.job_finish(id, status, detail, result)
     }
@@ -61,6 +64,9 @@ impl Ctx for TestCore {
     fn can_with(&self, _vid: &str, _rels: &[String], _until: Option<f64>) -> Result<Option<Value>, Fail> {
         self.can()?;
         Ok(None)
+    }
+    fn can_delete_with(&self, _vid: &str, _rels: &[String], _until: Option<f64>, _by: &str) -> Option<Value> {
+        Some(json!({ "removed": 0, "kept": 0, "pending": 0, "skip": "no CAN Bridge key is mapped to this car" }))
     }
     #[allow(clippy::type_complexity)]
     fn has_can(&self, _vid: &str) -> Result<Option<Box<dyn Fn(&sentry_lean::footage::inventory::Recording) -> bool>>, Fail> {
@@ -132,7 +138,7 @@ fn fixture(name: &str, files: &[(&str, &[u8])]) -> Fixture {
     }
     let data = dir.join("data");
     std::fs::create_dir_all(&data).unwrap();
-    let core = Arc::new(TestCore { inner: LocalCore::open(&data).unwrap(), busy: Mutex::new(HashSet::new()), jobs: Mutex::new(Vec::new()), can_unread: Default::default() });
+    let core = Arc::new(TestCore { inner: LocalCore::open(&data).unwrap(), busy: Mutex::new(HashSet::new()), jobs: Mutex::new(Vec::new()), results: Mutex::new(Vec::new()), can_unread: Default::default() });
     // (the mount table the server reads: one file system; mounts() changes it)
     std::fs::write(dir.join("mountinfo"), ROOT_MOUNT).unwrap();
     let vehicles = Vehicles::new(core.clone(), Options { footage_root: footage.clone(), folder_roots: vec![footage.clone()], protected_dirs: vec![data.clone()], mountinfo: dir.join("mountinfo"), default_tz: None });
@@ -398,6 +404,33 @@ fn trash_days_counts_and_moves_a_day() {
     assert_eq!(started["started"], true);
     wait(|| !f.root.join(B).exists());
     assert!(f.root.join(A).exists(), "the protected one stays");
+}
+
+#[test]
+fn trash_days_answers_a_refusal_instead_of_starting() {
+    let f = fixture("daysro", &[(A, b"clip"), (B, b"clip")]);
+    // (the root as a read-only mount: the share's own check says so)
+    let info = format!("1 0 0:1 / / rw - ext4 /dev/x rw\n2 1 0:2 / {} ro,relatime - ext4 /dev/y rw\n", f.root.display());
+    std::fs::write(f.dir.join("mountinfo"), info).unwrap();
+    f.app.vehicles.share("car").unwrap().ensure(true);
+    assert!(!f.app.vehicles.share("car").unwrap().is_writable());
+    let refused = call(&f, "POST", "vehicles/car/trash-days", json!({ "day": "2020-01-01", "withCan": true })).unwrap_err();
+    assert_eq!(refused, (503, json!({ "error": "Car: the share is not writable right now." })));
+    assert!(f.root.join(A).exists() && f.root.join(B).exists());
+}
+
+#[test]
+fn trash_days_keeps_the_can_result_on_its_activity_row() {
+    let f = fixture("dayscan", &[(A, b"clip")]);
+    let started = call(&f, "POST", "vehicles/car/trash-days", json!({ "day": "2020-01-01", "withCan": true })).unwrap();
+    assert_eq!(started["started"], true);
+    wait(|| !f.core.jobs.lock().unwrap().is_empty());
+    let jobs = f.core.jobs.lock().unwrap().clone();
+    assert_eq!(jobs.len(), 1, "{jobs:?}");
+    assert_eq!(jobs[0].0, "done", "{jobs:?}");
+    assert!(jobs[0].1.starts_with("1 moved") && jobs[0].1.ends_with(", CAN data not deleted: no CAN Bridge key is mapped to this car"), "{jobs:?}");
+    let kept = f.core.results.lock().unwrap()[0].clone().unwrap();
+    assert_eq!(kept["can"]["skip"], "no CAN Bridge key is mapped to this car");
 }
 
 #[test]
