@@ -343,6 +343,35 @@ pub fn errno_name(n: i32) -> &'static str {
     }
 }
 
+/// How old a probe file left in a share's root by an earlier write test must be before it is removed
+/// (one still being written by a test on another thread is newer than this).
+const OLD_PROBE: Duration = Duration::from_secs(600);
+
+/// A write test's probe name: `.sentry-six-manager-check-<12 hex>-a` or `-b`, nothing else.
+fn is_probe_name(name: &std::ffi::OsStr) -> bool {
+    let Some(rest) = name.to_str().and_then(|n| n.strip_prefix(".sentry-six-manager-check-")) else { return false };
+    let Some(tag) = rest.strip_suffix("-a").or_else(|| rest.strip_suffix("-b")) else { return false };
+    tag.len() == 12 && tag.bytes().all(|c| c.is_ascii_hexdigit())
+}
+
+/// Removes the probe files earlier write tests left in `root` when the share stopped answering
+/// mid-test: only entries named as a probe, only a file or a link (a link is unlinked, never
+/// followed), and only ones not changed for OLD_PROBE.
+fn remove_old_probes(root: &Path, now: std::time::SystemTime) {
+    let Ok(dir) = std::fs::read_dir(root) else { return };
+    for entry in dir.flatten() {
+        if !is_probe_name(&entry.file_name()) {
+            continue;
+        }
+        let p = entry.path();
+        let Ok(m) = std::fs::symlink_metadata(&p) else { continue };
+        let old = m.modified().ok().and_then(|t| now.duration_since(t).ok()).is_some_and(|age| age >= OLD_PROBE);
+        if old && (m.is_file() || m.file_type().is_symlink()) {
+            let _ = std::fs::remove_file(&p);
+        }
+    }
+}
+
 /// checkWritable: every step of a real save in `root`, on two files that are removed again.
 pub fn check_writable(root: &Path) -> WriteCheck {
     check_writable_one(root, &Arc::new(AtomicBool::new(false)))
@@ -371,6 +400,7 @@ fn check_writable_one(root: &Path, busy: &Arc<AtomicBool>) -> WriteCheck {
                 let _ = std::fs::remove_file(&p);
             }
         }
+        remove_old_probes(&r2, std::time::SystemTime::now());
         // (a failed test removes its files here, on this thread: when the share stopped
         // answering, that waits here too, never on the share's own thread)
         let steps = || -> std::io::Result<()> {
@@ -938,6 +968,40 @@ mod tests {
         assert_eq!(r.step.as_deref(), Some("writing a file"));
         assert!(r.error.unwrap().starts_with("ENOENT: no such file or directory, open"));
         assert_eq!(r.hint, None);
+    }
+
+    #[test]
+    fn probes_an_earlier_test_left_behind_are_removed_and_nothing_else() {
+        let d = std::env::temp_dir().join(format!("lean-share-left-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("share")).unwrap();
+        std::fs::write(d.join("manager.db"), b"precious").unwrap();
+        let s = d.join("share");
+        let left = [".sentry-six-manager-check-0123456789ab-a", ".sentry-six-manager-check-0123456789ab-b"];
+        for n in left {
+            std::fs::write(s.join(n), b"old").unwrap();
+        }
+        std::os::unix::fs::symlink(d.join("manager.db"), s.join(".sentry-six-manager-check-abcdefabcdef-a")).unwrap();
+        let kept = [".sentry-six-manager-check-0123-a", ".sentry-six-manager-check-0123456789ab-c", ".sentry-six-manager-check-0123456789xz-a", "clip.mp4"];
+        for n in kept {
+            std::fs::write(s.join(n), b"keep").unwrap();
+        }
+        std::fs::create_dir(s.join(".sentry-six-manager-check-fedcba987654-b")).unwrap();
+        remove_old_probes(&s, std::time::SystemTime::now());
+        assert_eq!(std::fs::read_dir(&s).unwrap().count(), 8, "a probe changed just now may be another test's");
+        remove_old_probes(&s, std::time::SystemTime::now() + OLD_PROBE);
+        for n in left {
+            assert!(!s.join(n).exists(), "{n}");
+        }
+        assert!(std::fs::symlink_metadata(s.join(".sentry-six-manager-check-abcdefabcdef-a")).is_err(), "the link is unlinked");
+        assert_eq!(std::fs::read(d.join("manager.db")).unwrap(), b"precious");
+        for n in kept {
+            assert!(s.join(n).exists(), "{n}");
+        }
+        assert!(s.join(".sentry-six-manager-check-fedcba987654-b").is_dir(), "a folder is never removed");
+        let r = check_writable(&s);
+        assert!(r.ok, "{r:?}");
+        let _ = std::fs::remove_dir_all(&d);
     }
 
     #[test]
