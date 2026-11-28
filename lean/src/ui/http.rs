@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 pub type Res = Response<Body>;
 
@@ -25,6 +25,8 @@ pub struct Req {
     pub headers: HeaderMap,
     pub body: Bytes,
     pub peer: Option<std::net::SocketAddr>,
+    /// the interface this request is shown (Packs::active), worked out once
+    pub shown: std::sync::OnceLock<Option<String>>,
 }
 
 impl Req {
@@ -199,26 +201,31 @@ pub struct ServeOpts {
     pub transform: Option<Transform>,
     /// what makes a transformed file differ (a versioned script's version): kept ready
     pub transform_key: Option<String>,
+    /// what makes a transformed page differ: its copy (and its compressed ones) kept ready, the
+    /// page still sent as one never kept (no-cache)
+    pub page_key: Option<String>,
     pub cache: Option<String>,
 }
 
 struct Transformed {
-    body: Arc<String>,
-    packed: HashMap<&'static str, Arc<Vec<u8>>>,
+    body: Bytes,
+    /// the body's length as JavaScript counts it
+    js_len: usize,
+    packed: HashMap<&'static str, Bytes>,
 }
 
 /// The caches of serveFile: compressed copies (48 MB in all, least recently
 /// used out first) and transformed files with a key (400).
 #[derive(Default)]
 pub struct FileCache {
-    packed: Mutex<(HashMap<String, (u64, Arc<Vec<u8>>)>, u64, usize)>,
+    packed: Mutex<(HashMap<String, (u64, Bytes)>, u64, usize)>,
     transformed: Mutex<(HashMap<String, (u64, Transformed)>, u64)>,
 }
 
 const PACKED_MAX: usize = 48 * 1024 * 1024;
 
 impl FileCache {
-    fn packed_copy(&self, abs: &Path, key: String, enc: &'static str) -> Option<Arc<Vec<u8>>> {
+    fn packed_copy(&self, abs: &Path, key: String, enc: &'static str) -> Option<Bytes> {
         {
             let mut g = self.packed.lock().unwrap();
             g.1 += 1;
@@ -229,7 +236,7 @@ impl FileCache {
             }
         }
         let data = std::fs::read(abs).ok()?;
-        let buf = Arc::new(compress(&data, enc));
+        let buf = Bytes::from(compress(&data, enc));
         let mut g = self.packed.lock().unwrap();
         g.1 += 1;
         let tick = g.1;
@@ -262,36 +269,39 @@ impl FileCache {
         let cache = opts.cache.clone().unwrap_or_else(|| "no-cache".into());
         let mtime = crate::sei::js_round(crate::scanner::ms_of(md.mtime(), md.mtime_nsec()));
         if let Some(transform) = opts.transform {
-            let memo = opts.transform_key.as_ref().map(|k| format!("{}|{}|{}|{}", abs.display(), md.size(), crate::scanner::ms_of(md.mtime(), md.mtime_nsec()), k));
+            let kept = opts.transform_key.as_ref().or(opts.page_key.as_ref());
+            let memo = kept.map(|k| format!("{}|{}|{}|{}|{}", abs.display(), md.size(), crate::scanner::ms_of(md.mtime(), md.mtime_nsec()), if opts.transform_key.is_some() { "script" } else { "page" }, k));
             let hit = memo.as_ref().and_then(|m| {
                 let mut g = self.transformed.lock().unwrap();
                 g.1 += 1;
                 let t = g.1;
                 g.0.get_mut(m).map(|e| {
                     e.0 = t;
-                    e.1.body.clone()
+                    (e.1.body.clone(), e.1.js_len)
                 })
             });
-            let body = match hit {
+            let (body, len) = match hit {
                 Some(b) => b,
                 None => {
                     let raw = std::fs::read(&abs).ok()?;
-                    let b = Arc::new(transform(&String::from_utf8_lossy(&raw)));
+                    let made = transform(&String::from_utf8_lossy(&raw));
+                    let len = js_len(&made);
+                    let b = Bytes::from(made);
                     if let Some(m) = &memo {
                         let mut g = self.transformed.lock().unwrap();
                         g.1 += 1;
                         let t = g.1;
-                        g.0.insert(m.clone(), (t, Transformed { body: b.clone(), packed: HashMap::new() }));
+                        g.0.insert(m.clone(), (t, Transformed { body: b.clone(), js_len: len, packed: HashMap::new() }));
                         if g.0.len() > 400 {
                             let oldest = g.0.iter().min_by_key(|(_, v)| v.0).map(|(k, _)| k.clone()).unwrap();
                             g.0.remove(&oldest);
                         }
                     }
-                    b
+                    (b, len)
                 }
             };
-            let enc = if text && js_len(&body) > 1024 { encoding_for(&req.headers) } else { None };
-            let out: Vec<u8> = match enc {
+            let enc = if text && len > 1024 { encoding_for(&req.headers) } else { None };
+            let out: Bytes = match enc {
                 Some(e) => {
                     let mut cached = None;
                     if let Some(m) = &memo {
@@ -299,25 +309,25 @@ impl FileCache {
                         cached = g.0.get(m).and_then(|x| x.1.packed.get(e).cloned());
                     }
                     match cached {
-                        Some(c) => (*c).clone(),
+                        Some(c) => c,
                         None => {
-                            let c = Arc::new(compress(body.as_bytes(), e));
+                            let c = Bytes::from(compress(&body, e));
                             if let Some(m) = &memo {
                                 if let Some(x) = self.transformed.lock().unwrap().0.get_mut(m) {
                                     x.1.packed.insert(e, c.clone());
                                 }
                             }
-                            (*c).clone()
+                            c
                         }
                     }
                 }
-                None => body.as_bytes().to_vec(),
+                None => body,
             };
-            // a page made for this request is never kept; a versioned script may be
+            // a page is never kept by the browser (even one kept ready here); a versioned script may be
             let mut b = Response::builder()
                 .status(StatusCode::OK)
                 .header(header::CONTENT_TYPE, typ)
-                .header(header::CACHE_CONTROL, if memo.is_some() { cache.as_str() } else { "no-cache" })
+                .header(header::CACHE_CONTROL, if opts.transform_key.is_some() { cache.as_str() } else { "no-cache" })
                 .header("X-Content-Type-Options", "nosniff");
             if let Some(e) = enc {
                 b = b.header(header::CONTENT_ENCODING, e);
@@ -349,7 +359,7 @@ impl FileCache {
             let key = format!("{}|{}|{}|{}", abs.display(), md.size(), crate::scanner::ms_of(md.mtime(), md.mtime_nsec()), e);
             let buf = self.packed_copy(&abs, key, e)?;
             let b = common(StatusCode::OK).header(header::CONTENT_ENCODING, e).header(header::CONTENT_LENGTH, buf.len());
-            return Some(b.body(if req.head() { Body::empty() } else { Body::from((*buf).clone()) }).unwrap());
+            return Some(b.body(if req.head() { Body::empty() } else { Body::from(buf) }).unwrap());
         }
         let b = common(StatusCode::OK).header(header::CONTENT_LENGTH, HeaderValue::from(md.size()));
         if req.head() {
@@ -379,9 +389,101 @@ pub fn send_text(req: &Req, body: &str, typ: &str, etag: &str, cache: Option<&st
     let out = match enc {
         Some(e) => {
             b = b.header(header::CONTENT_ENCODING, e);
-            compress(body.as_bytes(), e)
+            packed_text(body, etag, e)
         }
-        None => body.as_bytes().to_vec(),
+        None => Bytes::copy_from_slice(body.as_bytes()),
     };
     b.body(if req.head() { Body::empty() } else { Body::from(out) }).unwrap()
+}
+
+/// The compressed copy of a text sendText sends, kept by its ETag (which names its content).
+fn packed_text(body: &str, etag: &str, enc: &'static str) -> Bytes {
+    static KEPT: Mutex<Option<HashMap<(String, &'static str), (usize, Bytes)>>> = Mutex::new(None);
+    if let Some((_, b)) = KEPT.lock().unwrap().get_or_insert_with(HashMap::new).get(&(etag.to_string(), enc)).filter(|(n, _)| *n == body.len()) {
+        return b.clone();
+    }
+    let b = Bytes::from(compress(body.as_bytes(), enc));
+    let mut g = KEPT.lock().unwrap();
+    let m = g.get_or_insert_with(HashMap::new);
+    // (a few texts: the module and the languages; whatever it held goes when it fills)
+    if m.len() >= 64 {
+        m.clear();
+    }
+    m.insert((etag.to_string(), enc), (body.len(), b.clone()));
+    b
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+
+    fn req(enc: &str) -> Req {
+        let mut headers = HeaderMap::new();
+        if !enc.is_empty() {
+            headers.insert(header::ACCEPT_ENCODING, HeaderValue::from_str(enc).unwrap());
+        }
+        Req { method: Method::GET, raw_path: "/p.html".into(), search: String::new(), query: HashMap::new(), headers, body: Bytes::new(), peer: None, shown: Default::default() }
+    }
+
+    async fn body(r: Res) -> (String, String, Vec<u8>) {
+        let h = |k| r.headers().get(k).map(|v: &HeaderValue| v.to_str().unwrap().to_string()).unwrap_or_default();
+        let (cc, ce) = (h(header::CACHE_CONTROL), h(header::CONTENT_ENCODING));
+        (cc, ce, axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec())
+    }
+
+    #[tokio::test]
+    async fn a_page_is_transformed_once_per_key_and_still_sent_as_one_never_kept() {
+        let dir = std::env::temp_dir().join(format!("lean-ui-page-memo-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("p.html"), "<html><head></head><body>".to_string() + &"x".repeat(3000) + "</body></html>").unwrap();
+        let files = FileCache::default();
+        let runs = Arc::new(AtomicUsize::new(0));
+        let serve = |enc: &str, key: &str| {
+            let runs = runs.clone();
+            let k = key.to_string();
+            let o = ServeOpts {
+                transform: Some(Box::new(move |s: &str| {
+                    runs.fetch_add(1, Ordering::SeqCst);
+                    format!("{s}<!-- {k} -->")
+                })),
+                transform_key: None,
+                page_key: Some(key.into()),
+                cache: Some("public, max-age=31536000, immutable".into()),
+            };
+            files.serve_file(&req(enc), &dir, "p.html", o).unwrap()
+        };
+        let (cc, ce, plain) = body(serve("", "a")).await;
+        assert_eq!((cc.as_str(), ce.as_str()), ("no-cache", ""), "a page is never kept by the browser");
+        assert!(String::from_utf8(plain.clone()).unwrap().ends_with("<!-- a -->"));
+        let (cc, ce, br) = body(serve("br", "a")).await;
+        assert_eq!((cc.as_str(), ce.as_str()), ("no-cache", "br"));
+        let mut un = Vec::new();
+        brotli::BrotliDecompress(&mut &br[..], &mut un).unwrap();
+        assert_eq!(un, plain);
+        assert_eq!(body(serve("br", "a")).await.2, br);
+        assert_eq!(runs.load(Ordering::SeqCst), 1, "made once for its key");
+        assert!(String::from_utf8(body(serve("", "b")).await.2).unwrap().ends_with("<!-- b -->"));
+        assert_eq!(runs.load(Ordering::SeqCst), 2, "another key: made again");
+        // the file changed: made again
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        std::fs::write(dir.join("p.html"), "<html><head></head><body>changed</body></html>").unwrap();
+        assert_eq!(String::from_utf8(body(serve("", "a")).await.2).unwrap(), "<html><head></head><body>changed</body></html><!-- a -->");
+        assert_eq!(runs.load(Ordering::SeqCst), 3);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn sent_text_is_compressed_once_per_etag() {
+        let text = "y".repeat(5000);
+        let r = send_text(&req("gzip"), &text, "text/plain", "W/\"memo-test\"", None);
+        assert_eq!(r.headers().get(header::CONTENT_ENCODING).unwrap(), "gzip");
+        let a = packed_text(&text, "W/\"memo-test\"", "gzip");
+        assert_eq!(a, packed_text(&text, "W/\"memo-test\"", "gzip"));
+        assert_eq!(a.as_ptr(), packed_text(&text, "W/\"memo-test\"", "gzip").as_ptr(), "the kept copy");
+        // (a different text under that ETag is not answered with the kept one)
+        assert_ne!(packed_text("z", "W/\"memo-test\"", "gzip"), a);
+    }
 }

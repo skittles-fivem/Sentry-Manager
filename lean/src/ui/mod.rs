@@ -202,9 +202,14 @@ impl Ui {
         parse_cookies(req.header("cookie").unwrap_or("")).get(UI_COOKIE).map(String::as_str) == Some("1")
     }
 
+    /// The chosen interface (Packs::active), read once per request.
+    fn shown(&self, req: &Req) -> Option<String> {
+        req.shown.get_or_init(|| self.packs.active()).clone()
+    }
+
     /// The version in /v/<version>/ links: this build and the interface this browser is shown.
     pub fn asset_version(&self, req: &Req) -> String {
-        let which = if self.original_only(req) { "original".to_string() } else { self.packs.active().unwrap_or_else(|| "builtin".into()) };
+        let which = if self.original_only(req) { "original".to_string() } else { self.shown(req).unwrap_or_else(|| "builtin".into()) };
         let digest = sha2::Sha256::digest(format!("{}|{which}", self.boot_id).as_bytes());
         base64url(&digest).chars().take(12).collect()
     }
@@ -354,11 +359,12 @@ impl Ui {
                 let key = format!("{}|{}", user.clone().unwrap_or_else(|| "null".into()), self.asset_version(req));
                 self.start_learning(self.ctx.session_hash(&info), key.clone());
                 let hints = self.hints(&key);
-                return self.ui(req, u, "web", &web, "index.html", Some(Arc::new(move |html: &str| html::with_prefetch(html, &hints))), None);
+                let hints_key = format!("prefetch|{}", serde_json::to_string(&hints).unwrap_or_default());
+                return self.ui(req, u, "web", &web, "index.html", Some(Arc::new(move |html: &str| html::with_prefetch(html, &hints))), &hints_key, None);
             }
-            "/login" => return self.ui(req, u, "web", &web, "login.html", None, None),
-            "/login/code" => return self.ui(req, u, "web", &web, "login-code.html", None, None),
-            "/login/two-factor" => return self.ui(req, u, "web", &web, "login-two-factor.html", None, None),
+            "/login" => return self.ui(req, u, "web", &web, "login.html", None, "", None),
+            "/login/code" => return self.ui(req, u, "web", &web, "login-code.html", None, "", None),
+            "/login/two-factor" => return self.ui(req, u, "web", &web, "login-two-factor.html", None, "", None),
             // always the built-in one: an interface pack cannot replace the bar
             "/web/critical.js" => return self.serve(req, u, &web, "critical.js", ServeParts::default()),
             "/studio" | "/studio/" => return redirect(StatusCode::FOUND, &format!("/studio/index.html{}", req.search), &[]),
@@ -366,7 +372,7 @@ impl Ui {
         }
         if let Some(rel) = p.strip_prefix("/web/") {
             let cache = if p.contains("/fonts/") { "public, max-age=604800" } else { "no-cache" };
-            return self.ui(req, u, "web", &web, rel, None, Some(cache.into()));
+            return self.ui(req, u, "web", &web, rel, None, "", Some(cache.into()));
         }
         if p == "/studio/index.html" && req.query.get("embed").map(String::as_str) == Some("encoder") {
             return redirect(StatusCode::FOUND, &format!("{ENCODER_PAGE}{}", req.search), &[]);
@@ -385,16 +391,17 @@ impl Ui {
             };
         }
         if let Some(rel) = p.strip_prefix("/studio/") {
-            let transform: Option<PageTransform> = match rel {
-                "index.html" => Some(Arc::new(html::studio_html)),
+            let (transform, key): (Option<PageTransform>, String) = match rel {
+                "index.html" => (Some(Arc::new(html::studio_html)), "studio".into()),
                 "encoder.html" => {
                     let skeleton = std::fs::read_to_string(web.join("encoderSkeleton.css")).ok();
-                    Some(Arc::new(move |h: &str| html::encoder_html(h, skeleton.as_deref())))
+                    let key = format!("encoder|{}", serde_json::to_string(&skeleton).unwrap_or_default());
+                    (Some(Arc::new(move |h: &str| html::encoder_html(h, skeleton.as_deref()))), key)
                 }
-                _ => None,
+                _ => (None, String::new()),
             };
             let cache = rel.starts_with("fonts/").then(|| "public, max-age=604800".to_string());
-            return self.ui(req, u, "studio", &renderer, rel, transform, cache);
+            return self.ui(req, u, "studio", &renderer, rel, transform, &key, cache);
         }
         if let Some(rel) = p.strip_prefix("/shared/") {
             return self.serve(req, u, &self.cfg.app_root.join("src").join("shared"), rel, ServeParts::default());
@@ -421,7 +428,7 @@ impl Ui {
     /// The options of one serveFile call, with versionedScript applied.
     fn opts(&self, u: &Unversioned, p: &str, parts: &ServeParts) -> ServeOpts {
         let script_version = u.version.as_ref().filter(|_| is_script(p));
-        let mut o = ServeOpts { transform: parts.transform.clone().map(|t| Box::new(move |s: &str| t(s)) as http::Transform), transform_key: None, cache: parts.cache.clone() };
+        let mut o = ServeOpts { transform: parts.transform.clone().map(|t| Box::new(move |s: &str| t(s)) as http::Transform), transform_key: None, page_key: parts.page_key.clone(), cache: parts.cache.clone() };
         if let (Some(v), None) = (script_version, &parts.transform) {
             let v = v.clone();
             o.transform_key = Some(v.clone());
@@ -441,14 +448,17 @@ impl Ui {
     }
 
     /// ui: the chosen interface's file first, else the built-in one; pages rewritten.
-    fn ui(&self, req: &Req, u: &Unversioned, kind: &str, root: &Path, rel: &str, inner: Option<PageTransform>, cache: Option<String>) -> Res {
+    /// (`inner_key`: everything `inner` makes differ)
+    #[allow(clippy::too_many_arguments)]
+    fn ui(&self, req: &Req, u: &Unversioned, kind: &str, root: &Path, rel: &str, inner: Option<PageTransform>, inner_key: &str, cache: Option<String>) -> Res {
         let p = u.path.as_str();
-        let mut parts = ServeParts { transform: inner.clone(), cache };
+        let mut parts = ServeParts { transform: inner.clone(), page_key: None, cache };
         if is_html(rel) {
             let version = self.asset_version(req);
             let page_dir = if p.ends_with('/') { p.to_string() } else { format!("{}/", html::posix_dirname(p)).replace("//", "/") };
             // sign-in pages have no authenticated status yet
             let critical = !LOGIN_PAGES.contains(&rel);
+            parts.page_key = Some(format!("{critical}|{page_dir}|{version}|{inner_key}"));
             parts.transform = Some(Arc::new(move |h: &str| {
                 let page = match &inner {
                     Some(t) => t(h),
@@ -457,9 +467,9 @@ impl Ui {
                 html::version_links(&if critical { html::with_critical_bar(&page) } else { page }, &page_dir, &version)
             }));
         }
-        let own = if self.original_only(req) { None } else { self.packs.root(kind) };
+        let own = if self.original_only(req) { None } else { self.shown(req).and_then(|id| self.packs.root_of(&id, kind)) };
         if let Some(own) = own {
-            let own_parts = ServeParts { transform: parts.transform.clone(), cache: Some(if u.long_cache { LONG_CACHE.into() } else { "no-cache".into() }) };
+            let own_parts = ServeParts { transform: parts.transform.clone(), page_key: parts.page_key.clone(), cache: Some(if u.long_cache { LONG_CACHE.into() } else { "no-cache".into() }) };
             let o = self.opts(u, p, &own_parts);
             if let Some(r) = self.files.serve_file(req, &own, rel, o) {
                 return r;
@@ -681,6 +691,8 @@ type PageTransform = Arc<dyn Fn(&str) -> String + Send + Sync>;
 #[derive(Default, Clone)]
 struct ServeParts {
     transform: Option<PageTransform>,
+    /// what makes the transformed page differ (it is kept ready)
+    page_key: Option<String>,
     cache: Option<String>,
 }
 
@@ -756,7 +768,7 @@ mod tests {
         let cfg = UiConfig { app_root: dir.join("app"), data: dir.join("data"), default_ui: None, app_version: String::new(), ffmpeg: "ffmpeg".into(), ffprobe: None, export_gpu: false, build_sha: None };
         let ui = Ui::new(cfg, ctx.clone());
         let ask = |method: Method, path: &str, body: &str| {
-            let req = Req { method, raw_path: path.into(), search: String::new(), query: HashMap::new(), headers: HeaderMap::new(), body: Bytes::from(body.to_string()), peer: None };
+            let req = Req { method, raw_path: path.into(), search: String::new(), query: HashMap::new(), headers: HeaderMap::new(), body: Bytes::from(body.to_string()), peer: None, shown: Default::default() };
             ui.api(&req, path).expect("a route of this area").status().as_u16()
         };
         assert_eq!(ask(Method::GET, "/api/ui-packs", ""), 200);
