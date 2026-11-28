@@ -199,7 +199,9 @@ export function createMoments(container, { clock = defaultClock, speedUnit = () 
       } catch (err) {
         showStatus(`The star could not be removed: ${err.message}`);
       }
-      loadStars();
+      // (a list that could not load again is not redrawn: the button is usable again either way)
+      await loadStars();
+      un.disabled = false;
       return;
     }
     if (e.target.closest('[data-cancel]')) { form.hidden = true; starBtn.hidden = false; }

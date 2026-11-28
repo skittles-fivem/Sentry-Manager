@@ -95,6 +95,6 @@ test('the clips tables of the other interfaces show a failed clip\'s reason', ()
 
 test('a cancel that failed for the connection or a sign-out never offers to set the job aside', async () => {
   const { cancelFailureOffersDiscard } = await load();
-  for (const code of ['NETWORK_ERROR', 'SIGNED_OUT', 'JOB_ACTIVE', 'SERVICE_SHUTDOWN', 'CANCELLED']) assert.equal(cancelFailureOffersDiscard(code), false, code);
+  for (const code of ['NETWORK_ERROR', 'SIGNED_OUT', 'JOB_ACTIVE', 'SERVICE_SHUTDOWN', 'CANCELLED', 'CONVERTER_STARTING']) assert.equal(cancelFailureOffersDiscard(code), false, code);
   for (const code of ['RECOVERY_REQUIRED', 'INVALID_MANIFEST', 'OWNED_CLEANUP_FAILED']) assert.equal(cancelFailureOffersDiscard(code), true, code);
 });

@@ -121,7 +121,7 @@ function apiError(code, details) {
 
 // Cancel failures that are about the connection or the moment, not the job:
 // these never lead to the offer to set the job aside.
-const CANCEL_NOT_JOB_FAULT = new Set(['NETWORK_ERROR', 'SIGNED_OUT', 'JOB_ACTIVE', 'SERVICE_SHUTDOWN', 'CANCELLED']);
+const CANCEL_NOT_JOB_FAULT = new Set(['NETWORK_ERROR', 'SIGNED_OUT', 'JOB_ACTIVE', 'SERVICE_SHUTDOWN', 'CANCELLED', 'CONVERTER_STARTING']);
 export const cancelFailureOffersDiscard = (code) => !CANCEL_NOT_JOB_FAULT.has(code);
 
 function unwrap(result) {
