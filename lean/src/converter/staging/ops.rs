@@ -521,7 +521,9 @@ impl Tx {
             // the copy at the original's name and the original gone from its backup name: a
             // removal of the backup stopped, or refused and not put back, after it renamed the
             // original to its quarantine name. The original goes back to its backup name first.
-            if lstat_or_none(&backup)?.is_none() && lstat_or_none(&source)?.is_some_and(|ss| matches_identity(arts.get("replacementCandidate"), &ss)) {
+            // (also when the original's name is empty: the original is never given up while a
+            // quarantine name of it is left)
+            if lstat_or_none(&backup)?.is_none() && !lstat_or_none(&source)?.is_some_and(|ss| is_original_at(&ss, arts.get("replacementBackup"), arts.get("replacementCandidate"))) {
                 self.restore_quarantined(&backup, arts.get("replacementBackup"))?;
             }
             let ss = lstat_or_none(&source)?;
@@ -554,10 +556,11 @@ impl Tx {
             } else {
                 // no backup name: the file at the original's name must be the original (the
                 // backup's file when one was made; never the copy), or the records stay
-                if let Some(ss) = lstat_or_none(&source)? {
-                    if !is_original_at(&ss, arts.get("replacementBackup"), arts.get("replacementCandidate")) {
-                        return Err(txe("ROLLBACK_FAILED"));
-                    }
+                match lstat_or_none(&source)? {
+                    Some(ss) if !is_original_at(&ss, arts.get("replacementBackup"), arts.get("replacementCandidate")) => return Err(txe("ROLLBACK_FAILED")),
+                    // the backup was made and neither name holds it now: its record is kept
+                    None if backup_made(arts.get("replacementBackup")) => return Err(txe("ROLLBACK_FAILED")),
+                    _ => {}
                 }
                 paths.shift_remove("replacementBackup");
                 arts.shift_remove("replacementBackup");
@@ -796,6 +799,11 @@ impl Tx {
                 if matches!(lstat_or_none(backup), Ok(None)) && self.find_quarantined(backup, arts.get("replacementBackup")).is_ok_and(|q| q.is_empty()) {
                     paths.shift_remove("replacementBackup");
                     arts.shift_remove("replacementBackup");
+                    // (the copy's own name went with its promotion, as on success)
+                    if !arts.get("replacementCandidate").is_some_and(|m| m.state == ArtifactState::CleanupPending) {
+                        paths.shift_remove("replacementCandidate");
+                        arts.shift_remove("replacementCandidate");
+                    }
                     backup_deleted = true;
                 }
                 return Err(e);
@@ -968,8 +976,13 @@ impl Tx {
 /// the backup's own file when the backup was made (a rename or a link keeps it), otherwise
 /// anything but the copy.
 fn is_original_at(st: &fs::Metadata, backup: Option<&Meta>, candidate: Option<&Meta>) -> bool {
-    if backup.is_some_and(|b| b.state != ArtifactState::Intent && b.device.is_some() && b.inode.is_some()) {
+    if backup_made(backup) {
         return matches_identity(backup, st);
     }
     !matches_identity(candidate, st)
+}
+
+/// The backup record names a file that was made (its identity recorded).
+fn backup_made(backup: Option<&Meta>) -> bool {
+    backup.is_some_and(|b| b.state != ArtifactState::Intent && b.device.is_some() && b.inode.is_some())
 }

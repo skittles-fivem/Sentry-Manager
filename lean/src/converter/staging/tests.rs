@@ -503,6 +503,7 @@ fn a_backup_that_still_reports_two_links_names_the_link_count() {
     let (source, backup) = (PathBuf::from(&env.source), PathBuf::from(&prepared.backup));
     let extra = env.footage.join("second-link-of-backup");
     let (b2, x2) = (backup.clone(), extra.clone());
+    let _serial = crate::converter::owned::TEST_HOOK_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
     *crate::converter::owned::TEST_HOOK.write().unwrap() = Some(Arc::new(move |event: &str, _from: &Path, to: &Path| {
         if event == "replace-after" && to == source.as_path() {
             fs::hard_link(&b2, &x2)?;
@@ -532,6 +533,7 @@ fn a_backup_removal_stopped_in_quarantine_rolls_back_to_the_original() {
     let b2 = backup.clone();
     let once = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let o2 = once.clone();
+    let _serial = crate::converter::owned::TEST_HOOK_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
     *crate::converter::owned::TEST_HOOK.write().unwrap() = Some(Arc::new(move |event: &str, from: &Path, _to: &Path| {
         if event == "quarantined" && from == b2.as_path() && !o2.swap(true, Ordering::SeqCst) {
             return Err(io::Error::from_raw_os_error(libc::EIO));
@@ -572,6 +574,76 @@ fn a_rollback_with_the_copy_at_the_originals_name_and_no_backup_fails() {
     assert_eq!(last["phase"], "rollback-failed");
     assert!(last["ownedPaths"].get("replacementBackup").is_some(), "the backup's record is kept: {last}");
     assert_eq!(fs::read(&env.source).unwrap(), env.conversion, "the copy stays where it is");
+}
+
+/// The backup really removed, its removal still reporting a failure (a folder sync that
+/// failed): the validated copy is the clip, never rolled back over a missing original.
+#[test]
+fn a_backup_removed_but_reported_failed_keeps_the_validated_copy() {
+    let env = setup("removed-but-failed");
+    let rec = env.recorder();
+    let prepared = env.tx.prepare_replacement(&env.op(&rec)).unwrap();
+    let backup = PathBuf::from(&prepared.backup);
+    let b2 = backup.clone();
+    let _serial = crate::converter::owned::TEST_HOOK_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
+    *crate::converter::owned::TEST_HOOK.write().unwrap() = Some(Arc::new(move |event: &str, from: &Path, to: &Path| {
+        if event == "quarantined" && from == b2.as_path() {
+            fs::remove_file(to)?;
+            return Err(io::Error::from_raw_os_error(libc::EIO));
+        }
+        Ok(())
+    }));
+    let r = env.tx.swap_replacement(&Op { prepared: Some(&prepared), persist: Some(&rec), ..Default::default() });
+    *crate::converter::owned::TEST_HOOK.write().unwrap() = None;
+    let e = r.err().expect("the removal's failure is reported");
+    assert!(e.rolled_back.is_none(), "{e:?}");
+    let v = e.valid_final.expect("the validated copy is the clip");
+    assert!(!v.owned_paths.contains_key("replacementBackup") && !v.owned_paths.contains_key("replacementCandidate"), "{:?}", v.owned_paths);
+    assert_eq!(fs::read(&env.source).unwrap(), env.conversion);
+    assert_eq!(env.names(), [Path::new(&env.source).file_name().unwrap().to_string_lossy().to_string()]);
+}
+
+/// The original only under a removal's quarantine name and nothing at its own name: the
+/// rollback puts it back from there instead of dropping its record.
+#[test]
+fn a_rollback_with_the_original_only_in_quarantine_puts_it_back() {
+    let env = setup("quarantine-no-source");
+    let rec = env.recorder();
+    let prepared = env.tx.prepare_replacement(&env.op(&rec)).unwrap();
+    let q = Path::new(&prepared.backup).parent().unwrap().join(".sentry-owned-remove-0123456789abcdef");
+    fs::rename(&env.source, &q).unwrap();
+    let st = fs::symlink_metadata(&q).unwrap();
+    let mut arts = prepared.owned_artifacts.clone();
+    arts.insert("replacementBackup".into(), Meta { path: prepared.backup.clone(), nonce: prepared.backup_nonce.clone(), state: ArtifactState::Owned, size: Some(st.size()), sha256: Some(env.expected.sha256.clone()), device: Some(st.dev().to_string()), inode: Some(st.ino().to_string()), journal: None });
+    let mut paths = prepared.owned_paths.clone();
+    paths.insert("replacementBackup".into(), prepared.backup.clone());
+    let op = Op { owned_paths: paths, owned_artifacts: arts, ..env.op(&rec) };
+    let r = env.tx.rollback_replacement(&op).expect("rolled back");
+    assert_eq!(r.phase, Some(ReplacementPhase::BackupRestored));
+    assert_eq!(fs::read(&env.source).unwrap(), env.original);
+    assert_eq!(env.names(), [Path::new(&env.source).file_name().unwrap().to_string_lossy().to_string()]);
+}
+
+/// The backup made and found under no name, nothing at the original's name: the rollback
+/// fails and keeps the backup's record.
+#[test]
+fn a_rollback_with_no_original_anywhere_keeps_the_backup_record() {
+    let env = setup("no-original");
+    let rec = env.recorder();
+    let prepared = env.tx.prepare_replacement(&env.op(&rec)).unwrap();
+    let away = env.root.join("elsewhere.mp4");
+    fs::rename(&env.source, &away).unwrap();
+    let st = fs::symlink_metadata(&away).unwrap();
+    let mut arts = prepared.owned_artifacts.clone();
+    arts.insert("replacementBackup".into(), Meta { path: prepared.backup.clone(), nonce: prepared.backup_nonce.clone(), state: ArtifactState::Owned, size: Some(st.size()), sha256: Some(env.expected.sha256.clone()), device: Some(st.dev().to_string()), inode: Some(st.ino().to_string()), journal: None });
+    let mut paths = prepared.owned_paths.clone();
+    paths.insert("replacementBackup".into(), prepared.backup.clone());
+    let op = Op { owned_paths: paths, owned_artifacts: arts, ..env.op(&rec) };
+    let e = env.tx.rollback_replacement(&op).err().expect("refused");
+    assert_eq!(e.code, "ROLLBACK_FAILED");
+    let last = env.writes.lock().unwrap().last().unwrap().clone();
+    assert_eq!(last["phase"], "rollback-failed");
+    assert!(last["ownedPaths"].get("replacementBackup").is_some(), "the backup's record is kept: {last}");
 }
 
 #[test]

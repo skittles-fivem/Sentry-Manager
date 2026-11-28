@@ -94,6 +94,7 @@ fn without_hard_links_the_move_aside_keeps_its_reason() {
     rewritten[7] ^= 1;
     fs::OpenOptions::new().write(true).open(&env.source).unwrap().write_all_at(&rewritten, 0).unwrap();
     let t2 = tag.clone();
+    let _serial = super::super::owned::TEST_HOOK_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
     *super::super::owned::TEST_HOOK.write().unwrap() = Some(std::sync::Arc::new(move |event: &str, from: &Path, _to: &Path| {
         if event == "link-before" && from.to_string_lossy().starts_with(&t2) {
             return Err(io::Error::new(io::ErrorKind::Unsupported, "no links"));
