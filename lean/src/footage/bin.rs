@@ -189,6 +189,44 @@ fn item_id() -> String {
     format!("{}-{}", crate::media::base36(super::js::now() as u64), super::random_hex(4))
 }
 
+/// Put the files a failed move took into a bin item back at their names, never over a file
+/// that has the name now, then rmdir the item's folders left empty (never a file in them).
+/// The files that could not go back, still in the bin (`pending` false).
+fn put_back(root: &Path, planned: &[BinFile], moved: &[BinFile]) -> Vec<BinFile> {
+    let mut stuck: Vec<BinFile> = moved
+        .iter()
+        .rev()
+        .filter(|m| {
+            let back = (|| -> std::io::Result<()> {
+                let (from, to) = (safe_join(root, &m.bin_rel)?, safe_join(root, &m.rel)?);
+                // (its folder removed meanwhile is made again)
+                safe_fs::mkdirp_inside(root, to.parent().unwrap_or(root))?;
+                safe_fs::rename_inside_noreplace(root, &from, &to)
+            })();
+            back.is_err()
+        })
+        .map(|m| BinFile { pending: false, ..m.clone() })
+        .collect();
+    stuck.reverse();
+    let mut dirs: Vec<&str> = Vec::new();
+    for f in planned {
+        let mut d = dirname(&f.bin_rel);
+        while d.starts_with(&format!("{BIN_DIR}/")) {
+            if !dirs.contains(&d) {
+                dirs.push(d);
+            }
+            d = dirname(d);
+        }
+    }
+    dirs.sort_by_key(|d| std::cmp::Reverse(d.split('/').count()));
+    for d in dirs {
+        if let Ok(abs) = safe_join(root, d) {
+            let _ = safe_fs::rmdir_inside(root, &abs);
+        }
+    }
+    stuck
+}
+
 /// Move recordings to the bin. Protected or busy recordings are refused.
 pub fn trash(app: &Arc<App>, vid: &str, ids: &[String], reason: &str) -> Res<Trashed> {
     let (vehicle, root) = root_of(app, vid)?;
@@ -267,13 +305,19 @@ pub fn trash(app: &Arc<App>, vid: &str, ids: &[String], reason: &str) -> Res<Tra
             let failed = planned.iter().find_map(|f| step(f, &mut moved).err());
             if let Some(err) = failed {
                 // put back whatever moved so a recording is never split
-                for m in moved.iter().rev() {
-                    if let (Ok(a), Ok(b)) = (safe_join(&root, &m.bin_rel), safe_join(&root, &m.rel)) {
-                        let _ = safe_fs::rename_inside(&root, &a, &b);
+                let stuck = put_back(&root, &planned, &moved);
+                if !stuck.is_empty() {
+                    // (a file that could not go back stays in the bin, listed so it can be restored:
+                    // never deleted)
+                    let bytes = stuck.iter().map(|m| m.size).sum();
+                    if let Err(e) = app.core.db().update_bin_files(&id, &stuck, bytes) {
+                        db_failed = Some(e);
                     }
-                }
-                if let Ok(dir) = safe_join(&root, &format!("{BIN_DIR}/{id}")) {
-                    let _ = safe_fs::rmrf_inside(&root, &dir);
+                    gone.extend(stuck.iter().map(|m| m.rel.clone()));
+                    app.footage.scan_lock(vid).moved.lock().unwrap().extend(stuck.iter().map(|m| (inv.root.clone(), m.rel.clone())));
+                    log(app, Level::Warn, &format!("{}: {} file(s) of a recording could not be put back after a failed move; they are in the Recycle Bin as item {id}: {}", vehicle.name, stuck.len(), stuck.iter().map(|m| m.rel.as_str()).collect::<Vec<_>>().join(", ")));
+                    result.skipped.push(Skip { id: rec.id.clone(), reason: "error", message: Some(format!("{err}; {} file(s) could not be put back and are in the Recycle Bin", stuck.len())) });
+                    return;
                 }
                 // (left listed, its files still to move: a restart's settling drops it)
                 if let Err(e) = app.core.db().remove_bin_item(&id) {
@@ -719,6 +763,33 @@ mod tests {
         assert_eq!(skip_why(&[s("a", "protected", None), s("b", "error", Some("EACCES: x")), s("c", "protected", None), s("d", "error", Some("other"))]), "2 protected, 2 could not be moved (EACCES: x)");
         assert!(is_kept_dir("TeslaCam") && is_kept_dir("a/SentryClips") && !is_kept_dir("TeslaCam/SentryClips/2025-01-01_10-00-00"));
         assert!(adoptable("m7x2k1-0a1b2c3d") && !adoptable("x-0A1B2C3D") && !adoptable("nope"));
+    }
+
+    #[test]
+    fn a_file_that_cannot_be_put_back_stays_in_the_bin() {
+        let root = std::env::temp_dir().join(format!("lean-bin-putback-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let rels = ["TeslaCam/SentryClips/ev/a.mp4", "TeslaCam/SentryClips/ev/b.mp4", "TeslaCam/SentryClips/ev/c.mp4"];
+        let files: Vec<BinFile> = rels.iter().map(|r| BinFile { rel: r.to_string(), bin_rel: format!("{BIN_DIR}/it-1/{r}.binned"), size: 4, pending: false, conflict: false }).collect();
+        // a and b moved (c failed); the event folder was removed meanwhile and a new file has a's name
+        for f in &files[..2] {
+            std::fs::create_dir_all(root.join(&f.bin_rel).parent().unwrap()).unwrap();
+            std::fs::write(root.join(&f.bin_rel), f.rel.as_bytes()).unwrap();
+        }
+        std::fs::create_dir_all(root.join("TeslaCam/SentryClips/ev")).unwrap();
+        std::fs::write(root.join(rels[0]), b"newcomer").unwrap();
+        let stuck = put_back(&root, &files, &files[..2]);
+        assert_eq!(stuck.iter().map(|f| f.rel.as_str()).collect::<Vec<_>>(), vec![rels[0]]);
+        assert_eq!(std::fs::read(root.join(rels[0])).unwrap(), b"newcomer", "never over a file that has the name");
+        assert_eq!(std::fs::read(root.join(&files[0].bin_rel)).unwrap(), rels[0].as_bytes(), "kept in the bin");
+        assert_eq!(std::fs::read(root.join(rels[1])).unwrap(), rels[1].as_bytes(), "put back");
+        assert!(!root.join(&files[1].bin_rel).exists());
+        // every file back: the item's folders go
+        std::fs::remove_file(root.join(rels[0])).unwrap();
+        assert!(put_back(&root, &files, &stuck).is_empty());
+        assert_eq!(std::fs::read(root.join(rels[0])).unwrap(), rels[0].as_bytes());
+        assert!(!root.join(BIN_DIR).join("it-1").exists() && root.join(BIN_DIR).is_dir());
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]

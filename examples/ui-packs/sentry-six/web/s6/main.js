@@ -1,5 +1,5 @@
 import { clearFootageSelections } from './pages/footage.js';
-import { api, esc, sheet, act, toast, scope, offline, OFFLINE_TEXT } from './core.js';
+import { api, esc, sheet, act, toast, scope, offline, OFFLINE_TEXT, timeoutSignal } from './core.js';
 import { icon } from './icons.js';
 import { showStudio, hideStudio } from './studio.js';
 import { notifications } from './pages/notifications.js';
@@ -274,7 +274,7 @@ function connectEvents(reopened = false) {
     if (events.readyState !== EventSource.CLOSED) return; // the browser is trying again itself
     const wait = eventsRetry;
     eventsRetry = Math.min(eventsRetry * 2, 30000);
-    fetch('/api/auth/me', { credentials: 'same-origin', signal: AbortSignal.timeout?.(10000) })
+    fetch('/api/auth/me', { credentials: 'same-origin', signal: timeoutSignal(10000) })
       .then((r) => (r.ok ? r.json() : r.status === 401 ? {} : { user: true }))
       .then(
         (me) => {

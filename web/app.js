@@ -2,6 +2,13 @@
 
 (() => {
   const $ = (id) => document.getElementById(id);
+  // AbortSignal.timeout is missing on older phones (before Safari 16, Chromium 103)
+  const timeoutSignal = (ms) => {
+    if (typeof AbortSignal.timeout === 'function') return AbortSignal.timeout(ms);
+    const c = new AbortController();
+    setTimeout(() => c.abort(new DOMException('The operation timed out.', 'TimeoutError')), ms);
+    return c.signal;
+  };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const icon = (name) => `<svg class="i" aria-hidden="true"><use href="#i-${name}"/></svg>`;
   const store = {
@@ -2856,7 +2863,7 @@
       if (es.readyState !== EventSource.CLOSED) return; // the browser is trying again itself
       const wait = eventsRetry;
       eventsRetry = Math.min(eventsRetry * 2, 30000);
-      fetch('/api/auth/me', { credentials: 'same-origin', signal: AbortSignal.timeout?.(10000) })
+      fetch('/api/auth/me', { credentials: 'same-origin', signal: timeoutSignal(10000) })
         .then((r) => (r.ok ? r.json() : r.status === 401 ? {} : { user: true }))
         .then((me) => {
           if (me.user) setTimeout(() => connect(true), wait);

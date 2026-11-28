@@ -27,7 +27,14 @@
   // timeoutMs: give up after that long (reading the answer included); only
   // for quick read-only calls, never for ones that run long on purpose
   async function post(url, body, { timeoutMs = 0 } = {}) {
-    const signal = timeoutMs && typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(timeoutMs) : undefined;
+    // (AbortSignal.timeout is missing on older phones: a timer does the same there)
+    let signal;
+    if (timeoutMs && typeof AbortSignal.timeout === 'function') signal = AbortSignal.timeout(timeoutMs);
+    else if (timeoutMs) {
+      const c = new AbortController();
+      setTimeout(() => c.abort(new DOMException('The operation timed out.', 'TimeoutError')), timeoutMs);
+      signal = c.signal;
+    }
     const res = await fetch(url, { method: 'POST', headers, body: body === undefined ? '' : JSON.stringify(body), credentials: 'same-origin', signal });
     if (res.status === 401) {
       top.location.href = '/login';

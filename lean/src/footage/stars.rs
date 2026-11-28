@@ -59,6 +59,24 @@ fn protected_ids(star: &Value) -> Vec<String> {
     ids
 }
 
+/// The files a star protected, kept beside the recordings' ids: a loose recording's id changes
+/// when its session's first clip does (a rotating share, a clip arriving in a gap), the
+/// files it protected do not. Kept in the setting only, never in an answer.
+const FILES: &str = "protectsFiles";
+
+fn protected_files(star: &Value) -> Vec<String> {
+    star.get(FILES).and_then(Value::as_array).into_iter().flatten().filter_map(|x| x.as_str().map(String::from)).collect()
+}
+
+/// A star as answered: without the files it protected.
+fn shown(star: &Value) -> Value {
+    let mut out = star.clone();
+    if let Some(o) = out.as_object_mut() {
+        o.remove(FILES);
+    }
+    out
+}
+
 fn set_protected_ids(star: &mut Value, ids: &[String]) {
     let Some(o) = star.as_object_mut() else { return };
     o.remove("protects");
@@ -75,12 +93,26 @@ fn set_protected_ids(star: &mut Value, ids: &[String]) {
 /// removing a star later leaves what the admin protected by hand.
 pub fn protected_by_hand(app: &App, vid: &str, rec_ids: &[String]) -> DbResult<()> {
     let mut list = star_list(app)?;
+    let by_hand: std::collections::HashSet<String> = app
+        .state_of(vid)
+        .map(|s| s.recordings.iter().filter(|r| rec_ids.contains(&r.id)).flat_map(|r| r.files().map(|(f, _)| f.to_string())).collect::<Vec<_>>())
+        .unwrap_or_default()
+        .into_iter()
+        .collect();
     let mut changed = false;
     for x in list.iter_mut().filter(|x| x.get("vehicle").map(js::string).as_deref() == Some(vid)) {
         let ids = protected_ids(x);
         let left: Vec<String> = ids.iter().filter(|i| !rec_ids.contains(i)).cloned().collect();
         if left.len() != ids.len() {
             set_protected_ids(x, &left);
+            changed = true;
+        }
+        let files = protected_files(x);
+        let kept: Vec<String> = files.iter().filter(|f| !by_hand.contains(*f)).cloned().collect();
+        if kept.len() != files.len() {
+            if let Some(o) = x.as_object_mut() {
+                o.insert(FILES.into(), json!(kept));
+            }
             changed = true;
         }
     }
@@ -103,6 +135,7 @@ pub fn list(app: &App, vehicle: Option<&str>) -> Res<Value> {
             let v = x.get("vehicle").and_then(Value::as_str).unwrap_or("");
             known.iter().any(|k| k == v) && vehicle.map_or(true, |w| w == v)
         })
+        .map(|x| shown(&x))
         .collect();
     let clip = |x: &Value| x.get("clip").map(js::string).unwrap_or_else(|| "undefined".into());
     let second = |x: &Value| js::number(x.get("second"));
@@ -131,6 +164,7 @@ pub fn add(app: &App, who: &Caller, body: &Value) -> Res<Value> {
         set_protected_ids(&mut star, &fresh.iter().map(|r| r.id.clone()).collect::<Vec<_>>());
         // (protected before the star is kept: a star never stands for a protection that was not kept)
         let rels: Vec<String> = fresh.iter().flat_map(|r| r.files().map(|(f, _)| f.to_string())).collect();
+        star[FILES] = json!(rels);
         super::bin::set_protected(app, &v.id, &rels, true)?;
         app.rebuild(&v.id, None);
         app.core.announce("inventory");
@@ -138,7 +172,7 @@ pub fn add(app: &App, who: &Caller, body: &Value) -> Res<Value> {
     list.push(star.clone());
     save(app, &list)?;
     let protected = !recs.is_empty() && (fresh.is_empty() || star.get("protects").is_some());
-    let mut out = json!({ "star": star, "protected": protected });
+    let mut out = json!({ "star": shown(&star), "protected": protected });
     // (why nothing was protected, so the page never promises a protection that was not made)
     if !protected {
         out["notProtected"] = json!(if recs.is_empty() {
@@ -159,7 +193,7 @@ pub fn edit(app: &App, id: &str, body: &Value) -> Res<Value> {
     let mut list = star_list(app)?;
     let star = list.iter_mut().find(|x| x.get("id").and_then(Value::as_str) == Some(id)).ok_or_else(not_found)?;
     star["note"] = json!(clean_note(body.get("note")));
-    let out = star.clone();
+    let out = shown(star);
     save(app, &list)?;
     Ok(json!({ "star": out }))
 }
@@ -174,13 +208,27 @@ pub fn remove(app: &App, who: &Caller, id: &str) -> Res<Value> {
     // a recording that only this star protected is no longer kept for it (an admin's
     // doing only, like protecting: a watch-only account changes nothing kept)
     // (only the recordings this star itself protected: never one protected by hand)
-    let ids = protected_ids(&star);
-    if !ids.is_empty() && who.admin_here {
+    // (the files it protected: a recording re-keyed since, its first clip gone or a clip
+    // arriving before it, still goes. Only a star from before the files were kept is matched
+    // by the ids it protected: a recording keeping such an id may since have taken in
+    // another's files, protected by hand, that are never unprotected for the star)
+    let has_files = star.get(FILES).is_some();
+    let ids = if has_files { Vec::new() } else { protected_ids(&star) };
+    let files = protected_files(&star);
+    if (!ids.is_empty() || !files.is_empty()) && who.admin_here {
         let vid = star.get("vehicle").map(js::string).unwrap_or_default();
-        let mine: Vec<&str> = rest.iter().filter(|x| x.get("vehicle").map(js::string).as_deref() == Some(vid.as_str())).filter_map(|x| x.get("clip").and_then(Value::as_str)).collect();
-        let recs: Vec<Recording> = app.state_of(&vid).map(|s| s.recordings.iter().filter(|r| ids.contains(&r.id) && r.protected && !mine.iter().any(|c| holds_clip(r, c))).cloned().collect()).unwrap_or_default();
-        if !recs.is_empty() {
-            let rels: Vec<String> = recs.iter().flat_map(|r| r.files().map(|(f, _)| f.to_string())).collect();
+        let others: Vec<&Value> = rest.iter().filter(|x| x.get("vehicle").map(js::string).as_deref() == Some(vid.as_str())).collect();
+        let mine: Vec<&str> = others.iter().filter_map(|x| x.get("clip").and_then(Value::as_str)).collect();
+        let recordings: Vec<Recording> = app.state_of(&vid).map(|s| s.recordings.to_vec()).unwrap_or_default();
+        // (what another star of the vehicle still keeps stays protected)
+        let mut kept: std::collections::HashSet<String> = others.iter().flat_map(|x| protected_files(x)).collect();
+        kept.extend(recordings.iter().filter(|r| mine.iter().any(|c| holds_clip(r, c))).flat_map(|r| r.files().map(|(f, _)| f.to_string())));
+        let mut rels: Vec<String> = files;
+        rels.extend(recordings.iter().filter(|r| ids.contains(&r.id) && r.protected).flat_map(|r| r.files().map(|(f, _)| f.to_string())));
+        rels.retain(|r| !kept.contains(r));
+        rels.sort();
+        rels.dedup();
+        if !rels.is_empty() {
             super::bin::set_protected(app, &vid, &rels, false)?;
             app.rebuild(&vid, None);
             app.core.announce("inventory");
@@ -261,6 +309,66 @@ mod tests {
         remove(&f.app, &admin, star["star"]["id"].as_str().unwrap()).unwrap();
         let p = protected_of(&f);
         assert!(p.iter().any(|x| x.0 == "RecentClips" && x.1) && p.iter().any(|x| x.0 != "RecentClips" && !x.1), "{p:?}");
+    }
+
+    #[test]
+    fn removing_a_star_unprotects_its_recording_after_the_recording_was_re_keyed() {
+        let f = crate::footage::testing::on_core("stars-rekey");
+        let car = f.dir.join("footage/car");
+        let clip = |rel: &str| {
+            std::fs::create_dir_all(car.join(rel).parent().unwrap()).unwrap();
+            std::fs::write(car.join(rel), b"x").unwrap();
+        };
+        clip("RecentClips/2025-03-01_08-00-00-front.mp4");
+        clip("RecentClips/2025-03-01_08-01-00-front.mp4");
+        f.app.scan_now("car", false).unwrap();
+        let admin = Caller { user: Some("admin".into()), client: "127.0.0.1".into(), admin_here: true, confirmed: true };
+        let star = add(&f.app, &admin, &json!({ "vehicle": "car", "clip": "2025-03-01_08-01-00", "second": 3 })).unwrap();
+        assert!(star["star"].get(FILES).is_none(), "the files are not answered");
+        assert!(list(&f.app, None).unwrap()["stars"][0].get(FILES).is_none());
+        let before = f.app.state_of("car").unwrap().recordings[0].id.clone();
+        // an earlier clip arrives inside the session gap: the session starts earlier, its id changes
+        clip("RecentClips/2025-03-01_07-59-00-front.mp4");
+        f.app.scan_now("car", false).unwrap();
+        let recs = f.app.state_of("car").unwrap().recordings.to_vec();
+        assert_eq!(recs.len(), 1);
+        assert_ne!(recs[0].id, before);
+        assert!(recs[0].protected);
+        remove(&f.app, &admin, star["star"]["id"].as_str().unwrap()).unwrap();
+        assert!(!f.app.state_of("car").unwrap().recordings[0].protected, "the star's files are no longer protected");
+        assert!(f.app.core.db().protected_set("car").unwrap().is_empty());
+    }
+
+    #[test]
+    fn removing_a_star_leaves_a_recording_protected_by_hand_that_merged_into_its_recording() {
+        let f = crate::footage::testing::on_core("stars-merge");
+        let car = f.dir.join("footage/car");
+        let clip = |rel: &str| {
+            std::fs::create_dir_all(car.join(rel).parent().unwrap()).unwrap();
+            std::fs::write(car.join(rel), b"x").unwrap();
+        };
+        clip("RecentClips/2025-03-01_08-00-00-front.mp4");
+        clip("RecentClips/2025-03-01_08-03-00-front.mp4");
+        f.app.scan_now("car", false).unwrap();
+        let admin = Caller { user: Some("admin".into()), client: "127.0.0.1".into(), admin_here: true, confirmed: true };
+        let star = add(&f.app, &admin, &json!({ "vehicle": "car", "clip": "2025-03-01_08-00-00", "second": 3 })).unwrap();
+        let recs = f.app.state_of("car").unwrap().recordings.to_vec();
+        assert_eq!(recs.len(), 2);
+        let later: Vec<String> = recs.iter().filter(|r| !r.protected).map(|r| r.id.clone()).collect();
+        let first = recs.iter().find(|r| r.protected).unwrap().id.clone();
+        // the later session protected by hand, the way the protect route does it
+        protected_by_hand(&f.app, "car", &later).unwrap();
+        crate::footage::bin::set_protected(&f.app, "car", &["RecentClips/2025-03-01_08-03-00-front.mp4".to_string()], true).unwrap();
+        // a clip in the gap merges them, under the starred session's id
+        clip("RecentClips/2025-03-01_08-01-30-front.mp4");
+        f.app.scan_now("car", false).unwrap();
+        let recs = f.app.state_of("car").unwrap().recordings.to_vec();
+        assert_eq!(recs.len(), 1);
+        assert_eq!(recs[0].id, first);
+        remove(&f.app, &admin, star["star"]["id"].as_str().unwrap()).unwrap();
+        let p = f.app.core.db().protected_set("car").unwrap();
+        assert!(p.contains("RecentClips/2025-03-01_08-03-00-front.mp4"), "kept protected by hand: {p:?}");
+        assert!(!p.contains("RecentClips/2025-03-01_08-00-00-front.mp4"), "{p:?}");
     }
 
     #[test]

@@ -110,6 +110,53 @@ struct Prefetch {
     /// openings a newer one replaced before their window ended (their timers still save them)
     retired: HashMap<u64, Learning>,
     serial: u64,
+    /// counts the snapshots of `learnt` made for saving, so an older one is never saved over a newer
+    snapshots: u64,
+}
+
+/// The end of an opening's learning window: what it asked for becomes the page's hints. The
+/// settings write happens after the lock is let go: every signed-in API GET takes that lock on
+/// an async worker, and a write can wait seconds for a busy manager.db. `saved` (taken only
+/// here) is the newest snapshot kept.
+fn finish_learning(state: &Mutex<Prefetch>, saved: &Mutex<u64>, ctx: &dyn UiCtx, h: &str, serial: u64) {
+    let (snapshot, m) = {
+        let mut g = state.lock().unwrap();
+        let l = if g.learning.get(h).is_some_and(|l| l.serial == serial) { g.learning.remove(h) } else { g.retired.remove(&serial) };
+        let Some(l) = l else { return };
+        let (key, urls) = (l.key, l.urls);
+        let had = g.learnt.iter().position(|e| e.0 == key);
+        // only what the last two openings both asked for
+        let hints: Vec<String> = match had {
+            Some(i) => urls.iter().filter(|u| g.learnt[i].1.contains(u)).cloned().collect(),
+            None => Vec::new(),
+        };
+        let same_set = |a: &Vec<String>, b: &Vec<String>| a.len() == b.len() && a.iter().all(|u| b.contains(u));
+        let same = had.is_some_and(|i| same_set(&g.learnt[i].2, &hints) && same_set(&g.learnt[i].1, &urls));
+        if let Some(i) = had {
+            g.learnt.remove(i);
+        }
+        g.learnt.push((key, urls, hints));
+        if g.learnt.len() > 200 {
+            g.learnt.remove(0);
+        }
+        if same {
+            return;
+        }
+        let mut m = Map::new();
+        for (k, last, hints) in &g.learnt {
+            m.insert(k.clone(), json!({ "last": last, "hints": hints }));
+        }
+        g.snapshots += 1;
+        (g.snapshots, m)
+    };
+    let mut kept = saved.lock().unwrap();
+    if *kept > snapshot {
+        return;
+    }
+    match ctx.set_setting("prefetch", &Value::Object(m)) {
+        Ok(()) => *kept = snapshot,
+        Err(e) => ctx.log(Level::Warn, "ui", &format!("Page start hints were not kept: {e}")),
+    }
 }
 
 /// A path without its /v/<version>/ prefix, and whether it may be kept a year.
@@ -128,6 +175,7 @@ pub struct Ui {
     pub exporter: Arc<exporter::Exporter>,
     boot_id: String,
     prefetch: Arc<Mutex<Prefetch>>,
+    prefetch_saved: Arc<Mutex<u64>>,
     original_zip: Mutex<Option<Arc<Vec<u8>>>>,
 }
 
@@ -185,6 +233,7 @@ impl Ui {
             exporter,
             boot_id,
             prefetch: Arc::new(Mutex::new(prefetch)),
+            prefetch_saved: Arc::new(Mutex::new(0)),
             original_zip: Mutex::new(None),
         })
     }
@@ -286,37 +335,11 @@ impl Ui {
             serial
         };
         let state = self.prefetch.clone();
+        let saved = self.prefetch_saved.clone();
         let ctx = self.ctx.clone();
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(PREFETCH_WINDOW_MS + 100));
-            let mut g = state.lock().unwrap();
-            let l = if g.learning.get(&h).is_some_and(|l| l.serial == serial) { g.learning.remove(&h) } else { g.retired.remove(&serial) };
-            let Some(l) = l else { return };
-            let (key, urls) = (l.key, l.urls);
-            let had = g.learnt.iter().position(|e| e.0 == key);
-            // only what the last two openings both asked for
-            let hints: Vec<String> = match had {
-                Some(i) => urls.iter().filter(|u| g.learnt[i].1.contains(u)).cloned().collect(),
-                None => Vec::new(),
-            };
-            let same_set = |a: &Vec<String>, b: &Vec<String>| a.len() == b.len() && a.iter().all(|u| b.contains(u));
-            let same = had.is_some_and(|i| same_set(&g.learnt[i].2, &hints) && same_set(&g.learnt[i].1, &urls));
-            if let Some(i) = had {
-                g.learnt.remove(i);
-            }
-            g.learnt.push((key, urls, hints));
-            if g.learnt.len() > 200 {
-                g.learnt.remove(0);
-            }
-            if !same {
-                let mut m = Map::new();
-                for (k, last, hints) in &g.learnt {
-                    m.insert(k.clone(), json!({ "last": last, "hints": hints }));
-                }
-                if let Err(e) = ctx.set_setting("prefetch", &Value::Object(m)) {
-                    ctx.log(Level::Warn, "ui", &format!("Page start hints were not kept: {e}"));
-                }
-            }
+            finish_learning(&state, &saved, ctx.as_ref(), &h, serial);
         });
     }
 
@@ -758,6 +781,33 @@ mod tests {
     use super::*;
     use axum::body::Bytes;
     use std::sync::atomic::Ordering;
+
+    // The settings write at the end of a learning window waits on a busy manager.db (here the
+    // settings table held by the test); the lock every API GET takes must be free meanwhile.
+    #[test]
+    fn a_slow_hints_write_does_not_hold_the_lock_api_calls_take() {
+        let ctx = Arc::new(MemCtx::default());
+        let state = Arc::new(Mutex::new(Prefetch::default()));
+        let saved = Arc::new(Mutex::new(0u64));
+        state.lock().unwrap().learning.insert("h".into(), Learning { key: "u|v".into(), until: std::time::Instant::now(), urls: vec!["/api/a".into()], serial: 1 });
+        let busy = ctx.0.lock().unwrap();
+        let t = {
+            let (state, saved, ctx) = (state.clone(), saved.clone(), ctx.clone());
+            std::thread::spawn(move || finish_learning(&state, &saved, ctx.as_ref(), "h", 1))
+        };
+        let start = std::time::Instant::now();
+        while state.lock().unwrap().snapshots == 0 {
+            assert!(start.elapsed() < std::time::Duration::from_secs(10), "the snapshot was never made");
+            std::thread::yield_now();
+        }
+        // the writer is parked on the settings table now; the prefetch lock stays free
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        assert!(state.try_lock().is_ok(), "the prefetch lock is held across the settings write");
+        drop(busy);
+        t.join().unwrap();
+        assert_eq!(*saved.lock().unwrap(), 1);
+        assert_eq!(ctx.0.lock().unwrap()["prefetch"]["u|v"]["last"], json!(["/api/a"]));
+    }
 
     #[test]
     fn the_interface_routes_answer_500_when_the_choice_cannot_be_read_and_pages_keep_the_default() {

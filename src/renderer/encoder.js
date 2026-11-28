@@ -72,17 +72,24 @@ async function start() {
     // after 25 s the page shows, with the notice; a late start still shows the encoder)
     const init = initFootageConverter({ api, root: document, notify, t, onLanguageChange });
     const timedOut = Symbol('timeout');
+    const failed = (error) => {
+        console.error('Converter failed to start', error);
+        notify(`The encoder could not start (${error?.code || error?.message || 'error'}). Reload the page to try again.`, { type: 'error', timeoutMs: 0, dismissible: true });
+    };
     try {
         const first = await Promise.race([init, wait(25000).then(() => timedOut)]);
         if (first === timedOut) {
-            init.then((late) => { controller = late; late.setVisible(true); }, () => {});
-            throw Object.assign(new Error('The server took too long to answer'), { code: 'TIMEOUT' });
+            // still waiting, not failed: the notice goes when the start ends,
+            // and the reload hint shows only if it really fails
+            const waiting = notify('The server is slow to answer. The encoder will appear when it does.', { type: 'warn', timeoutMs: 0, dismissible: true });
+            const clear = () => document.querySelector(`[data-notif-id="${waiting}"]`)?.remove();
+            init.then((late) => { clear(); controller = late; late.setVisible(true); }, (error) => { clear(); failed(error); });
+        } else {
+            controller = first;
+            controller.setVisible(true);
         }
-        controller = first;
-        controller.setVisible(true);
     } catch (error) {
-        console.error('Converter failed to start', error);
-        notify(`The encoder could not start (${error?.code || error?.message || 'error'}). Reload the page to try again.`, { type: 'error', timeoutMs: 0, dismissible: true });
+        failed(error);
     }
 
     // The manager's setup (electronApiShim.js) runs now, with the last job's

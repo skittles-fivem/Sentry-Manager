@@ -193,14 +193,18 @@ fn freed(s: &Value) -> (f64, f64) {
     job_progress(s)
 }
 
-/// The vehicle a job's sourceRoot is in (vehicleForReal, then vehicleForPath: the converter keeps
-/// the real path). Err: the vehicles could not be read.
+/// The vehicle a job's sourceRoot is in (the converter keeps the real path, so a vehicle whose
+/// folder is a symlink is found by its real folder too). It runs in each job snapshot, under the
+/// job's own lock: it never waits long on a share, and asks no share that is not healthy
+/// (vehicle_in_quick). Err: the vehicles could not be read, or a share that may hold it has not
+/// answered yet (the job's savings are kept and its vehicle looked up again).
 pub fn try_vehicle_of(srv: &Server, src: &str) -> Result<Option<crate::footage::vehicles::Vehicle>, String> {
     if src.is_empty() {
         return Ok(None);
     }
-    let list = srv.app().vehicles.try_list().map_err(|e| e.to_string())?;
-    Ok(crate::footage::vehicles::vehicle_in(list, std::path::Path::new(src)).map(|(v, _)| v))
+    let vehicles = &srv.app().vehicles;
+    let list = vehicles.try_list().map_err(|e| e.to_string())?;
+    crate::footage::vehicles::vehicle_in_quick(list, std::path::Path::new(src), |v| vehicles.share(&v.id).is_none_or(|s| s.is_healthy()))
 }
 
 fn vehicle_of(srv: &Server, src: &str) -> Option<crate::footage::vehicles::Vehicle> {
@@ -539,11 +543,12 @@ pub fn invoke(srv: &Arc<Server>, c: &mut CoreCtx) -> Result<Reply, HttpError> {
 struct Stream {
     conv: Arc<Conv>,
     client: String,
+    alive: Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl Drop for Stream {
     fn drop(&mut self) {
-        self.conv.bridge.detach(&self.client);
+        self.conv.bridge.detach(&self.client, &self.alive);
         *self.conv.streams.lock().unwrap() -= 1;
     }
 }
@@ -634,8 +639,8 @@ pub async fn events(srv: Arc<Server>, a: ApiRaw) -> Res {
     let (queue, rx) = EventQueue::new(MAX_QUEUED_BYTES);
     queue.push("event: hello\ndata: {}\n\n");
     let q = queue.clone();
-    conv.bridge.attach_events(&client, Box::new(move |text: &str| q.push(text)));
-    let guard = Stream { conv, client };
+    let alive = conv.bridge.attach_events(&client, Box::new(move |text: &str| q.push(text)));
+    let guard = Stream { conv, client, alive };
     // (the stream ends when the page goes: the receiver is dropped, the bridge forgets the client;
     // or when the page stops reading: the queue overflows, closes, and the page reconnects)
     let body = futures_util::stream::unfold((rx, queue, guard), |(mut rx, queue, guard)| async move {
