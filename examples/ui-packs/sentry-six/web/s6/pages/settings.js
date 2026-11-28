@@ -340,6 +340,7 @@ authorization: { credentials: '${esc(token)}' }</pre><p>For HTTPS, install the <
       // a refused save puts the switch back, then the error toast shows
       box.querySelector('[data-clock]').onchange = act(async (e) => {
         const on = e.target.checked;
+        e.target.disabled = true;
         try {
           await api('/api/settings/appearance', {
             method: 'PUT',
@@ -348,11 +349,14 @@ authorization: { credentials: '${esc(token)}' }</pre><p>For HTTPS, install the <
         } catch (err) {
           e.target.checked = !on;
           throw err;
+        } finally {
+          e.target.disabled = false;
         }
         state.h24 = on;
       });
       box.querySelector('[data-reduce]').onchange = act(async (e) => {
         const on = e.target.checked;
+        e.target.disabled = true;
         try {
           await api('/api/settings/appearance', {
             method: 'PUT',
@@ -361,6 +365,8 @@ authorization: { credentials: '${esc(token)}' }</pre><p>For HTTPS, install the <
         } catch (err) {
           e.target.checked = !on;
           throw err;
+        } finally {
+          e.target.disabled = false;
         }
         document.documentElement.classList.toggle('reduce-effects', on);
       });

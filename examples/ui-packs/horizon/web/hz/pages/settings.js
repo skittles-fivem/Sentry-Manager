@@ -272,13 +272,15 @@ async function display(box) {
   });
   box.querySelector('#calm').onchange = (e) => act(null, async () => {
     const on = e.target.checked;
-    try { await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: on } }); } catch (err) { e.target.checked = !on; throw err; }
+    e.target.disabled = true;
+    try { await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: on } }); } catch (err) { e.target.checked = !on; throw err; } finally { e.target.disabled = false; }
     document.documentElement.classList.toggle('calm-ui', on);
     toast('Saved.');
   });
   box.querySelector('#clock24').onchange = (e) => act(null, async () => {
     const on = e.target.checked;
-    try { await api('/api/settings/appearance', { method: 'PUT', body: { clock24: on } }); } catch (err) { e.target.checked = !on; throw err; }
+    e.target.disabled = true;
+    try { await api('/api/settings/appearance', { method: 'PUT', body: { clock24: on } }); } catch (err) { e.target.checked = !on; throw err; } finally { e.target.disabled = false; }
     clockPref.h24 = on;
     toast('Saved.');
   });
