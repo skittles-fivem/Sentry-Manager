@@ -200,7 +200,8 @@ const KEY: &str = "savings";
 /// The totals (an error when manager.db could not read them: never written over then).
 fn load(db: &Connection) -> DbResult<Value> {
     let s = store::get_or(db, KEY, Value::Null)?;
-    let pick = |k: &str| if truthy(&s[k]) { s[k].clone() } else { json!({}) };
+    // (an object each: anything else, from a damaged or hand-edited manager.db, starts empty)
+    let pick = |k: &str| if s[k].is_object() { s[k].clone() } else { json!({}) };
     Ok(if s.is_object() {
         json!({ "vehicles": pick("vehicles"), "jobs": pick("jobs"), "months": pick("months"), "monthsSince": if truthy(&s["monthsSince"]) { s["monthsSince"].clone() } else { Value::Null } })
     } else {
@@ -214,7 +215,7 @@ fn month_of(ms: i64) -> String {
 }
 
 fn add_month(s: &mut Value, vehicle: &str, month: &str, bytes: f64, clips: f64) {
-    let months = s["months"].as_object_mut().unwrap();
+    let Some(months) = s["months"].as_object_mut() else { return };
     let v = months.entry(vehicle.to_string()).or_insert_with(|| json!({}));
     if !v.is_object() {
         *v = json!({});
@@ -266,9 +267,15 @@ pub fn forget(db: &Connection, vehicle: &str) -> DbResult<()> {
     if !truthy(&s["vehicles"][vehicle]) {
         return Ok(());
     }
-    s["vehicles"].as_object_mut().unwrap().remove(vehicle);
-    s["months"].as_object_mut().unwrap().remove(vehicle);
-    s["jobs"].as_object_mut().unwrap().retain(|_, j| j["vehicleId"] != vehicle);
+    if let Some(v) = s["vehicles"].as_object_mut() {
+        v.remove(vehicle);
+    }
+    if let Some(m) = s["months"].as_object_mut() {
+        m.remove(vehicle);
+    }
+    if let Some(j) = s["jobs"].as_object_mut() {
+        j.retain(|_, j| j["vehicleId"] != vehicle);
+    }
     store::set(db, KEY, &s)
 }
 
@@ -280,7 +287,9 @@ pub fn reset(db: &Connection, vehicle: &str) -> DbResult<bool> {
         return Ok(false);
     }
     s["vehicles"][vehicle] = json!({ "bytes": 0, "clips": 0 });
-    s["months"].as_object_mut().unwrap().remove(vehicle);
+    if let Some(m) = s["months"].as_object_mut() {
+        m.remove(vehicle);
+    }
     store::set(db, KEY, &s)?;
     Ok(true)
 }
@@ -292,7 +301,7 @@ pub fn backfill(db: &Connection, month_of_job: impl Fn(&str) -> DbResult<Option<
     if truthy(&s["monthsSince"]) {
         return Ok(false);
     }
-    let jobs: Vec<(String, Value)> = s["jobs"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    let jobs: Vec<(String, Value)> = s["jobs"].as_object().map(|j| j.iter().map(|(k, v)| (k.clone(), v.clone())).collect()).unwrap_or_default();
     for (id, j) in jobs {
         let vid = super::js::to_string(&j["vehicleId"]);
         if !truthy(&s["vehicles"][&vid]) {
@@ -453,6 +462,22 @@ mod tests {
         record(&db, "j1", "car", 450.0, 5.0).unwrap();
         assert_eq!(for_vehicle(&db, "car").unwrap(), json!({ "bytes": 50, "clips": 1 }));
         assert!(!reset(&db, "none").unwrap());
+    }
+
+    // a damaged row (lists or numbers where objects belong) starts those parts empty, no panic
+    #[test]
+    fn malformed_savings_start_over_instead_of_crashing() {
+        let db = mem();
+        store::set(&db, "savings", &json!({ "vehicles": ["car"], "jobs": 1, "months": [1], "monthsSince": null })).unwrap();
+        assert!(backfill(&db, |_| Ok(None)).unwrap());
+        store::set(&db, "savings", &json!({ "vehicles": ["car"], "jobs": 1, "months": [1] })).unwrap();
+        assert!(record(&db, "j1", "car", 100.0, 1.0).unwrap());
+        assert_eq!(for_vehicle(&db, "car").unwrap(), json!({ "bytes": 100, "clips": 1 }));
+        store::set(&db, "savings", &json!({ "vehicles": { "car": { "bytes": 5, "clips": 1 } }, "jobs": "x", "months": 7 })).unwrap();
+        assert!(reset(&db, "car").unwrap());
+        store::set(&db, "savings", &json!({ "vehicles": { "car": { "bytes": 5, "clips": 1 } }, "jobs": "x", "months": 7 })).unwrap();
+        forget(&db, "car").unwrap();
+        assert_eq!(for_vehicle(&db, "car").unwrap(), json!({ "bytes": 0, "clips": 0 }));
     }
 
     // test/savingsByMonth.test.js
