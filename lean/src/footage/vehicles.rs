@@ -515,6 +515,24 @@ impl Vehicles {
     }
 }
 
+/// vehicleForReal, then vehicleForPath: the vehicle of `list` that `p` is in, found by each
+/// share's real folder first (a converter job's sourceRoot and a confined path are real paths,
+/// while a vehicle's root may go through a symlink), then by the folder it is named by; with
+/// the root it matched.
+pub fn vehicle_in(list: Vec<Vehicle>, p: &Path) -> Option<(Vehicle, PathBuf)> {
+    let abs = super::safe_fs::resolve(p);
+    let real = std::fs::canonicalize(&abs).unwrap_or_else(|_| abs.clone());
+    let reals: Vec<PathBuf> = list.iter().map(|v| std::fs::canonicalize(&v.root).unwrap_or_else(|_| v.root.clone())).collect();
+    if let Some(i) = reals.iter().position(|r| is_inside(&real, r)) {
+        let root = reals[i].clone();
+        return list.into_iter().nth(i).map(|v| (v, root));
+    }
+    list.into_iter().find(|v| is_inside(&abs, &v.root)).map(|v| {
+        let root = v.root.clone();
+        (v, root)
+    })
+}
+
 /// index.js describeSource (audit lines)
 pub fn describe_source(src: &Value) -> String {
     let s = |k: &str| src.get(k).map(js::string).unwrap_or_else(|| "undefined".into());
@@ -549,6 +567,27 @@ mod tests {
             mountinfo: dir.join("no-mountinfo"),
             default_tz: None,
         })
+    }
+
+    // a converter job keeps its sourceRoot as the real path: a vehicle whose folder goes
+    // through a symlink still owns it (vehicleForReal before vehicleForPath)
+    #[cfg(unix)]
+    #[test]
+    fn a_real_path_finds_the_vehicle_whose_folder_is_a_symlink() {
+        let dir = std::env::temp_dir().join(format!("lean-vehicle-real-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("tank/car/TeslaCam")).unwrap();
+        std::fs::create_dir_all(dir.join("plain")).unwrap();
+        std::os::unix::fs::symlink(dir.join("tank"), dir.join("footage")).unwrap();
+        let v = |id: &str, root: PathBuf| Vehicle { id: id.into(), name: id.into(), timezone: "UTC".into(), root, source: json!({ "type": "path" }), raw: json!({}) };
+        let list = || vec![v("plain", dir.join("plain")), v("car", dir.join("footage/car"))];
+        let real = std::fs::canonicalize(dir.join("tank/car/TeslaCam")).unwrap();
+        let (found, root) = vehicle_in(list(), &real).unwrap();
+        assert_eq!((found.id.as_str(), root), ("car", std::fs::canonicalize(dir.join("tank/car")).unwrap()));
+        assert_eq!(vehicle_in(list(), &dir.join("footage/car/TeslaCam")).unwrap().0.id, "car", "the path it is named by too");
+        assert_eq!(vehicle_in(list(), &dir.join("footage/gone")).map(|(v, _)| v.id), None);
+        assert!(vehicle_in(list(), &dir.join("elsewhere")).is_none());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

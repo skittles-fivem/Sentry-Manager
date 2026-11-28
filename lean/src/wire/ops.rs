@@ -114,6 +114,10 @@ impl OpsCtx for CoreOps {
         let Some(srv) = self.srv() else { return Vec::new() };
         srv.app().vehicles.list().iter().filter_map(|v| vehicle_info(&srv, &v.id)).collect()
     }
+    fn vehicle_of_source(&self, source_root: &str) -> Result<Option<String>, String> {
+        let Some(srv) = self.srv() else { return Err("the server is stopping".into()) };
+        Ok(super::converter::try_vehicle_of(&srv, source_root)?.map(|v| v.id))
+    }
     fn converter(&self) -> ConverterInfo {
         let Some(conv) = self.srv().and_then(|s| s.converter().cloned()) else {
             return ConverterInfo { ready: false, error: Some("CONVERTER_STARTING".into()), ..Default::default() };

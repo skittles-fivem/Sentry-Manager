@@ -203,17 +203,7 @@ pub fn trash_folder(srv: &Arc<Server>, c: &mut CoreCtx) -> Result<Reply, HttpErr
     let real = crate::viewer::studio::confined(&guard, &body).map_err(|(s, m)| HttpError::new(s, m))?;
     let app = srv.app().clone();
     // vehicleForReal: the share's real folder first, then the one it is named by
-    let found = app.vehicles.list().into_iter().find_map(|v| {
-        let real_root = std::fs::canonicalize(&v.root).unwrap_or_else(|_| v.root.clone());
-        if crate::footage::vehicles::is_inside(&real, &real_root) {
-            return Some((v, real_root));
-        }
-        if crate::footage::vehicles::is_inside(&real, &v.root) {
-            let r = v.root.clone();
-            return Some((v, r));
-        }
-        None
-    });
+    let found = crate::footage::vehicles::vehicle_in(app.vehicles.list(), &real);
     let Some((v, root)) = found else { return Err(HttpError::new(403, "Not inside a vehicle share.")) };
     // (as the footage area's errors reach core)
     let fail = super::footage::http_error;

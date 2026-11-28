@@ -229,8 +229,13 @@ fn f(v: &Value) -> f64 {
     v.as_f64().unwrap_or(0.0)
 }
 
-/// A converter job's totals so far; only what it adds since its last call counts.
+/// A converter job's totals so far; only what it adds since its last call counts (in this month).
 pub fn record(db: &Connection, job: &str, vehicle: &str, bytes: f64, clips: f64) -> DbResult<bool> {
+    record_at(db, job, vehicle, bytes, clips, store::now_ms())
+}
+
+/// As `record`, what it adds going to the month of `at_ms` (when the job saved it).
+pub fn record_at(db: &Connection, job: &str, vehicle: &str, bytes: f64, clips: f64, at_ms: i64) -> DbResult<bool> {
     if job.is_empty() || vehicle.is_empty() {
         return Ok(false);
     }
@@ -248,10 +253,16 @@ pub fn record(db: &Connection, job: &str, vehicle: &str, bytes: f64, clips: f64)
     v["bytes"] = num(f(&v["bytes"]) + add_b.max(0.0));
     v["clips"] = num(f(&v["clips"]) + add_c.max(0.0));
     s["vehicles"][&vid] = v;
-    add_month(&mut s, &vid, &month_of(store::now_ms()), add_b, add_c);
+    add_month(&mut s, &vid, &month_of(at_ms), add_b, add_c);
     s["jobs"][job] = json!({ "vehicleId": vid, "bytes": num(bytes.max(f(&seen["bytes"]))), "clips": num(clips.max(f(&seen["clips"]))) });
     store::set(db, KEY, &s)?;
     Ok(true)
+}
+
+/// What each job has added so far: job id -> (bytes, clips).
+pub fn seen_jobs(db: &Connection) -> DbResult<std::collections::HashMap<String, (f64, f64)>> {
+    let s = load(db)?;
+    Ok(s["jobs"].as_object().unwrap().iter().map(|(k, j)| (k.clone(), (f(&j["bytes"]), f(&j["clips"])))).collect())
 }
 
 /// One vehicle's total: { bytes, clips }.
@@ -302,13 +313,31 @@ pub fn backfill(db: &Connection, month_of_job: impl Fn(&str) -> DbResult<Option<
         return Ok(false);
     }
     let jobs: Vec<(String, Value)> = s["jobs"].as_object().map(|j| j.iter().map(|(k, v)| (k.clone(), v.clone())).collect()).unwrap_or_default();
+    let mut by_vehicle: std::collections::BTreeMap<String, Vec<(String, f64, f64)>> = Default::default();
     for (id, j) in jobs {
         let vid = super::js::to_string(&j["vehicleId"]);
         if !truthy(&s["vehicles"][&vid]) {
             continue;
         }
         let month = month_of_job(&id)?.filter(|m| !m.is_empty()).unwrap_or_else(|| month_of(store::now_ms()));
-        add_month(&mut s, &vid, &month, f(&j["bytes"]), f(&j["clips"]));
+        by_vehicle.entry(vid).or_default().push((month, f(&j["bytes"]), f(&j["clips"])));
+    }
+    // never more than the vehicle's total: a reset started it over (its jobs stay remembered),
+    // and what months already hold was counted as it happened; the newest months are filled first
+    for (vid, mut list) in by_vehicle {
+        let held = |k: &str| s["months"][&vid].as_object().map_or(0.0, |m| m.values().map(|x| f(&x[k])).sum::<f64>());
+        let mut left_b = (f(&s["vehicles"][&vid]["bytes"]) - held("bytes")).max(0.0);
+        let mut left_c = (f(&s["vehicles"][&vid]["clips"]) - held("clips")).max(0.0);
+        list.sort_by(|a, b| b.0.cmp(&a.0));
+        for (month, bytes, clips) in list {
+            let (b, c) = (bytes.max(0.0).min(left_b), clips.max(0.0).min(left_c));
+            if b <= 0.0 && c <= 0.0 {
+                continue;
+            }
+            left_b -= b;
+            left_c -= c;
+            add_month(&mut s, &vid, &month, b, c);
+        }
     }
     s["monthsSince"] = json!(store::now_ms());
     store::set(db, KEY, &s)?;
@@ -506,6 +535,31 @@ mod tests {
         assert_eq!(for_vehicle(&db, "car").unwrap()["bytes"], num(6.5 * gb));
         reset(&db, "car").unwrap();
         assert!(by_month(&db, "car", 12.0, now).unwrap().iter().all(|m| m["bytes"] == 0));
+    }
+
+    // a vehicle started over before months were kept: its remembered jobs put no bars back,
+    // and what months already hold is not counted twice
+    #[test]
+    fn the_backfill_never_puts_more_in_months_than_the_total() {
+        let db = mem();
+        let now = store::now_ms();
+        store::set(&db, "savings", &json!({ "vehicles": { "car": { "bytes": 0, "clips": 0 }, "van": { "bytes": 500, "clips": 5 } }, "jobs": { "j1": { "vehicleId": "car", "bytes": 300, "clips": 3 }, "j2": { "vehicleId": "van", "bytes": 400, "clips": 4 } }, "months": { "van": { "2020-01": { "bytes": 200, "clips": 2 } } } })).unwrap();
+        assert!(backfill(&db, |_| Ok(Some("2020-02".into()))).unwrap());
+        let sum = |v: &str, k: &str| by_month(&db, v, 36.0, now).unwrap().iter().map(|m| f(&m[k])).sum::<f64>();
+        let s = load(&db).unwrap();
+        assert_eq!(s["months"].get("car"), None, "a reset vehicle gets no months back");
+        assert_eq!(s["months"]["van"]["2020-02"], json!({ "bytes": 300, "clips": 3 }), "only what the total has beyond the months");
+        assert_eq!(sum("car", "bytes"), 0.0);
+    }
+
+    // a job's savings go to the month it saved them in
+    #[test]
+    fn record_at_files_the_savings_in_their_month() {
+        let db = mem();
+        let at = chrono::Local.with_ymd_and_hms(2025, 3, 15, 12, 0, 0).unwrap().timestamp_millis();
+        assert!(record_at(&db, "j1", "car", 100.0, 2.0, at).unwrap());
+        assert_eq!(load(&db).unwrap()["months"]["car"]["2025-03"], json!({ "bytes": 100, "clips": 2 }));
+        assert_eq!(seen_jobs(&db).unwrap()["j1"], (100.0, 2.0));
     }
 
     #[test]

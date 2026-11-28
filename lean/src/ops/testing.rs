@@ -22,6 +22,8 @@ pub struct FakeCtx {
     pub identifiers: Mutex<Vec<String>>,
     /// the identifiers (read from manager.db) cannot be read
     pub identifiers_fail: std::sync::atomic::AtomicBool,
+    /// vehicle_of_source fails (the vehicles cannot be read)
+    pub vehicles_unread: std::sync::atomic::AtomicBool,
     pub diagnostics: Mutex<Value>,
     pub heartbeat: Mutex<Value>,
     pub shutdowns: Mutex<Vec<String>>,
@@ -54,6 +56,7 @@ impl FakeCtx {
             ffmpeg: Mutex::new("/nonexistent/ffmpeg".into()),
             identifiers: Mutex::new(Vec::new()),
             identifiers_fail: Default::default(),
+            vehicles_unread: Default::default(),
             // (null: ops::diag builds them, as in the server)
             diagnostics: Mutex::new(Value::Null),
             heartbeat: Mutex::new(Value::Null),
@@ -104,6 +107,13 @@ impl OpsCtx for FakeCtx {
     }
     fn vehicles(&self) -> Vec<VehicleInfo> {
         self.vehicles.lock().unwrap().clone()
+    }
+    fn vehicle_of_source(&self, source_root: &str) -> Result<Option<String>, String> {
+        if self.vehicles_unread.load(std::sync::atomic::Ordering::SeqCst) {
+            return Err("manager.db: disk I/O error".into());
+        }
+        let p = std::path::Path::new(source_root);
+        Ok(self.vehicles.lock().unwrap().iter().find(|v| v.roots.iter().any(|r| p.starts_with(r))).map(|v| v.id.clone()))
     }
     fn converter(&self) -> ConverterInfo {
         self.converter.lock().unwrap().clone()

@@ -39,6 +39,8 @@ pub struct Conv {
     snaps: Mutex<HashMap<String, Value>>,
     /// index.js converterListed: the jobs from before the start were listed
     listed: std::sync::atomic::AtomicBool,
+    /// the jobs whose folder is in no vehicle, said once each
+    unmatched: Mutex<std::collections::HashSet<String>>,
 }
 
 pub struct CoreConverter {
@@ -177,11 +179,27 @@ pub fn job_progress(s: &Value) -> (f64, f64) {
     (counts(s).0 as f64, saved)
 }
 
-fn vehicle_of(srv: &Server, src: &str) -> Option<crate::footage::vehicles::Vehicle> {
-    if src.is_empty() {
-        return None;
+/// The vehicle a job's sourceRoot is in (vehicleForReal, then vehicleForPath: the converter keeps
+/// the real path). Err: the vehicles could not be read.
+/// What a job freed on its vehicle's share so far, as (clips, bytes): a copy to another folder
+/// (outputMode "separate") leaves the originals there, so it frees nothing.
+fn freed(s: &Value) -> (f64, f64) {
+    if s["config"]["outputMode"] == "separate" {
+        return (0.0, 0.0);
     }
-    srv.app().vehicles.vehicle_for_path(std::path::Path::new(src))
+    job_progress(s)
+}
+
+pub fn try_vehicle_of(srv: &Server, src: &str) -> Result<Option<crate::footage::vehicles::Vehicle>, String> {
+    if src.is_empty() {
+        return Ok(None);
+    }
+    let list = srv.app().vehicles.try_list().map_err(|e| e.to_string())?;
+    Ok(crate::footage::vehicles::vehicle_in(list, std::path::Path::new(src)).map(|(v, _)| v))
+}
+
+fn vehicle_of(srv: &Server, src: &str) -> Option<crate::footage::vehicles::Vehicle> {
+    try_vehicle_of(srv, src).ok().flatten()
 }
 
 /// index.js slimJob: a job as kept, its counts without its clip list
@@ -204,10 +222,26 @@ fn on_snapshot(srv: &Server, conv: &Conv, s: &Value, live: bool) {
     let st = s["state"].as_str().unwrap_or("");
     conv.jobs.lock().unwrap().insert(id.to_string(), st.to_string());
     let src = s["config"]["sourceRoot"].as_str().unwrap_or("");
-    let v = vehicle_of(srv, src);
+    let found = try_vehicle_of(srv, src);
+    if live && !src.is_empty() && matches!(found, Ok(None)) && conv.unmatched.lock().unwrap().insert(id.to_string()) {
+        srv.state.logger.scope("converter").warn(format!("Conversion {id}: its folder {src} is in no vehicle, so its space saved is not counted"));
+    }
+    let vehicle_unread = found.is_err();
+    let v = found.ok().flatten();
     if let Some(ops) = srv.ops() {
-        let (clips, saved) = job_progress(s);
-        ops.job_snapshot(&crate::ops::JobSnapshot { id: id.to_string(), running: RUNNING.contains(&st), vehicle_id: v.as_ref().map(|v| v.id.clone()), saved_bytes: saved, clips });
+        let (clips, saved) = freed(s);
+        let running = RUNNING.contains(&st);
+        ops.job_snapshot(&crate::ops::JobSnapshot {
+            id: id.to_string(),
+            running,
+            vehicle_id: v.as_ref().map(|v| v.id.clone()),
+            saved_bytes: saved,
+            clips,
+            source_root: src.to_string(),
+            vehicle_unread,
+            // a job that does not run now saved what it did by its last change (a job listed at the start)
+            at_ms: if running { None } else { s["updatedAt"].as_i64().filter(|t| *t > 0) },
+        });
     }
     if live {
         mirror(srv, conv, s, id, st, src, v.as_ref());
@@ -440,6 +474,7 @@ pub fn spawn(srv: &Arc<Server>) {
                 jobs: Mutex::new(HashMap::new()),
                 snaps: Mutex::new(HashMap::new()),
                 listed: std::sync::atomic::AtomicBool::new(false),
+                unmatched: Mutex::new(Default::default()),
             });
             let (w, c) = (Arc::downgrade(&s), Arc::downgrade(&conv));
             conv.runtime.service.subscribe(Arc::new(move |event: &Value| {
@@ -611,6 +646,13 @@ fn cheap_now(db: Arc<crate::core::db::Db>, log: crate::core::log::Scope) -> Arc<
 #[cfg(test)]
 mod cheap_now_tests {
     use super::*;
+
+    #[test]
+    fn only_a_job_that_replaces_the_originals_frees_space() {
+        let job = |mode: &str| json!({ "config": { "outputMode": mode }, "progressClips": 3, "counters": { "savedBytes": 900 } });
+        assert_eq!(freed(&job("replace")), (3.0, 900.0));
+        assert_eq!(freed(&job("separate")), (0.0, 0.0), "the originals stay on the share");
+    }
 
     #[test]
     fn rates_that_cannot_be_read_are_not_cheap_and_are_said_once_until_they_can() {

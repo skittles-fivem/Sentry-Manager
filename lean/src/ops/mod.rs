@@ -62,7 +62,16 @@ pub struct JobSnapshot {
     pub saved_bytes: f64,
     /// jobProgress(s).clips
     pub clips: f64,
+    /// config.sourceRoot (the vehicle is looked up again when it could not be read)
+    pub source_root: String,
+    /// the vehicles could not be read for this snapshot (manager.db): vehicle_id is unknown
+    pub vehicle_unread: bool,
+    /// when the job saved what it did (a job that does not run now: its last change); None: now
+    pub at_ms: Option<i64>,
 }
+
+/// The most savings snapshots kept to try again.
+const PENDING_SAVINGS: usize = 1000;
 
 /// The benchmark's energy token (index.js powerMeter.start).
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -98,6 +107,12 @@ pub struct Ops {
     converting: Arc<Mutex<Converting>>,
     /// what manager.db failed lately in the background (a price, a job's savings): logged once until it works
     unread: Arc<crate::core::db::LogOnce>,
+    /// what each job has added to the savings so far (job id -> bytes, clips), so a snapshot that adds
+    /// nothing does not read the savings again
+    seen: Mutex<HashMap<String, (f64, f64)>>,
+    /// the last snapshot of each job whose savings could not be kept (manager.db, or its vehicle
+    /// could not be read), with when it saved them: tried again once a minute
+    pending: Mutex<HashMap<String, JobSnapshot>>,
 }
 
 /// The stats engine as index.js sets it up: the data folder and the shares,
@@ -197,6 +212,8 @@ impl Ops {
             stats_asked_at: Mutex::new(0),
             converting,
             unread,
+            seen: Mutex::new(HashMap::new()),
+            pending: Mutex::new(HashMap::new()),
             ctx,
         });
         let weak = Arc::downgrade(&ops);
@@ -212,6 +229,10 @@ impl Ops {
             let db = ops.ctx.db();
             if let Err(e) = power::backfill(&db, |job| month_of_job(&db, job)) {
                 ops.ctx.log("server", Level::Warn, &format!("Space saved by month was not filled in from the job history (tried again at the next start): {e}"));
+            }
+            // (unread: each job's first snapshot reads the savings)
+            if let Ok(seen) = power::seen_jobs(&db) {
+                *ops.seen.lock().unwrap() = seen;
             }
         }
         ops
@@ -259,6 +280,7 @@ impl Ops {
             // (index.js ticks these with its housekeeping, once a minute)
             std::thread::sleep(Duration::from_secs(60));
             let Some(me) = me.upgrade() else { return };
+            me.retry_savings();
             me.updates.tick();
             // data used: the network counters once a day, with no page open too
             me.stats.tick();
@@ -340,12 +362,62 @@ impl Ops {
 
     /// recordSavings: a converter job's saved space, onto its vehicle's total.
     pub fn record_savings(&self, s: &JobSnapshot) {
+        if s.vehicle_unread {
+            // (its vehicle is looked up again with the retry)
+            self.keep_pending(s);
+            return;
+        }
         let Some(v) = &s.vehicle_id else { return };
         let bytes = if s.saved_bytes.is_finite() { s.saved_bytes } else { 0.0 };
-        // (not kept: the next snapshot adds it, since what a job added is kept with the totals)
-        let r = power::record(&self.ctx.db(), &s.id, v, bytes, s.clips);
+        if self.seen.lock().unwrap().get(&s.id).is_some_and(|&(b, c)| bytes <= b && s.clips <= c) {
+            self.pending.lock().unwrap().remove(&s.id);
+            return;
+        }
+        let r = power::record_at(&self.ctx.db(), &s.id, v, bytes, s.clips, s.at_ms.unwrap_or_else(store::now_ms));
         if let (true, Err(e)) = (self.unread.first("savings", r.is_err()), &r) {
             self.ctx.log("server", Level::Warn, &format!("Space saved by conversions is not counted until manager.db can be written: {e}"));
+        }
+        if r.is_ok() {
+            self.pending.lock().unwrap().remove(&s.id);
+            let mut seen = self.seen.lock().unwrap();
+            let e = seen.entry(s.id.clone()).or_insert((0.0, 0.0));
+            *e = (e.0.max(bytes), e.1.max(s.clips));
+        } else {
+            // (a running job's next snapshot adds it too; a finished one sends none)
+            self.keep_pending(s);
+        }
+    }
+
+    /// A snapshot whose savings were not kept, tried again by `retry_savings`; it is filed
+    /// in the month it was saved in.
+    fn keep_pending(&self, s: &JobSnapshot) {
+        let mut p = self.pending.lock().unwrap();
+        if p.len() >= PENDING_SAVINGS && !p.contains_key(&s.id) {
+            return;
+        }
+        let mut kept = s.clone();
+        kept.at_ms = Some(s.at_ms.unwrap_or_else(store::now_ms));
+        p.insert(s.id.clone(), kept);
+    }
+
+    /// Once a minute: the savings not kept yet (their vehicle looked up again when it could not be read).
+    pub fn retry_savings(&self) {
+        let list: Vec<JobSnapshot> = self.pending.lock().unwrap().values().cloned().collect();
+        for mut s in list {
+            if s.vehicle_unread {
+                match self.ctx.vehicle_of_source(&s.source_root) {
+                    Ok(v) => {
+                        s.vehicle_unread = false;
+                        s.vehicle_id = v;
+                    }
+                    Err(_) => continue,
+                }
+                if s.vehicle_id.is_none() {
+                    self.pending.lock().unwrap().remove(&s.id);
+                    continue;
+                }
+            }
+            self.record_savings(&s);
         }
     }
 
