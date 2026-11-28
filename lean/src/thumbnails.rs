@@ -156,7 +156,9 @@ impl Thumbnails {
         let (clip, to) = (real.to_string_lossy(), tmp.to_string_lossy());
         let tail = ["-frames:v", "1", "-vf", "scale=320:-2", "-q:v", "5", &to];
         let head = ["-hide_banner", "-loglevel", "error", "-nostdin", "-y"];
-        let input = ["-protocol_whitelist", "file", "-i", &clip];
+        // (one decoding thread: ffmpeg otherwise starts one per CPU for a single frame, which on
+        // 16 CPUs took twice the memory and longer; several thumbnails run at once instead)
+        let input = ["-threads", "1", "-protocol_whitelist", "file", "-i", &clip];
         let seek: Vec<&str> = head.iter().copied().chain(["-ss", "1"]).chain(input).chain(tail).collect();
         if run(&self.ffmpeg, &seek) != 0 {
             // very short clip: the first frame instead
