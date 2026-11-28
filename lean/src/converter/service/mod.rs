@@ -1962,3 +1962,45 @@ pub(crate) mod snap_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod transition_cost {
+    //! What one change of a big job costs (run by hand: `N=40000 K=400 cargo test --release
+    //! --lib -- --ignored --nocapture transition_cost`).
+    use super::*;
+    #[test]
+    #[ignore]
+    fn time_one_clip_change_in_a_big_job() {
+        let n: usize = std::env::var("N").ok().and_then(|s| s.parse().ok()).unwrap_or(40_000);
+        let root = std::env::temp_dir().join(format!("lean-tcost-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let store = JobStore::new(&root).unwrap();
+        let m = snap_tests::job("x", n);
+        let id = m.id().to_string();
+        let mut init = m.top.clone();
+        init.insert("items".into(), Value::Array(m.items.iter().map(|i| i.value().clone()).collect()));
+        init.remove("revision");
+        init.remove("schemaVersion");
+        let job = store.create(&init).unwrap();
+        let _ = job;
+        let t = std::time::Instant::now();
+        let k: usize = std::env::var("K").ok().and_then(|s| s.parse().ok()).unwrap_or(50);
+        let mut cur = store.load(&id).unwrap().unwrap();
+        for r in 0..k {
+            let it = format!("item-{:06}", 6 + 7 * r);
+            let items = with_item(&cur, &it, |v| merge(v, &vec![("state", Some(json!("skipped")))]));
+            cur = store.transition(&id, Patch::new().items(items)).unwrap();
+        }
+        let per_items = t.elapsed().as_secs_f64() * 1000.0 / k as f64;
+        let t = std::time::Instant::now();
+        for r in 0..k {
+            cur = store.transition(&id, Patch::new().set("activeItemId", if r % 2 == 0 { json!("item-000004") } else { Value::Null })).unwrap();
+        }
+        let per_top = t.elapsed().as_secs_f64() * 1000.0 / k as f64;
+        let t = std::time::Instant::now();
+        for _ in 0..10 { let _ = public_snapshot(&cur); }
+        let snap = t.elapsed().as_secs_f64() * 100.0;
+        eprintln!("N={n}: clip change {per_items:.1} ms, top change {per_top:.1} ms, full public_snapshot {snap:.1} ms");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+}
