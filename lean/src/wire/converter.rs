@@ -488,6 +488,77 @@ impl Drop for Stream {
     }
 }
 
+/// How much one live-update stream may hold unsent before it is closed: a page that stops reading
+/// (a phone gone off Wi-Fi with the connection still half open) must not grow memory without limit.
+const MAX_QUEUED_BYTES: usize = 8 * 1024 * 1024;
+
+/// One stream's unsent updates, bounded by bytes. Once full it closes for good: what is queued is
+/// still sent, then the stream ends and the page's EventSource reconnects for a fresh snapshot.
+#[derive(Clone)]
+struct EventQueue {
+    tx: Arc<Mutex<Option<tokio::sync::mpsc::UnboundedSender<String>>>>,
+    queued: Arc<std::sync::atomic::AtomicUsize>,
+    limit: usize,
+}
+
+impl EventQueue {
+    fn new(limit: usize) -> (EventQueue, tokio::sync::mpsc::UnboundedReceiver<String>) {
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+        (EventQueue { tx: Arc::new(Mutex::new(Some(tx))), queued: Arc::new(std::sync::atomic::AtomicUsize::new(0)), limit }, rx)
+    }
+
+    /// queue one update; false once the stream is closed (gone or overflowed)
+    fn push(&self, text: &str) -> bool {
+        use std::sync::atomic::Ordering::SeqCst;
+        let mut tx = self.tx.lock().unwrap();
+        let Some(t) = tx.as_ref() else { return false };
+        if self.queued.load(SeqCst).saturating_add(text.len()) > self.limit {
+            *tx = None;
+            return false;
+        }
+        self.queued.fetch_add(text.len(), SeqCst);
+        if t.send(text.to_string()).is_err() {
+            *tx = None;
+            return false;
+        }
+        true
+    }
+
+    /// one update left the queue
+    fn taken(&self, n: usize) {
+        let _ = self.queued.fetch_update(std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst, |q| Some(q.saturating_sub(n)));
+    }
+}
+
+#[cfg(test)]
+mod event_queue_tests {
+    use super::*;
+
+    #[test]
+    fn a_page_that_stops_reading_is_closed_not_buffered_forever() {
+        let (q, mut rx) = EventQueue::new(10);
+        assert!(q.push("12345"));
+        assert!(q.push("12345"));
+        assert!(!q.push("x"), "over the limit: closed");
+        assert!(!q.push(""), "stays closed");
+        assert_eq!(rx.try_recv().unwrap(), "12345");
+        assert_eq!(rx.try_recv().unwrap(), "12345");
+        assert!(matches!(rx.try_recv(), Err(tokio::sync::mpsc::error::TryRecvError::Disconnected)), "the stream ends after what was queued");
+    }
+
+    #[test]
+    fn a_page_that_keeps_reading_keeps_its_stream() {
+        let (q, mut rx) = EventQueue::new(10);
+        for _ in 0..100 {
+            assert!(q.push("12345678"));
+            let t = rx.try_recv().unwrap();
+            q.taken(t.len());
+        }
+        drop(rx);
+        assert!(!q.push("1"), "the page went: closed");
+    }
+}
+
 /// GET /api/converter/events?client=<id>: the live updates (Server-Sent Events).
 pub async fn events(srv: Arc<Server>, a: ApiRaw) -> Res {
     let accept = a.ctx.accept_encoding().to_string();
@@ -500,14 +571,17 @@ pub async fn events(srv: Arc<Server>, a: ApiRaw) -> Res {
         *n += 1;
     }
     let client: String = a.ctx.query.get("client").map(|c| c.encode_utf16().take(64).collect::<Vec<u16>>()).map(|u| String::from_utf16_lossy(&u)).unwrap_or_default();
-    let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-    let _ = tx.send("event: hello\ndata: {}\n\n".into());
-    conv.bridge.attach_events(&client, Box::new(move |text: &str| tx.send(text.to_string()).is_ok()));
+    let (queue, rx) = EventQueue::new(MAX_QUEUED_BYTES);
+    queue.push("event: hello\ndata: {}\n\n");
+    let q = queue.clone();
+    conv.bridge.attach_events(&client, Box::new(move |text: &str| q.push(text)));
     let guard = Stream { conv, client };
-    // (the stream ends when the page goes: the receiver is dropped, the bridge forgets the client)
-    let body = futures_util::stream::unfold((rx, guard), |(mut rx, guard)| async move {
+    // (the stream ends when the page goes: the receiver is dropped, the bridge forgets the client;
+    // or when the page stops reading: the queue overflows, closes, and the page reconnects)
+    let body = futures_util::stream::unfold((rx, queue, guard), |(mut rx, queue, guard)| async move {
         let text = rx.recv().await?;
-        Some((Ok::<_, std::convert::Infallible>(bytes::Bytes::from(text)), (rx, guard)))
+        queue.taken(text.len());
+        Some((Ok::<_, std::convert::Infallible>(bytes::Bytes::from(text)), (rx, queue, guard)))
     });
     axum::http::Response::builder()
         .status(200)

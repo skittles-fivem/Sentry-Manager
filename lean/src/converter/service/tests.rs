@@ -602,6 +602,39 @@ fn crash_at_each_point_of_one_clip_finishes_by_itself() {
 
 // ---- test/restartResume.test.js and a cancel ------------------------------------
 
+/// The restart comes while the footage share cannot be inspected yet (here a file stands where its
+/// folder is, so every path in it answers ENOTDIR, as a share still reconnecting answers EHOSTDOWN or
+/// ESTALE): the converter starts all the same, and once the share is back the interrupted
+/// replacement is recovered and the job finishes, with no Resume and no restart.
+#[test]
+fn a_share_unreachable_at_the_restart_does_not_stop_the_converter_and_the_job_resumes_once_it_is_back() {
+    if !available() {
+        eprintln!("skipped: needs ffmpeg with libx265 and node");
+        return;
+    }
+    let base = make_base("crash-unreachable", 1);
+    let (names, before) = names_and_hashes(&base);
+    let died = crash(&base, "backup-renamed", "replace", "direct", 1, false);
+    use std::os::unix::process::ExitStatusExt;
+    assert_eq!(died.status.signal(), Some(libc::SIGKILL), "the converter died: {}", String::from_utf8_lossy(&died.stderr).chars().take(600).collect::<String>());
+    let share = base.join("footage/TeslaCam");
+    let away = base.join("footage/TeslaCam.away");
+    fs::rename(&share, &away).unwrap();
+    fs::write(&share, b"not a folder").unwrap();
+    let c = open(&base, "ffmpeg", "ffprobe", None);
+    c.start().expect("the converter starts while one job cannot be recovered yet");
+    let id = c.store.list().unwrap()[0].id().to_string();
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    assert_ne!(c.service.get(&id).unwrap()["state"], "completed");
+    fs::remove_file(&share).unwrap();
+    fs::rename(&away, &share).unwrap();
+    assert!(until(|| c.service.get(&id).unwrap()["state"] == "completed", 120_000), "the job carries on once the share is back: {}", c.service.get(&id).unwrap());
+    let job = c.service.when_idle(&id).unwrap();
+    c.shutdown();
+    assert_recovered(&base, &job, "replace", &names, &before);
+    fs::remove_dir_all(&base).unwrap();
+}
+
 fn holding_probe(base: &Path) -> String {
     let b = base.to_string_lossy();
     wrapper(base, "ffprobe", &format!("case \"$*\" in *07-42-00-front*) [ -f \"{b}/released\" ] || {{ touch \"{b}/reached\"; while [ ! -f \"{b}/released\" ]; do sleep 0.05; done; }} ;; esac"))
