@@ -39,6 +39,7 @@ export default {
     }
     async function restore(ids) {
       let ok = 0;
+      let files = 0;
       let conflicts = 0;
       let missing = 0;
       let failed = 0;
@@ -47,6 +48,7 @@ export default {
         try {
           const out = await api(`/api/bin/${encodeURIComponent(id)}/restore`, { body: {} });
           ok++;
+          files += out.restored || 0;
           conflicts += out.conflicts || 0;
           missing += out.missing || 0;
           failed += out.failed || 0;
@@ -54,7 +56,7 @@ export default {
         } catch (err) { toast(err.message, 'bad'); }
       }
       const why = [conflicts ? `${conflicts} file(s) could not be (name taken)` : '', missing ? `${missing} file(s) not found in the Recycle Bin` : '', failed ? `${failed} file(s) could not be moved back: ${error}` : ''].filter(Boolean).join('; ');
-      if (ok) toast(why ? `Restored ${ok}; ${why}.` : `Restored ${plural(ok, 'item')}.`, why ? 'bad' : 'ok');
+      if (ok) toast(why ? `Restored ${files} file(s); ${why}.` : `Restored ${plural(ok, 'item')}.`, why ? 'bad' : 'ok');
       ids.forEach((id) => sel.delete(id));
       await loadVehicles().catch(() => {});
       await load();
