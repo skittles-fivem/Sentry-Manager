@@ -76,7 +76,7 @@ fn scan(base: &Path) -> Vec<ArrivedFile> {
                     mtime_ms: super::js::stat_ms(md.mtime(), md.mtime_nsec()),
                     ctime_ms: super::js::stat_ms(md.ctime(), md.ctime_nsec()),
                     birthtime_ms: birth,
-                    rel,
+                    rel: rel.into(),
                 });
             }
         }

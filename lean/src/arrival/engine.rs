@@ -16,6 +16,7 @@ use super::ctx::{ArrivalCtx, Car};
 use super::index::{Entry, Files, Index, Op};
 use super::js::{self, num};
 use super::record::RecordSink;
+use crate::footage::short::Rel;
 use indexmap::IndexMap;
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
@@ -465,10 +466,10 @@ impl Inner {
     }
 
     /// Drop the entries whose clip is gone from the inventory.
-    fn prune(&self, vid: &str, present: &HashSet<String>) {
+    fn prune(&self, vid: &str, present: &HashSet<Rel>) {
         let mut st = lock(&self.st);
         let idx = index(&mut st, &self.files, vid);
-        let gone: Vec<String> = idx.files.keys().filter(|k| !present.contains(*k)).cloned().collect();
+        let gone: Vec<String> = idx.files.keys().filter(|k| !present.contains(k.as_str())).cloned().collect();
         for rel in &gone {
             idx.files.shift_remove(rel);
         }
@@ -519,7 +520,7 @@ impl Inner {
     /// The car's clips that may need a line, newest first (fresh arrivals,
     /// then by the clip's own time); the inventory's paths; whether any clip
     /// is on a Sentry USB share.
-    fn candidates(&self, v: &Car, since_ms: f64) -> (Vec<Cand>, Option<HashSet<String>>, bool, bool) {
+    fn candidates(&self, v: &Car, since_ms: f64) -> (Vec<Cand>, Option<HashSet<Rel>>, bool, bool) {
         let Some(inv) = self.ctx.inventory(&v.id) else { return (Vec::new(), None, false, false) };
         let root_dir = self.ctx.root_of(&v.id).to_string_lossy().into_owned();
         let mut out = Vec::new();
@@ -554,11 +555,11 @@ impl Inner {
             if recent < since_ms {
                 continue;
             }
-            out.push(Cand { rel: f.rel.clone(), abs, size: f.size, mtime_ms: f.mtime_ms, t, recent, fresh: recent >= fresh_from });
+            out.push(Cand { rel: f.rel.to_string(), abs, size: f.size, mtime_ms: f.mtime_ms, t, recent, fresh: recent >= fresh_from });
         }
         // the Pi waits on the latest archive: what arrived in the last 48 h first, then the newest clips
         out.sort_by(|a, b| b.fresh.cmp(&a.fresh).then(b.t.partial_cmp(&a.t).unwrap_or(std::cmp::Ordering::Equal)).then_with(|| js::js_cmp(&b.rel, &a.rel)));
-        let present: HashSet<String> = inv.files.iter().map(|f| f.rel.clone()).collect();
+        let present: HashSet<Rel> = inv.files.iter().map(|f| f.rel.clone()).collect();
         (out, Some(present), any, inv.scanning)
     }
 

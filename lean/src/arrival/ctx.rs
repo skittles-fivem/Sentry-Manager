@@ -18,8 +18,8 @@ pub struct Car {
 /// (`sec * 1000 + nsec / 1e6`, `crate::scanner::ms_of`).
 #[derive(Clone, Debug)]
 pub struct ArrivedFile {
-    /// the path from the vehicle's folder, forward slashes
-    pub rel: String,
+    /// the path from the vehicle's folder, forward slashes (shared with the inventory's list)
+    pub rel: crate::footage::short::Rel,
     /// kind === 'clip'
     pub clip: bool,
     pub size: u64,

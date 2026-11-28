@@ -44,7 +44,7 @@ impl ArrivalCtx for CoreArrival {
         let files = st
             .file_list
             .iter()
-            .map(|f| ArrivedFile { rel: f.rel.to_string(), clip: f.kind == crate::footage::Kind::Clip, size: f.size, mtime_ms: f.mtime_ms, ctime_ms: f.ctime_ms, birthtime_ms: f.birthtime_ms })
+            .map(|f| ArrivedFile { rel: f.rel.clone(), clip: f.kind == crate::footage::Kind::Clip, size: f.size, mtime_ms: f.mtime_ms, ctime_ms: f.ctime_ms, birthtime_ms: f.birthtime_ms })
             .collect();
         Some(InventoryView { files, scanning: st.scanning })
     }
