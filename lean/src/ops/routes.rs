@@ -484,32 +484,41 @@ type Swap = (String, String, bool);
 /// The support bundle's first pass: each footage path, share, user and vehicle
 /// name with its placeholder, in one pass (a placeholder is never rewritten
 /// again). A user or vehicle name is replaced only as a whole word, so a short
-/// one ("me") leaves "timeout" and "memory" alone.
+/// one ("me") leaves "timeout" and "memory" alone. A plain scan, no regex: a
+/// week of logs is megabytes, past what a backtracking regex may look through.
 fn bundle_swaps(mut swaps: Vec<Swap>) -> impl Fn(&str) -> String {
-    use fancy_regex::Regex;
     swaps.retain(|s| !s.0.is_empty());
     swaps.sort_by_key(|s| std::cmp::Reverse(s.0.encode_utf16().count()));
-    let mut to: HashMap<String, String> = HashMap::new();
-    let mut alts = Vec::new();
-    for (from, ph, word) in &swaps {
-        if to.contains_key(from) {
-            continue;
-        }
-        to.insert(from.clone(), ph.clone());
-        let e = fancy_regex::escape(from);
-        alts.push(if *word { format!(r"(?<![A-Za-z0-9_]){e}(?![A-Za-z0-9_])") } else { e.into_owned() });
-    }
-    let re = if alts.is_empty() { None } else { Regex::new(&alts.join("|")).ok() };
+    let mut seen = std::collections::HashSet::new();
+    swaps.retain(|s| seen.insert(s.0.clone()));
     move |text: &str| -> String {
-        match &re {
-            Some(re) => re.replace_all(text, |c: &fancy_regex::Captures| to.get(&c[0]).cloned().unwrap_or_else(|| c[0].to_string())).into_owned(),
-            // (no pattern could be made: every one anywhere, as before, rather than none)
-            None => swaps.iter().fold(text.to_string(), |t, (from, ph, _)| t.split(from.as_str()).collect::<Vec<_>>().join(ph)),
+        let word = |c: char| c.is_ascii_alphanumeric() || c == '_';
+        let mut out = String::with_capacity(text.len());
+        let mut i = 0;
+        'next: while i < text.len() {
+            let rest = &text[i..];
+            for (from, ph, whole) in &swaps {
+                if !rest.starts_with(from.as_str()) {
+                    continue;
+                }
+                if *whole && (text[..i].chars().next_back().is_some_and(word) || rest[from.len()..].chars().next().is_some_and(word)) {
+                    continue;
+                }
+                out.push_str(ph);
+                i += from.len();
+                continue 'next;
+            }
+            let c = rest.chars().next().unwrap_or_default();
+            out.push(c);
+            i += c.len_utf8().max(1);
         }
+        out
     }
 }
 
-/// The support bundle's last pass: IPv4, e-mail and IPv6 addresses.
+/// The support bundle's last pass: IPv4, e-mail and IPv6 addresses. Line by
+/// line (none spans a line), so the regex's backtracking limit is never reached
+/// on a week of logs; a line it still cannot check is left out, not shown as is.
 fn bundle_patterns(t: &str) -> String {
     use fancy_regex::Regex;
     use std::sync::OnceLock;
@@ -522,9 +531,12 @@ fn bundle_patterns(t: &str) -> String {
             Regex::new(&format!(r"(?i){b}(?:[0-9a-f]{{1,4}}:){{2,7}}[0-9a-f]{{1,4}}{b}")).unwrap(),
         ]
     });
-    let t = r[0].replace_all(t, "<ip>");
-    let t = r[1].replace_all(&t, "<email>");
-    r[2].replace_all(&t, "<ip6>").into_owned()
+    let line = |l: &str| -> Option<String> {
+        let l = r[0].try_replacen(l, 0, "<ip>").ok()?;
+        let l = r[1].try_replacen(&l, 0, "<email>").ok()?;
+        Some(r[2].try_replacen(&l, 0, "<ip6>").ok()?.into_owned())
+    };
+    t.split('\n').map(|l| line(l).unwrap_or_else(|| "<line not shown: too long to check>".into())).collect::<Vec<_>>().join("\n")
 }
 
 /// Intl.DateTimeFormat().resolvedOptions().timeZone without TZ: /etc/timezone or the zoneinfo link.
@@ -664,6 +676,13 @@ mod tests {
         let swap = bundle_swaps(vec![("me".into(), "<share-user-1>".into(), true), ("share".into(), "<vehicle-1>".into(), true), ("/mnt/cam".into(), "<footage-1>".into(), false), ("TeslaCam".into(), "<share-1>".into(), false)]);
         assert_eq!(swap("timeout memory: me lost /mnt/cam/x, share TeslaCam2 at //nas/TeslaCam"), "timeout memory: <share-user-1> lost <footage-1>/x, <vehicle-1> <share-1>2 at //nas/<share-1>");
         assert_eq!(bundle_swaps(Vec::new())("as is"), "as is");
+        assert_eq!(swap("me"), "<share-user-1>");
+        assert_eq!(swap("é me_ ümeü"), "é me_ ü<share-user-1>ü");
+        // (a week of logs, megabytes: no regex limit reached, and still swapped)
+        let week = "2026-11-28T10:00:00.000Z INFO  [scan] timeout memory in the scan of files here for me\n".repeat(30_000) + "seen at 10.0.0.2";
+        let out = bundle_patterns(&swap(&week));
+        assert_eq!(out.matches("<share-user-1>").count(), 30_000);
+        assert!(out.ends_with("seen at <ip>") && out.contains("timeout memory"));
         assert_eq!(bundle_patterns("from 10.0.0.2 by a@b.co at fe80::1:2 and 2001:db8:0:0:1:2:3:4"), "from <ip> by <email> at fe80::1:2 and <ip6>");
     }
 
