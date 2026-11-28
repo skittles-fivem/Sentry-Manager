@@ -422,18 +422,20 @@ impl Can {
         std::thread::spawn(move || {
             me.derive_tombstones();
         });
+        // the cheap timers on one thread; the work that reads the share (the prune, with its
+        // rescans, and the Sentry USB look) on threads of their own, so a slow rescan or a share
+        // that stops answering never holds up the announcements, the checks or the cleanup
         let me = self.clone();
         std::thread::spawn(move || {
             let t0 = std::time::Instant::now();
-            let (mut judged, mut indexed, mut swept) = (false, false, false);
-            let mut last = [t0; 5];
+            let (mut judged, mut indexed) = (false, false);
+            let mut last = [t0; 2];
             loop {
                 std::thread::sleep(Duration::from_millis(250));
                 let el = t0.elapsed();
                 if me.progress_due.swap(false, Ordering::SeqCst) {
                     me.ctx.announce("can");
                 }
-                me.prune.tick();
                 if !judged && el >= Duration::from_secs(15) || judged && last[0].elapsed() >= Duration::from_secs(300) {
                     judged = true;
                     last[0] = std::time::Instant::now();
@@ -447,16 +449,28 @@ impl Can {
                     last[1] = std::time::Instant::now();
                     me.logs.clean_stale(2.0 * 24.0 * 3600_000.0);
                 }
-                if !swept && el >= Duration::from_secs(600) || swept && last[2].elapsed() >= Duration::from_secs(3600) {
+            }
+        });
+        let me = self.clone();
+        std::thread::spawn(move || {
+            let t0 = std::time::Instant::now();
+            let mut swept = false;
+            let mut last = t0;
+            loop {
+                std::thread::sleep(Duration::from_millis(250));
+                let el = t0.elapsed();
+                me.prune.tick();
+                if !swept && el >= Duration::from_secs(600) || swept && last.elapsed() >= Duration::from_secs(3600) {
                     swept = true;
-                    last[2] = std::time::Instant::now();
+                    last = std::time::Instant::now();
                     me.prune.sweep();
                 }
-                if last[3].elapsed() >= Duration::from_secs(60) || el < Duration::from_millis(300) {
-                    last[3] = std::time::Instant::now();
-                    me.usb.poll();
-                }
             }
+        });
+        let me = self.clone();
+        std::thread::spawn(move || loop {
+            me.usb.poll();
+            std::thread::sleep(Duration::from_secs(60));
         });
         if self.port_wanted().unwrap_or(true) {
             self.sync_port();
