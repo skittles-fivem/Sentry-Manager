@@ -513,11 +513,12 @@ pub fn invoke(srv: &Arc<Server>, c: &mut CoreCtx) -> Result<Reply, HttpError> {
 struct Stream {
     conv: Arc<Conv>,
     client: String,
+    alive: Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl Drop for Stream {
     fn drop(&mut self) {
-        self.conv.bridge.detach(&self.client);
+        self.conv.bridge.detach(&self.client, &self.alive);
         *self.conv.streams.lock().unwrap() -= 1;
     }
 }
@@ -608,8 +609,8 @@ pub async fn events(srv: Arc<Server>, a: ApiRaw) -> Res {
     let (queue, rx) = EventQueue::new(MAX_QUEUED_BYTES);
     queue.push("event: hello\ndata: {}\n\n");
     let q = queue.clone();
-    conv.bridge.attach_events(&client, Box::new(move |text: &str| q.push(text)));
-    let guard = Stream { conv, client };
+    let alive = conv.bridge.attach_events(&client, Box::new(move |text: &str| q.push(text)));
+    let guard = Stream { conv, client, alive };
     // (the stream ends when the page goes: the receiver is dropped, the bridge forgets the client;
     // or when the page stops reading: the queue overflows, closes, and the page reconnects)
     let body = futures_util::stream::unfold((rx, queue, guard), |(mut rx, queue, guard)| async move {

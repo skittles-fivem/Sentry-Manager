@@ -636,30 +636,47 @@ impl Bridge {
     }
 
     /// attachEvents(clientId, res): `sink` writes SSE text and answers false once the client is gone.
-    pub fn attach_events(self: &Arc<Bridge>, client: &str, sink: Sink) {
+    /// Answers this attachment's own flag, which `detach` takes: a page that reconnects with the
+    /// same client id replaces its old stream, and the old stream's cleanup then leaves the new one alone.
+    pub fn attach_events(self: &Arc<Bridge>, client: &str, sink: Sink) -> Arc<std::sync::atomic::AtomicBool> {
         let sink = Arc::new(sink);
         let alive = Arc::new(std::sync::atomic::AtomicBool::new(true));
-        self.clients.lock().unwrap().insert(client.to_string(), (sink.clone(), alive.clone()));
+        {
+            let mut clients = self.clients.lock().unwrap();
+            if let Some((_, old)) = clients.insert(client.to_string(), (sink.clone(), alive.clone())) {
+                // the replaced stream gets nothing more, and its progress subscription goes with it
+                old.store(false, std::sync::atomic::Ordering::SeqCst);
+                let mut senders = self.senders.lock().unwrap();
+                if senders.get(client).is_some_and(|s| Arc::ptr_eq(&s.alive, &old)) {
+                    senders.remove(client);
+                }
+            }
+        }
         let me = self.clone();
         let client = client.to_string();
+        let mine = alive.clone();
         std::thread::spawn(move || loop {
             std::thread::sleep(std::time::Duration::from_secs(15));
             if !alive.load(std::sync::atomic::Ordering::SeqCst) || !sink(": ping\n\n") {
-                alive.store(false, std::sync::atomic::Ordering::SeqCst);
-                me.detach(&client);
+                me.detach(&client, &alive);
                 return;
             }
         });
+        mine
     }
 
-    /// the client's SSE stream closed
-    pub fn detach(&self, client: &str) {
+    /// the client's SSE stream closed: `mine` is the flag `attach_events` answered for that stream.
+    /// Only that stream's entries go; a newer stream under the same client id stays.
+    pub fn detach(&self, client: &str, mine: &Arc<std::sync::atomic::AtomicBool>) {
+        mine.store(false, std::sync::atomic::Ordering::SeqCst);
         let mut clients = self.clients.lock().unwrap();
-        if let Some((_, alive)) = clients.get(client) {
-            alive.store(false, std::sync::atomic::Ordering::SeqCst);
+        if clients.get(client).is_some_and(|(_, a)| Arc::ptr_eq(a, mine)) {
+            clients.remove(client);
         }
-        clients.remove(client);
-        self.senders.lock().unwrap().remove(client);
+        let mut senders = self.senders.lock().unwrap();
+        if senders.get(client).is_some_and(|s| Arc::ptr_eq(&s.alive, mine)) {
+            senders.remove(client);
+        }
     }
 
     fn check_paths(&self, payload: &mut Option<Value>, added: &mut Vec<String>) -> Result<(), ()> {
@@ -827,7 +844,14 @@ impl Bridge {
                 let entry = client.and_then(|c| self.clients.lock().unwrap().get(c).cloned().map(|s| (c.to_string(), s)));
                 let Some((c, (sink, alive))) = entry.filter(|(_, (_, a))| a.load(std::sync::atomic::Ordering::SeqCst)) else { return fail("INVALID_SENDER") };
                 let mut s = self.senders.lock().unwrap();
-                s.entry(c).and_modify(|e| e.count += 1).or_insert(Sender { sink, alive, count: 1 });
+                match s.get_mut(&c) {
+                    // the same stream subscribing again
+                    Some(e) if Arc::ptr_eq(&e.alive, &alive) => e.count += 1,
+                    // none yet, or one left from an earlier stream of this client: this stream's own
+                    _ => {
+                        s.insert(c, Sender { sink, alive, count: 1 });
+                    }
+                }
                 Ok(Value::Null)
             }
             "unsubscribeProgress" => {
@@ -1174,5 +1198,39 @@ mod tests {
         assert!(s.get("ownedArtifacts").is_none() && s["items"][0].get("ownedPaths").is_none());
         assert_eq!(s["items"][0]["id"], "item-000000");
         assert!(s["items"].as_array().unwrap().iter().any(|i| i["id"] == "item-000007"));
+    }
+
+    #[test]
+    fn a_page_that_reconnects_with_the_same_client_id_keeps_its_live_updates() {
+        let base = std::env::temp_dir().join(format!("lean-bridge-reconnect-{}", std::process::id()));
+        std::fs::create_dir_all(&base).unwrap();
+        let caps = capabilities(&json!({ "separatePublication": "native-atomic", "ownershipCleanup": "atomic-expected-ownership", "replacement": "available" }));
+        let bridge = Bridge::new(Arc::new(Fake::default()), Arc::new(Guard(base.clone())), caps);
+        let sent = |tag: &'static str, log: Arc<Mutex<Vec<&'static str>>>| -> Sink { Box::new(move |_t: &str| { log.lock().unwrap().push(tag); true }) };
+        let log = Arc::new(Mutex::new(vec![]));
+        let first = bridge.attach_events("page", sent("old", log.clone()));
+        assert_eq!(bridge.invoke("subscribeProgress", None, Some("page")), json!({ "ok": true, "value": null }));
+        // the page reconnects before the server sees the old connection close, and subscribes again
+        let second = bridge.attach_events("page", sent("new", log.clone()));
+        assert!(!first.load(std::sync::atomic::Ordering::SeqCst), "the replaced stream is marked gone");
+        assert_eq!(bridge.invoke("subscribeProgress", None, Some("page")), json!({ "ok": true, "value": null }));
+        {
+            let s = bridge.senders.lock().unwrap();
+            let e = s.get("page").unwrap();
+            assert!(Arc::ptr_eq(&e.alive, &second) && e.count == 1, "progress goes to the new stream");
+            (e.sink)("x");
+        }
+        assert_eq!(*log.lock().unwrap(), vec!["new"]);
+        // the old stream's cleanup (its Drop, its ping thread) leaves the new stream alone
+        bridge.detach("page", &first);
+        assert!(second.load(std::sync::atomic::Ordering::SeqCst));
+        assert!(bridge.clients.lock().unwrap().get("page").is_some_and(|(_, a)| Arc::ptr_eq(a, &second)));
+        assert!(bridge.senders.lock().unwrap().get("page").is_some_and(|e| Arc::ptr_eq(&e.alive, &second)));
+        // the same stream subscribing twice is counted, and its own close removes it
+        assert_eq!(bridge.invoke("subscribeProgress", None, Some("page")), json!({ "ok": true, "value": null }));
+        assert_eq!(bridge.senders.lock().unwrap().get("page").unwrap().count, 2);
+        bridge.detach("page", &second);
+        assert!(bridge.clients.lock().unwrap().is_empty() && bridge.senders.lock().unwrap().is_empty());
+        let _ = std::fs::remove_dir_all(&base);
     }
 }
