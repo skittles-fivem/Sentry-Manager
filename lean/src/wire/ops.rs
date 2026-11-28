@@ -114,6 +114,20 @@ impl OpsCtx for CoreOps {
         let Some(srv) = self.srv() else { return Vec::new() };
         srv.app().vehicles.list().iter().filter_map(|v| vehicle_info(&srv, &v.id)).collect()
     }
+    fn vehicle_shares(&self) -> Vec<(String, Option<String>, Option<String>)> {
+        // (vehicle_info's name, first root and source type, without the summaries: the
+        // vehicle by its id is the list's first with that id)
+        let Some(srv) = self.srv() else { return Vec::new() };
+        let list = srv.app().vehicles.list();
+        list.iter()
+            .filter_map(|v| list.iter().find(|x| x.id == v.id))
+            .map(|v| (v.name.clone(), Some(v.root.to_string_lossy().into_owned()), v.source.get("type").and_then(Value::as_str).map(String::from)))
+            .collect()
+    }
+    fn stats_busy(&self) -> bool {
+        // (converter().running, without building the rest of its answer)
+        self.srv().and_then(|s| s.converter().cloned()).is_some_and(|conv| conv.jobs.lock().unwrap().values().any(|st| super::converter::RUNNING.contains(&st.as_str())))
+    }
     fn converter(&self) -> ConverterInfo {
         let Some(conv) = self.srv().and_then(|s| s.converter().cloned()) else {
             return ConverterInfo { ready: false, error: Some("CONVERTER_STARTING".into()), ..Default::default() };

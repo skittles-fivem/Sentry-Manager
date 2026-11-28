@@ -136,6 +136,11 @@ pub trait OpsCtx: Send + Sync + 'static {
     /// the live-update hub (`announce(topic)`: batched every 400 ms by core)
     fn announce(&self, topic: &str);
     fn vehicles(&self) -> Vec<VehicleInfo>;
+    /// What the monitor's share list needs of each vehicle, in `vehicles()`'s order:
+    /// (name, roots[0], source_type). The server answers it without the summaries.
+    fn vehicle_shares(&self) -> Vec<(String, Option<String>, Option<String>)> {
+        self.vehicles().into_iter().map(|v| (v.name, v.roots.into_iter().next(), v.source_type)).collect()
+    }
     fn converter(&self) -> ConverterInfo;
     /// the encoder test of the health check; None: no encoder passed (or no runtime)
     fn select_encoder(&self) -> Option<Encoder>;
