@@ -662,14 +662,17 @@ impl Ui {
                 (Ok(appearance), Ok(power)) => ok(settings::settings(appearance, power)),
                 (Err(e), _) | (_, Err(e)) => self.internal(req, &e),
             },
-            ("PUT", ["settings", "appearance"]) => match self.ctx.setting("appearance").map(|a| settings::put_appearance(a, body.as_ref())) {
-                Ok(Ok(next)) => match self.ctx.set_setting("appearance", &next) {
-                    Ok(()) => ok(next),
+            ("PUT", ["settings", "appearance"]) => {
+                let _edit = crate::setting_edit();
+                match self.ctx.setting("appearance").map(|a| settings::put_appearance(a, body.as_ref())) {
+                    Ok(Ok(next)) => match self.ctx.set_setting("appearance", &next) {
+                        Ok(()) => ok(next),
+                        Err(e) => self.internal(req, &e),
+                    },
+                    Ok(Err(())) => self.internal(req, "appearance: not an object"),
                     Err(e) => self.internal(req, &e),
-                },
-                Ok(Err(())) => self.internal(req, "appearance: not an object"),
-                Err(e) => self.internal(req, &e),
-            },
+                }
+            }
             ("GET", ["dashboards"]) => match (self.ctx.setting(&format!("dash:{user}")), self.ctx.viewer_car_data()) {
                 (Ok(boards), Ok(car_data)) => ok(settings::dashboards(boards, car_data)),
                 (Err(e), _) | (_, Err(e)) => self.internal(req, &e),

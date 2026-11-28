@@ -26,5 +26,13 @@ pub mod wire;
 #[path = "../tests/support/reference.rs"]
 pub(crate) mod reference;
 
+/// Held across one read, change and write of a setting kept as one JSON value (the saved
+/// places, the Studio's settings, the appearance), so two quick saves never lose one:
+/// requests run at the same time, and each would otherwise write over the other's change.
+pub fn setting_edit() -> std::sync::MutexGuard<'static, ()> {
+    static EDIT: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    EDIT.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 // (moved into footage/; the old paths still work)
 pub use footage::{catalog, inventory, scanner};
