@@ -18,7 +18,7 @@
         {
           "author": "Sentry Six Manager",
           "builtin": true,
-          "bytes": 535103,
+          "bytes": 536351,
           "description": "The Sentry family: what matters first, with Liquid Glass and details one tap away.",
           "files": 37,
           "id": "sentry-six",
@@ -44,7 +44,7 @@
         {
           "author": "Daylight pack",
           "builtin": true,
-          "bytes": 391850,
+          "bytes": 391963,
           "description": "A calm, friendly interface: a Today page that answers your questions first, a calendar of footage, a big six-camera Viewer, guided conversions, light and dark looks.",
           "files": 32,
           "id": "daylight",
