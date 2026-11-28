@@ -355,12 +355,13 @@ pub fn handle(app: &Arc<App>, who: &Caller, method: &str, seg: &[&str], query: &
                 .filter_map(|x| x.as_str().and_then(|rid| st.as_ref()?.recordings.iter().find(|r| r.id == rid).cloned()))
                 .collect();
             let rels: Vec<String> = recs.iter().flat_map(|r| r.files().map(|(f, _)| f.to_string())).collect();
-            tri!(bin::set_protected(app, &v.id, &rels, on));
             if on {
-                // (protected by hand now: removing a star no longer unprotects these)
+                // (protected by hand now: removing a star no longer unprotects these; noted
+                // first, so a failure after it leaves them protected, never unprotected later)
                 let ids: Vec<String> = recs.iter().map(|r| r.id.clone()).collect();
                 tri!(super::stars::protected_by_hand(app, &v.id, &ids));
             }
+            tri!(bin::set_protected(app, &v.id, &rels, on));
             app.rebuild(&v.id, None);
             app.core.announce("inventory");
             ok(json!({ "ok": true, "count": recs.len() }))
