@@ -134,13 +134,22 @@ pub struct Vehicles {
     unread: std::sync::atomic::AtomicBool,
 }
 
-/// Refused when `root` overlaps the footage of one of `list` (other than `ignore`).
+/// real_or, giving up after a moment on a share that does not answer (the path as written then)
+fn real_soon(p: &Path) -> PathBuf {
+    let q = p.to_path_buf();
+    super::share::with_timeout(std::time::Duration::from_secs(3), "Resolving the folder", move || std::fs::canonicalize(&q)).unwrap_or_else(|_| p.to_path_buf())
+}
+
+/// Refused when `root` overlaps the footage of one of `list` (other than `ignore`), as
+/// written or as it really is (a symlink to another vehicle's folder is that folder).
 fn overlap(list: &[Vehicle], root: &Path, ignore: Option<&str>) -> Res<()> {
+    let root_real = real_soon(root);
     for v in list {
         if Some(v.id.as_str()) == ignore {
             continue;
         }
-        if is_inside(root, &v.root) || is_inside(&v.root, root) {
+        let v_real = real_soon(&v.root);
+        if [(root, v.root.as_path()), (root_real.as_path(), v_real.as_path())].iter().any(|(a, b)| is_inside(a, b) || is_inside(b, a)) {
             return Err(bad(format!("That folder overlaps the footage of {} ({}).", v.name, v.root.display())));
         }
     }
@@ -608,6 +617,11 @@ mod tests {
         assert_eq!(err(json!({ "name": "x", "source": { "type": "path", "path": path("footage/b/c") } })), format!("That folder overlaps the footage of Daily Driver ({}).", path("footage/b")));
         assert_eq!(err(json!({ "name": "x", "source": { "type": "path", "path": path("outside") } })), format!("Folder vehicles must be inside {} (mount the folder there with a Docker volume).", path("footage")));
         assert!(err(json!({ "name": "x", "source": { "type": "path", "path": path("footage/data") } })).contains("it overlaps"));
+        // a link to another vehicle's folder (or into it) is that folder
+        std::os::unix::fs::symlink(dir.join("footage/a"), dir.join("footage/alias")).unwrap();
+        std::os::unix::fs::symlink(dir.join("footage/b/c"), dir.join("footage/into-b")).unwrap();
+        assert!(err(json!({ "name": "x", "source": { "type": "path", "path": path("footage/alias") } })).starts_with("That folder overlaps the footage of Daily Driver"));
+        assert!(err(json!({ "name": "x", "source": { "type": "path", "path": path("footage/into-b") } })).starts_with("That folder overlaps the footage of Daily Driver"));
         assert_eq!(err(json!({ "name": " ", "source": { "type": "path", "path": path("footage/a") } })), "Give the vehicle a name.");
         assert_eq!(err(json!({ "name": "x", "timezone": "Mars/Base" })), "Unknown time zone \"Mars/Base\".");
         assert_eq!(err(json!({ "name": "x", "source": { "type": "path", "path": "rel" } })), "The folder must be an absolute path inside the container, e.g. /footage/car.");
