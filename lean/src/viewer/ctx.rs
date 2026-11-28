@@ -19,6 +19,9 @@ pub struct VehicleRef {
 /// The scan's files of a vehicle, by rel (inventory.get(id).files): the scan's own list.
 pub type Files = Arc<crate::scanner::FileList>;
 
+/// canFootage.js forVehicle's test: whether CAN data covers a recording (its clip rels and start key)
+pub type CanCovers = Box<dyn Fn(&mut dyn Iterator<Item = &str>, Option<&str>) -> bool>;
+
 /// A setting that could not be read or kept, in a route: 500 "Internal error" answered (as Node
 /// answers the error better-sqlite3 throws), what failed logged by the route with its request.
 pub fn failed(e: String) -> (u16, String) {
@@ -82,8 +85,7 @@ pub trait Ctx: Send + Sync + 'static {
     }
     /// canFootage.js forVehicle: whether CAN data covers a recording (its clip rels and start key);
     /// None without the CAN area, an error when what it needs cannot be read
-    #[allow(clippy::type_complexity)]
-    fn has_can(&self, _id: &str) -> Result<Option<Box<dyn Fn(Vec<String>, Option<&str>) -> bool>>, String> {
+    fn has_can(&self, _id: &str) -> Result<Option<CanCovers>, String> {
         Ok(None)
     }
     /// canKeyMapped(key): a CAN Bridge key mapped to a car explicitly (the `can-vehicles` setting)

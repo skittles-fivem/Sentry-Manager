@@ -91,11 +91,11 @@ impl Ctx for CoreViewer {
     fn can_keys(&self, id: &str) -> Vec<String> {
         self.srv().and_then(|s| s.can().map(|c| c.keys_for(id))).unwrap_or_default()
     }
-    fn has_can(&self, id: &str) -> Result<Option<Box<dyn Fn(Vec<String>, Option<&str>) -> bool>>, String> {
+    fn has_can(&self, id: &str) -> Result<Option<crate::viewer::ctx::CanCovers>, String> {
         let Some(s) = self.srv() else { return Ok(None) };
         let (Some(can), Some(v)) = (s.can().cloned(), s.app().vehicle(id)) else { return Ok(None) };
-        let f = can.has_can(&super::footage::car_of(s.app(), &v))?;
-        Ok(Some(Box::new(move |rels: Vec<String>, start: Option<&str>| f(&crate::can::ctx::Rec { id: String::new(), clip_rels: rels, start_key: start.map(String::from) }))))
+        let t = can.can_test(&super::footage::car_of(s.app(), &v))?;
+        Ok(Some(Box::new(move |rels: &mut dyn Iterator<Item = &str>, start: Option<&str>| t.covers(rels, start))))
     }
     fn sentry_usb_pi(&self, id: &str) -> Option<crate::viewer::archive_gap::Pi> {
         // index.js sentryUsbFor: the range Sentry USB is still copying (sentryUsb.now)

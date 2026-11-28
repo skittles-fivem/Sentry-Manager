@@ -54,6 +54,11 @@ fn key_seconds(k: &str) -> Option<f64> {
 
 /// tsFrom: YYYY-MM-DD_HH-MM-SS of a clip name, or None.
 pub fn ts_from(name: &str) -> Option<String> {
+    ts_in(name).map(String::from)
+}
+
+/// ts_from without a copy: the stamp as a part of `name` (all ASCII, so a part on char bounds).
+pub fn ts_in(name: &str) -> Option<&str> {
     let b = name.as_bytes();
     if b.len() < 19 {
         return None;
@@ -62,7 +67,7 @@ pub fn ts_from(name: &str) -> Option<String> {
         let w = &b[i..i + 19];
         let d = |j: usize| w[j].is_ascii_digit();
         if (0..4).all(d) && w[4] == b'-' && d(5) && d(6) && w[7] == b'-' && d(8) && d(9) && w[10] == b'_' && d(11) && d(12) && w[13] == b'-' && d(14) && d(15) && w[16] == b'-' && d(17) && d(18) {
-            return Some(String::from_utf8_lossy(w).into_owned());
+            return Some(&name[i..i + 19]);
         }
     }
     None
