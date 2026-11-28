@@ -148,14 +148,21 @@ pub fn day_label(day: &str) -> String {
 /// A clip of the scan, for the analysis
 struct C<'a> {
     rel: &'a str,
-    name: &'a str,
     s: f64,
-    dir: &'a str,
     typ: &'static str,
     recent: bool,
     camera: Option<&'a str>,
     arrival: Option<f64>,
     mtime: f64,
+}
+
+impl<'a> C<'a> {
+    fn name(&self) -> &'a str {
+        basename(self.rel)
+    }
+    fn dir(&self) -> &'a str {
+        dirname(self.rel)
+    }
 }
 
 /// What Sentry USB's list says of a day (carFilesPass's `d.cf`)
@@ -377,9 +384,7 @@ pub fn analyze(files: &Files, inp: &Input) -> Analysis {
         let Some(s) = stamp_sec(name) else { continue };
         clips.push(C {
             rel: &f.rel,
-            name,
             s,
-            dir: dirname(&f.rel),
             typ: f.typ,
             recent: f.typ == "RecentClips",
             camera: f.camera.as_deref(),
@@ -575,7 +580,7 @@ pub fn analyze(files: &Files, inp: &Input) -> Analysis {
     // partial: a minute with only some of the cameras its neighbours have
     let mut by_dir: BTreeMap<&str, BTreeMap<i64, (f64, Vec<String>, f64)>> = BTreeMap::new();
     for c in &clips {
-        let e = by_dir.entry(c.dir).or_default().entry(c.s as i64).or_insert((c.s, Vec::new(), 0.0));
+        let e = by_dir.entry(c.dir()).or_default().entry(c.s as i64).or_insert((c.s, Vec::new(), 0.0));
         if let Some(cam) = c.camera.filter(|c| !c.is_empty()) {
             if !e.1.iter().any(|x| x == cam) {
                 e.1.push(cam.to_string());
@@ -796,7 +801,7 @@ fn car_files_pass(inp: &Input, clips: &[C], days: &mut BTreeMap<String, DayAcc>,
     let mut on_share: HashSet<String> = HashSet::new();
     let mut share_types: HashSet<&str> = HashSet::new();
     for c in clips {
-        if let Some(k) = match_key(c.typ, if c.recent { None } else { Some(basename(c.dir)) }, c.name) {
+        if let Some(k) = match_key(c.typ, if c.recent { None } else { Some(basename(c.dir())) }, c.name()) {
             on_share.insert(k);
         }
         share_types.insert(c.typ);
@@ -907,7 +912,7 @@ fn car_files_pass(inp: &Input, clips: &[C], days: &mut BTreeMap<String, DayAcc>,
     }
     // the Pi's daily counts beside the share's
     let car_counts = daily_counts(entries.iter().map(|e| (e.name.as_str(), e.kind, e.event.as_deref())));
-    let share_by_day = daily_counts(clips.iter().filter(|c| c.s >= first_day_sec).map(|c| (c.name, c.typ, if c.recent { None } else { Some(basename(c.dir)) })));
+    let share_by_day = daily_counts(clips.iter().filter(|c| c.s >= first_day_sec).map(|c| (c.name(), c.typ, if c.recent { None } else { Some(basename(c.dir())) })));
     let mut out = Map::new();
     let mut s = first_day_sec;
     while s <= now {
