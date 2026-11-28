@@ -374,7 +374,7 @@ pub enum Handler {
 pub struct Route {
     pub method: Method,
     pub pattern: String,
-    re: Regex,
+    matcher: Matcher,
     keys: Vec<String>,
     pub access: Access,
     pub handler: Handler,
@@ -436,7 +436,61 @@ pub struct Router {
 /// The paths core answers 404 for when no area has claimed them (index.js answers them before the host and session checks).
 pub const RESERVED_RAW: [&str; 4] = ["/metrics", "/api/can/logs", "/api/can/logs/", "/node/v1/"];
 
-fn compile(pattern: &str) -> (Regex, Vec<String>) {
+/// How a route's pattern is matched: a pattern of plain segments (letters, digits, `_` and `-`,
+/// or a whole `:param`) segment by segment, which is what its regular expression would match;
+/// any other pattern by that regular expression.
+#[derive(Clone)]
+enum Matcher {
+    /// each segment: Some(literal), or None for a parameter (one or more characters but `/`)
+    Segments(Box<[Option<Box<str>>]>),
+    Re(Regex),
+}
+
+impl Matcher {
+    fn of(pattern: &str) -> Option<Matcher> {
+        let plain = |s: &str| s.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'_' || c == b'-');
+        let segs = pattern
+            .split('/')
+            .map(|seg| match seg.strip_prefix(':') {
+                Some(name) if !name.is_empty() && name.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'_') => Some(None),
+                Some(_) => None,
+                None => plain(seg).then(|| Some(seg.into())),
+            })
+            .collect::<Option<Box<[_]>>>()?;
+        Some(Matcher::Segments(segs))
+    }
+
+    /// the parameters' text, in order, when the path matches
+    fn captures<'a>(&self, path: &'a str) -> Option<Vec<&'a str>> {
+        match self {
+            Matcher::Re(re) => {
+                let m = re.captures(path)?;
+                Some((1..m.len()).map(|i| m.get(i).map_or("", |x| x.as_str())).collect())
+            }
+            Matcher::Segments(segs) => {
+                let mut params = Vec::new();
+                let mut parts = path.split('/');
+                for seg in segs.iter() {
+                    let part = parts.next()?;
+                    match seg {
+                        Some(lit) if **lit == *part => {}
+                        None if !part.is_empty() => params.push(part),
+                        _ => return None,
+                    }
+                }
+                parts.next().is_none().then_some(params)
+            }
+        }
+    }
+}
+
+fn compile(pattern: &str) -> (Matcher, Vec<String>) {
+    let (re, keys) = regex_of(pattern);
+    (Matcher::of(pattern).unwrap_or_else(|| Matcher::Re(Regex::new(&re).expect("route pattern"))), keys)
+}
+
+/// the pattern's regular expression (http.js: each `:param` is `([^/]+)`) and its parameters
+fn regex_of(pattern: &str) -> (String, Vec<String>) {
     let mut keys = Vec::new();
     let mut out = String::from("^");
     let b = pattern.as_bytes();
@@ -457,7 +511,7 @@ fn compile(pattern: &str) -> (Regex, Vec<String>) {
         }
     }
     out.push('$');
-    (Regex::new(&out).expect("route pattern"), keys)
+    (out, keys)
 }
 
 impl Router {
@@ -466,9 +520,9 @@ impl Router {
     }
 
     fn push(&mut self, method: Method, pattern: &str, access: Access, handler: Handler) {
-        let (re, keys) = compile(pattern);
+        let (matcher, keys) = compile(pattern);
         let body_limit = if pattern.starts_with("/api/converter/") { 256 * 1024 } else { 1024 * 1024 };
-        self.routes.push(Route { method, pattern: pattern.to_string(), re, keys, access, handler, body_limit });
+        self.routes.push(Route { method, pattern: pattern.to_string(), matcher, keys, access, handler, body_limit });
     }
 
     /// A route whose handler runs on a blocking thread.
@@ -522,10 +576,10 @@ impl Router {
             if &r.method != method {
                 continue;
             }
-            let Some(m) = r.re.captures(raw_path) else { continue };
+            let Some(m) = r.matcher.captures(raw_path) else { continue };
             let mut params = HashMap::new();
             for (i, k) in r.keys.iter().enumerate() {
-                let v = crate::api::decode(m.get(i + 1).map_or("", |x| x.as_str()), false)?;
+                let v = crate::api::decode(m.get(i).copied().unwrap_or(""), false)?;
                 params.insert(k.clone(), v);
             }
             return Some((r, params));
@@ -545,6 +599,44 @@ pub fn status(s: u16) -> StatusCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn plain_patterns_match_as_their_regular_expressions() {
+        let patterns = [
+            "/api/vehicles",
+            "/api/vehicles/",
+            "/api/vehicles/:id",
+            "/api/vehicles/:id/recordings/:rid/thumbnail",
+            "/api/vehicles/:vehicle_id/scan",
+            "/",
+            "/api/a-b_c/:x",
+            "/api/:a/:b",
+            "/api/x/:id.mp4",
+            "/api/security/ca.crt",
+            "/api/x/:id-y",
+            "/api/x/pre:id",
+            "/api/x/:",
+        ];
+        let paths = [
+            "", "/", "//", "/api", "/api/", "/api/vehicles", "/api/vehicles/", "/api/vehicles//", "/api/vehicles/car", "/api/vehicles/car/",
+            "/api/vehicles/car/x", "/api/vehicles/c%20r/recordings/r1/thumbnail", "/api/vehicles/car/recordings//thumbnail",
+            "/api/vehicles/car/recordings/r1/thumbnail/", "/api/vehicles/car/scan", "/API/vehicles", "/api/a-b_c/1", "/api/a-b_c/",
+            "/api/1/2", "/api/1/2/3", "/api/1//", "/api/x/a.mp4", "/api/x/aXmp4", "/api/security/ca.crt", "/api/security/caXcrt",
+            "/api/x/a-y", "/api/x/a-b-y", "/api/x/pre1", "/api/x/:", "/api/x/a\nb", "/api/x/\u{e9}t\u{e9}", "/api/vehicles/car\n",
+        ];
+        let mut plain = 0;
+        for p in patterns {
+            let (re, keys) = regex_of(p);
+            let re = Matcher::Re(Regex::new(&re).unwrap());
+            let (ours, ours_keys) = compile(p);
+            assert_eq!(ours_keys, keys);
+            plain += matches!(ours, Matcher::Segments(_)) as usize;
+            for path in paths {
+                assert_eq!(ours.captures(path), re.captures(path), "{p} on {path:?}");
+            }
+        }
+        assert_eq!(plain, 8, "the patterns with a dot, a parameter inside a segment or a bare colon go by their regular expression");
+    }
 
     #[test]
     fn patterns_as_node() {
