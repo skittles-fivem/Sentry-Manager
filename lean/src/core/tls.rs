@@ -95,6 +95,23 @@ pub fn dns_permitted(name: &str, extra: &[String]) -> bool {
     LOCAL_DNS.iter().map(|s| s.to_string()).chain(extra.iter().cloned()).any(|c| n == c || n.ends_with(&format!(".{c}")))
 }
 
+/// Replace a small file whole: write NAME.tmp, flush it to disk, rename it
+/// over NAME. A failed write (a full disk) leaves the old file as it was.
+fn write_replace(file: &Path, data: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    let tmp = PathBuf::from(format!("{}.tmp", file.display()));
+    let done = (|| {
+        let mut f = std::fs::File::create(&tmp)?;
+        f.write_all(data)?;
+        f.sync_all()?;
+        std::fs::rename(&tmp, file)
+    })();
+    if done.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+    done
+}
+
 fn openssl(args: &[&str]) -> Result<(), String> {
     // (EC keys and certificates take well under a second; a minute is the most it is waited for)
     let out = crate::ops::gpu::run("openssl", args, std::time::Duration::from_secs(60));
@@ -368,7 +385,7 @@ impl TlsManager {
         ])?;
         std::fs::rename(&tmp_key, &f.ca_key).map_err(|e| e.to_string())?;
         std::fs::rename(&tmp_crt, &f.ca_crt).map_err(|e| e.to_string())?;
-        std::fs::write(self.dir.join("ca-names.json"), serde_json::to_string(&extra_dns).unwrap()).map_err(|e| e.to_string())?;
+        write_replace(&self.dir.join("ca-names.json"), serde_json::to_string(&extra_dns).unwrap().as_bytes()).map_err(|e| e.to_string())?;
         let _ = std::fs::remove_file(&f.crt);
         if let Some(l) = &self.log {
             l.warn("Created a new HTTPS certificate authority. Install /data/tls/ca.crt on your devices (Settings > Security) to trust the page.");
@@ -417,7 +434,7 @@ impl TlsManager {
         }
         let f = self.files();
         let before = fingerprint(&std::fs::read_to_string(&f.ca_crt).unwrap_or_default());
-        std::fs::write(&f.names, serde_json::to_string(&names).unwrap()).map_err(|e| HttpError::internal(e.to_string()))?;
+        write_replace(&f.names, serde_json::to_string(&names).unwrap().as_bytes()).map_err(|e| HttpError::internal(e.to_string()))?;
         let out = self.ensure().map_err(HttpError::internal)?;
         let after = fingerprint(&std::fs::read_to_string(&f.ca_crt).unwrap_or_default());
         Ok((out, before != after))
@@ -634,6 +651,24 @@ pub fn server_config(m: &Material, alpn_h2: bool) -> Result<Arc<rustls::ServerCo
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_failed_replace_keeps_the_old_file() {
+        let dir = std::env::temp_dir().join(format!("lean-tls-replace-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("hostnames.json");
+        super::write_replace(&file, b"[\"nas.lan\"]").unwrap();
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "[\"nas.lan\"]");
+        // the temp name is taken by a folder: the write fails, the saved list stays
+        std::fs::create_dir_all(dir.join("hostnames.json.tmp/x")).unwrap();
+        assert!(super::write_replace(&file, b"[]").is_err());
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "[\"nas.lan\"]");
+        std::fs::remove_dir_all(dir.join("hostnames.json.tmp")).unwrap();
+        super::write_replace(&file, b"[]").unwrap();
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "[]");
+        assert!(!dir.join("hostnames.json.tmp").exists());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
     use super::*;
 
     #[test]
