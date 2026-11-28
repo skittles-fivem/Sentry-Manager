@@ -53,8 +53,10 @@
   let contextPromise = null;
   const context = () => (contextPromise ||= fetch('/api/studio/context', { credentials: 'same-origin' }).then((r) => r.json()).catch(() => ({})));
   let settingsPromise = null;
-  // failed saves: per key, the newest save's number and when its failure was last shown
-  const saveSeq = new Map();
+  // saves per key: the newest save's number, how many are still running, whether the newest
+  // failed, and the last value the server is known to have (put back once none is running)
+  const saveState = new Map();
+  // per key, when a failed save was last shown
   const saveWarnedAt = new Map();
   const SAVE_WARN_EVERY_MS = 30000;
   const settings = () => (settingsPromise ||= fetch('/api/studio/settings', { credentials: 'same-origin' }).then((r) => r.json()).catch(() => ({})));
@@ -342,25 +344,43 @@
     setSetting: async (key, value) => {
       if (key === 'defaultFolder') return true; // chosen by the manager per vehicle
       const all = await settings();
-      const had = Object.prototype.hasOwnProperty.call(all, key);
-      const before = all[key];
-      const seq = (saveSeq.get(key) || 0) + 1;
-      saveSeq.set(key, seq);
+      let st = saveState.get(key);
+      if (!st) {
+        st = { seq: 0, pending: 0, lastFailed: false, had: false, known: undefined };
+        saveState.set(key, st);
+      }
+      if (!st.pending) {
+        st.had = Object.prototype.hasOwnProperty.call(all, key);
+        st.known = all[key];
+      }
+      const seq = ++st.seq;
+      st.pending += 1;
       all[key] = value;
+      // once no save of this key is running and the newest one failed, the cache goes back to
+      // the last value the server took (or had), so it never shows a value the server refused
+      const settle = (ok) => {
+        st.pending -= 1;
+        if (ok) {
+          st.had = true;
+          st.known = value;
+        }
+        if (seq === st.seq) st.lastFailed = !ok;
+        if (!st.pending && st.lastFailed) {
+          if (st.had) all[key] = st.known;
+          else delete all[key];
+        }
+      };
       // false when the server did not save it, such as a watch-only account's 403: not thrown,
       // as some Studio callers do not catch. Studio callers do not read the answer, so the
       // failure is shown here, once a while per setting.
       try {
         await post('/api/studio/settings', { key, value });
+        settle(true);
         return true;
       } catch (err) {
+        settle(false);
         const why = err?.message || String(err);
         console.warn(`[settings] ${key} was not saved: ${why}`);
-        // the cache goes back to what the server has, unless a newer save of this key followed
-        if (saveSeq.get(key) === seq) {
-          if (had) all[key] = before;
-          else delete all[key];
-        }
         const now = Date.now();
         if (now - (saveWarnedAt.get(key) || 0) > SAVE_WARN_EVERY_MS) {
           saveWarnedAt.set(key, now);

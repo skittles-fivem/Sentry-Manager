@@ -95,7 +95,7 @@ export async function moveToBin(v, recs, { ask = true } = {}) {
               if (!had || (i.trashedAt || 0) > (had.trashedAt || 0)) newest.set(i.label, i);
             }
             const mine = [...newest.values()];
-            let restored = 0, conflicts = 0, missing = 0, failed = 0, error = '', errs = 0;
+            let restored = 0, conflicts = 0, missing = 0, failed = 0, error = '', errs = 0, errError = '';
             for (const i of mine) {
               // each item on its own, so one refused restore doesn't hide the ones that worked
               try {
@@ -108,14 +108,14 @@ export async function moveToBin(v, recs, { ask = true } = {}) {
               } catch (err) {
                 if (err?.status === 401) return;
                 errs += 1;
-                if (!error) error = err?.message || String(err);
+                if (!errError) errError = err?.message || String(err);
               }
             }
             const why = [
               conflicts ? `${plural(conflicts, 'file')} couldn’t be, because a file with that name exists` : '',
               missing ? `${plural(missing, 'file')} weren’t found in the Recycle Bin` : '',
               failed ? `${plural(failed, 'file')} couldn’t be moved back: ${error || 'unknown error'}` : '',
-              errs ? `${plural(errs, 'recording')} couldn’t be restored: ${error || 'unknown error'}` : ''
+              errs ? `${plural(errs, 'recording')} couldn’t be restored: ${errError || 'unknown error'}` : ''
             ].filter(Boolean).join('. ');
             if (!mine.length) toast('Couldn’t find it in the Recycle Bin any more.', { kind: 'bad' });
             else if (why) toast(`Put back ${plural(restored, 'file')}. ${why}. The rest is still in the Recycle Bin.`, { kind: 'bad' });
