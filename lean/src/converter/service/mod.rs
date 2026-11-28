@@ -390,35 +390,7 @@ fn carries_private(item: &Value, key: &str) -> bool {
 
 /// publicSnapshot(manifest)
 pub fn public_snapshot(m: &Manifest) -> Value {
-    let mut out = Map::new();
-    for (k, v) in &m.top {
-        if k == "items" || PRIVATE_SNAPSHOT_KEYS.contains(&k.as_str()) {
-            continue;
-        }
-        out.insert(k.clone(), v.clone());
-    }
-    let items: Vec<Value> = m
-        .items
-        .iter()
-        .map(|it| {
-            let detailed = with_failure_detail(m.id(), it.value());
-            let v = detailed.as_ref().unwrap_or_else(|| it.value());
-            if !PRIVATE_SNAPSHOT_KEYS.iter().any(|k| carries_private(v, k)) {
-                return v.clone();
-            }
-            let mut c = obj(Some(v));
-            for k in PRIVATE_SNAPSHOT_KEYS {
-                c.shift_remove(k);
-            }
-            Value::Object(c)
-        })
-        .collect();
-    // (only when this process tidied something for the job: every other snapshot is as before)
-    if let Some(c) = backup_cleanup_json(m.id()) {
-        out.insert("backupCleanup".into(), c);
-    }
-    out.insert("items".into(), Value::Array(items));
-    Value::Object(out)
+    Snap::of(m).to_value()
 }
 
 /// summaryOf(manifest): the snapshot without clips, the clip results counted
@@ -514,7 +486,112 @@ impl Options {
     }
 }
 
-pub type Listener = Arc<dyn Fn(&Value) + Send + Sync>;
+pub type Listener = Arc<dyn Fn(&Event) + Send + Sync>;
+
+/// What a listener is handed: the event as a JSON value (`e["type"]`, ...), and for a
+/// "snapshot" event the job's public snapshot as a [`Snap`]. Its value's "snapshot" field
+/// is then the snapshot without its clip list: the clips are read through [`Event::snap`],
+/// so the job's clips are not copied for every snapshot (a 90,000-clip job made a copy
+/// of every clip four times a second).
+pub struct Event {
+    value: Value,
+    snap: Option<Snap>,
+}
+
+impl Event {
+    pub fn new(value: Value) -> Event {
+        Event { value, snap: None }
+    }
+    /// the public snapshot of a "snapshot" event
+    pub fn snap(&self) -> Option<&Snap> {
+        self.snap.as_ref()
+    }
+}
+
+impl From<Value> for Event {
+    fn from(value: Value) -> Event {
+        Event::new(value)
+    }
+}
+
+impl std::ops::Deref for Event {
+    type Target = Value;
+    fn deref(&self) -> &Value {
+        &self.value
+    }
+}
+
+/// A job's public snapshot (publicSnapshot) without copies of its clips: `public_snapshot`
+/// is `snap.to_value()`, and its clip `n` is `snap.item(n)`.
+pub struct Snap {
+    /// every field but "items", in public_snapshot's order
+    head: Map<String, Value>,
+    items: Vec<Arc<super::jobstore::Item>>,
+    /// the clips whose failure shows a detail (with_failure_detail), as public_snapshot copies them
+    detailed: HashMap<usize, Value>,
+}
+
+impl Snap {
+    pub fn of(m: &Manifest) -> Snap {
+        let mut head = Map::new();
+        for (k, v) in &m.top {
+            if k == "items" || PRIVATE_SNAPSHOT_KEYS.contains(&k.as_str()) {
+                continue;
+            }
+            head.insert(k.clone(), v.clone());
+        }
+        let mut detailed = HashMap::new();
+        for (n, it) in m.items.iter().enumerate() {
+            if let Some(d) = with_failure_detail(m.id(), it.value()) {
+                detailed.insert(n, d);
+            }
+        }
+        // (only when this process tidied something for the job: every other snapshot is as before)
+        if let Some(c) = backup_cleanup_json(m.id()) {
+            head.insert("backupCleanup".into(), c);
+        }
+        Snap { head, items: m.items.clone(), detailed }
+    }
+
+    /// the snapshot without "items"
+    pub fn head(&self) -> &Map<String, Value> {
+        &self.head
+    }
+
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+
+    /// clip `n` as the job keeps it: for its fields the snapshot shows unchanged (all but
+    /// the private ones and failure)
+    pub fn stored(&self, n: usize) -> &Value {
+        self.items[n].value()
+    }
+
+    /// clip `n` as public_snapshot shows it
+    pub fn item(&self, n: usize) -> Value {
+        let v = self.detailed.get(&n).unwrap_or_else(|| self.items[n].value());
+        if !PRIVATE_SNAPSHOT_KEYS.iter().any(|k| carries_private(v, k)) {
+            return v.clone();
+        }
+        let mut c = obj(Some(v));
+        for k in PRIVATE_SNAPSHOT_KEYS {
+            c.shift_remove(k);
+        }
+        Value::Object(c)
+    }
+
+    /// public_snapshot(manifest)
+    pub fn to_value(&self) -> Value {
+        let mut out = self.head.clone();
+        out.insert("items".into(), Value::Array((0..self.items.len()).map(|n| self.item(n)).collect()));
+        Value::Object(out)
+    }
+}
 
 /// One running ffmpeg (activeEncodes)
 #[derive(Clone)]
@@ -757,6 +834,24 @@ impl Service {
         self.emit_raw(kind, &id, Some(revision), fields);
     }
     fn emit_raw(&self, kind: &str, id: &str, revision: Option<i64>, fields: Vec<(&str, Value)>) {
+        self.emit_event(kind, id, revision, fields, None);
+    }
+
+    /// emit(runtime, "snapshot", { snapshot }): the event's "snapshot" is the snapshot without
+    /// its clips, which the listeners read through Event::snap
+    fn emit_snapshot(&self, rt: &Runtime, snap: Snap) {
+        if !self.has_listeners() {
+            return;
+        }
+        let (id, revision) = {
+            let s = rt.lock();
+            (s.manifest.id().to_string(), s.manifest.revision())
+        };
+        let head = Value::Object(snap.head().clone());
+        self.emit_event("snapshot", &id, Some(revision), vec![("snapshot", head)], Some(snap));
+    }
+
+    fn emit_event(&self, kind: &str, id: &str, revision: Option<i64>, fields: Vec<(&str, Value)>, snap: Option<Snap>) {
         let mut m = Map::new();
         m.insert("type".into(), json!(kind));
         m.insert("jobId".into(), json!(id));
@@ -766,7 +861,7 @@ impl Service {
         for (k, v) in fields {
             m.insert(k.into(), v);
         }
-        let event = Value::Object(m);
+        let event = Event { value: Value::Object(m), snap };
         let ls: Vec<Listener> = self.0.listeners.lock().unwrap().iter().map(|(_, l)| l.clone()).collect();
         for l in ls {
             let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| l(&event)));
@@ -787,8 +882,8 @@ impl Service {
             return;
         }
         if urgent || self.0.o.snapshot_interval_ms == 0 {
-            let snap = public_snapshot(&rt.manifest());
-            self.emit(rt, "snapshot", vec![("snapshot", snap)]);
+            let snap = Snap::of(&rt.manifest());
+            self.emit_snapshot(rt, snap);
             return;
         }
         {
@@ -805,8 +900,8 @@ impl Service {
             std::thread::sleep(std::time::Duration::from_millis(ms));
             rt.lock().snapshot_pending = false;
             if me.has_listeners() {
-                let snap = public_snapshot(&rt.manifest());
-                me.emit(&rt, "snapshot", vec![("snapshot", snap)]);
+                let snap = Snap::of(&rt.manifest());
+                me.emit_snapshot(&rt, snap);
             }
         });
     }
@@ -1072,11 +1167,16 @@ impl Service {
 
     /// get(id)
     pub fn get(&self, id: &str) -> SResult<Value> {
+        self.get_snap(id).map(|s| s.to_value())
+    }
+
+    /// get(id) as a Snap (its clips not copied)
+    pub fn get_snap(&self, id: &str) -> SResult<Snap> {
         let m = match self.runtime_of(id) {
             Some(rt) => rt.manifest(),
             None => self.0.o.store.load(id).map_err(Fail::from)?.ok_or_else(|| service_error("JOB_NOT_FOUND"))?,
         };
-        Ok(public_snapshot(&m))
+        Ok(Snap::of(&m))
     }
 
     /// list()
@@ -1091,7 +1191,19 @@ impl Service {
             (m.id().to_string(), summary_of(&m))
         }).collect();
         let mut out = Vec::new();
-        for s in self.0.o.store.summaries().map_err(Fail::from)? {
+        // (a job running here is not read back from its files: its copy here takes its place)
+        let held = |name: &str| live.iter().any(|(l, _)| l == name);
+        let listed = self.0.o.store.summaries_but(&held).map_err(Fail::from)?;
+        for s in listed {
+            let s = match s {
+                Ok(s) => s,
+                Err(name) => {
+                    if let Some(i) = live.iter().position(|(l, _)| *l == name) {
+                        out.push(live.remove(i).1);
+                    }
+                    continue;
+                }
+            };
             let id = s["id"].as_str().unwrap_or("").to_string();
             if let Some(i) = live.iter().position(|(l, _)| *l == id) {
                 out.push(live.remove(i).1);
@@ -1777,5 +1889,165 @@ mod rc3_alongside_tests {
         }
         assert_eq!(by_chain.0, (false, false), "two jobs over the same clips");
         assert_eq!(by_chain.1, (false, false), "the chain cannot place anything: nothing runs alongside");
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod snap_tests {
+    //! The snapshot handed to listeners without copies of its clips (Snap) gives
+    //! exactly what public_snapshot gave, field order included.
+    use super::*;
+
+    /// publicSnapshot as it was written before Snap (the reference)
+    pub(crate) fn reference_public_snapshot(m: &Manifest) -> Value {
+        let mut out = Map::new();
+        for (k, v) in &m.top {
+            if k == "items" || PRIVATE_SNAPSHOT_KEYS.contains(&k.as_str()) {
+                continue;
+            }
+            out.insert(k.clone(), v.clone());
+        }
+        let items: Vec<Value> = m
+            .items
+            .iter()
+            .map(|it| {
+                let detailed = with_failure_detail(m.id(), it.value());
+                let v = detailed.as_ref().unwrap_or_else(|| it.value());
+                if !PRIVATE_SNAPSHOT_KEYS.iter().any(|k| carries_private(v, k)) {
+                    return v.clone();
+                }
+                let mut c = obj(Some(v));
+                for k in PRIVATE_SNAPSHOT_KEYS {
+                    c.shift_remove(k);
+                }
+                Value::Object(c)
+            })
+            .collect();
+        if let Some(c) = backup_cleanup_json(m.id()) {
+            out.insert("backupCleanup".into(), c);
+        }
+        out.insert("items".into(), Value::Array(items));
+        Value::Object(out)
+    }
+
+    /// A job of `n` clips in every state, some with private fields, cleanup-pending results,
+    /// refusal details and an active clip.
+    pub(crate) fn job(_name: &str, n: usize) -> Manifest {
+        let id = &format!("job-{}", crate::converter::jobstore::random_uuid().unwrap());
+        let items: Vec<Value> = (0..n)
+            .map(|i| {
+                let ts = format!("2026-10-{:02}_07-{:02}-00", 1 + i % 28, i % 60);
+                let rel = format!("SentryClips/{ts}/{ts}-{i}-front.mp4");
+                let mut c = json!({ "id": format!("item-{i:06}"), "state": "queued", "kind": if i % 13 == 5 { "asset" } else { "video" }, "group": "SentryClips", "eventId": ts, "relativePath": rel, "sourcePath": format!("/footage/TeslaCam/{rel}"), "sourceBytes": 40_000_000 + i, "mtimeMs": 1760000000000.0, "timestampKey": ts, "camera": "front", "attempts": 0 });
+                if c["kind"] == "asset" {
+                    c["assetType"] = json!("event-json");
+                }
+                match i % 7 {
+                    0 => {
+                        c["state"] = json!("completed");
+                        c["outputPath"] = json!(format!("/footage/TeslaCam/{rel}"));
+                        c["outputBytes"] = json!(20_000_000 + i);
+                        c["resultCode"] = json!(if i % 3 == 0 { "converted" } else { "converted-cleanup-pending" });
+                        if i % 2 == 0 {
+                            c["eligibleVideo"] = json!(false);
+                        }
+                    }
+                    1 => {
+                        c["state"] = json!("failed");
+                        let code = if i % 2 == 0 { UNSAFE_OWNED_PATH_RESULT } else { "decode-failed" };
+                        c["failure"] = json!({ "code": code, "retryable": false });
+                        c["resultCode"] = json!(code);
+                    }
+                    2 => c["state"] = json!("skipped"),
+                    3 => {
+                        c["ownedPaths"] = json!({ "stagedSource": format!("/data/converter-temp/{i}.mp4") });
+                    }
+                    4 if i == 4 => c["state"] = json!("processing"),
+                    _ => {}
+                }
+                c
+            })
+            .collect();
+        let root = std::env::temp_dir().join(format!("lean-snap-{}-{}", std::process::id(), crate::converter::jobstore::random_uuid().unwrap()));
+        std::fs::create_dir_all(&root).unwrap();
+        let store = crate::converter::jobstore::JobStore::new(&root).unwrap();
+        let mut initial = Map::new();
+        initial.insert("id".into(), json!(id));
+        initial.insert("state".into(), json!("waiting"));
+        initial.insert("config".into(), json!({ "sourceRoot": "/footage/TeslaCam", "destinationRoot": null, "codec": "h265", "profileId": "balanced", "networkMode": "auto", "outputMode": "replace", "includedGroups": ["SentryClips"], "replacementConfirmed": true, "concurrency": 2, "verifyMode": "quick" }));
+        initial.insert("items".into(), Value::Array(items));
+        initial.insert("discoveryComplete".into(), json!(true));
+        if n > 4 {
+            initial.insert("activeItemId".into(), json!("item-000004"));
+        }
+        let m = store.create(&initial).unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+        for i in (1..n).step_by(14) {
+            set_failure_detail(id, &format!("item-{i:06}"), Some(&format!("detail of {i}")));
+        }
+        m
+    }
+
+    #[test]
+    fn a_snap_is_the_public_snapshot_and_sanitizes_the_same() {
+        for n in [0, 3, 256, 257, 900] {
+            let m = job(&format!("snap-job-{n}"), n);
+            let want = reference_public_snapshot(&m);
+            let snap = Snap::of(&m);
+            assert_eq!(serde_json::to_string(&snap.to_value()).unwrap(), serde_json::to_string(&want).unwrap(), "{n} clips");
+            assert_eq!(serde_json::to_string(&public_snapshot(&m)).unwrap(), serde_json::to_string(&want).unwrap());
+            let (a, b) = (crate::converter::ipc::sanitize_snap(&snap).unwrap(), crate::converter::ipc::sanitize_snapshot(&want).unwrap());
+            assert_eq!(serde_json::to_string(&a).unwrap(), serde_json::to_string(&b).unwrap(), "{n} clips");
+            if n > 256 {
+                // (what the clips hold that the snapshot changes: private fields, refusal details)
+                assert!(m.items.iter().any(|i| carries_private(i.value(), "ownedPaths")));
+                assert!(want["items"].as_array().unwrap().iter().all(|i| i.get("ownedPaths").is_none_or(|o| o.as_object().is_some_and(|o| o.is_empty()))));
+                assert!(want["items"].as_array().unwrap().iter().any(|i| i["failure"]["detail"].is_string()));
+                assert_eq!(a["itemsTruncated"], true);
+                assert!(a["itemStateCounts"]["failed"].as_u64().unwrap() > 0 && a["cleanupPendingCount"].as_u64().unwrap() > 0);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod transition_cost {
+    //! What one change of a big job costs (run by hand: `N=40000 K=400 cargo test --release
+    //! --lib -- --ignored --nocapture transition_cost`).
+    use super::*;
+    #[test]
+    #[ignore]
+    fn time_one_clip_change_in_a_big_job() {
+        let n: usize = std::env::var("N").ok().and_then(|s| s.parse().ok()).unwrap_or(40_000);
+        let root = std::env::temp_dir().join(format!("lean-tcost-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let store = JobStore::new(&root).unwrap();
+        let m = snap_tests::job("x", n);
+        let id = m.id().to_string();
+        let mut init = m.top.clone();
+        init.insert("items".into(), Value::Array(m.items.iter().map(|i| i.value().clone()).collect()));
+        init.remove("revision");
+        init.remove("schemaVersion");
+        let job = store.create(&init).unwrap();
+        let _ = job;
+        let t = std::time::Instant::now();
+        let k: usize = std::env::var("K").ok().and_then(|s| s.parse().ok()).unwrap_or(50);
+        let mut cur = store.load(&id).unwrap().unwrap();
+        for r in 0..k {
+            let it = format!("item-{:06}", 6 + 7 * r);
+            let items = with_item(&cur, &it, |v| merge(v, &vec![("state", Some(json!("skipped")))]));
+            cur = store.transition(&id, Patch::new().items(items)).unwrap();
+        }
+        let per_items = t.elapsed().as_secs_f64() * 1000.0 / k as f64;
+        let t = std::time::Instant::now();
+        for r in 0..k {
+            cur = store.transition(&id, Patch::new().set("activeItemId", if r % 2 == 0 { json!("item-000004") } else { Value::Null })).unwrap();
+        }
+        let per_top = t.elapsed().as_secs_f64() * 1000.0 / k as f64;
+        let t = std::time::Instant::now();
+        for _ in 0..10 { let _ = public_snapshot(&cur); }
+        let snap = t.elapsed().as_secs_f64() * 100.0;
+        eprintln!("N={n}: clip change {per_items:.1} ms, top change {per_top:.1} ms, full public_snapshot {snap:.1} ms");
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

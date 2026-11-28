@@ -230,7 +230,7 @@ impl Converter {
         // each verified clip leaves its empty snapshot folder: removed once a job ends
         let (s4, b4, t4) = (service.clone(), bench.clone(), temp_path.clone());
         let a4 = Arc::downgrade(&auto);
-        service.subscribe(Arc::new(move |e: &Value| {
+        service.subscribe(Arc::new(move |e: &super::service::Event| {
             if e["type"] == "snapshot" && ["completed", "failed", "cancelled"].contains(&e["snapshot"]["state"].as_str().unwrap_or("")) {
                 // an automatic job that ended: the next one starts now, not at the next tick
                 if let (Some(a), Some(id)) = (a4.upgrade(), e["jobId"].as_str()) {

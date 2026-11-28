@@ -281,6 +281,43 @@ pub fn speeds_read(real: &Path, size: u64, mode: Mode, full: &super::telemetry_a
     }
 }
 
+/// The rest between two clips started: `pause_ms` shared by the `at_once` reads the pace allows,
+/// so each reader still rests about `pause_ms` between its clips. (One rest for all of them held
+/// the whole index to 1000 / pause_ms clips a second however many it read at once, so a step up
+/// never read more and the pace took it back.)
+fn start_gap(pause_ms: u64, at_once: usize) -> Duration {
+    Duration::from_millis(pause_ms / at_once.max(1) as u64)
+}
+
+/// The readers in use, as the pace counts them: a reader resting after a clip is in use too, so
+/// a step up is tried when reads are quicker than the rest (none else fills every place).
+struct Started {
+    rest: Duration,
+    at: VecDeque<Instant>,
+}
+
+impl Started {
+    fn new(rest: Duration) -> Started {
+        Started { rest, at: VecDeque::new() }
+    }
+
+    /// A clip started now.
+    fn one(&mut self) {
+        if !self.rest.is_zero() {
+            self.at.push_back(Instant::now());
+        }
+    }
+
+    /// The readers reading (`in_flight`) or still resting after their clip: no fewer than the
+    /// clips started within one rest.
+    fn in_use(&mut self, in_flight: usize) -> usize {
+        while self.at.front().is_some_and(|t| t.elapsed() >= self.rest) {
+            self.at.pop_front();
+        }
+        in_flight.max(self.at.len())
+    }
+}
+
 /// A clip the speed index could not read is read again after this long (or once it changed).
 const RETRY_AFTER: Duration = Duration::from_secs(3600);
 
@@ -545,6 +582,7 @@ impl SpeedIndex {
         std::thread::scope(|scope| {
             let (tx, rx) = mpsc::channel::<()>();
             let mut in_flight = 0usize;
+            let mut resting = Started::new(Duration::from_millis(self.pause_ms));
             let mut next = |queues: &mut HashMap<String, VecDeque<Todo>>| -> Option<Todo> {
                 while first < order.len() && queues[&order[first]].is_empty() {
                     first += 1;
@@ -565,8 +603,8 @@ impl SpeedIndex {
                 queues.get_mut(&k).unwrap().pop_front()
             };
             while !self.stopped.load(Ordering::SeqCst) {
-                self.pace.demand(in_flight, left > 0);
-                let cap = self.pace.allowed() as usize;
+                self.pace.demand(resting.in_use(in_flight), left > 0);
+                let mut cap = self.pace.allowed() as usize;
                 while in_flight < cap && left > 0 && !self.stopped.load(Ordering::SeqCst) {
                     let Some(c) = next(&mut queues) else { break };
                     left -= 1;
@@ -574,6 +612,7 @@ impl SpeedIndex {
                     *self.inner.lock().unwrap().reading.entry(key_of(&c.vid, &c.day)).or_default() += 1;
                     let tx = tx.clone();
                     in_flight += 1;
+                    resting.one();
                     scope.spawn(move || {
                         let key = key_of(&c.vid, &c.day);
                         self.read_one(&c);
@@ -593,14 +632,17 @@ impl SpeedIndex {
                         }
                         let _ = tx.send(());
                     });
-                    self.pace.demand(in_flight, left > 0);
+                    self.pace.demand(resting.in_use(in_flight), left > 0);
                     if self.pause_ms > 0 {
-                        std::thread::sleep(Duration::from_millis(self.pause_ms));
+                        std::thread::sleep(start_gap(self.pause_ms, cap));
                     }
                     while rx.try_recv().is_ok() {
                         in_flight -= 1;
-                        self.pace.demand(in_flight, left > 0);
+                        self.pace.demand(resting.in_use(in_flight), left > 0);
                     }
+                    // (asked again before each clip: reads done within the rest kept this loop
+                    // going on the number it began with, past a step up, a pause or the Viewer)
+                    cap = self.pace.allowed() as usize;
                 }
                 if in_flight == 0 && left == 0 {
                     break;
@@ -613,11 +655,11 @@ impl SpeedIndex {
                 let wait = if in_flight > 0 { 1000 } else { 2000 };
                 if rx.recv_timeout(Duration::from_millis(wait)).is_ok() {
                     in_flight -= 1;
-                    self.pace.demand(in_flight, left > 0);
+                    self.pace.demand(resting.in_use(in_flight), left > 0);
                 }
                 while rx.try_recv().is_ok() {
                     in_flight -= 1;
-                    self.pace.demand(in_flight, left > 0);
+                    self.pace.demand(resting.in_use(in_flight), left > 0);
                 }
             }
         });
@@ -641,6 +683,8 @@ impl SpeedIndex {
         std::thread::Builder::new()
             .name("speed-index".into())
             .spawn(move || {
+                // (its readers too: they start from this thread)
+                crate::jobs::background_priority();
                 loop {
                     me.run.lock().unwrap().again = false;
                     let n = me.pass();

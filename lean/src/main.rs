@@ -18,6 +18,15 @@ fn main() {
     // before any thread: as the top of server/index.js, and the supervisor's channel (fd 3)
     sentry_lean::supervisor::link::drop_malloc_arena_max();
     let fd = sentry_lean::supervisor::ipc::take_from_env();
+    // Large blocks (128 KiB and up: a job file being written, a read buffer) get pages of their
+    // own, given back when freed. glibc would otherwise raise this threshold to the size of each
+    // large block freed (up to 32 MiB) and put the next ones in the heap among small blocks,
+    // where their pages stay the app's long after (a 40,000-clip job: about 70 MB more). Only
+    // this process: ffmpeg is started with glibc's defaults.
+    #[cfg(target_env = "gnu")]
+    unsafe {
+        libc::mallopt(libc::M_MMAP_THRESHOLD, 128 * 1024);
+    }
     // room for every connection limit (Docker's default soft limit is 1024)
     let open_files = core::server::raise_open_files_limit();
     // glibc keeps freed memory; hand it back
@@ -26,7 +35,26 @@ fn main() {
         std::thread::sleep(Duration::from_secs(60));
         unsafe { libc::malloc_trim(0) };
     });
-    tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().expect("runtime").block_on(run(fd, open_files));
+    let workers = http_workers(sentry_lean::viewer::work_limits::detect_resources().cpus);
+    tokio::runtime::Builder::new_multi_thread().worker_threads(workers).enable_all().build().expect("runtime").block_on(run(fd, open_files));
+}
+
+/// The threads that answer the pages (TLS, the network; the routes' own work runs on blocking
+/// threads): two, and one more per four CPUs past eight this container may use, at most four.
+/// Each is about 100 KB of memory while it is idle.
+fn http_workers(cpus: f64) -> usize {
+    let c = if cpus.is_finite() { cpus.floor().max(0.0) as usize } else { 0 };
+    (2 + c.saturating_sub(8) / 4).min(4)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn http_workers_from_the_cpus() {
+        use super::http_workers;
+        assert_eq!([1.0, 2.0, 4.0, 8.0, 11.9].map(http_workers), [2, 2, 2, 2, 2]);
+        assert_eq!([12.0, 16.0, 64.0, f64::NAN].map(http_workers), [3, 4, 4, 2]);
+    }
 }
 
 async fn run(fd: Option<std::os::fd::OwnedFd>, open_files: u64) {

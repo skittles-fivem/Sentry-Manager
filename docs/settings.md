@@ -53,7 +53,15 @@ host has. The server takes the smaller of its memory size and its CPU size:
 | Mid-size | 3–7 GB | 3 | 2 | 4 | 2 | 1 | 2 |
 | Full-size | 7 GB or more | 4 or more | 4 | 8 | 3 | 2 | 2 |
 
-A full-size server gets the numbers every server had before. The
+A full-size server with 4 CPUs gets the numbers every server had before.
+With more CPUs a full-size server does more at once: the speed index one
+per two CPUs, codec checks one per CPU, scrub previews, car data reads and
+thumbnails one per four (a scrub preview of an HEVC clip is an ffmpeg of
+about 270 MB, so they grow slowly), each never below the numbers above or past the
+most an admin may set (8, codec checks 32). Only whole CPUs count, and no
+more than one per 1.5 GB of memory: a 16-thread server with 29 GB gets
+8, 16, 4, 4 and 4; the same server held to 4 CPUs by Docker gets the 4-CPU
+numbers. The
 Background work card shows the numbers in use and the memory and CPUs they were picked from; an
 admin can type any of them (an empty box stays automatic) and they apply at
 once, without a restart. The start-up log has the same line

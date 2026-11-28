@@ -64,6 +64,11 @@ type R<T> = Result<T, IpcError>;
 pub trait ServiceApi: Send + Sync {
     fn start(&self, config: &Value) -> SResult<String>;
     fn get(&self, id: &str) -> SResult<Value>;
+    /// get(id) sanitized for the window (sanitize_snapshot), when the service can do it
+    /// without a copy of every clip; None: it cannot (then get is used)
+    fn get_sanitized(&self, _id: &str) -> Option<SResult<Result<Value, IpcError>>> {
+        None
+    }
     fn list(&self) -> SResult<Vec<Value>>;
     fn list_summaries(&self) -> SResult<Vec<Value>>;
     fn pause(&self, id: &str) -> SResult<Value>;
@@ -110,6 +115,9 @@ impl ServiceApi for Service {
     }
     fn get(&self, id: &str) -> SResult<Value> {
         Service::get(self, id)
+    }
+    fn get_sanitized(&self, id: &str) -> Option<SResult<Result<Value, IpcError>>> {
+        Some(Service::get_snap(self, id).map(|s| sanitize_snap(&s)))
     }
     fn list(&self) -> SResult<Vec<Value>> {
         Service::list(self)
@@ -226,15 +234,61 @@ pub fn sanitize_snapshot(snapshot: &Value) -> R<Value> {
     let Some(m) = snapshot.as_object() else { return fail("INVALID_SNAPSHOT") };
     let items = m.get("items").and_then(Value::as_array);
     let Some(items) = items.filter(|i| i.len() > 256) else { return bounded(snapshot, MAX_SNAPSHOT_BYTES, true, true) };
-    let count = items.len();
-    let mut state_counts = Map::new();
-    for k in ITEM_STATE_KEYS {
-        state_counts.insert(k.into(), json!(items.iter().filter(|i| i["state"] == k).count()));
+    // (the fields in their order, the clip list's place kept for the shortened list)
+    let head: Map<String, Value> = m.iter().map(|(k, v)| (k.clone(), if k == "items" { Value::Null } else { v.clone() })).collect();
+    truncated(&head, items.len(), |n, k| items[n].get(k), |n| items[n].clone())
+}
+
+/// sanitize_snapshot(snap.to_value()), the clips not copied but the ones sent
+pub fn sanitize_snap(snap: &super::service::Snap) -> R<Value> {
+    if snap.len() <= 256 {
+        return bounded(&snap.to_value(), MAX_SNAPSHOT_BYTES, true, true);
     }
-    state_counts.insert("active".into(), json!(items.iter().filter(|i| i["state"] == "processing").count()));
-    let cleanup_pending = items.iter().filter(|i| i.get("resultCode").and_then(Value::as_str).unwrap_or("").contains("cleanup-pending")).count();
-    let active_index = items.iter().position(|i| i.get("id").is_some() && i.get("id") == m.get("activeItemId"));
-    let failed: Vec<usize> = items.iter().enumerate().filter(|(_, i)| i["state"] == "failed").map(|(n, _)| n).collect();
+    let mut head = snap.head().clone();
+    head.insert("items".into(), Value::Null);
+    truncated(&head, snap.len(), |n, k| snap.stored(n).get(k), |n| snap.item(n))
+}
+
+/// A snapshot of more than 256 clips (head: its fields, "items" among them): the active clip,
+/// the latest failed ones and the last ones, with the clips counted. `field(n, key)` reads a
+/// field of clip n that the snapshot shows as stored (id, state, resultCode); `item(n)` is the
+/// clip as sent.
+fn truncated<'a>(head: &Map<String, Value>, count: usize, field: impl Fn(usize, &str) -> Option<&'a Value>, item: impl Fn(usize) -> Value) -> R<Value> {
+    const NULL: &Value = &Value::Null;
+    let mut state_counts = Map::new();
+    let mut by_state = [0usize; ITEM_STATE_KEYS.len()];
+    let mut processing = 0usize;
+    let mut cleanup_pending = 0usize;
+    let mut active_index = None;
+    let mut failed: Vec<usize> = Vec::new();
+    let active = head.get("activeItemId");
+    for n in 0..count {
+        let st = field(n, "state").unwrap_or(NULL);
+        for (i, k) in ITEM_STATE_KEYS.iter().enumerate() {
+            if st == k {
+                by_state[i] += 1;
+            }
+        }
+        if st == "processing" {
+            processing += 1;
+        }
+        if st == "failed" {
+            failed.push(n);
+        }
+        if field(n, "resultCode").and_then(Value::as_str).unwrap_or("").contains("cleanup-pending") {
+            cleanup_pending += 1;
+        }
+        if active_index.is_none() {
+            let id = field(n, "id");
+            if id.is_some() && id == active {
+                active_index = Some(n);
+            }
+        }
+    }
+    for (i, k) in ITEM_STATE_KEYS.iter().enumerate() {
+        state_counts.insert((*k).into(), json!(by_state[i]));
+    }
+    state_counts.insert("active".into(), json!(processing));
     let mut limit = 256usize;
     loop {
         let mut selected: Vec<usize> = Vec::new();
@@ -258,8 +312,8 @@ pub fn sanitize_snapshot(snapshot: &Value) -> R<Value> {
             add(i, &mut selected);
         }
         selected.sort_unstable();
-        let mut prepared = m.clone();
-        prepared.insert("items".into(), Value::Array(selected.iter().map(|n| items[*n].clone()).collect()));
+        let mut prepared = head.clone();
+        prepared.insert("items".into(), Value::Array(selected.iter().map(|n| item(*n)).collect()));
         prepared.insert("itemCount".into(), json!(count));
         prepared.insert("itemStateCounts".into(), Value::Object(state_counts.clone()));
         prepared.insert("cleanupPendingCount".into(), json!(cleanup_pending));
@@ -578,7 +632,7 @@ impl Bridge {
         let b = Arc::new(Bridge { service: service.clone(), ctx: ctx.clone(), capabilities, clients: Mutex::new(HashMap::new()), senders: Arc::new(Mutex::new(HashMap::new())), vetted: Mutex::new(HashMap::new()), extras: Mutex::new(Extras::default()) });
         let senders = b.senders.clone();
         let dropped_logged = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        service.subscribe(Arc::new(move |event: &Value| {
+        service.subscribe(Arc::new(move |event: &super::service::Event| {
             let kind = event["type"].as_str().unwrap_or("");
             if kind == "item_timing" {
                 if let Some(p) = event.get("outputPath").and_then(Value::as_str) {
@@ -594,7 +648,7 @@ impl Bridge {
             let id = event["jobId"].as_str().unwrap_or("");
             let rev = super::jobstore::normalize::safe_int_of(&event["revision"]);
             let (Some(rev), true) = (rev.filter(|r| *r >= 0), super::jobstore::normalize::is_safe_id(id) && !super::jobstore::normalize::is_windows_reserved(id)) else { return };
-            let snapshot = if kind == "snapshot" { sanitize_snapshot(&event["snapshot"]) } else { sanitize_live_progress(&event["progress"]).map(|p| json!({ "id": id, "revision": rev, "progress": p })) };
+            let snapshot = if kind == "snapshot" { event.snap().map_or_else(|| sanitize_snapshot(&event["snapshot"]), sanitize_snap) } else { sanitize_live_progress(&event["progress"]).map(|p| json!({ "id": id, "revision": rev, "progress": p })) };
             let snapshot = match snapshot {
                 Ok(s) => s,
                 Err(e) => {
@@ -749,8 +803,10 @@ impl Bridge {
     fn current_job(&self) -> R<Value> {
         let summaries = self.service.list_summaries()?;
         let Some(chosen) = choose_current(&summaries)? else { return Ok(Value::Null) };
-        match self.service.get(chosen["id"].as_str().unwrap_or("")) {
-            Ok(s) => sanitize_snapshot(&s),
+        let id = chosen["id"].as_str().unwrap_or("");
+        let got = self.service.get_sanitized(id).unwrap_or_else(|| self.service.get(id).map(|s| sanitize_snapshot(&s)));
+        match got {
+            Ok(s) => s,
             Err(_) => Ok(choose_current(&self.service.list()?)?.unwrap_or(Value::Null)),
         }
     }
@@ -1034,6 +1090,80 @@ pub fn clamp_verify(v: &mut Value) {
     }
 }
 
+
+#[cfg(test)]
+mod snap_tests {
+    //! sanitize_snapshot and sanitize_snap answer as sanitize_snapshot did before either
+    //! stopped copying every clip.
+    use super::*;
+    use crate::converter::service::{snap_tests as jobs, Snap};
+
+    // (sanitize_snapshot as it was)
+    fn reference_sanitize_snapshot(snapshot: &Value) -> R<Value> {
+        let Some(m) = snapshot.as_object() else { return fail("INVALID_SNAPSHOT") };
+        let items = m.get("items").and_then(Value::as_array);
+        let Some(items) = items.filter(|i| i.len() > 256) else { return bounded(snapshot, MAX_SNAPSHOT_BYTES, true, true) };
+        let count = items.len();
+        let mut state_counts = Map::new();
+        for k in ITEM_STATE_KEYS {
+            state_counts.insert(k.into(), json!(items.iter().filter(|i| i["state"] == k).count()));
+        }
+        state_counts.insert("active".into(), json!(items.iter().filter(|i| i["state"] == "processing").count()));
+        let cleanup_pending = items.iter().filter(|i| i.get("resultCode").and_then(Value::as_str).unwrap_or("").contains("cleanup-pending")).count();
+        let active_index = items.iter().position(|i| i.get("id").is_some() && i.get("id") == m.get("activeItemId"));
+        let failed: Vec<usize> = items.iter().enumerate().filter(|(_, i)| i["state"] == "failed").map(|(n, _)| n).collect();
+        let mut limit = 256usize;
+        loop {
+            let mut selected: Vec<usize> = Vec::new();
+            let add = |n: usize, sel: &mut Vec<usize>| {
+                if !sel.contains(&n) {
+                    sel.push(n);
+                }
+            };
+            if let Some(a) = active_index {
+                add(a, &mut selected);
+            }
+            for &f in failed.iter().rev() {
+                if selected.len() >= limit {
+                    break;
+                }
+                add(f, &mut selected);
+            }
+            let mut i = count;
+            while i > 0 && selected.len() < limit {
+                i -= 1;
+                add(i, &mut selected);
+            }
+            selected.sort_unstable();
+            let mut prepared = m.clone();
+            prepared.insert("items".into(), Value::Array(selected.iter().map(|n| items[*n].clone()).collect()));
+            prepared.insert("itemCount".into(), json!(count));
+            prepared.insert("itemStateCounts".into(), Value::Object(state_counts.clone()));
+            prepared.insert("cleanupPendingCount".into(), json!(cleanup_pending));
+            prepared.insert("itemsTruncated".into(), json!(true));
+            match bounded(&Value::Object(prepared), MAX_SNAPSHOT_BYTES, true, true) {
+                Ok(v) => return Ok(v),
+                Err(e) if e.code == "PAYLOAD_TOO_LARGE" && limit > 1 => limit = (limit / 2).max(1),
+                Err(e) => return Err(e),
+            }
+        }
+    }
+
+    #[test]
+    fn the_shortened_snapshot_is_the_one_it_was() {
+        for n in [0, 3, 256, 257, 900, 5000] {
+            let m = jobs::job(&format!("ipc-snap-{n}"), n);
+            let full = jobs::reference_public_snapshot(&m);
+            let want = serde_json::to_string(&reference_sanitize_snapshot(&full).unwrap()).unwrap();
+            assert_eq!(serde_json::to_string(&sanitize_snapshot(&full).unwrap()).unwrap(), want, "{n} clips");
+            assert_eq!(serde_json::to_string(&sanitize_snap(&Snap::of(&m)).unwrap()).unwrap(), want, "{n} clips");
+        }
+        // a value whose clip list is not last, and clips that are not objects or lack an id
+        let mut odd = json!({ "id": "j", "items": [], "state": "encoding", "activeItemId": null });
+        odd["items"] = Value::Array((0..300).map(|i| if i % 50 == 0 { json!(i) } else if i % 7 == 0 { json!({ "state": "failed", "id": null }) } else { json!({ "id": format!("i{i}"), "state": "queued" }) }).collect());
+        assert_eq!(serde_json::to_string(&sanitize_snapshot(&odd).unwrap()).unwrap(), serde_json::to_string(&reference_sanitize_snapshot(&odd).unwrap()).unwrap());
+    }
+}
 
 #[cfg(test)]
 mod tests {

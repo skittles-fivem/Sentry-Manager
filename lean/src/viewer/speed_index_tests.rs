@@ -338,3 +338,61 @@ fn stats_of_a_clip() {
     assert!(stats_of(&json!([null]), &Value::Null).is_none());
     assert!(stats_of(&Value::Null, &Value::Null).is_none());
 }
+
+#[test]
+fn the_rest_between_clips_is_shared_by_the_reads_at_once() {
+    // one at a time: the rest it always had; more at once: each reader rests as long between its clips
+    assert_eq!(start_gap(100, 1), Duration::from_millis(100));
+    assert_eq!(start_gap(100, 0), Duration::from_millis(100));
+    assert_eq!(start_gap(100, 4), Duration::from_millis(25));
+    assert_eq!(start_gap(100, 8), Duration::from_millis(12));
+    assert_eq!(start_gap(0, 4), Duration::ZERO);
+}
+
+#[test]
+fn a_pause_is_seen_before_the_next_clip_however_fast_the_reads() {
+    use std::sync::atomic::AtomicBool;
+    let car = Car::new("si-pause");
+    let recs: Vec<Option<Rec>> = (0..4).map(|n| Some(Rec { v: n as f32, ..Rec::default() })).collect();
+    for n in 0..40 {
+        testkit::clip(&car.root.join(format!("RecentClips/2026-10-01_10-{n:02}-00-front.mp4")), 4, &recs, 4);
+    }
+    car.scan();
+    let busy = Arc::new(AtomicBool::new(false));
+    let b = busy.clone();
+    // reads far quicker than the rest between clips (as with clips in the page cache)
+    let idx = SpeedIndex::new(car.data.join("speeds"), car.ctx.clone(), Arc::new(Pace::fixed(move || b.load(Ordering::SeqCst))), 30, Limiter::new(|| 2));
+    let done = |i: &SpeedIndex| i.status()["done"].as_u64().unwrap();
+    idx.kick();
+    while done(&idx) < 3 {
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    // a conversion starts: no more clips are started until it ends
+    busy.store(true, Ordering::SeqCst);
+    std::thread::sleep(Duration::from_millis(100));
+    let at = done(&idx);
+    std::thread::sleep(Duration::from_millis(400));
+    assert_eq!(done(&idx), at, "nothing read while paused");
+    assert!(at < 40);
+    busy.store(false, Ordering::SeqCst);
+    idx.settled();
+    assert_eq!(done(&idx), 40);
+}
+
+#[test]
+fn a_reader_resting_after_its_clip_is_in_use() {
+    let mut s = Started::new(Duration::from_millis(150));
+    assert_eq!(s.in_use(0), 0);
+    s.one();
+    s.one();
+    // both read already: resting, still in use
+    assert_eq!(s.in_use(0), 2);
+    assert_eq!(s.in_use(3), 3);
+    std::thread::sleep(Duration::from_millis(200));
+    assert_eq!(s.in_use(0), 0, "rested");
+    // no rest: only what is reading
+    let mut s = Started::new(Duration::ZERO);
+    s.one();
+    assert_eq!(s.in_use(0), 0);
+    assert_eq!(s.in_use(1), 1);
+}

@@ -258,7 +258,7 @@ fn conversions_as_node_runs_them() {
         let c = open(&rust_base, ffmpeg.to_str().unwrap(), "ffprobe", None);
         let events: Arc<std::sync::Mutex<Vec<String>>> = Arc::default();
         let e2 = events.clone();
-        c.service.subscribe(Arc::new(move |e: &Value| e2.lock().unwrap().push(e["type"].as_str().unwrap_or("").to_string())));
+        c.service.subscribe(Arc::new(move |e: &super::Event| e2.lock().unwrap().push(e["type"].as_str().unwrap_or("").to_string())));
         c.start().unwrap();
         // (libx265 on both sides: a hardware encoder's output differs from run to run)
         let mut cfg = config(&rust_base, mode, network, 1);

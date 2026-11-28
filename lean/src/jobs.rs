@@ -64,7 +64,13 @@ impl Jobs {
         let jobs = Arc::new(Jobs { state: Mutex::new(State::default()), wake: Condvar::new(), workers: n, done: AtomicUsize::new(0) });
         for i in 0..n {
             let j = jobs.clone();
-            std::thread::Builder::new().name(format!("job-{i}")).spawn(move || j.run()).expect("job thread");
+            std::thread::Builder::new()
+                .name(format!("job-{i}"))
+                .spawn(move || {
+                    background_priority();
+                    j.run()
+                })
+                .expect("job thread");
         }
         jobs
     }
@@ -128,6 +134,23 @@ impl Jobs {
     }
 }
 
+/// The nice value of background work's threads (the scrub previews' and exports' ffmpeg runs have it too).
+pub const BACKGROUND_NICE: i32 = 10;
+
+/// Run the calling thread, and the threads it starts from now on, at BACKGROUND_NICE: with every
+/// CPU busy, the threads that answer the pages get the CPU first. Only for a thread that does
+/// nothing but background work (Linux keeps a nice value per thread, and a raised one cannot be
+/// lowered again without privileges).
+pub fn background_priority() {
+    #[cfg(target_os = "linux")]
+    unsafe {
+        let tid = libc::gettid() as libc::id_t;
+        if libc::getpriority(libc::PRIO_PROCESS, tid) < BACKGROUND_NICE {
+            libc::setpriority(libc::PRIO_PROCESS, tid, BACKGROUND_NICE);
+        }
+    }
+}
+
 /// Run f over items on up to `threads` threads (a bounded parallel map for file reads).
 pub fn par_each<T: Sync, R: Send>(items: &[T], threads: usize, f: impl Fn(&T) -> R + Sync) -> Vec<R> {
     let next = AtomicUsize::new(0);
@@ -181,5 +204,30 @@ mod tests {
         }
         assert_eq!(*order.lock().unwrap(), vec!["high", "normal", "low"]);
         assert_eq!(par_each(&[1, 2, 3, 4], 3, |x| x * 10), vec![10, 20, 30, 40]);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn background_threads_give_way() {
+        let nice = || unsafe { libc::getpriority(libc::PRIO_PROCESS, libc::gettid() as libc::id_t) };
+        let before = nice();
+        let (own, child) = std::thread::spawn(move || {
+            background_priority();
+            (nice(), std::thread::spawn(nice).join().unwrap())
+        })
+        .join()
+        .unwrap();
+        assert_eq!(own, BACKGROUND_NICE.max(before));
+        assert_eq!(child, own, "threads it starts are background too");
+        assert_eq!(nice(), before, "only that thread");
+        // the queue's threads
+        let jobs = Jobs::start(1);
+        let seen = Arc::new(Mutex::new(None));
+        let s = seen.clone();
+        jobs.submit("nice", Priority::Normal, move || *s.lock().unwrap() = Some(nice()));
+        while jobs.finished() < 1 {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert_eq!(*seen.lock().unwrap(), Some(BACKGROUND_NICE.max(before)));
     }
 }
