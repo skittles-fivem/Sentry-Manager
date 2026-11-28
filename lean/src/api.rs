@@ -506,7 +506,7 @@ mod tests {
             .into_iter()
             .map(|rel| {
                 let c = crate::footage::classify(&rel).unwrap();
-                FileEntry { rel, size: 1, mtime_ms: 0.0, ctime_ms: 0.0, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day: "2026-11-10".into(), camera: c.camera, event_id: c.event_id }
+                FileEntry { rel: rel.into(), size: 1, mtime_ms: 0.0, ctime_ms: 0.0, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day: "2026-11-10".into(), camera: c.camera, event_id: c.event_id }
             })
             .collect();
         (inventory::build_recordings(&Arc::new(FileList::from(files)), "v1"), ev)
@@ -593,7 +593,7 @@ mod tests {
             .iter()
             .map(|(rel, day)| {
                 let c = crate::footage::classify(rel).unwrap();
-                FileEntry { rel: rel.clone(), size: 1, mtime_ms: 0.0, ctime_ms: 0.0, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day: (*day).into(), camera: c.camera, event_id: c.event_id }
+                FileEntry { rel: rel.into(), size: 1, mtime_ms: 0.0, ctime_ms: 0.0, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day: (*day).into(), camera: c.camera, event_id: c.event_id }
             })
             .collect();
         let mut recs = inventory::build_recordings(&Arc::new(FileList::from(files)), "v1");

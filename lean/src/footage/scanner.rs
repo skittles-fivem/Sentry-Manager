@@ -19,7 +19,7 @@
 //! they answer in turn, which is what it gives most of the time.
 
 use crate::footage::{self, Class};
-use crate::footage::short::Short;
+use crate::footage::short::{Rel, Short};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
@@ -31,7 +31,7 @@ const STAT_BATCH: usize = 64;
 
 #[derive(Debug, Clone)]
 pub struct FileEntry {
-    pub rel: String,
+    pub rel: Rel,
     pub size: u64,
     pub mtime_ms: f64,
     pub ctime_ms: f64,
@@ -70,6 +70,9 @@ fn hash_rel(rel: &str) -> usize {
 impl From<Vec<FileEntry>> for FileList {
     fn from(mut files: Vec<FileEntry>) -> FileList {
         files.shrink_to_fit();
+        // (the paths in one block: a block a file, made among the scan's passing ones, would leave
+        // the heap in pieces once they are freed)
+        Rel::pack(&mut files, |f| &mut f.rel);
         let mask = (files.len() * 2).next_power_of_two().max(2) - 1;
         let mut slots = vec![EMPTY; mask + 1];
         let mut repeated = false;
@@ -96,10 +99,10 @@ fn once_each(files: Vec<FileEntry>) -> Vec<FileEntry> {
     let mut at: HashMap<String, usize> = HashMap::new();
     let mut out: Vec<FileEntry> = Vec::with_capacity(files.len());
     for f in files {
-        match at.get(&f.rel) {
+        match at.get(f.rel.as_str()) {
             Some(&i) => out[i] = f,
             None => {
-                at.insert(f.rel.clone(), out.len());
+                at.insert(f.rel.to_string(), out.len());
                 out.push(f);
             }
         }
@@ -110,7 +113,7 @@ fn once_each(files: Vec<FileEntry>) -> Vec<FileEntry> {
 /// keyed entries in the order given, the key being the rel (as tests build them)
 impl FromIterator<(String, FileEntry)> for FileList {
     fn from_iter<I: IntoIterator<Item = (String, FileEntry)>>(it: I) -> FileList {
-        FileList::from(it.into_iter().map(|(rel, f)| FileEntry { rel, ..f }).collect::<Vec<_>>())
+        FileList::from(it.into_iter().map(|(rel, f)| FileEntry { rel: rel.into(), ..f }).collect::<Vec<_>>())
     }
 }
 
@@ -217,7 +220,7 @@ impl ScanResult {
             let have: HashSet<&str> = self.files.iter().map(|f| f.rel.as_str()).collect();
             last.files
                 .values()
-                .filter(|f| !have.contains(f.rel.as_str()) && !self.gone.contains(&f.rel) && (self.unread.files.contains(&f.rel) || self.below_unread(parent(&f.rel))))
+                .filter(|f| !have.contains(f.rel.as_str()) && !self.gone.contains(f.rel.as_str()) && (self.unread.files.contains(f.rel.as_str()) || self.below_unread(parent(&f.rel))))
                 .cloned()
                 .collect()
         };
@@ -290,7 +293,7 @@ struct Out {
 fn entry(rel: String, md: &std::fs::Metadata, c: Class) -> FileEntry {
     let mtime_ms = ms_of(md.mtime(), md.mtime_nsec());
     let day = c.day.unwrap_or_else(|| footage::local_day(mtime_ms).into());
-    FileEntry { rel, size: md.size(), mtime_ms, ctime_ms: ms_of(md.ctime(), md.ctime_nsec()), birthtime_ms: birth_ms(md), kind: c.kind, typ: c.typ, day, camera: c.camera, event_id: c.event_id }
+    FileEntry { rel: rel.into(), size: md.size(), mtime_ms, ctime_ms: ms_of(md.ctime(), md.ctime_nsec()), birthtime_ms: birth_ms(md), kind: c.kind, typ: c.typ, day, camera: c.camera, event_id: c.event_id }
 }
 
 /// Node's birthtimeMs: the statx birth time, 0 without one.
@@ -489,7 +492,7 @@ fn node_order(mut files: Vec<FileEntry>, tree: &mut HashMap<String, Vec<Child>>)
         }
     }
     // (one lookup per file, not per comparison; stable as sort_by_key)
-    files.sort_by_cached_key(|f| seq.get(&f.rel).copied().unwrap_or(usize::MAX));
+    files.sort_by_cached_key(|f| seq.get(f.rel.as_str()).copied().unwrap_or(usize::MAX));
     files
 }
 
@@ -516,7 +519,7 @@ mod tests {
         assert!(many.iter().enumerate().all(|(i, f)| big.position(&f.rel) == Some(i)));
         assert!(big.get("RecentClips/2026-11-01/nope.mp4").is_none());
         assert!(fl.get("a/0.mp4").is_none() && !fl.contains_key("z") && fl.get("").is_none());
-        let from: FileList = list.iter().map(|f| (f.rel.clone(), f.clone())).collect();
+        let from: FileList = list.iter().map(|f| (f.rel.to_string(), f.clone())).collect();
         assert_eq!(from.iter().map(|f| f.size).collect::<Vec<_>>(), [2, 4, 3, 5], "pairs keep the order given");
         assert!(FileList::default().is_empty());
     }

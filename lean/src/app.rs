@@ -377,7 +377,7 @@ impl App {
         // (files the Recycle Bin moved in this source while this scan walked are not put back)
         let moved: HashSet<String> = std::mem::take(&mut *lock.moved.lock().unwrap()).into_iter().filter(|(s, _)| *s == key).map(|(_, r)| r).collect();
         if !moved.is_empty() {
-            res.files.retain(|f| !moved.contains(&f.rel));
+            res.files.retain(|f| !moved.contains(f.rel.as_str()));
         }
         // (the mounts footage is on, and all mounts here, noted for the next scans)
         let found_on = self.footage_mounts(&v.root, &res.files);
@@ -571,8 +571,8 @@ impl App {
         let lock = self.footage.scan_lock(vid);
         let writing = lock.writing.lock().unwrap();
         let Some(root) = self.vehicle(vid).filter(|v| v.source_key() == source).map(|v| v.root) else { return };
-        let away: HashSet<&String> = gone.iter().filter(|rel| matches!(file_at(&root, rel), Ok(false))).collect();
-        self.rebuild_locked(vid, writing, |e| (e.root == source).then(|| e.file_list.iter().filter(|f| !away.contains(&f.rel)).cloned().collect()));
+        let away: HashSet<&str> = gone.iter().filter(|rel| matches!(file_at(&root, rel), Ok(false))).map(String::as_str).collect();
+        self.rebuild_locked(vid, writing, |e| (e.root == source).then(|| e.file_list.iter().filter(|f| !away.contains(f.rel.as_str())).cloned().collect()));
     }
 
     fn rebuild_by(&self, vid: &str, files: impl FnOnce(&VehicleState) -> Option<Vec<FileEntry>>) {
@@ -702,7 +702,7 @@ impl App {
                 most_codec_checks(),
                 &slots,
                 crate::catalog::BATCH,
-                |f| mp4::video_codec(&v.root.join(&f.rel)).ok().map(|c| (f.rel.clone(), f.size, f.mtime_ms, c)),
+                |f| mp4::video_codec(&v.root.join(&f.rel)).ok().map(|c| (f.rel.to_string(), f.size, f.mtime_ms, c)),
                 |rows| save(rows, &[]),
             );
             let (codecs, known) = if n_read == 0 && gone.is_empty() {

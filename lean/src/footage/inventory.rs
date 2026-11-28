@@ -205,8 +205,8 @@ fn finish(out: &mut Vec<Recording>, files: &Arc<FileList>, vehicle: &str, key: S
         minutes: stamps.iter().collect::<BTreeSet<_>>().len(),
         bytes: list.iter().map(|f| f.size).sum(),
         cameras: cameras.into_iter().collect(),
-        thumb_rel: thumb.map(|f| f.rel.clone()),
-        front_rel: clips.iter().find(|f| f.camera.as_deref() == Some("front")).or(clips.first()).map(|f| f.rel.clone()),
+        thumb_rel: thumb.map(|f| f.rel.to_string()),
+        front_rel: clips.iter().find(|f| f.camera.as_deref() == Some("front")).or(clips.first()).map(|f| f.rel.to_string()),
         protected: false,
         mtime_ms: list.iter().map(|f| f.mtime_ms).fold(f64::NEG_INFINITY, f64::max),
         list: files.clone(),
@@ -465,7 +465,7 @@ mod codec_tests {
     use std::sync::Arc;
 
     fn list(rels: &[&str]) -> Arc<FileList> {
-        Arc::new(rels.iter().map(|r| FileEntry { rel: r.to_string(), size: 1, mtime_ms: 1.0, ctime_ms: 1.0, birthtime_ms: 0.0, kind: Kind::Clip, typ: "RecentClips", day: "2026-11-16".into(), camera: None, event_id: None }).collect::<Vec<_>>().into())
+        Arc::new(rels.iter().map(|r| FileEntry { rel: (*r).into(), size: 1, mtime_ms: 1.0, ctime_ms: 1.0, birthtime_ms: 0.0, kind: Kind::Clip, typ: "RecentClips", day: "2026-11-16".into(), camera: None, event_id: None }).collect::<Vec<_>>().into())
     }
 
     #[test]
@@ -492,7 +492,7 @@ mod codec_tests {
             .iter()
             .map(|rel| {
                 let c = crate::footage::classify(rel).unwrap();
-                FileEntry { rel: rel.clone(), size: 1, mtime_ms: 0.0, ctime_ms: 0.0, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day: "2026-11-10".into(), camera: c.camera, event_id: c.event_id }
+                FileEntry { rel: rel.into(), size: 1, mtime_ms: 0.0, ctime_ms: 0.0, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day: "2026-11-10".into(), camera: c.camera, event_id: c.event_id }
             })
             .collect();
         let l = Arc::new(FileList::from(files.clone()));

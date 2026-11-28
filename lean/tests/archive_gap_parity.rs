@@ -41,7 +41,7 @@ fn input_of(i: &Value) -> (Files, Input<'static>) {
     for x in i["files"].as_array().unwrap() {
         let rel = x["rel"].as_str().unwrap().to_string();
         files.push(FileEntry {
-            rel,
+            rel: rel.into(),
             size: x["size"].as_f64().unwrap_or(0.0) as u64,
             mtime_ms: f(&x["mtimeMs"]),
             ctime_ms: f(&x["ctimeMs"]),

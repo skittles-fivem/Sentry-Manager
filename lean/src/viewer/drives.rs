@@ -214,7 +214,7 @@ mod tests {
         for (folder, stamp) in list {
             let rel = format!("TeslaCam/{folder}/{stamp}-front.mp4");
             let c = crate::footage::classify(&rel).unwrap();
-            files.push(FileEntry { rel, size: 10, mtime_ms: 0.0, ctime_ms: 0.0, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day: c.day.unwrap_or_else(|| stamp[..10].into()), camera: c.camera, event_id: c.event_id });
+            files.push(FileEntry { rel: rel.into(), size: 10, mtime_ms: 0.0, ctime_ms: 0.0, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day: c.day.unwrap_or_else(|| stamp[..10].into()), camera: c.camera, event_id: c.event_id });
         }
         crate::inventory::build_recordings(&std::sync::Arc::new(crate::scanner::FileList::from(files)), "v1")
     }
@@ -254,7 +254,7 @@ mod tests {
         for (m, cam) in [(1, "back"), (1, "front"), (0, "left_repeater"), (2, "FRONT"), (2, "back")] {
             let rel = format!("TeslaCam/RecentClips/{}-{cam}.mp4", stamp(d, 8, m));
             let c = crate::footage::classify(&rel).unwrap();
-            files.push(FileEntry { rel, size: 10, mtime_ms: 0.0, ctime_ms: 0.0, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day: d.into(), camera: c.camera, event_id: c.event_id });
+            files.push(FileEntry { rel: rel.into(), size: 10, mtime_ms: 0.0, ctime_ms: 0.0, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day: d.into(), camera: c.camera, event_id: c.event_id });
         }
         let recs = crate::inventory::build_recordings(&std::sync::Arc::new(crate::scanner::FileList::from(files)), "v1");
         let clips = clips_of(&recs);

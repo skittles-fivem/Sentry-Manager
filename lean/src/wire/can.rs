@@ -65,7 +65,7 @@ impl CanCtx for CoreCan {
     fn scan_of(&self, vid: &str) -> Option<Scan> {
         let s = self.srv()?;
         let st = s.app().state_of(vid)?;
-        let files = st.file_list.iter().map(|f| FootFile { rel: f.rel.clone(), kind: f.kind.as_str().to_string(), camera: f.camera.as_deref().map(String::from).or_else(|| camera_of(&f.rel)) }).collect();
+        let files = st.file_list.iter().map(|f| FootFile { rel: f.rel.to_string(), kind: f.kind.as_str().to_string(), camera: f.camera.as_deref().map(String::from).or_else(|| camera_of(&f.rel)) }).collect();
         let recordings = st.recordings.iter().map(super::footage::rec_of).collect::<Vec<Rec>>();
         Some(Scan {
             scanned: st.scanned,

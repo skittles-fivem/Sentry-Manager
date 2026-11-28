@@ -179,7 +179,7 @@ fn run(app: &App, vid: &str) {
     };
     let todo: Vec<FileEntry> = {
         let d = data.lock().unwrap();
-        clips_of(app, vid).into_iter().filter(|f| !fresh(d.get(&f.rel), f)).collect()
+        clips_of(app, vid).into_iter().filter(|f| !fresh(d.get(f.rel.as_str()), f)).collect()
     };
     let done = {
         let mut runs = app.footage.integrity.runs.lock().unwrap();
@@ -211,11 +211,11 @@ fn run(app: &App, vid: &str) {
                     let mut d = data.lock().unwrap();
                     match res {
                         Ok(problem) => {
-                            d.insert(f.rel.clone(), json!([f.size, super::js::num(crate::sei::js_round(f.mtime_ms)), problem]));
+                            d.insert(f.rel.to_string(), json!([f.size, super::js::num(crate::sei::js_round(f.mtime_ms)), problem]));
                         }
                         Err(_) => {
                             // read again next time
-                            d.shift_remove(&f.rel);
+                            d.shift_remove(f.rel.as_str());
                             unreadable.fetch_add(1, Ordering::SeqCst);
                         }
                     }
@@ -230,7 +230,7 @@ fn run(app: &App, vid: &str) {
         }
     });
     // files that are gone are forgotten
-    let present: std::collections::HashSet<String> = clips_of(app, vid).into_iter().map(|f| f.rel).collect();
+    let present: std::collections::HashSet<String> = clips_of(app, vid).into_iter().map(|f| f.rel.into()).collect();
     let snapshot = {
         let mut d = data.lock().unwrap();
         d.retain(|rel, _| present.contains(rel));
@@ -265,7 +265,7 @@ pub fn results(app: &App, vid: &str) -> Value {
     {
         let d = data.lock().unwrap();
         for f in &clips {
-            let had = d.get(&f.rel);
+            let had = d.get(f.rel.as_str());
             if !fresh(had, f) {
                 continue;
             }

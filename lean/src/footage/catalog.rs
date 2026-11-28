@@ -92,7 +92,7 @@ impl Catalog {
 
     fn put_files(&self, vehicle: &str, files: &[&FileEntry]) -> rusqlite::Result<()> {
         self.each(files, UPSERT_FILE, |st, f| {
-            st.execute(params![vehicle, f.rel, f.size as i64, f.mtime_ms, f.ctime_ms, f.birthtime_ms, f.kind.as_str(), f.typ, f.day.as_str(), f.camera.as_deref(), f.event_id.as_deref()]).map(|_| ())
+            st.execute(params![vehicle, f.rel.as_str(), f.size as i64, f.mtime_ms, f.ctime_ms, f.birthtime_ms, f.kind.as_str(), f.typ, f.day.as_str(), f.camera.as_deref(), f.event_id.as_deref()]).map(|_| ())
         })
     }
 
@@ -154,7 +154,7 @@ impl Catalog {
         let mut q = c.prepare("SELECT rel, size, mtime_ms, ctime_ms, kind, type, day, camera, event_id, birthtime_ms FROM catalog_files WHERE vehicle_id = ?1")?;
         let rows = q.query_map([vehicle], |r| {
             Ok(FileEntry {
-                rel: r.get(0)?,
+                rel: r.get::<_, String>(0)?.into(),
                 size: r.get::<_, i64>(1)? as u64,
                 mtime_ms: r.get(2)?,
                 ctime_ms: r.get::<_, Option<f64>>(3)?.unwrap_or(0.0),
@@ -269,7 +269,7 @@ impl Catalog {
         let have = self.rels(vehicle)?;
         let now: HashSet<&str> = files.iter().map(|f| f.rel.as_str()).collect();
         let gone: Vec<String> = have.iter().filter(|r| !now.contains(r.as_str())).cloned().collect();
-        let added: Vec<&FileEntry> = files.iter().filter(|f| !have.contains(&f.rel)).collect();
+        let added: Vec<&FileEntry> = files.iter().filter(|f| !have.contains(f.rel.as_str())).collect();
         if gone.is_empty() && added.is_empty() {
             return Ok(());
         }
@@ -369,7 +369,7 @@ mod tests {
         cat.invalidate(vehicle).unwrap();
         let known = cat.previous(vehicle).unwrap();
         let present: HashSet<&str> = scan.files.iter().map(|f| f.rel.as_str()).collect();
-        let gone: Vec<String> = known.files.values().map(|f| &f.rel).filter(|r| !present.contains(r.as_str())).cloned().collect();
+        let gone: Vec<String> = known.files.values().map(|f| &f.rel).filter(|r| !present.contains(r.as_str())).map(|r| r.to_string()).collect();
         let changed: Vec<&FileEntry> = scan.files.iter().filter(|f| known.files.get(&f.rel).is_none_or(|k| !same_entry(k, f))).collect();
         cat.remove_files(vehicle, &gone).unwrap();
         cat.put_files(vehicle, &changed).unwrap();
@@ -473,7 +473,7 @@ mod tests {
             2 => Some("hevc".to_string()),
             _ => Some("h265".to_string()),
         };
-        let mut rows: Vec<_> = files.iter().enumerate().filter(|(i, _)| i % 5 != 0).map(|(i, f)| (f.rel.clone(), 1, 1.0, codec(i))).collect();
+        let mut rows: Vec<_> = files.iter().enumerate().filter(|(i, _)| i % 5 != 0).map(|(i, f)| (f.rel.to_string(), 1, 1.0, codec(i))).collect();
         rows.push(("TeslaCam/RecentClips/gone-front.mp4".into(), 1, 1.0, Some("av1".into())));
         cat.update_codecs("v1", &rows, &[]).unwrap();
         let read = |v: &str| {

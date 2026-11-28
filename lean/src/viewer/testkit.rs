@@ -278,7 +278,7 @@ impl Car {
                 let md = std::fs::metadata(&p).unwrap();
                 let mtime_ms = ms_of(md.mtime(), md.mtime_nsec());
                 let day = c.day.clone().unwrap_or_else(|| footage::local_day(mtime_ms).into());
-                out.push(FileEntry { rel, size: md.size(), mtime_ms, ctime_ms: mtime_ms, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day, camera: c.camera, event_id: c.event_id });
+                out.push(FileEntry { rel: rel.into(), size: md.size(), mtime_ms, ctime_ms: mtime_ms, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day, camera: c.camera, event_id: c.event_id });
             }
         }
         walk(&self.root, &self.root, &mut list);

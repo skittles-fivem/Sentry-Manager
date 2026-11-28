@@ -416,7 +416,7 @@ impl SpeedIndex {
         let mut out: Vec<(String, String, u64, f64)> = files
             .values()
             .filter(|f| f.kind == Kind::Clip && f.camera.as_deref() == Some("front") && f.size > 0 && is_day_shape(&f.day))
-            .map(|f| (f.day.to_string(), f.rel.clone(), f.size, js::js_round(f.mtime_ms)))
+            .map(|f| (f.day.to_string(), f.rel.to_string(), f.size, js::js_round(f.mtime_ms)))
             .collect();
         out.sort_by(|a, b| if a.0 == b.0 { locale_cmp(&b.1, &a.1) } else { locale_cmp(&b.0, &a.0) });
         out

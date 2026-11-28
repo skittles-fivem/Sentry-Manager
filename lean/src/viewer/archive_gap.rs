@@ -1593,7 +1593,7 @@ mod tests {
     fn files(list: &[(&str, &str, f64)]) -> Files {
         Arc::new(list.iter().map(|(rel, cam, arrival)| {
             let typ = if rel.contains("RecentClips") { "RecentClips" } else { "SavedClips" };
-            (rel.to_string(), FileEntry { rel: rel.to_string(), size: 100, mtime_ms: *arrival, ctime_ms: *arrival, birthtime_ms: 0.0, kind: Kind::Clip, typ, day: rel.split('/').last().unwrap()[..10].into(), camera: Some((*cam).into()), event_id: None })
+            (rel.to_string(), FileEntry { rel: (*rel).into(), size: 100, mtime_ms: *arrival, ctime_ms: *arrival, birthtime_ms: 0.0, kind: Kind::Clip, typ, day: rel.split('/').last().unwrap()[..10].into(), camera: Some((*cam).into()), event_id: None })
         }).collect())
     }
 
