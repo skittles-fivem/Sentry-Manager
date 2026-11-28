@@ -679,6 +679,29 @@ fn stopped_between_two_clips_the_job_carries_on_after_the_restart() {
     fs::remove_dir_all(&base).unwrap();
 }
 
+/// An ffmpeg that does not end on SIGTERM (stuck on a dropped share) is killed a few seconds after
+/// a Cancel: the Cancel, and every other job's commands behind it, do not wait out the stall timeout.
+#[test]
+fn cancel_does_not_wait_for_an_encoder_that_ignores_the_stop() {
+    if !available() {
+        eprintln!("skipped: needs ffmpeg with libx265 and node");
+        return;
+    }
+    let base = make_base("cancel-stuck", 2);
+    let b = base.to_string_lossy().to_string();
+    let ffmpeg = wrapper(&base, "ffmpeg", &format!("case \"$*\" in *-progress*) trap '' TERM; touch \"{b}/encoding\"; while :; do sleep 0.05; done;; esac"));
+    let c = open(&base, &ffmpeg, "ffprobe", None);
+    c.start().unwrap();
+    let id = c.service.start(&config(&base, "replace", "direct", 1)).unwrap();
+    assert!(until(|| base.join("encoding").exists(), 60_000), "an encode started");
+    let t = std::time::Instant::now();
+    let job = c.service.cancel(&id).unwrap();
+    assert!(t.elapsed() < std::time::Duration::from_secs(25), "the cancel took {:?}", t.elapsed());
+    assert_eq!(job["state"], "cancelled");
+    c.shutdown();
+    fs::remove_dir_all(&base).unwrap();
+}
+
 #[test]
 fn a_paused_job_stays_paused_through_a_restart_and_resume_finishes_it() {
     if !available() {
