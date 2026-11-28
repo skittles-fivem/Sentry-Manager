@@ -169,6 +169,8 @@
   $('reduce-effects').addEventListener('change', async (e) => {
     const on = e.target.checked;
     document.documentElement.classList.toggle('reduce-effects', on);
+    // one save at a time, so a failed one puts back the value the server has
+    e.target.disabled = true;
     try {
       await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: on } });
     } catch (err) {
@@ -176,17 +178,23 @@
       e.target.checked = !on;
       document.documentElement.classList.toggle('reduce-effects', !on);
       toast(err.message, true);
+    } finally {
+      e.target.disabled = false;
     }
   });
   $('clock-24').addEventListener('change', async (e) => {
     const on = e.target.checked;
-    // applied once saved (the Viewer, Encoder and exports read the saved setting)
+    // applied once saved (the Viewer, Encoder and exports read the saved setting); one save
+    // at a time, so a failed one puts back the value the server has
+    e.target.disabled = true;
     try {
       await api('/api/settings/appearance', { method: 'PUT', body: { clock24: on } });
     } catch (err) {
       e.target.checked = !on;
       toast(err.message, true);
       return;
+    } finally {
+      e.target.disabled = false;
     }
     clockPref.h24 = on;
     // the Viewer and Encoder read it when they load
@@ -2204,7 +2212,7 @@
         ${n.resolvedAt ? '<span></span>' : `<button class="btn sm" data-dismiss="${n.id}">Dismiss</button>`}</li>`).join('')}</ul>` : '<p>No notifications.</p>'}</div>`;
     page.querySelectorAll('[data-dismiss]').forEach((b) => {
       b.onclick = async () => {
-        await api(`/api/notifications/${b.dataset.dismiss}/dismiss`, { body: {} }).catch(() => {});
+        await api(`/api/notifications/${encodeURIComponent(b.dataset.dismiss)}/dismiss`, { body: {} }).catch((err) => toast(err.message, true));
         await loadNotes();
         render();
       };

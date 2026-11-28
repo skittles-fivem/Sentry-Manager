@@ -53,6 +53,10 @@
   let contextPromise = null;
   const context = () => (contextPromise ||= fetch('/api/studio/context', { credentials: 'same-origin' }).then((r) => r.json()).catch(() => ({})));
   let settingsPromise = null;
+  // failed saves: per key, the newest save's number and when its failure was last shown
+  const saveSeq = new Map();
+  const saveWarnedAt = new Map();
+  const SAVE_WARN_EVERY_MS = 30000;
   const settings = () => (settingsPromise ||= fetch('/api/studio/settings', { credentials: 'same-origin' }).then((r) => r.json()).catch(() => ({})));
 
   // ---- converter: invoke + live progress
@@ -338,14 +342,34 @@
     setSetting: async (key, value) => {
       if (key === 'defaultFolder') return true; // chosen by the manager per vehicle
       const all = await settings();
+      const had = Object.prototype.hasOwnProperty.call(all, key);
+      const before = all[key];
+      const seq = (saveSeq.get(key) || 0) + 1;
+      saveSeq.set(key, seq);
       all[key] = value;
-      // (kept for this page view either way; false when the server did not save it, such as a
-      // watch-only account's 403: not thrown, as some Studio callers do not catch)
+      // false when the server did not save it, such as a watch-only account's 403: not thrown,
+      // as some Studio callers do not catch. Studio callers do not read the answer, so the
+      // failure is shown here, once a while per setting.
       try {
         await post('/api/studio/settings', { key, value });
         return true;
       } catch (err) {
-        console.warn(`[settings] ${key} was not saved: ${err?.message || err}`);
+        const why = err?.message || String(err);
+        console.warn(`[settings] ${key} was not saved: ${why}`);
+        // the cache goes back to what the server has, unless a newer save of this key followed
+        if (saveSeq.get(key) === seq) {
+          if (had) all[key] = before;
+          else delete all[key];
+        }
+        const now = Date.now();
+        if (now - (saveWarnedAt.get(key) || 0) > SAVE_WARN_EVERY_MS) {
+          saveWarnedAt.set(key, now);
+          try {
+            if (typeof window.showNotification === 'function') window.showNotification(`This setting was not saved: ${why}`, { type: 'error' });
+          } catch {
+            // no toast on this page: the console line above stays
+          }
+        }
         return false;
       }
     },

@@ -415,13 +415,15 @@ async function appearance(box) {
     <label class="check"><input type="checkbox" id="dense"${store.get('dense', false) ? ' checked' : ''}> Extra-dense tables in this browser</label>
     <p class="small faint">Keyboard: press <kbd>?</kbd> for every shortcut, <kbd>Ctrl</kbd> <kbd>K</kbd> for the command palette.</p></section>`;
   box.querySelector('#calm').onchange = (e) => busy(null, async () => {
-    await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: e.target.checked } });
-    document.documentElement.classList.toggle('calm', e.target.checked);
+    const on = e.target.checked;
+    try { await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: on } }); } catch (err) { e.target.checked = !on; throw err; }
+    document.documentElement.classList.toggle('calm', on);
     toast('Saved.');
   });
   box.querySelector('#clock24').onchange = (e) => busy(null, async () => {
-    await api('/api/settings/appearance', { method: 'PUT', body: { clock24: e.target.checked } });
-    clockPref.h24 = e.target.checked;
+    const on = e.target.checked;
+    try { await api('/api/settings/appearance', { method: 'PUT', body: { clock24: on } }); } catch (err) { e.target.checked = !on; throw err; }
+    clockPref.h24 = on;
     toast('Saved.');
   });
   box.querySelector('#dense').onchange = (e) => {

@@ -95,13 +95,30 @@ export async function moveToBin(v, recs, { ask = true } = {}) {
               if (!had || (i.trashedAt || 0) > (had.trashedAt || 0)) newest.set(i.label, i);
             }
             const mine = [...newest.values()];
-            let conflicts = 0;
+            let restored = 0, conflicts = 0, missing = 0, failed = 0, error = '', errs = 0;
             for (const i of mine) {
-              const r = await api(`/api/bin/${enc(i.id)}/restore`, { body: {} });
-              conflicts += Number(r?.conflicts) || 0;
+              // each item on its own, so one refused restore doesn't hide the ones that worked
+              try {
+                const r = await api(`/api/bin/${enc(i.id)}/restore`, { body: {} });
+                restored += Number(r?.restored) || 0;
+                conflicts += Number(r?.conflicts) || 0;
+                missing += Number(r?.missing) || 0;
+                failed += Number(r?.failed) || 0;
+                if (r?.failed && !error) error = r.error || '';
+              } catch (err) {
+                if (err?.status === 401) return;
+                errs += 1;
+                if (!error) error = err?.message || String(err);
+              }
             }
+            const why = [
+              conflicts ? `${plural(conflicts, 'file')} couldn’t be, because a file with that name exists` : '',
+              missing ? `${plural(missing, 'file')} weren’t found in the Recycle Bin` : '',
+              failed ? `${plural(failed, 'file')} couldn’t be moved back: ${error || 'unknown error'}` : '',
+              errs ? `${plural(errs, 'recording')} couldn’t be restored: ${error || 'unknown error'}` : ''
+            ].filter(Boolean).join('. ');
             if (!mine.length) toast('Couldn’t find it in the Recycle Bin any more.', { kind: 'bad' });
-            else if (conflicts) toast(`${plural(conflicts, 'file')} stayed in the Recycle Bin, because a file with that name exists. Put them back from the Recycle Bin.`, { kind: 'bad' });
+            else if (why) toast(`Put back ${plural(restored, 'file')}. ${why}. The rest is still in the Recycle Bin.`, { kind: 'bad' });
             else toast('Put back where it was.', { kind: 'good' });
             loadVehicles().catch(() => {});
           } catch (err) { fail(err); }

@@ -271,13 +271,15 @@ async function display(box) {
     toast(`Background effect: ${m}.`);
   });
   box.querySelector('#calm').onchange = (e) => act(null, async () => {
-    await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: e.target.checked } });
-    document.documentElement.classList.toggle('calm-ui', e.target.checked);
+    const on = e.target.checked;
+    try { await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: on } }); } catch (err) { e.target.checked = !on; throw err; }
+    document.documentElement.classList.toggle('calm-ui', on);
     toast('Saved.');
   });
   box.querySelector('#clock24').onchange = (e) => act(null, async () => {
-    await api('/api/settings/appearance', { method: 'PUT', body: { clock24: e.target.checked } });
-    clockPref.h24 = e.target.checked;
+    const on = e.target.checked;
+    try { await api('/api/settings/appearance', { method: 'PUT', body: { clock24: on } }); } catch (err) { e.target.checked = !on; throw err; }
+    clockPref.h24 = on;
     toast('Saved.');
   });
   box.querySelector('#units').onchange = (e) => { globalThis.SentryUnits.set(e.target.checked); toast('Saved.'); };
