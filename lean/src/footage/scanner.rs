@@ -481,7 +481,8 @@ fn node_order(mut files: Vec<FileEntry>, tree: &mut HashMap<String, Vec<Child>>)
             Child::Stat(r) | Child::Kept(r) => seen(r, &mut seq),
         }
     }
-    files.sort_by_key(|f| seq.get(&f.rel).copied().unwrap_or(usize::MAX));
+    // (one lookup per file, not per comparison; stable as sort_by_key)
+    files.sort_by_cached_key(|f| seq.get(&f.rel).copied().unwrap_or(usize::MAX));
     files
 }
 

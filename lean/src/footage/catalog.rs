@@ -204,9 +204,14 @@ impl Catalog {
         let changed: Vec<&FileEntry> = scan.files.iter().filter(|f| known.files.get(&f.rel).is_none_or(|k| !same_entry(k, f))).collect();
         self.remove_files(vehicle, &gone)?;
         self.put_files(vehicle, &changed)?;
-        self.conn().execute("DELETE FROM catalog_dirs WHERE vehicle_id = ?1", [vehicle])?;
-        let dirs: Vec<(&String, &f64)> = scan.dirs.iter().collect();
-        self.each(&dirs, "INSERT INTO catalog_dirs (vehicle_id, rel, mtime_ms) VALUES (?1, ?2, ?3)", |st, (rel, m)| st.execute(params![vehicle, rel, m]).map(|_| ()))?;
+        // (the folders' rows as the scan has them: only the ones that differ are written; a row
+        // the same to the bit as the scan's time is left as it is)
+        let old_dirs: Vec<&String> = known.dirs.keys().filter(|r| !scan.dirs.contains_key(*r)).collect();
+        let new_dirs: Vec<(&String, &f64)> = scan.dirs.iter().filter(|(rel, m)| known.dirs.get(*rel).is_none_or(|k| k.to_bits() != m.to_bits())).collect();
+        self.each(&old_dirs, "DELETE FROM catalog_dirs WHERE vehicle_id = ?1 AND rel = ?2", |st, rel| st.execute(params![vehicle, rel]).map(|_| ()))?;
+        self.each(&new_dirs, "INSERT INTO catalog_dirs (vehicle_id, rel, mtime_ms) VALUES (?1, ?2, ?3) ON CONFLICT(vehicle_id, rel) DO UPDATE SET mtime_ms = excluded.mtime_ms", |st, (rel, m)| {
+            st.execute(params![vehicle, rel, m]).map(|_| ())
+        })?;
         self.mark_scan(vehicle, root, scan.started_at, scan.scanned_at)
     }
 
