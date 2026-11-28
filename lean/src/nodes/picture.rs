@@ -169,6 +169,14 @@ fn decode_failed(e: &str) -> Value {
     json!({ "ok": false, "reason": "decode-failed", "detail": super::js_slice(e, 80) })
 }
 
+/// A fraction in [0, 1) from the operating system's secure random source, fresh on every call.
+/// The picture check places its windows with this once the encode is back, so a node can't
+/// work out from the clock, the process id or earlier checks where the next windows will be.
+pub fn unpredictable_fraction() -> f64 {
+    use rand_core::RngCore;
+    (rand_core::OsRng.next_u64() >> 11) as f64 / (1u64 << 53) as f64
+}
+
 /// comparePictures({ source, candidate, signal, decode, durationSeconds, random })
 pub fn compare_pictures(source: &Path, candidate: &Path, signal: &Cancel, decode: &Decode, duration_seconds: Option<f64>, random: &mut dyn FnMut() -> f64) -> Value {
     if let Some(d) = duration_seconds.filter(|d| d.is_finite() && *d >= SAMPLE_MIN_SECONDS) {

@@ -268,7 +268,10 @@ Security:
 - **Pinned certificates.** From then on this server only talks to the node's
   own certificate, or one renewed by the node's own certificate authority.
   Anything else is refused before a byte is sent. A node that was reset has
-  to be paired again.
+  to be paired again. So does a node that serves a Let's Encrypt
+  certificate or its own (`TLS_CERT_FILE`), after each renewal: only its
+  exact certificate is pinned then. A node is best left on its built-in
+  certificate.
 - **Tokens, not passwords.** Every request carries a random token. The node
   keeps only its hash, and **Revoke** on the node (or **Remove** here) ends
   it at once.

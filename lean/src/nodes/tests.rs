@@ -38,11 +38,13 @@ pub struct MemCtx {
     pub authority: Mutex<Option<String>>,
     pub data: PathBuf,
     pub tls: bool,
+    /// a clock set by the test (None: the real one)
+    pub clock: Mutex<Option<i64>>,
 }
 
 impl MemCtx {
     pub fn new(data: &Path) -> Arc<MemCtx> {
-        Arc::new(MemCtx { settings: Mutex::new(HashMap::new()), reads_fail: AtomicBool::new(false), writes_fail: AtomicBool::new(false), audits: Mutex::new(vec![]), logs: Mutex::new(vec![]), runtime: Mutex::new(None), vehicles: Mutex::new(vec![]), authority: Mutex::new(None), data: data.into(), tls: true })
+        Arc::new(MemCtx { settings: Mutex::new(HashMap::new()), reads_fail: AtomicBool::new(false), writes_fail: AtomicBool::new(false), audits: Mutex::new(vec![]), logs: Mutex::new(vec![]), runtime: Mutex::new(None), vehicles: Mutex::new(vec![]), authority: Mutex::new(None), data: data.into(), tls: true, clock: Mutex::new(None) })
     }
     pub fn get(&self, k: &str) -> Value {
         self.settings.lock().unwrap().get(k).cloned().unwrap_or(Value::Null)
@@ -74,6 +76,9 @@ impl NodesCtx for MemCtx {
     }
     fn hostname(&self) -> String {
         "garage-pc".into()
+    }
+    fn now_ms(&self) -> i64 {
+        self.clock.lock().unwrap().unwrap_or_else(super::now_ms)
     }
     fn tls_available(&self) -> bool {
         self.tls
@@ -1624,5 +1629,75 @@ fn a_status_poll_that_fails_for_a_moment_is_tried_again_and_an_output_the_node_d
     }
     assert!(deleted.load(Ordering::SeqCst), "the job was deleted on the node");
     server.close();
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn picture_check_windows_come_from_fresh_secure_randomness_not_the_clock() {
+    // the old seed (clock and pid) gave nearly the same first draw for hours; these must spread
+    let draws: Vec<f64> = (0..64).map(|_| super::picture::unpredictable_fraction()).collect();
+    assert!(draws.iter().all(|r| (0.0..1.0).contains(r)));
+    let (lo, hi) = draws.iter().fold((1.0f64, 0.0f64), |(l, h), r| (l.min(*r), h.max(*r)));
+    assert!(lo < 0.25 && hi > 0.75, "draws taken back to back spread over the range: {lo} {hi}");
+    let mut sorted = draws.clone();
+    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    sorted.dedup();
+    assert_eq!(sorted.len(), draws.len(), "no two draws repeat");
+}
+
+#[test]
+fn a_node_that_trickles_its_handshake_times_out_within_the_deadline() {
+    use std::io::{Read as _, Write as _};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    std::thread::spawn(move || {
+        let Ok((mut s, _)) = listener.accept() else { return };
+        let mut hello = [0u8; 4096];
+        let _ = s.read(&mut hello);
+        // a handshake record that claims 16 KiB, then one byte every 50 ms (well inside the idle timeout)
+        let _ = s.write_all(&[0x16, 0x03, 0x03, 0x40, 0x00]);
+        for _ in 0..400 {
+            if s.write_all(&[0x02]).is_err() {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    });
+    let started = Instant::now();
+    let e = super::client::connect_pinned("127.0.0.1", port, None, 400).err().expect("no connection");
+    assert_eq!(e.code, "NODE_TIMEOUT");
+    assert!(started.elapsed() < Duration::from_secs(3), "gave up near twice the idle timeout, took {:?}", started.elapsed());
+}
+
+/// A body that sends one byte per read while the clock moves on 20 minutes.
+struct Trickle {
+    ctx: Arc<MemCtx>,
+    reads: usize,
+}
+impl std::io::Read for Trickle {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.reads += 1;
+        let mut c = self.ctx.clock.lock().unwrap();
+        *c = Some(c.unwrap_or(0) + 20 * 60_000);
+        buf[0] = 0;
+        Ok(1)
+    }
+}
+
+#[test]
+fn a_clip_trickled_to_a_node_is_given_up_on_and_frees_its_slot() {
+    let dir = tmp("worker-trickle");
+    let ctx = MemCtx::new(&dir);
+    *ctx.clock.lock().unwrap() = Some(1_000_000);
+    let token = base64url(&random_bytes(32));
+    ctx.set("nodeWorker", json!({ "enabled": true, "slots": 2, "use": "gpu", "mains": [{ "id": "aaaaaaaaaaaa", "name": "m", "tokenHash": sha256_hex(token.as_bytes()), "pairedAt": 1 }] }));
+    let worker = NodeWorker::new(ctx.clone(), WorkerOptions { work_dir: dir.join("work"), name: None, spawn: None });
+    let headers = vec![("Authorization".to_string(), format!("Bearer {token}")), ("Content-Length".into(), "100000".into()), ("X-Node-Job".into(), json!({ "codec": "h265", "bitrate": 400000 }).to_string())];
+    let mut body = Trickle { ctx: ctx.clone(), reads: 0 };
+    let reply = worker.handle(&mut super::worker::WorkerRequest { method: "POST", path: "/node/v1/jobs", headers: &headers, address: "1.2.3.4", served_cert: None, body: &mut body }).unwrap();
+    assert_eq!(reply.status, 408);
+    assert!(body.reads <= 3, "stopped reading once past the limit: {} reads", body.reads);
+    assert_eq!(worker.status().unwrap()["busy"], json!(0), "the slot is free again");
+    worker.close();
     let _ = std::fs::remove_dir_all(dir);
 }
