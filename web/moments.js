@@ -83,7 +83,8 @@ export function createMoments(container, { clock = defaultClock, speedUnit = () 
     ${now ? `<div class="sentry-moments-star"><button type="button" class="sentry-moments-starbtn">★ Star this moment</button>
       <form class="sentry-moments-form" hidden><input type="text" maxlength="200" placeholder="A note (optional): pothole, near miss…" aria-label="Note for this moment">
       <button type="submit">Save</button><button type="button" data-cancel>Cancel</button></form></div>` : ''}
-    <p class="sentry-moments-h" hidden>Starred</p><div class="sentry-moments-starlist"></div>`;
+    <p class="sentry-moments-h" hidden>Starred</p><div class="sentry-moments-starlist"></div>
+    <p class="sentry-moments-note sentry-moments-status" role="status" hidden></p>`;
   container.appendChild(root);
   const sumEl = root.querySelector('.sentry-moments-sum');
   const list = root.querySelector('.sentry-moments-list');
@@ -91,6 +92,15 @@ export function createMoments(container, { clock = defaultClock, speedUnit = () 
   const starList = root.querySelector('.sentry-moments-starlist');
   const starBtn = root.querySelector('.sentry-moments-starbtn');
   const form = root.querySelector('.sentry-moments-form');
+  const status = root.querySelector('.sentry-moments-status');
+  let statusTimer = 0;
+  // a short message under the starred list (a star that could not be removed, a list that could not load)
+  function showStatus(text, ms = 6000) {
+    clearTimeout(statusTimer);
+    status.textContent = text || '';
+    status.hidden = !text;
+    if (text && ms) statusTimer = setTimeout(() => { status.hidden = true; }, ms);
+  }
   let items = [];
   let stars = [];
   let last = { moments: [] };
@@ -147,12 +157,22 @@ export function createMoments(container, { clock = defaultClock, speedUnit = () 
   async function loadStars() {
     const mine = ++starSeq; // a newer load (another car or day) wins
     if (!vehicle) { stars = []; drawStars(); return; }
+    const forCar = vehicle;
     let got;
     try {
-      const r = await fetch(`/api/stars?vehicle=${encodeURIComponent(vehicle)}`, { credentials: 'same-origin' });
-      got = r.ok ? (await r.json()).stars || [] : [];
-    } catch { got = []; }
+      const r = await fetch(`/api/stars?vehicle=${encodeURIComponent(vehicle)}`, { credentials: 'same-origin', signal: AbortSignal.timeout?.(20000) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || 'Could not load starred moments.');
+      got = d.stars || [];
+    } catch (err) {
+      if (mine !== starSeq) return;
+      // (an unreachable server is not "no stars": the list shown stays, with the reason)
+      if (stars.length && stars[0].vehicle !== forCar) { stars = []; drawStars(); }
+      showStatus(`Could not load starred moments: ${err.name === 'TimeoutError' ? 'the server took too long' : err.message}`, 0);
+      return;
+    }
     if (mine !== starSeq) return;
+    if (!status.hidden && status.textContent.startsWith('Could not load starred')) showStatus('');
     stars = got;
     drawStars();
   }
@@ -172,7 +192,13 @@ export function createMoments(container, { clock = defaultClock, speedUnit = () 
     if (e.target.closest('[data-renote-cancel]')) { editing = null; drawStars(); return; }
     const un = e.target.closest('[data-unstar]');
     if (un) {
-      try { await send('DELETE', `/api/stars/${encodeURIComponent(un.dataset.unstar)}`); } catch { /* shown again below */ }
+      if (un.disabled) return;
+      un.disabled = true;
+      try {
+        await send('DELETE', `/api/stars/${encodeURIComponent(un.dataset.unstar)}`);
+      } catch (err) {
+        showStatus(`The star could not be removed: ${err.message}`);
+      }
       loadStars();
       return;
     }
@@ -214,11 +240,18 @@ export function createMoments(container, { clock = defaultClock, speedUnit = () 
     const save = form.querySelector('[type=submit]');
     save.disabled = true;
     try {
-      await send('POST', '/api/stars', { vehicle, clip: at.clip, second: Math.floor(at.second), note: form.querySelector('input').value });
+      const res = await send('POST', '/api/stars', { vehicle, clip: at.clip, second: Math.floor(at.second), note: form.querySelector('input').value });
       form.hidden = true;
       starBtn.hidden = false;
-      starBtn.textContent = '★ Starred: its recording is protected';
-      setTimeout(() => { starBtn.textContent = '★ Star this moment'; }, 2500);
+      // (only say the recording is protected when the server protected it)
+      if (res && res.protected) {
+        starBtn.textContent = '★ Starred: its recording is protected';
+        setTimeout(() => { starBtn.textContent = '★ Star this moment'; }, 2500);
+      } else {
+        starBtn.textContent = '★ Starred';
+        showStatus(`Starred, but its recording is not protected: ${res?.notProtected || 'no recording was found for this clip'}. Cleanup may still remove it.`, 10000);
+        setTimeout(() => { starBtn.textContent = '★ Star this moment'; }, 2500);
+      }
       loadStars();
     } catch (err) {
       form.querySelector('input').setCustomValidity(err.message);
@@ -249,6 +282,6 @@ export function createMoments(container, { clock = defaultClock, speedUnit = () 
     },
     /** Draw again (the speed unit changed). */
     refresh() { draw(last); drawStars(); },
-    destroy() { seq++; root.remove(); }
+    destroy() { seq++; starSeq++; clearTimeout(statusTimer); root.remove(); }
   };
 }

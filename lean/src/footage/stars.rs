@@ -138,7 +138,16 @@ pub fn add(app: &App, who: &Caller, body: &Value) -> Res<Value> {
     list.push(star.clone());
     save(app, &list)?;
     let protected = !recs.is_empty() && (fresh.is_empty() || star.get("protects").is_some());
-    Ok(json!({ "star": star, "protected": protected }))
+    let mut out = json!({ "star": star, "protected": protected });
+    // (why nothing was protected, so the page never promises a protection that was not made)
+    if !protected {
+        out["notProtected"] = json!(if recs.is_empty() {
+            "its recording is not in the footage list yet"
+        } else {
+            "only an administrator's star protects a recording"
+        });
+    }
+    Ok(out)
 }
 
 fn not_found() -> Fail {
@@ -252,5 +261,14 @@ mod tests {
         remove(&f.app, &admin, star["star"]["id"].as_str().unwrap()).unwrap();
         let p = protected_of(&f);
         assert!(p.iter().any(|x| x.0 == "RecentClips" && x.1) && p.iter().any(|x| x.0 != "RecentClips" && !x.1), "{p:?}");
+    }
+
+    #[test]
+    fn a_star_that_protects_nothing_says_why() {
+        let f = crate::footage::testing::on_core("stars");
+        let viewer = Caller { user: Some("v".into()), client: "127.0.0.1".into(), admin_here: false, confirmed: true };
+        let r = add(&f.app, &viewer, &json!({ "vehicle": "car", "clip": "2020-01-01_08-00-00", "second": 3 })).unwrap();
+        assert_eq!(r["protected"], json!(false));
+        assert!(r["notProtected"].as_str().is_some_and(|t| !t.is_empty()));
     }
 }
