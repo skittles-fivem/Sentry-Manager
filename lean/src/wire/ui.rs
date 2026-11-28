@@ -88,7 +88,7 @@ impl UiCtx for CoreUi {
     fn job_update(&self, id: &Value, fields: Value) {
         let Some(id) = id.as_i64() else { return };
         let (detail, result) = job_fields(&fields);
-        if let Err(e) = self.state.jobs.update(id, JobUpdate { status: fields.get("status").and_then(Value::as_str).map(String::from), detail, result, finished: false }) {
+        if let Err(e) = self.state.jobs.update(id, JobUpdate { status: fields.get("status").and_then(Value::as_str).map(String::from), detail, result, finished: false, reopen: false }) {
             self.state.logger.scope("export").warn(format!("Job {id} was not updated: {e}"));
         }
     }

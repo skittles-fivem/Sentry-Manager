@@ -132,6 +132,8 @@ pub struct JobUpdate {
     /// Some(value): stored as JSON (Some(Value::Null) stores "null")
     pub result: Option<Value>,
     pub finished: bool,
+    /// a finished job running again (a conversion's Retry failed): its end is cleared
+    pub reopen: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -628,7 +630,13 @@ impl Db {
                     Some(v) => Some(v.to_string()),
                     None => result,
                 },
-                if u.finished { Some(now_ms()) } else { finished_at },
+                if u.finished {
+                    Some(now_ms())
+                } else if u.reopen {
+                    None
+                } else {
+                    finished_at
+                },
                 id
             ],
         )?;
@@ -742,9 +750,9 @@ impl Db {
         *self.last_notify_changed.lock().unwrap()
     }
 
-    pub fn resolve(&self, dedupe_key: &str) -> DbResult<()> {
-        self.conn().execute("UPDATE notifications SET resolved_at = ? WHERE dedupe_key = ? AND resolved_at IS NULL", params![now_ms(), dedupe_key])?;
-        Ok(())
+    /// How many open ones were resolved.
+    pub fn resolve(&self, dedupe_key: &str) -> DbResult<usize> {
+        Ok(self.conn().execute("UPDATE notifications SET resolved_at = ? WHERE dedupe_key = ? AND resolved_at IS NULL", params![now_ms(), dedupe_key])?)
     }
 
     /// Close every open notification whose key starts with `prefix`.
@@ -951,6 +959,25 @@ mod tests {
         let scan = rows.iter().find(|r| r.id == a).unwrap();
         assert_eq!(scan.status, "interrupted");
         assert_eq!(scan.detail.as_deref(), Some("stopped by a restart"));
+    }
+
+    #[test]
+    fn a_finished_conversion_run_again_is_under_way_until_it_ends_again() {
+        let db = Db::memory().unwrap();
+        let b = db.start_job(&NewJob { kind: "conversion".into(), title: "Convert".into(), external_id: Some("converter:7".into()), ..Default::default() }).unwrap();
+        db.update_job(b, &JobUpdate { status: Some("failed".into()), detail: Some("9 converted, 0 skipped, 3 failed".into()), finished: true, ..Default::default() }).unwrap();
+        assert_eq!(db.finished_jobs(None, &[]).unwrap().len(), 1);
+        // (Retry failed: the same job id once more)
+        db.update_job(b, &JobUpdate { status: Some("running".into()), detail: Some("waiting: 9 converted, 0 skipped, 0 failed".into()), reopen: true, ..Default::default() }).unwrap();
+        let j = db.job_by_external("converter:7").unwrap().unwrap();
+        assert_eq!((j.status.as_str(), j.finished_at), ("running", None));
+        assert_eq!(db.finished_jobs(None, &[]).unwrap().len(), 0, "not cleared with the finished ones while it runs");
+        db.update_job(b, &JobUpdate { detail: Some("encoding".into()), ..Default::default() }).unwrap();
+        assert_eq!(db.job_by_external("converter:7").unwrap().unwrap().finished_at, None, "a plain update leaves it under way");
+        db.update_job(b, &JobUpdate { status: Some("done".into()), finished: true, ..Default::default() }).unwrap();
+        let j = db.job_by_external("converter:7").unwrap().unwrap();
+        assert_eq!(j.status, "done");
+        assert!(j.finished_at.is_some());
     }
 
     #[test]

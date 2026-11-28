@@ -34,7 +34,7 @@ impl Jobs {
 
     /// finish(id, { status = 'done', detail, result })
     pub fn finish(&self, id: i64, status: Option<&str>, detail: Option<String>, result: Option<Value>) -> DbResult<()> {
-        self.db.update_job(id, &JobUpdate { status: Some(status.unwrap_or("done").to_string()), detail, result, finished: true })?;
+        self.db.update_job(id, &JobUpdate { status: Some(status.unwrap_or("done").to_string()), detail, result, finished: true, reopen: false })?;
         self.hub.announce("jobs");
         self.db.trim_jobs(2000)
     }
@@ -113,9 +113,11 @@ impl Notifications {
         Ok(Some(id))
     }
 
+    /// Announced only when one was open.
     pub fn resolve(&self, dedupe_key: &str) -> DbResult<()> {
-        self.db.resolve(dedupe_key)?;
-        self.hub.announce("notifications");
+        if self.db.resolve(dedupe_key)? > 0 {
+            self.hub.announce("notifications");
+        }
         Ok(())
     }
 
