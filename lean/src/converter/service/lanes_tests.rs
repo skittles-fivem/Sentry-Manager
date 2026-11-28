@@ -222,11 +222,12 @@ pub struct HarnessOptions {
     pub verify_ok: bool,
     pub nodes: Option<Arc<dyn super::lanes::NodeLanes>>,
     pub compare: Option<Arc<dyn Fn(&str, &str, &Arc<AtomicBool>, Option<f64>) -> Value + Send + Sync>>,
+    pub hold_discovered: Option<Arc<dyn Fn(&Value, &Value) -> bool + Send + Sync>>,
 }
 
 impl Default for HarnessOptions {
     fn default() -> Self {
-        HarnessOptions { clips: 6, devices: vec![arc(), uhd(), cpu()], works: desktop_works(), hold: true, default_device: None, verify_ok: false, nodes: None, compare: None }
+        HarnessOptions { clips: 6, devices: vec![arc(), uhd(), cpu()], works: desktop_works(), hold: true, default_device: None, verify_ok: false, nodes: None, compare: None, hold_discovered: None }
     }
 }
 
@@ -268,6 +269,7 @@ impl Harness {
         let mut ro = RuntimeOptions::new(dir.path().join("data"), dir.path().join("temp"), &ffmpeg.to_string_lossy(), "ffprobe");
         ro.tools = Some(tools);
         ro.encoders = Some(planner);
+        ro.hold_discovered = o.hold_discovered.clone();
         let mut disc = Discovery::new(None);
         let dev3 = devices.clone();
         disc.fixed = Some(Arc::new(move || dev3.clone()));
@@ -869,4 +871,41 @@ fn a_running_smallest_job_refuses_lanes() {
     let job = h.service().set_concurrency(&id, &json!(2)).unwrap();
     assert_eq!((&job["config"]["concurrency"], job["config"].get("lanes")), (&json!(2), None));
     assert_eq!(h.finish_job(&id)["state"], "completed");
+}
+
+/// A clip found while the scan goes on past clips it does not take (known or held back) is
+/// given to the workers by the time since the last batch, not only once another clip is found.
+#[test]
+fn a_found_clip_is_queued_while_the_scan_passes_over_clips_it_does_not_take() {
+    if !ok_ffmpeg() {
+        return;
+    }
+    let clips = 40;
+    let watch: Arc<OnceLock<(Service, String)>> = Arc::new(OnceLock::new());
+    let queued_by_then = Arc::new(AtomicUsize::new(usize::MAX));
+    let (w2, q2) = (watch.clone(), queued_by_then.clone());
+    let last = clip_name(clips - 1);
+    let hold: Arc<dyn Fn(&Value, &Value) -> bool + Send + Sync> = Arc::new(move |_c: &Value, d: &Value| {
+        let rel = d["relativePath"].as_str().unwrap_or("");
+        // the first two are taken (the first goes to the workers at once, the second waits
+        // for the next batch), the rest held back one by one
+        if rel.ends_with(&clip_name(0)) || rel.ends_with(&clip_name(1)) {
+            return false;
+        }
+        std::thread::sleep(Duration::from_millis(25));
+        if rel.ends_with(&last) {
+            if let Some((s, id)) = w2.get() {
+                q2.store(s.get(id).map(|j| j["items"].as_array().map_or(0, Vec::len)).unwrap_or(0), Ordering::SeqCst);
+            }
+        }
+        true
+    });
+    let h = Harness::new(HarnessOptions { clips, hold_discovered: Some(hold), ..Default::default() });
+    let id = h.service().start(&h.config(json!({}))).unwrap();
+    let _ = watch.set((h.service().clone(), id.clone()));
+    assert!(until(|| h.service().get(&id).unwrap()["discoveryComplete"] == true));
+    assert_eq!(queued_by_then.load(Ordering::SeqCst), 2, "the second clip was queued before the scan ended");
+    let done = h.finish_job(&id);
+    assert_eq!(done["state"], "completed");
+    every_clip_encoded(&h, &done, 2);
 }
