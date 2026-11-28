@@ -208,9 +208,12 @@ pub fn remove(app: &App, who: &Caller, id: &str) -> Res<Value> {
     // a recording that only this star protected is no longer kept for it (an admin's
     // doing only, like protecting: a watch-only account changes nothing kept)
     // (only the recordings this star itself protected: never one protected by hand)
-    // (the files it protected, and those of the recordings still under the ids it protected:
-    // a recording re-keyed since, its first clip gone or a clip arriving before it, still goes)
-    let ids = protected_ids(&star);
+    // (the files it protected: a recording re-keyed since, its first clip gone or a clip
+    // arriving before it, still goes. Only a star from before the files were kept is matched
+    // by the ids it protected: a recording keeping such an id may since have taken in
+    // another's files, protected by hand, that are never unprotected for the star)
+    let has_files = star.get(FILES).is_some();
+    let ids = if has_files { Vec::new() } else { protected_ids(&star) };
     let files = protected_files(&star);
     if (!ids.is_empty() || !files.is_empty()) && who.admin_here {
         let vid = star.get("vehicle").map(js::string).unwrap_or_default();
@@ -334,6 +337,38 @@ mod tests {
         remove(&f.app, &admin, star["star"]["id"].as_str().unwrap()).unwrap();
         assert!(!f.app.state_of("car").unwrap().recordings[0].protected, "the star's files are no longer protected");
         assert!(f.app.core.db().protected_set("car").unwrap().is_empty());
+    }
+
+    #[test]
+    fn removing_a_star_leaves_a_recording_protected_by_hand_that_merged_into_its_recording() {
+        let f = crate::footage::testing::on_core("stars-merge");
+        let car = f.dir.join("footage/car");
+        let clip = |rel: &str| {
+            std::fs::create_dir_all(car.join(rel).parent().unwrap()).unwrap();
+            std::fs::write(car.join(rel), b"x").unwrap();
+        };
+        clip("RecentClips/2025-03-01_08-00-00-front.mp4");
+        clip("RecentClips/2025-03-01_08-03-00-front.mp4");
+        f.app.scan_now("car", false).unwrap();
+        let admin = Caller { user: Some("admin".into()), client: "127.0.0.1".into(), admin_here: true, confirmed: true };
+        let star = add(&f.app, &admin, &json!({ "vehicle": "car", "clip": "2025-03-01_08-00-00", "second": 3 })).unwrap();
+        let recs = f.app.state_of("car").unwrap().recordings.to_vec();
+        assert_eq!(recs.len(), 2);
+        let later: Vec<String> = recs.iter().filter(|r| !r.protected).map(|r| r.id.clone()).collect();
+        let first = recs.iter().find(|r| r.protected).unwrap().id.clone();
+        // the later session protected by hand, the way the protect route does it
+        protected_by_hand(&f.app, "car", &later).unwrap();
+        crate::footage::bin::set_protected(&f.app, "car", &["RecentClips/2025-03-01_08-03-00-front.mp4".to_string()], true).unwrap();
+        // a clip in the gap merges them, under the starred session's id
+        clip("RecentClips/2025-03-01_08-01-30-front.mp4");
+        f.app.scan_now("car", false).unwrap();
+        let recs = f.app.state_of("car").unwrap().recordings.to_vec();
+        assert_eq!(recs.len(), 1);
+        assert_eq!(recs[0].id, first);
+        remove(&f.app, &admin, star["star"]["id"].as_str().unwrap()).unwrap();
+        let p = f.app.core.db().protected_set("car").unwrap();
+        assert!(p.contains("RecentClips/2025-03-01_08-03-00-front.mp4"), "kept protected by hand: {p:?}");
+        assert!(!p.contains("RecentClips/2025-03-01_08-00-00-front.mp4"), "{p:?}");
     }
 
     #[test]
