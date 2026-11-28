@@ -163,7 +163,14 @@ pub struct SpeedIndex {
     full_reads: Arc<super::telemetry_api::Limiter>,
     /// clips that could not be read: vehicle/rel -> (size, mtime, when)
     failed: Mutex<HashMap<String, (u64, f64, Instant)>>,
+    /// progress: the front-camera clips of each day of a vehicle's file list (their places in
+    /// it), while it is that list
+    fronts: Mutex<HashMap<String, FrontsOf>>,
 }
+
+/// The file list the day's front clips were found in (held weakly: its place is not reused
+/// while this is kept) and, by day, their places in it.
+type FrontsOf = (std::sync::Weak<crate::scanner::FileList>, Arc<HashMap<String, Vec<u32>>>);
 
 fn key_of(vid: &str, day: &str) -> String {
     format!("{vid}/{day}")
@@ -303,6 +310,7 @@ impl SpeedIndex {
             names: Mutex::new(HashMap::new()),
             full_reads,
             failed: Mutex::new(HashMap::new()),
+            fronts: Mutex::new(HashMap::new()),
         })
     }
 
@@ -951,14 +959,14 @@ impl SpeedIndex {
     /// How far each day is indexed: { day: (clips, indexed) } (front-camera clips).
     pub fn progress(&self, vid: &str, list: &[String]) -> HashMap<String, (u64, u64)> {
         let Some(files) = self.ctx.files(vid) else { return HashMap::new() };
+        let by_day = self.fronts_of(vid, &files);
         let mut wanted: Vec<&str> = list.iter().map(String::as_str).collect();
         wanted.sort_unstable();
+        wanted.dedup();
         let mut per: HashMap<&str, Vec<(&str, f64, f64)>> = HashMap::new();
-        for f in files.values() {
-            if f.kind != Kind::Clip || f.camera.as_deref() != Some("front") || f.size == 0 || wanted.binary_search(&f.day.as_str()).is_err() {
-                continue;
-            }
-            per.entry(f.day.as_str()).or_default().push((f.rel.as_str(), f.size as f64, js::js_round(f.mtime_ms)));
+        for d in wanted {
+            let Some(at) = by_day.get(d) else { continue };
+            per.insert(d, at.iter().map(|&i| &files[i as usize]).map(|f| (f.rel.as_str(), f.size as f64, js::js_round(f.mtime_ms))).collect());
         }
         let mut out = HashMap::new();
         for (d, fs) in per {
@@ -968,6 +976,32 @@ impl SpeedIndex {
             out.insert(d.to_string(), (fs.len() as u64, indexed as u64));
         }
         out
+    }
+
+    /// The front-camera clips (with bytes) of each day of a file list, by their places in it:
+    /// found once per list.
+    fn fronts_of(&self, vid: &str, files: &Files) -> Arc<HashMap<String, Vec<u32>>> {
+        let mut kept = self.fronts.lock().unwrap();
+        if let Some((list, by_day)) = kept.get(vid) {
+            if std::ptr::eq(list.as_ptr(), Arc::as_ptr(files)) {
+                return by_day.clone();
+            }
+        }
+        let mut by_day: HashMap<String, Vec<u32>> = HashMap::new();
+        for (i, f) in files.values().enumerate() {
+            if f.kind != Kind::Clip || f.camera.as_deref() != Some("front") || f.size == 0 {
+                continue;
+            }
+            match by_day.get_mut(f.day.as_str()) {
+                Some(at) => at.push(i as u32),
+                None => {
+                    by_day.insert(f.day.clone(), vec![i as u32]);
+                }
+            }
+        }
+        let by_day = Arc::new(by_day);
+        kept.insert(vid.to_string(), (Arc::downgrade(files), by_day.clone()));
+        by_day
     }
 
     /// Index one clip now (the viewer asked before the background got there): its speeds.
