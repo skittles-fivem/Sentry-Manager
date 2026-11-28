@@ -541,15 +541,27 @@ impl ScrubFrames {
             }
         };
         self.pump();
-        // (never waited for forever: a worker stuck past every limit of its own gives no grid)
-        let deadline = Instant::now() + self.run_limit * 2 + self.probe_limit;
+        // (never waited for forever: a worker stuck past every limit of its own gives no grid;
+        // the time counts from when the job left the queue, so a wait in line is no failure)
+        let limit = self.run_limit * 2 + self.probe_limit;
+        let look = Duration::from_millis(500).min(limit);
+        let mut deadline = Instant::now() + limit;
         let mut r = waiter.0.lock().unwrap();
         while r.is_none() {
-            let left = deadline.saturating_duration_since(Instant::now());
-            if left.is_zero() {
+            let now = Instant::now();
+            if now >= deadline {
                 return None;
             }
-            r = waiter.1.wait_timeout(r, left).unwrap().0;
+            let (got, timed_out) = waiter.1.wait_timeout(r, (deadline - now).min(look)).unwrap();
+            r = got;
+            if r.is_none() && timed_out.timed_out() {
+                // (still in line: the time starts again)
+                drop(r);
+                if self.q.lock().unwrap().jobs.iter().any(|j| j.target == target) {
+                    deadline = Instant::now() + limit;
+                }
+                r = waiter.0.lock().unwrap();
+            }
         }
         let out = r.clone().unwrap();
         drop(r);
@@ -778,6 +790,32 @@ mod tests {
         assert_eq!(ahead.join().unwrap(), Some(grid.clone()));
         let at = std::fs::metadata(&grid).unwrap().modified().unwrap();
         assert!(at > SystemTime::now() - Duration::from_secs(600), "made ahead with the clip's time, then used now");
+    }
+
+    #[test]
+    fn a_wait_in_line_behind_other_grids_is_not_given_up() {
+        let dir = testkit::tmp("scrub-wait-in-line");
+        let ffmpeg = crate::thumbnails::fake::ffmpeg(&dir, &dir.join("runs.log"));
+        let ffprobe = script(&dir.join("ffprobe"), "exec sleep 30\n");
+        let mut frames = ScrubFrames::new(dir.join("scrub"), ffmpeg, Some(ffprobe), || 1);
+        {
+            let f = Arc::get_mut(&mut frames).unwrap();
+            f.probe_limit = Duration::from_millis(1000);
+            f.run_limit = Duration::from_millis(1000);
+        }
+        // each grid takes about 1.3 s, the limit is 3 s: the last of four waits longer in line
+        let mut asks = Vec::new();
+        for i in 0..4 {
+            let clip = dir.join(format!("2026-10-01_10-0{i}-00-front.mp4"));
+            std::fs::write(&clip, b"not parsed: the probe decides").unwrap();
+            let f = frames.clone();
+            asks.push(std::thread::spawn(move || f.get(&clip, false, false, false)));
+            std::thread::sleep(Duration::from_millis(30));
+        }
+        let began = Instant::now();
+        for (i, a) in asks.into_iter().enumerate() {
+            assert!(a.join().unwrap().is_some(), "ask {i} after {:?}", began.elapsed());
+        }
     }
 
     #[test]
