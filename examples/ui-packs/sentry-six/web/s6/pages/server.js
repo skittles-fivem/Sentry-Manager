@@ -9,6 +9,7 @@ async function renderPage(el, ctx) {
   let range = '15m',
     snap = null,
     hist = null,
+    histAt = 0,
     stopped = false,
     timer = null,
     loading = false;
@@ -45,12 +46,15 @@ async function renderPage(el, ctx) {
     if (stopped || !ctx.alive() || document.hidden || loading) return;
     loading = true;
     try {
+      // (the day's history changes slowly: read again at most once a minute)
+      const day = range === '24h' && Date.now() - histAt > 60000;
       const values = await Promise.all([
         api('/api/stats'),
-        range === '24h' ? api('/api/stats/history?range=24h') : null,
+        day ? api('/api/stats/history?range=24h') : null,
       ]);
       snap = values[0];
-      hist = values[1];
+      if (day) histAt = Date.now();
+      if (day || range !== '24h') hist = values[1];
       draw();
     } catch (e) {
       if (!stopped && ctx.alive()) toast(e.message, true);
@@ -64,6 +68,7 @@ async function renderPage(el, ctx) {
       m = e.target.closest('[data-nd-more]');
     if (b) {
       range = b.dataset.range;
+      histAt = 0;
       seen.clear();
       await poll();
     }

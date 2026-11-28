@@ -396,6 +396,9 @@ async function renderPage(el, ctx) {
       }
     } catch {}
   }
+  const visible = () => {
+    if (!document.hidden) indexStatus();
+  };
   const changed = () => {
     if (!valid()) return;
     v = current();
@@ -419,6 +422,7 @@ async function renderPage(el, ctx) {
     window.removeEventListener('s6:changed', changed);
     stopped = true;
     clearInterval(poll);
+    document.removeEventListener('visibilitychange', visible);
     const actions = document.getElementById('page-actions');
     if (actions && actions.onclick === el.onclick) {
       document.body.classList.remove('selecting');
@@ -430,7 +434,11 @@ async function renderPage(el, ctx) {
   ctx.scope.signal.addEventListener('abort', teardown, { once: true });
   await draw();
   if (!valid()) return teardown;
-  poll = setInterval(indexStatus, 5000);
+  // (a hidden tab asks nothing; it catches up when shown)
+  poll = setInterval(() => {
+    if (!document.hidden) indexStatus();
+  }, 5000);
+  document.addEventListener('visibilitychange', visible);
   return teardown;
 }
 

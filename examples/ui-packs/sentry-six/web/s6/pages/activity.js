@@ -110,11 +110,19 @@ async function renderPage(el, ctx) {
       snapshot = s;
       draw();
     }, ctx.scope),
-    timer = setInterval(load, 5000);
+    // (a hidden tab asks nothing, so the server's monitor can rest; it catches up when shown)
+    timer = setInterval(() => {
+      if (!document.hidden) load();
+    }, 5000),
+    visible = () => {
+      if (!document.hidden) load();
+    };
+  document.addEventListener('visibilitychange', visible);
   return () => {
     stopped = true;
     stop();
     clearInterval(timer);
+    document.removeEventListener('visibilitychange', visible);
   };
 }
 

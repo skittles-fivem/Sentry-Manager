@@ -703,7 +703,13 @@ export default {
     drawBench();
     await refresh();
     connect();
-    pollStats();
+    // (the stats were just read: the next read is the poll's own, 2 s on)
+    if (st && Object.keys(st).length) {
+      price = st.price;
+      if (snap && ACTIVE.has(snap.state)) ++ticks;
+      drawAll();
+      statsTimer = setTimeout(pollStats, 2000);
+    } else pollStats();
     loadLog();
     logTimer = setInterval(() => { if (document.visibilityState === 'visible' && snap && ACTIVE.has(snap.state)) loadLog(); }, 5000);
     if (params.get('new')) $('#e-form')?.scrollIntoView({ block: 'start' });
