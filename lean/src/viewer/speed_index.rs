@@ -274,6 +274,14 @@ pub fn speeds_read(real: &Path, size: u64, mode: Mode, full: &super::telemetry_a
     }
 }
 
+/// The rest between two clips started: `pause_ms` shared by the `at_once` reads the pace allows,
+/// so each reader still rests about `pause_ms` between its clips. (One rest for all of them held
+/// the whole index to 1000 / pause_ms clips a second however many it read at once, so a step up
+/// never read more and the pace took it back.)
+fn start_gap(pause_ms: u64, at_once: usize) -> Duration {
+    Duration::from_millis(pause_ms / at_once.max(1) as u64)
+}
+
 /// A clip the speed index could not read is read again after this long (or once it changed).
 const RETRY_AFTER: Duration = Duration::from_secs(3600);
 
@@ -587,7 +595,7 @@ impl SpeedIndex {
                     });
                     self.pace.demand(in_flight, left > 0);
                     if self.pause_ms > 0 {
-                        std::thread::sleep(Duration::from_millis(self.pause_ms));
+                        std::thread::sleep(start_gap(self.pause_ms, cap));
                     }
                     while rx.try_recv().is_ok() {
                         in_flight -= 1;

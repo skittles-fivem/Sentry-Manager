@@ -340,6 +340,16 @@ fn stats_of_a_clip() {
 }
 
 #[test]
+fn the_rest_between_clips_is_shared_by_the_reads_at_once() {
+    // one at a time: the rest it always had; more at once: each reader rests as long between its clips
+    assert_eq!(start_gap(100, 1), Duration::from_millis(100));
+    assert_eq!(start_gap(100, 0), Duration::from_millis(100));
+    assert_eq!(start_gap(100, 4), Duration::from_millis(25));
+    assert_eq!(start_gap(100, 8), Duration::from_millis(12));
+    assert_eq!(start_gap(0, 4), Duration::ZERO);
+}
+
+#[test]
 fn a_pause_is_seen_before_the_next_clip_however_fast_the_reads() {
     use std::sync::atomic::AtomicBool;
     let car = Car::new("si-pause");
