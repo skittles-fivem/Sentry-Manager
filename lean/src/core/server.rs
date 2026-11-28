@@ -512,7 +512,7 @@ fn service(state: Arc<AppState>, conn: ConnInfo, plain_only: bool) -> impl hyper
 fn auto_builder(h2: bool) -> hyper_util::server::conn::auto::Builder<hyper_util::rt::TokioExecutor> {
     let mut b = hyper_util::server::conn::auto::Builder::new(hyper_util::rt::TokioExecutor::new());
     b.http1().timer(hyper_util::rt::TokioTimer::new()).header_read_timeout(Duration::from_secs(120));
-    b.http2().timer(hyper_util::rt::TokioTimer::new()).keep_alive_interval(Some(Duration::from_secs(30))).keep_alive_timeout(Duration::from_secs(20)).max_concurrent_streams(128);
+    b.http2().timer(hyper_util::rt::TokioTimer::new()).keep_alive_interval(Some(Duration::from_secs(30))).keep_alive_timeout(Duration::from_secs(20));
     if h2 {
         b.http2_only()
     } else {
