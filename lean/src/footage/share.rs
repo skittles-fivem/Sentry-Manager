@@ -356,8 +356,11 @@ fn is_probe_name(name: &std::ffi::OsStr) -> bool {
 
 /// Removes the probe files earlier write tests left in `root` when the share stopped answering
 /// mid-test: only entries named as a probe, only a file or a link (a link is unlinked, never
-/// followed), and only ones not changed for OLD_PROBE.
+/// followed), and only ones not changed for OLD_PROBE. (A test sets its probe's modified time
+/// back to 2020, so the status-change time, which no one can set back, must be old as well: a
+/// probe another test on the same folder is still using is never taken for a left-over one.)
 fn remove_old_probes(root: &Path, now: std::time::SystemTime) {
+    use std::os::unix::fs::MetadataExt;
     let Ok(dir) = std::fs::read_dir(root) else { return };
     for entry in dir.flatten() {
         if !is_probe_name(&entry.file_name()) {
@@ -365,7 +368,9 @@ fn remove_old_probes(root: &Path, now: std::time::SystemTime) {
         }
         let p = entry.path();
         let Ok(m) = std::fs::symlink_metadata(&p) else { continue };
-        let old = m.modified().ok().and_then(|t| now.duration_since(t).ok()).is_some_and(|age| age >= OLD_PROBE);
+        let changed = (m.ctime() >= 0).then(|| std::time::UNIX_EPOCH + Duration::new(m.ctime() as u64, m.ctime_nsec().clamp(0, 999_999_999) as u32));
+        let old_since = |t: Option<std::time::SystemTime>| t.and_then(|t| now.duration_since(t).ok()).is_some_and(|age| age >= OLD_PROBE);
+        let old = old_since(m.modified().ok()) && old_since(changed);
         if old && (m.is_file() || m.file_type().is_symlink()) {
             let _ = std::fs::remove_file(&p);
         }
@@ -989,6 +994,14 @@ mod tests {
         std::fs::create_dir(s.join(".sentry-six-manager-check-fedcba987654-b")).unwrap();
         remove_old_probes(&s, std::time::SystemTime::now());
         assert_eq!(std::fs::read_dir(&s).unwrap().count(), 8, "a probe changed just now may be another test's");
+        // (a probe another test is using, past the step that sets its modified time back to 2020)
+        let live = s.join(".sentry-six-manager-check-00000000000a-a");
+        std::fs::write(&live, b"new").unwrap();
+        let when = std::time::UNIX_EPOCH + Duration::from_secs(1_577_836_800);
+        std::fs::File::options().write(true).open(&live).unwrap().set_times(std::fs::FileTimes::new().set_accessed(when).set_modified(when)).unwrap();
+        remove_old_probes(&s, std::time::SystemTime::now());
+        assert!(live.exists(), "a probe in use is kept though its modified time is old");
+        std::fs::remove_file(&live).unwrap();
         remove_old_probes(&s, std::time::SystemTime::now() + OLD_PROBE);
         for n in left {
             assert!(!s.join(n).exists(), "{n}");
