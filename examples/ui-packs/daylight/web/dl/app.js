@@ -205,11 +205,29 @@ async function render() {
 window.addEventListener('hashchange', render);
 
 // ---------- live updates ----------
+async function onTopics(topics) {
+  // every topic for the shared Viewer parts too (web/viewerExtras.js: "Car data in the Viewer")
+  window.dispatchEvent(new CustomEvent('sentry:changed', { detail: { topics } }));
+  const jobs = [];
+  if (topics.some((t) => ['vehicles', 'inventory', 'bin'].includes(t))) jobs.push(loadVehicles().catch(() => {}));
+  if (topics.includes('notifications')) jobs.push(loadNotes().catch(() => {}));
+  if (topics.includes('jobs')) jobs.push(loadJobs().catch(() => {}));
+  await Promise.all(jobs);
+  updateBadges();
+  emit('topics', topics);
+}
 function connect() {
   let retry = 1000;
+  // the server keeps no replay: every reconnect after the first (the
+  // browser's own, or the one below) catches up once on what was missed
+  let opened = false;
   const open = () => {
     const es = new EventSource('/api/events');
-    es.addEventListener('open', () => { retry = 1000; });
+    es.addEventListener('open', () => {
+      retry = 1000;
+      if (opened) onTopics(['vehicles', 'inventory', 'notifications', 'bin', 'jobs']);
+      opened = true;
+    });
     es.addEventListener('changed', async (e) => {
       let topics = [];
       try { topics = JSON.parse(e.data).topics || []; } catch { return; }
@@ -217,15 +235,7 @@ function connect() {
         location.reload();
         return;
       }
-      // every topic for the shared Viewer parts too (web/viewerExtras.js: "Car data in the Viewer")
-      window.dispatchEvent(new CustomEvent('sentry:changed', { detail: { topics } }));
-      const jobs = [];
-      if (topics.some((t) => ['vehicles', 'inventory', 'bin'].includes(t))) jobs.push(loadVehicles().catch(() => {}));
-      if (topics.includes('notifications')) jobs.push(loadNotes().catch(() => {}));
-      if (topics.includes('jobs')) jobs.push(loadJobs().catch(() => {}));
-      await Promise.all(jobs);
-      updateBadges();
-      emit('topics', topics);
+      await onTopics(topics);
     });
     es.addEventListener('error', () => {
       if (es.readyState !== EventSource.CLOSED) return;

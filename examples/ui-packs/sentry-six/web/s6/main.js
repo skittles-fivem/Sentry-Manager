@@ -261,14 +261,15 @@ function onChanged(topics) {
       .catch((e) => offline(e) || toast(e.message, true));
 }
 let eventsRetry = 1000;
-function connectEvents(reopened = false) {
+// The server keeps no replay: after every reconnect (the browser's own or the
+// one here) the page catches up once.
+let eventsOpened = false;
+function connectEvents() {
   const events = new EventSource('/api/events');
   events.addEventListener('open', () => {
     eventsRetry = 1000;
-    if (reopened) {
-      reopened = false;
-      onChanged(['inventory', 'notifications', 'vehicles']);
-    }
+    if (eventsOpened) onChanged(['inventory', 'notifications', 'vehicles']);
+    eventsOpened = true;
   });
   events.addEventListener('error', () => {
     if (events.readyState !== EventSource.CLOSED) return; // the browser is trying again itself
@@ -278,10 +279,10 @@ function connectEvents(reopened = false) {
       .then((r) => (r.ok ? r.json() : r.status === 401 ? {} : { user: true }))
       .then(
         (me) => {
-          if (me.user) setTimeout(() => connectEvents(true), wait);
+          if (me.user) setTimeout(() => connectEvents(), wait);
           else location.href = '/login?next=' + encodeURIComponent(location.pathname + location.hash);
         },
-        () => setTimeout(() => connectEvents(true), wait)
+        () => setTimeout(() => connectEvents(), wait)
       );
   });
   events.addEventListener('changed', (event) => {

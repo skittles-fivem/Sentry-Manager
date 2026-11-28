@@ -2850,14 +2850,17 @@
   // ---------- live updates ----------
   // The browser retries a dropped stream by itself, but an answer that is not
   // the stream (signed out, too many connections, a proxy's 502 while the app
-  // restarts) closes it for good: it is opened again here, with backoff, and
-  // the pages are redrawn once for what was missed meanwhile.
+  // restarts) closes it for good: it is opened again here, with backoff. The
+  // server keeps no replay, so after every reconnect (the browser's own, or
+  // this one) the pages are redrawn once for what was missed meanwhile.
   let eventsRetry = 1000;
-  function connect(reopened = false) {
+  let eventsOpened = false;
+  function connect() {
     const es = new EventSource('/api/events');
     es.addEventListener('open', () => {
       eventsRetry = 1000;
-      if (reopened) { reopened = false; onChanged(['vehicles', 'inventory', 'notifications', 'bin', 'jobs']); }
+      if (eventsOpened) onChanged(['vehicles', 'inventory', 'notifications', 'bin', 'jobs']);
+      eventsOpened = true;
     });
     es.addEventListener('error', () => {
       if (es.readyState !== EventSource.CLOSED) return; // the browser is trying again itself
@@ -2866,9 +2869,9 @@
       fetch('/api/auth/me', { credentials: 'same-origin', signal: timeoutSignal(10000) })
         .then((r) => (r.ok ? r.json() : r.status === 401 ? {} : { user: true }))
         .then((me) => {
-          if (me.user) setTimeout(() => connect(true), wait);
+          if (me.user) setTimeout(() => connect(), wait);
           else location.href = `/login?next=${encodeURIComponent(location.pathname + location.hash)}`;
-        }, () => setTimeout(() => connect(true), wait));
+        }, () => setTimeout(() => connect(), wait));
     });
     es.addEventListener('changed', (e) => {
       let topics;

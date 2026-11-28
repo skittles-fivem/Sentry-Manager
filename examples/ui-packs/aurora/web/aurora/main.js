@@ -282,9 +282,26 @@ document.addEventListener('focusout', () => {
   }, 50);
 });
 let retry = 1000;
+// the server keeps no replay: every stream after the first (the browser's own
+// reconnect, or the one below) catches up once on what was missed meanwhile
+let helloSeen = false;
+const ALL_TOPICS = ['vehicles', 'inventory', 'notifications', 'bin', 'jobs'];
+async function onTopics(topics) {
+  // every topic for the shared Viewer parts too (web/viewerExtras.js: "Car data in the Viewer")
+  window.dispatchEvent(new CustomEvent('sentry:changed', { detail: { topics } }));
+  if (topics.some((t) => ['vehicles', 'inventory', 'bin'].includes(t))) await loadVehicles().catch(() => {});
+  if (topics.includes('notifications')) await loadNotes().catch(() => {});
+  if (topics.includes('jobs')) refreshJobsBadge();
+  deliver(topics);
+}
 function connect() {
   const es = new EventSource('/api/events');
-  es.addEventListener('hello', () => { setLive(true); retry = 1000; });
+  es.addEventListener('hello', () => {
+    setLive(true);
+    retry = 1000;
+    if (helloSeen) onTopics(ALL_TOPICS);
+    helloSeen = true;
+  });
   es.addEventListener('changed', async (e) => {
     let topics = [];
     try { ({ topics } = JSON.parse(e.data)); } catch { return; }
@@ -292,12 +309,7 @@ function connect() {
       location.reload();
       return;
     }
-    // every topic for the shared Viewer parts too (web/viewerExtras.js: "Car data in the Viewer")
-    window.dispatchEvent(new CustomEvent('sentry:changed', { detail: { topics } }));
-    if (topics.some((t) => ['vehicles', 'inventory', 'bin'].includes(t))) await loadVehicles().catch(() => {});
-    if (topics.includes('notifications')) await loadNotes().catch(() => {});
-    if (topics.includes('jobs')) refreshJobsBadge();
-    deliver(topics);
+    await onTopics(topics);
   });
   es.addEventListener('error', () => {
     setLive(false);
