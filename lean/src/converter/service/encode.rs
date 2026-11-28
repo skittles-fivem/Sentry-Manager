@@ -233,6 +233,8 @@ impl Service {
         }
         let mut cmd = Command::new(&ffmpeg);
         cmd.args(&args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
+        // (this thread waits on it to its end: see end_with_app)
+        super::super::process::end_with_app(&mut cmd);
         if super::super::process::cuda_by_index(&args) {
             cmd.env("CUDA_DEVICE_ORDER", "PCI_BUS_ID");
         }
