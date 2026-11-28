@@ -141,7 +141,7 @@ impl OpsCtx for CoreOps {
         Some(Encoder { codec: s.codec, hardware: s.hardware })
     }
     fn detect_gpus(&self) -> Value {
-        crate::ops::gpu::detect_gpus(&crate::ops::gpu::DetectOptions::default(), &crate::ops::gpu::run)
+        crate::ops::gpu::detect_gpus_cached()
     }
     fn usable_gpus(&self) -> usize {
         crate::ops::gpu::usable_gpus(&self.detect_gpus()).len()

@@ -49,13 +49,60 @@ pub fn run(cmd: &str, args: &[&str], timeout: Duration) -> RunResult {
             Err(_) => {
                 // (our own child)
                 let _ = child.kill();
-                let _ = child.wait();
+                reap(child, Duration::from_secs(2));
                 return RunResult { code: None, ..r };
             }
         }
     }
-    r.code = child.wait().ok().and_then(|s| s.code());
-    r
+    // Both pipes closed, but the program can still hang (nvidia-smi stuck in
+    // the kernel on a broken driver): wait for it only until the deadline.
+    loop {
+        match child.try_wait() {
+            Ok(Some(s)) => {
+                r.code = s.code();
+                return r;
+            }
+            Ok(None) if std::time::Instant::now() < deadline => std::thread::sleep(Duration::from_millis(10)),
+            _ => {
+                let _ = child.kill();
+                reap(child, Duration::from_secs(2));
+                return RunResult { code: None, ..r };
+            }
+        }
+    }
+}
+
+/// Reaps a killed child for up to `grace`; one that still has not gone
+/// (stuck in the kernel, where SIGKILL waits) is reaped by a thread of its
+/// own, so the caller never blocks on it.
+pub fn reap(mut child: std::process::Child, grace: Duration) {
+    let until = std::time::Instant::now() + grace;
+    while std::time::Instant::now() < until {
+        match child.try_wait() {
+            Ok(None) => std::thread::sleep(Duration::from_millis(10)),
+            _ => return,
+        }
+    }
+    std::thread::spawn(move || {
+        let _ = child.wait();
+    });
+}
+
+/// detect_gpus with the real host and runner, kept for a minute: Settings,
+/// the health check and the heartbeat ask often, and each run starts vainfo
+/// per render node and nvidia-smi. One detection at a time; the others wait
+/// for its answer instead of starting their own.
+pub fn detect_gpus_cached() -> Value {
+    static CACHE: std::sync::Mutex<Option<(std::time::Instant, Value)>> = std::sync::Mutex::new(None);
+    let mut c = CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((at, v)) = c.as_ref() {
+        if at.elapsed() < Duration::from_secs(60) {
+            return v.clone();
+        }
+    }
+    let v = detect_gpus(&DetectOptions::default(), &run);
+    *c = Some((std::time::Instant::now(), v.clone()));
+    v
 }
 
 fn vendor_of(id: Option<&str>) -> Option<&'static str> {
