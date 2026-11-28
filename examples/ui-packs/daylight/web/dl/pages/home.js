@@ -61,7 +61,7 @@ function spaceCard() {
     : bin > 0 ? '<a class="btn btn-primary" href="#/bin">Free up space</a>' : '<a class="btn btn-primary" href="#/encoder">Shrink my footage</a>';
   return card({
     tone, iconName: 'disk', q: 'How much space is left?', a: `${bytes(free)} free`,
-    detail: `${list.length > 1 ? `${esc(v.name)} has the least room. ` : ''}${pct(used * 100)} of ${bytes(v.share.totalBytes)} used. ${tip} Space saved by converting: ${saved ? `${bytes(saved)} · ${plural(clips, 'clip')}` : 'none yet'}. Days of footage: ${fin(state.footageDays) ? state.footageDays.toLocaleString() : '—'}.${(() => { const f = fullIn(v.storage); return f ? ` ${esc(f.text)}${v.storage.capped ? '' : ` (about ${bytes(v.storage.perDay)} of footage a day)`}.` : ''; })()}`,
+    detail: `${list.length > 1 ? `${esc(v.name)} has the least room. ` : ''}${pct(used * 100)} of ${bytes(v.share.totalBytes)} used. ${tip} Freed by conversions: ${saved ? `${bytes(saved)} · ${plural(clips, 'clip')} replaced` : 'none yet'}. Days of footage: ${fin(state.footageDays) ? state.footageDays.toLocaleString() : '—'}.${(() => { const f = fullIn(v.storage); return f ? ` ${esc(f.text)}${v.storage.capped ? '' : ` (about ${bytes(v.storage.perDay)} of footage a day)`}.` : ''; })()}`,
     body: `${meter(used, tone === 'good' ? '' : tone)}<div data-savings-chart="${esc(v.id)}" style="margin-top:12px"></div>`, action
   });
 }
@@ -117,7 +117,7 @@ function vehicleCard(v) {
       <div><b>${inv ? Number(inv.recordings).toLocaleString() : '—'}</b><span>recordings</span></div>
       <div><b>${inv ? bytes(inv.bytes) : '—'}</b><span>of footage</span></div>
       <div><b>${v.binItems || 0}</b><span>in Recycle Bin</span></div>
-      <div><b>${v.saved?.bytes ? bytes(v.saved.bytes) : 'None yet'}</b><span>${v.saved?.bytes ? `saved · ${plural(v.saved.clips, 'clip')}` : 'saved by converting'}</span></div>
+      <div><b>${v.saved?.bytes ? bytes(v.saved.bytes) : 'None yet'}</b><span>${v.saved?.bytes ? `freed · ${plural(v.saved.clips, 'clip')} replaced` : 'freed by conversions'}</span></div>
     </div>
     <div class="actions">
       <a class="btn btn-soft btn-sm" href="#/footage?vehicle=${encodeURIComponent(v.id)}">Footage</a>

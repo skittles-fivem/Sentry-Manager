@@ -76,7 +76,9 @@ export default {
       if (!v) { dayInfo = null; return; }
       try {
         const d = await api(`/api/vehicles/${encodeURIComponent(v.id)}/days?limit=100`);
-        dayInfo = { minutes: d.days.reduce((n, x) => n + (x.minutes || 0), 0), clips: d.days.reduce((n, x) => n + (x.clips || 0), 0), encoded: d.days.reduce((n, x) => n + (x.encoded || 0), 0), days: d.total };
+        // (a page holds the newest 100 days at most: `shown` of the `days` there are)
+        const sum = (k) => d.days.reduce((n, x) => n + (x[k] || 0), 0);
+        dayInfo = { minutes: sum('minutes'), clips: sum('clips'), encoded: sum('encoded'), unknown: sum('unknown'), days: d.total, shown: d.days.length };
       } catch { dayInfo = null; }
     }
     const digits = (value, n = 6) => {
@@ -92,15 +94,17 @@ export default {
       setFuel(el, freeF, size(sh.freeBytes), ok(sh.totalBytes) ? `free of ${size(sh.totalBytes)}` : 'not known');
       const inv = v?.inventory || {};
       const hours = dayInfo ? dayInfo.minutes / 60 : null;
+      // what the trip counters cover when there are more days than one page
+      const span = dayInfo && dayInfo.days > dayInfo.shown ? `last ${dayInfo.shown} days` : '';
       $('#d-trip').innerHTML = `
         <div class="trip-h"><span>${ico('car')}${h(v ? v.name : 'No vehicle')}</span><span class="faint tiny">${v ? (v.scanning ? 'scanning…' : `inventory ${since(inv.scannedAt)}`) : ''}</span></div>
         <div class="trips">
-          <div class="tr"><span class="tr-l">TRIP A · footage hours</span>${digits(ok(hours) ? hours.toFixed(1) : '0.0', 6)}<span class="sr-only">${ok(hours) ? hours.toFixed(1) : 0} hours of footage</span></div>
-          <div class="tr"><span class="tr-l">TRIP B · clips</span>${digits(dayInfo?.clips ?? 0, 6)}<span class="sr-only">${dayInfo?.clips ?? 0} clips</span></div>
+          <div class="tr"><span class="tr-l">TRIP A · footage hours${span ? `, ${span}` : ''}</span>${digits(ok(hours) ? hours.toFixed(1) : '0.0', 6)}<span class="sr-only">${ok(hours) ? hours.toFixed(1) : 0} hours of footage</span></div>
+          <div class="tr"><span class="tr-l">TRIP B · clips${span ? `, ${span}` : ''}</span>${digits(dayInfo?.clips ?? 0, 6)}<span class="sr-only">${dayInfo?.clips ?? 0} clips</span></div>
           <div class="tr"><span class="tr-l">ODO · recordings</span>${digits(inv.recordings ?? 0, 6)}<span class="sr-only">${inv.recordings ?? 0} recordings</span></div>
           <div class="tr"><span class="tr-l">LOAD · footage size</span><b class="tr-big num">${size(inv.bytes)}</b></div>
         </div>
-        <div class="trip-f small dim">${dayInfo ? `${count(dayInfo.days, 'day')} · ${dayInfo.encoded}/${dayInfo.clips} clips converted` : ''}${v?.binItems ? ` · Recycle Bin ${size(v.binBytes)}` : ''}</div>`;
+        <div class="trip-f small dim">${dayInfo ? `${count(dayInfo.days, 'day')} · H.265/AV1 on the share now: ${dayInfo.encoded.toLocaleString()} of ${dayInfo.clips.toLocaleString()} clips${span ? ` (${span})` : ''}${dayInfo.unknown ? `, ${dayInfo.unknown.toLocaleString()} being checked` : ''}` : ''}${v?.binItems ? ` · Recycle Bin ${size(v.binBytes)}` : ''}</div>`;
       drawLamps();
       status(v ? `${v.name} · ${ok(used) ? `${Math.round(used)}% used` : 'storage unknown'}` : 'no vehicle');
     }
@@ -263,16 +267,16 @@ export default {
         return;
       }
       // space the conversions won back: per car on its row, all cars on the top line
-      const savedTxt = (s) => (s?.bytes ? `${size(s.bytes)} · ${count(s.clips, 'clip')}` : 'none yet');
+      const savedTxt = (s) => (s?.bytes ? `${size(s.bytes)} · ${count(s.clips, 'clip')} replaced` : 'none yet');
       const all = app.vehicles.reduce((t, v) => ({ bytes: t.bytes + (v.saved?.bytes || 0), clips: t.clips + (v.saved?.clips || 0) }), { bytes: 0, clips: 0 });
       // and how many days of footage there are (any car's; one day once)
-      box.innerHTML = `<p class="small num">Space saved by conversions: <b>${savedTxt(all)}</b> · Days of footage: <b>${ok(app.footageDays) ? count(app.footageDays, 'day') : '—'}</b></p>` + app.vehicles.map((v) => {
+      box.innerHTML = `<p class="small num">Freed by conversions: <b>${savedTxt(all)}</b> · Days of footage: <b>${ok(app.footageDays) ? count(app.footageDays, 'day') : '—'}</b></p>` + app.vehicles.map((v) => {
         const sh = v.share || {};
         const u = ok(sh.totalBytes) && sh.totalBytes ? (1 - sh.freeBytes / sh.totalBytes) * 100 : null;
         const cats = Object.entries(v.inventory?.byCategory || {}).map(([c, x]) => pill(`${c} ${x.recordings}`, c === 'Sentry' ? 'org' : c === 'Saved' ? 'grn' : 'cyan')).join('');
         return `<div class="carcard"><div class="row"><b>${h(v.name)}</b>${!sh.healthy ? pill('offline', 'red') : sh.writable === false ? pill('read-only', 'org') : pill('online', 'grn')}</div>
           ${bar(u, u > 95 ? 'red' : u > 85 ? 'org' : '')}
-          <p class="small dim num">${size(sh.freeBytes)} free of ${size(sh.totalBytes)} · ${size(v.inventory?.bytes)} of footage · ${ok(v.inventory?.days) ? count(v.inventory.days, 'day') : '— days'} · saved ${savedTxt(v.saved)}</p>
+          <p class="small dim num">${size(sh.freeBytes)} free of ${size(sh.totalBytes)} · ${size(v.inventory?.bytes)} of footage · ${ok(v.inventory?.days) ? count(v.inventory.days, 'day') : '— days'} · freed ${savedTxt(v.saved)}</p>
           ${(() => { const f = fullIn(v.storage); return f ? `<p class="small num ${f.tone === 'bad' ? 'badtx' : f.tone === 'warn' ? 'warm' : 'dim'}">${h(f.text)}</p>` : ''; })()}
           <div class="row">${cats}</div>
           <div data-savings-chart="${h(v.id)}"></div>

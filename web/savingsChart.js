@@ -82,9 +82,10 @@ export function createSavingsChart(el, { vehicleId } = {}) {
     // (a narrow card: a month's first letter, the amounts a little smaller)
     const tight = bw < 25;
     const any = months.some((m) => m.bytes > 0);
-    box.innerHTML = `<div class="sv-head"><span><b>${esc(size(now.bytes))}</b> <span class="sv-muted">saved this month</span></span>
-        <span class="sv-muted">${esc(size(total.bytes))} in all${total.clips ? ` · ${total.clips.toLocaleString()} clips converted` : ''}</span></div>
-        ${any ? `<svg viewBox="0 0 ${W} ${H + 22}" width="${W}" height="${H + 22}" role="img" aria-label="Space saved by converting, each month">
+    // (what this app counted as its conversions replaced clips; a month holds what was counted in it)
+    box.innerHTML = `<div class="sv-head" title="Space freed as this app's conversions replaced clips, counted since it began counting. Not the H.265/AV1 clips on the share now."><span><b>${esc(size(now.bytes))}</b> <span class="sv-muted">freed, counted this month</span></span>
+        <span class="sv-muted">${esc(size(total.bytes))} freed in all${total.clips ? ` · ${total.clips.toLocaleString()} clips replaced` : ''}</span></div>
+        ${any ? `<svg viewBox="0 0 ${W} ${H + 22}" width="${W}" height="${H + 22}" role="img" aria-label="Space freed by conversions, counted each month">
           <line class="axis" x1="0" x2="${W}" y1="${H}" y2="${H}"></line>
           ${months.map((m, i) => {
             const h = Math.round((m.bytes / max) * (H - 18));
@@ -93,7 +94,7 @@ export function createSavingsChart(el, { vehicleId } = {}) {
               <rect class="bar${i === months.length - 1 ? ' now' : ''}" x="${x.toFixed(1)}" y="${H - h}" width="${(bw * 0.7).toFixed(1)}" height="${h}" rx="2"></rect>
               ${m.bytes ? `<text${tight ? ' class="sv-small"' : ''} x="${(x + bw * 0.35).toFixed(1)}" y="${H - h - 4}" text-anchor="middle">${esc(short(m.bytes))}</text>` : ''}
               <text x="${(x + bw * 0.35).toFixed(1)}" y="${H + 16}" text-anchor="middle" opacity=".75">${esc(monthName(m.month, tight ? 'narrow' : 'short'))}</text></g>`;
-          }).join('')}</svg>` : '<p class="sv-muted" style="margin:0">Nothing converted in the last 12 months yet.</p>'}`;
+          }).join('')}</svg>` : '<p class="sv-muted" style="margin:0">No space freed by conversions counted in the last 12 months.</p>'}`;
   }
   const resized = globalThis.ResizeObserver ? new ResizeObserver(() => { if (data && Math.abs((box.clientWidth || 0) - drawnAt) > 4) draw(); }) : null;
   resized?.observe(box);

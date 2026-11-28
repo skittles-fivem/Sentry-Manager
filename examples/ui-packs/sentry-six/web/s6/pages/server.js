@@ -15,7 +15,7 @@ async function renderPage(el, ctx) {
   const more = {},
     seen = new Map();
   el.innerHTML =
-    '<a class="back" href="#/health">‹ Health</a><h2>Server details</h2><p data-host></p><div class="toolbar"><div class="segments"><button data-range="15m" class="active">15 min</button><button data-range="24h">24 h</button></div><a data-csv download>Download CSV</a></div><section class="card savings"><h3>Space saved by converting</h3><div data-savings></div></section><div data-stats>Reading the server…</div>';
+    '<a class="back" href="#/health">‹ Health</a><h2>Server details</h2><p data-host></p><div class="toolbar"><div class="segments"><button data-range="15m" class="active">15 min</button><button data-range="24h">24 h</button></div><a data-csv download>Download CSV</a></div><section class="card savings"><h3>Space freed by conversions</h3><div data-savings></div></section><div data-stats>Reading the server…</div>';
   const savings = createSavingsChart(el.querySelector('[data-savings]'), {
     vehicleId: ctx.current()?.id,
   });

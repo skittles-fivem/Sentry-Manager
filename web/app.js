@@ -769,7 +769,8 @@
    */
   /** Space saved by conversions (a vehicle's `saved`, or all of theirs together). */
   const savedTotal = (list) => list.reduce((t, v) => ({ bytes: t.bytes + (v.saved?.bytes || 0), clips: t.clips + (v.saved?.clips || 0) }), { bytes: 0, clips: 0 });
-  const savedText = (sv) => (sv?.bytes > 0 ? `${size(sv.bytes)} · ${plural(sv.clips, 'clip')}` : 'none yet');
+  // (counted as this app's conversions replace clips: not the H.265/AV1 clips on the share now)
+  const savedText = (sv) => (sv?.bytes > 0 ? `${size(sv.bytes)} · ${plural(sv.clips, 'clip')} replaced` : 'none yet');
 
   function fullInText(st) {
     if (!st || !fin(st.free)) return '—';
@@ -793,8 +794,8 @@
     const inventory = ndTile('Inventory', 'last discovered', ndBig(inv && fin(inv.bytes) ? size(inv.bytes) : '—', 'all categories')
       + ndKv([
         ['Recordings', inv ? Number(inv.recordings || 0).toLocaleString() : '—'],
-        ['Space saved', savedText(v.saved)],
-        ...(all.length > 1 ? [['All vehicles saved', savedText(savedTotal(all))]] : []),
+        ['Freed by conversions', savedText(v.saved)],
+        ...(all.length > 1 ? [['Freed, all vehicles', savedText(savedTotal(all))]] : []),
         // days with any footage, and since when
         ['Days of footage', inv && fin(inv.days) ? `${inv.days.toLocaleString()}${inv.firstDay ? ` <span class="muted small">since ${esc(new Date(`${inv.firstDay}T12:00:00`).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }))}</span>` : ''}` : '—'],
         ...(all.length > 1 && fin(allDays) ? [['All vehicles, days', allDays.toLocaleString()]] : []),

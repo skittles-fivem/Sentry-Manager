@@ -777,7 +777,7 @@ const savedTotal = (list) =>
     { bytes: 0, clips: 0 },
   );
 const savedText = (sv) =>
-  sv?.bytes > 0 ? `${size(sv.bytes)} · ${plural(sv.clips, 'clip')}` : 'none yet';
+  sv?.bytes > 0 ? `${size(sv.bytes)} · ${plural(sv.clips, 'clip')} replaced` : 'none yet';
 
 function fullInText(st) {
   if (!st || !fin(st.free)) return '—';
