@@ -105,6 +105,9 @@ pub struct Accounts {
     db: Arc<Db>,
     issuer: String,
     pending: Mutex<HashMap<String, Pending>>,
+    /// held across each read-change-write of an account's record, so two at once (the same
+    /// code or recovery code sent twice) cannot both pass or undo each other's write
+    records: Mutex<()>,
     now: Box<dyn Fn() -> i64 + Send + Sync>,
 }
 
@@ -123,7 +126,7 @@ impl Accounts {
     }
 
     pub fn with_clock(db: Arc<Db>, now: Box<dyn Fn() -> i64 + Send + Sync>) -> Accounts {
-        Accounts { db, issuer: "Sentry Six Manager".into(), pending: Mutex::new(HashMap::new()), now }
+        Accounts { db, issuer: "Sentry Six Manager".into(), pending: Mutex::new(HashMap::new()), records: Mutex::new(()), now }
     }
 
     /// `{ role: 'admin', ...stored }`; an error when the account's record cannot be read
@@ -178,6 +181,7 @@ impl Accounts {
         if role != "admin" && self.is_admin(username)? && self.admins()? <= 1 {
             return Err(refuse(409, "There must be one admin left: make another account admin first."));
         }
+        let _one = self.records.lock().unwrap_or_else(|e| e.into_inner());
         let mut m = self.meta(username)?;
         m.insert("role".into(), json!(role));
         self.set_meta(username, &m)?;
@@ -209,6 +213,7 @@ impl Accounts {
     /// A new secret to scan or type (not on until confirmed with a code): { secret, uri }.
     pub fn start_totp(&self, username: &str) -> Result<Value, DbError> {
         let secret = base32(&random_bytes(20));
+        let _one = self.records.lock().unwrap_or_else(|e| e.into_inner());
         let mut m = self.meta(username)?;
         m.insert("totpSetup".into(), json!({ "secret": secret, "at": (self.now)() }));
         self.set_meta(username, &m)?;
@@ -219,6 +224,7 @@ impl Accounts {
 
     /// Turn it on with the first code; returns the recovery codes (shown once).
     pub fn enable_totp(&self, username: &str, code: &str) -> Result<Vec<String>, Refusal> {
+        let _one = self.records.lock().unwrap_or_else(|e| e.into_inner());
         let mut m = self.meta(username)?;
         let setup = m.get("totpSetup").and_then(Value::as_object).cloned();
         let now = (self.now)();
@@ -245,6 +251,7 @@ impl Accounts {
     }
 
     pub fn disable_totp(&self, username: &str) -> Result<(), DbError> {
+        let _one = self.records.lock().unwrap_or_else(|e| e.into_inner());
         let mut m = self.meta(username)?;
         for k in ["totp", "totpSetup", "recovery"] {
             m.shift_remove(k);
@@ -259,6 +266,7 @@ impl Accounts {
     /// A code (or a recovery code) for this account; each is used once (a code whose use
     /// could not be kept is an error, not a right code: it could be used again).
     pub fn verify_code(&self, username: &str, code: &str) -> Result<bool, DbError> {
+        let _one = self.records.lock().unwrap_or_else(|e| e.into_inner());
         let mut m = self.meta(username)?;
         let Some(totp) = m.get("totp").and_then(Value::as_object).cloned() else { return Ok(false) };
         if !totp.get("enabled").is_some_and(truthy) {
@@ -314,28 +322,38 @@ impl Accounts {
     /// The error's bool: whether the pending sign-in is over (its cookie goes). A code that
     /// could not be checked (the database failed) is a 500 refusal, not a wrong code.
     pub fn finish_pending(&self, token: Option<&str>, code: &str) -> Result<String, (Refusal, bool)> {
-        let key = token.map(sha256_hex);
-        let p = key.as_ref().and_then(|k| self.pending.lock().unwrap().get(k).cloned());
-        let Some(p) = p.filter(|p| p.until >= (self.now)()) else {
-            return Err((refuse(401, "The sign-in waited too long: sign in again."), true));
-        };
-        let key = key.unwrap();
-        if !self.verify_code(&p.username, code).map_err(|e| (Refusal::from(e), false))? {
+        let waited = || Err((refuse(401, "The sign-in waited too long: sign in again."), true));
+        let Some(key) = token.map(sha256_hex) else { return waited() };
+        // the try is counted before the code is checked, so requests sent at once get five
+        // checks in all, not five each
+        let (username, tries) = {
             let mut map = self.pending.lock().unwrap();
-            let tries = match map.get_mut(&key) {
-                Some(x) => {
-                    x.tries += 1;
-                    x.tries
-                }
-                None => p.tries + 1,
-            };
-            if tries >= 5 {
+            let Some(x) = map.get_mut(&key).filter(|p| p.until >= (self.now)()) else { return waited() };
+            if x.tries >= 5 {
                 map.remove(&key);
+                return Err((refuse(401, "Too many wrong codes: sign in again."), true));
+            }
+            x.tries += 1;
+            (x.username.clone(), x.tries)
+        };
+        let right = match self.verify_code(&username, code) {
+            Ok(r) => r,
+            Err(e) => {
+                // (not checked: the try is given back)
+                if let Some(x) = self.pending.lock().unwrap().get_mut(&key) {
+                    x.tries = x.tries.saturating_sub(1);
+                }
+                return Err((Refusal::from(e), false));
+            }
+        };
+        if !right {
+            if tries >= 5 {
+                self.pending.lock().unwrap().remove(&key);
             }
             return Err((refuse(401, if tries >= 5 { "Too many wrong codes: sign in again." } else { "That code is not right." }), tries >= 5));
         }
         self.pending.lock().unwrap().remove(&key);
-        Ok(p.username)
+        Ok(username)
     }
 }
 
@@ -493,6 +511,54 @@ mod tests {
         assert_eq!(a.finish_pending(Some(&token), "x").unwrap_err().0.message, "The sign-in waited too long: sign in again.");
         a.disable_totp("u").unwrap();
         assert!(!a.two_factor_on("u").unwrap());
+    }
+
+    #[test]
+    fn codes_sent_at_once_get_five_checks_in_all_and_a_recovery_code_works_once() {
+        let clock = Arc::new(AtomicI64::new(1_700_000_000_000));
+        let (db, a) = accounts_at(clock.clone());
+        db.put_user("u", "s", "h").unwrap();
+        let secret = a.start_totp("u").unwrap()["secret"].as_str().unwrap().to_string();
+        let recovery = a.enable_totp("u", &totp(&secret, clock.load(Ordering::SeqCst) / 1000 / 30)).unwrap();
+        let token = a.start_pending("u");
+        std::thread::scope(|s| {
+            // every check waits (the record is busy) while 20 wrong codes arrive at once
+            let busy = a.records.lock().unwrap();
+            let (tx, rx) = std::sync::mpsc::channel();
+            for _ in 0..20 {
+                let (tx, a, token) = (tx.clone(), &a, &token);
+                s.spawn(move || {
+                    let _ = tx.send(a.finish_pending(Some(token), "000000").unwrap_err().0.message);
+                });
+            }
+            drop(tx);
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            let early: Vec<String> = rx.try_iter().collect();
+            assert_eq!(early.len(), 15, "only five are checked: {early:?}");
+            drop(busy);
+            let late: Vec<String> = rx.iter().collect();
+            assert_eq!(late.len(), 5);
+        });
+        assert_eq!(a.pending_user(Some(&token)), None, "five wrong codes end it");
+        // the same recovery code sent at once signs in once
+        let wins: usize = std::thread::scope(|s| {
+            let hs: Vec<_> = (0..8).map(|_| s.spawn(|| a.verify_code("u", &recovery[1]).unwrap())).collect();
+            hs.into_iter().map(|h| h.join().unwrap() as usize).sum()
+        });
+        assert_eq!(wins, 1);
+        assert_eq!(a.recovery_left("u").unwrap(), 9);
+    }
+
+    #[test]
+    fn a_code_that_could_not_be_checked_gives_its_try_back() {
+        let (db, a) = accounts_at(Arc::new(AtomicI64::new(1_700_000_000_000)));
+        db.put_user("u", "s", "h").unwrap();
+        let token = a.start_pending("u");
+        db.conn().execute_batch("ALTER TABLE settings RENAME TO settings_gone").unwrap();
+        for _ in 0..6 {
+            assert_eq!(a.finish_pending(Some(&token), "000000").unwrap_err().0.status, 500);
+        }
+        assert_eq!(a.pending.lock().unwrap().get(&sha256_hex(&token)).unwrap().tries, 0);
     }
 
     #[test]
