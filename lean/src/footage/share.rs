@@ -347,11 +347,37 @@ pub fn errno_name(n: i32) -> &'static str {
 /// (one still being written by a test on another thread is newer than this).
 const OLD_PROBE: Duration = Duration::from_secs(600);
 
-/// A write test's probe name: `.sentry-six-manager-check-<12 hex>-a` or `-b`, nothing else.
-fn is_probe_name(name: &std::ffi::OsStr) -> bool {
-    let Some(rest) = name.to_str().and_then(|n| n.strip_prefix(".sentry-six-manager-check-")) else { return false };
-    let Some(tag) = rest.strip_suffix("-a").or_else(|| rest.strip_suffix("-b")) else { return false };
-    tag.len() == 12 && tag.bytes().all(|c| c.is_ascii_hexdigit())
+/// The tag of a write test's probe name: `.sentry-six-manager-check-<12 hex>-a` or `-b`, nothing else.
+fn probe_tag(name: &std::ffi::OsStr) -> Option<&str> {
+    let rest = name.to_str()?.strip_prefix(".sentry-six-manager-check-")?;
+    let tag = rest.strip_suffix("-a").or_else(|| rest.strip_suffix("-b"))?;
+    (tag.len() == 12 && tag.bytes().all(|c| c.is_ascii_hexdigit())).then_some(tag)
+}
+
+/// The tags of the write tests this process is running now, on any mount: their probes are never
+/// taken for left-over ones, whatever the share's clock says.
+static PROBES_IN_FLIGHT: Mutex<std::collections::BTreeSet<String>> = Mutex::new(std::collections::BTreeSet::new());
+
+/// Holds a tag in PROBES_IN_FLIGHT until the test is done with its probes.
+struct InFlight(String);
+
+impl InFlight {
+    fn new(tag: &str) -> Self {
+        PROBES_IN_FLIGHT.lock().unwrap_or_else(|e| e.into_inner()).insert(tag.to_string());
+        InFlight(tag.to_string())
+    }
+}
+
+impl Drop for InFlight {
+    fn drop(&mut self) {
+        PROBES_IN_FLIGHT.lock().unwrap_or_else(|e| e.into_inner()).remove(&self.0);
+    }
+}
+
+/// A file's status-change time, the one time no one can set back.
+fn changed_time(m: &std::fs::Metadata) -> Option<std::time::SystemTime> {
+    use std::os::unix::fs::MetadataExt;
+    (m.ctime() >= 0).then(|| std::time::UNIX_EPOCH + Duration::new(m.ctime() as u64, m.ctime_nsec().clamp(0, 999_999_999) as u32))
 }
 
 /// Removes the probe files earlier write tests left in `root` when the share stopped answering
@@ -359,16 +385,20 @@ fn is_probe_name(name: &std::ffi::OsStr) -> bool {
 /// followed), and only ones not changed for OLD_PROBE. (A test sets its probe's modified time
 /// back to 2020, so the status-change time, which no one can set back, must be old as well: a
 /// probe another test on the same folder is still using is never taken for a left-over one.)
+/// `now` is the share's own clock (the status-change time of a probe made just now), never this
+/// machine's: a share whose clock runs behind would make a probe in use look old. Probes of tests
+/// this process is running are skipped whatever their times.
 fn remove_old_probes(root: &Path, now: std::time::SystemTime) {
-    use std::os::unix::fs::MetadataExt;
     let Ok(dir) = std::fs::read_dir(root) else { return };
     for entry in dir.flatten() {
-        if !is_probe_name(&entry.file_name()) {
+        let name = entry.file_name();
+        let Some(tag) = probe_tag(&name) else { continue };
+        if PROBES_IN_FLIGHT.lock().unwrap_or_else(|e| e.into_inner()).contains(tag) {
             continue;
         }
         let p = entry.path();
         let Ok(m) = std::fs::symlink_metadata(&p) else { continue };
-        let changed = (m.ctime() >= 0).then(|| std::time::UNIX_EPOCH + Duration::new(m.ctime() as u64, m.ctime_nsec().clamp(0, 999_999_999) as u32));
+        let changed = changed_time(&m);
         let old_since = |t: Option<std::time::SystemTime>| t.and_then(|t| now.duration_since(t).ok()).is_some_and(|age| age >= OLD_PROBE);
         let old = old_since(m.modified().ok()) && old_since(changed);
         if old && (m.is_file() || m.file_type().is_symlink()) {
@@ -394,6 +424,7 @@ fn check_writable_one(root: &Path, busy: &Arc<AtomicBool>) -> WriteCheck {
         // (names no one can guess, made new and opened without following a link: the share is
         // not trusted, a link planted under a probe's name never has its target written)
         let tag = super::random_hex(6);
+        let _in_flight = InFlight::new(&tag);
         let a = r2.join(format!(".sentry-six-manager-check-{tag}-a"));
         let b = r2.join(format!(".sentry-six-manager-check-{tag}-b"));
         let create = |p: &Path| std::fs::OpenOptions::new().write(true).create_new(true).custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC).open(p);
@@ -405,13 +436,17 @@ fn check_writable_one(root: &Path, busy: &Arc<AtomicBool>) -> WriteCheck {
                 let _ = std::fs::remove_file(&p);
             }
         }
-        remove_old_probes(&r2, std::time::SystemTime::now());
         // (a failed test removes its files here, on this thread: when the share stopped
         // answering, that waits here too, never on the share's own thread)
         let steps = || -> std::io::Result<()> {
         let set = |step: &'static str| s2.lock().unwrap().0 = step;
         let fail = |e: std::io::Error, call: &str, p: &Path| std::io::Error::new(e.kind(), node_message(&e, call, p));
-        create(&a).and_then(|mut f| f.write_all(b"old")).map_err(|e| fail(e, "open", &a))?;
+        let fa = create(&a).and_then(|mut f| f.write_all(b"old").map(|()| f)).map_err(|e| fail(e, "open", &a))?;
+        // (left-overs are judged by the share's clock: the probe just made says what "now" is there)
+        if let Some(now) = fa.metadata().ok().as_ref().and_then(changed_time) {
+            remove_old_probes(&r2, now);
+        }
+        drop(fa);
         let mut fh = create(&b).map_err(|e| fail(e, "open", &b))?;
         fh.write_all(b"new")?;
         set("sync");
@@ -1001,6 +1036,12 @@ mod tests {
         std::fs::File::options().write(true).open(&live).unwrap().set_times(std::fs::FileTimes::new().set_accessed(when).set_modified(when)).unwrap();
         remove_old_probes(&s, std::time::SystemTime::now());
         assert!(live.exists(), "a probe in use is kept though its modified time is old");
+        // (the share's clock runs far behind: by its times the probe looks old, but this process
+        // is still using it)
+        let held = InFlight::new("00000000000a");
+        remove_old_probes(&s, std::time::SystemTime::now() + OLD_PROBE * 3);
+        assert!(live.exists(), "a probe of a test in flight is kept whatever the clock says");
+        drop(held);
         std::fs::remove_file(&live).unwrap();
         remove_old_probes(&s, std::time::SystemTime::now() + OLD_PROBE);
         for n in left {
