@@ -10,8 +10,13 @@ use std::sync::Arc;
 
 const INLINE: usize = 22;
 
+/// (the inner kinds stay private: new() and the From conversions are the only ways in, which
+/// keeps the in-place bytes whole UTF-8)
 #[derive(Clone)]
-pub enum Short {
+pub struct Short(Repr);
+
+#[derive(Clone)]
+enum Repr {
     Inline(u8, [u8; INLINE]),
     Boxed(Box<str>),
 }
@@ -21,24 +26,24 @@ impl Short {
         if s.len() <= INLINE {
             let mut b = [0u8; INLINE];
             b[..s.len()].copy_from_slice(s.as_bytes());
-            Short::Inline(s.len() as u8, b)
+            Short(Repr::Inline(s.len() as u8, b))
         } else {
-            Short::Boxed(s.into())
+            Short(Repr::Boxed(s.into()))
         }
     }
 
     pub fn as_str(&self) -> &str {
-        match self {
+        match &self.0 {
             // SAFETY: the bytes were copied from a &str, whole (new() is the only way in)
-            Short::Inline(n, b) => unsafe { std::str::from_utf8_unchecked(&b[..*n as usize]) },
-            Short::Boxed(s) => s,
+            Repr::Inline(n, b) => unsafe { std::str::from_utf8_unchecked(&b[..*n as usize]) },
+            Repr::Boxed(s) => s,
         }
     }
 }
 
 impl Default for Short {
     fn default() -> Short {
-        Short::Inline(0, [0; INLINE])
+        Short(Repr::Inline(0, [0; INLINE]))
     }
 }
 
@@ -72,7 +77,7 @@ impl From<String> for Short {
         if s.len() <= INLINE {
             Short::new(&s)
         } else {
-            Short::Boxed(s.into_boxed_str())
+            Short(Repr::Boxed(s.into_boxed_str()))
         }
     }
 }
@@ -85,9 +90,9 @@ impl From<&String> for Short {
 
 impl From<Short> for String {
     fn from(s: Short) -> String {
-        match s {
-            Short::Boxed(b) => b.into_string(),
-            s => s.as_str().to_string(),
+        match s.0 {
+            Repr::Boxed(b) => b.into_string(),
+            r => Short(r).as_str().to_string(),
         }
     }
 }
@@ -354,8 +359,8 @@ mod tests {
             assert_eq!(format!("{a}"), s);
             assert_eq!(format!("{a:?}"), format!("{s:?}"));
         }
-        assert!(matches!(Short::new(&"x".repeat(22)), Short::Inline(..)));
-        assert!(matches!(Short::new(&"x".repeat(23)), Short::Boxed(..)));
+        assert!(matches!(Short::new(&"x".repeat(22)).0, Repr::Inline(..)));
+        assert!(matches!(Short::new(&"x".repeat(23)).0, Repr::Boxed(..)));
         assert_eq!(std::mem::size_of::<Short>(), 24);
         assert_eq!(std::mem::size_of::<Option<Short>>(), 24);
     }

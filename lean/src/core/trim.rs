@@ -12,11 +12,15 @@ pub fn soon() {
     {
         use std::sync::atomic::Ordering;
         if !PENDING.swap(true, Ordering::SeqCst) {
-            let _ = std::thread::Builder::new().name("trim".into()).spawn(|| {
+            let spawned = std::thread::Builder::new().name("trim".into()).spawn(|| {
                 std::thread::sleep(std::time::Duration::from_secs(3));
                 PENDING.store(false, Ordering::SeqCst);
                 unsafe { libc::malloc_trim(0) };
             });
+            if spawned.is_err() {
+                // (no thread: the next scan asks again; the minute's trim still runs)
+                PENDING.store(false, Ordering::SeqCst);
+            }
         }
     }
 }
