@@ -78,7 +78,10 @@ export async function render(ctx) {
   // (a refresh while the vehicle picker is open closed it: wait until it is left)
   let held = false;
   const picking = () => Boolean(document.activeElement?.matches('select, input, textarea') && view.contains(document.activeElement));
-  view.addEventListener('focusout', () => setTimeout(() => { if (held && ctx.alive() && !picking()) { held = false; refresh(); } }, 0));
+  // (on the shared #view, so it goes when the page is left)
+  const onOut = () => setTimeout(() => { if (held && ctx.alive() && !picking()) { held = false; refresh(); } }, 0);
+  view.addEventListener('focusout', onOut);
+  ctx.cleanup(() => view.removeEventListener('focusout', onOut));
   ctx.on('topics', (t) => {
     if (!t.includes('bin') || document.querySelector('dialog[open]')) return;
     if (picking()) held = true; else liveDraw(view.firstElementChild || view, () => ctx.alive() && refresh(), 'dl:bin');

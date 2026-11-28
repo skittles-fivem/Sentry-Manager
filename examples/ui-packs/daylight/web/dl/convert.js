@@ -148,7 +148,9 @@ function openStream() {
   es.addEventListener('error', () => {
     if (es.readyState !== EventSource.CLOSED) return;
     live.source = null;
-    if (live.listeners.size || live.bench.size) setTimeout(openStream, live.retry);
+    live.subscribed = false;
+    // (asked again when the wait is over: the page that followed may have been left meanwhile)
+    if (live.listeners.size || live.bench.size) setTimeout(() => { if (live.listeners.size || live.bench.size) openStream(); }, live.retry);
     live.retry = Math.min(live.retry * 2, 30000);
   });
 }
