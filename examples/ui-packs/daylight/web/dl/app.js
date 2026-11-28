@@ -177,8 +177,9 @@ async function render() {
   } catch (err) {
     // a page left before its code arrived leaves the next page alone
     if (seq !== current.seq) return;
-    view.innerHTML = `<div class="page"><div class="note note-bad">${icon('alert')}<span>This page couldn’t load: ${esc(err.message)}</span></div><p style="margin-top:16px"><button class="btn" type="button" id="retry">Try again</button></p></div>`;
-    $('#retry')?.addEventListener('click', () => render());
+    view.innerHTML = `<div class="page"><div class="note note-bad">${icon('alert')}<span>This page couldn’t load: ${esc(err.message)}</span></div><p style="margin-top:16px"><button class="btn" type="button" id="retry">Reload the page</button></p></div>`;
+    // (the browser keeps a module that failed to load as failed: only a reload fetches it again)
+    $('#retry')?.addEventListener('click', () => location.reload());
     return;
   }
   if (seq !== current.seq) return;
