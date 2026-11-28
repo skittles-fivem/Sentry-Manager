@@ -2090,6 +2090,20 @@ function createFootageConverterController(options = {}) {
         setText(elements.autoStatus, text);
     }
 
+    // The automatic-conversion status is polled only while the page is shown:
+    // a host that puts the page away (setVisible(false)) stops the poll, and
+    // showing it again reads the status at once and starts the poll again.
+    let autoReady = false;
+    let autoPaused = false;
+    function startAutoPoll() {
+        if (autoTimer || autoPaused || !autoReady) return;
+        autoTimer = setInterval(() => { void refreshAuto(); }, options.autoPollMs || 30_000);
+    }
+    function stopAutoPoll() {
+        if (autoTimer) clearInterval(autoTimer);
+        autoTimer = null;
+    }
+
     async function refreshAuto() {
         if (typeof api.getConverterAuto !== 'function') return;
         try {
@@ -2439,7 +2453,8 @@ function createFootageConverterController(options = {}) {
         }
         await refreshAuto();
         if (typeof api.getConverterAuto === 'function' && options.autoPollMs !== 0) {
-            autoTimer = setInterval(() => { void refreshAuto(); }, options.autoPollMs || 30_000);
+            autoReady = true;
+            startAutoPoll();
         }
         try {
             updateCapabilities(unwrap(await api.getConverterCapabilities()));
@@ -2458,7 +2473,19 @@ function createFootageConverterController(options = {}) {
             if (!initPromise) initPromise = initialize();
             return initPromise;
         },
-        setVisible(nextVisible) { visible = Boolean(nextVisible); },
+        setVisible(nextVisible) {
+            visible = Boolean(nextVisible);
+            if (!visible) {
+                autoPaused = true;
+                stopAutoPoll();
+                return;
+            }
+            const resumed = autoPaused;
+            autoPaused = false;
+            if (!autoReady || autoTimer) return;
+            if (resumed) void refreshAuto();
+            startAutoPoll();
+        },
         /** The devices again (see loadDevices): 'reload' when the page must start over. */
         refreshDevices() {
             return initialized ? loadDevices({ again: true }).catch(() => undefined) : Promise.resolve(undefined);
@@ -2466,8 +2493,8 @@ function createFootageConverterController(options = {}) {
         get visible() { return visible; },
         get snapshot() { return snapshot; },
         destroy() {
-            if (autoTimer) clearInterval(autoTimer);
-            autoTimer = null;
+            autoReady = false;
+            stopAutoPoll();
             unsubscribe?.();
             unsubscribe = null;
             unsubscribeLanguage?.();
