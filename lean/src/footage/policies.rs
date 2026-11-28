@@ -105,7 +105,8 @@ fn days_between(a: &str, b: &str) -> f64 {
     ((day_ms(b) - day_ms(a)) / 86_400_000.0).round()
 }
 
-/// selectExpired: recordings older than their category's keepDays by their capture day.
+/// selectExpired: recordings older than their category's keepDays by the day of their newest
+/// clip (a session that ran past midnight is kept as long as its last clips are).
 pub fn select_expired<'a>(recs: &'a [Recording], policy: &Value, now_ms: f64, tz: &str) -> Vec<&'a Recording> {
     let today = super::tz::day_in_zone(now_ms, tz);
     recs.iter()
@@ -114,7 +115,7 @@ pub fn select_expired<'a>(recs: &'a [Recording], policy: &Value, now_ms: f64, tz
             if !(keep.is_finite() && keep != 0.0) || r.protected || r.day.is_empty() {
                 return false;
             }
-            days_between(&r.day, &today) >= keep
+            days_between(if r.last_day.is_empty() { &r.day } else { &r.last_day }, &today) >= keep
         })
         .collect()
 }
@@ -328,6 +329,26 @@ mod tests {
         assert_eq!(rule_key(&p), rule_key(&json!({ "keepDays": { "Recent": "7" }, "binDays": "30", "maxGB": 12.3, "enabled": false })));
         assert_ne!(rule_key(&p), rule_key(&json!({ "keepDays": { "Recent": 8 }, "binDays": 30, "maxGB": 12.3 })));
         assert_eq!(days_between("2025-03-01", "2025-03-08"), 7.0);
+    }
+
+    #[test]
+    fn a_session_past_midnight_is_aged_by_its_newest_clip() {
+        use crate::scanner::{FileEntry, FileList};
+        let rels = ["TeslaCam/RecentClips/2025-03-01_23-59-00-front.mp4", "TeslaCam/RecentClips/2025-03-02_00-00-00-front.mp4", "TeslaCam/RecentClips/2025-03-02_00-01-00-front.mp4"];
+        let files: Vec<FileEntry> = rels
+            .iter()
+            .map(|rel| {
+                let c = crate::footage::classify(rel).unwrap();
+                FileEntry { rel: rel.to_string(), size: 1, mtime_ms: 0.0, ctime_ms: 0.0, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day: "2025-03-01".into(), camera: c.camera, event_id: c.event_id }
+            })
+            .collect();
+        let recs = super::super::inventory::build_recordings(&std::sync::Arc::new(FileList::from(files)), "car");
+        assert_eq!(recs.len(), 1);
+        assert_eq!((recs[0].day.as_str(), recs[0].last_day.as_str()), ("2025-03-01", "2025-03-02"));
+        let policy = json!({ "keepDays": { "Recent": 1 } });
+        let at = |day: &str| js::day_ms(day) + 12.0 * 3_600_000.0;
+        assert!(select_expired(&recs, &policy, at("2025-03-02"), "UTC").is_empty(), "its clips after midnight are a day old only tomorrow");
+        assert_eq!(select_expired(&recs, &policy, at("2025-03-03"), "UTC").len(), 1);
     }
 
     fn with_a_clip(name: &str) -> crate::footage::testing::OnCore {
