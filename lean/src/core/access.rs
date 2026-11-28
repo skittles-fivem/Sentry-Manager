@@ -199,6 +199,11 @@ impl Access {
         self.st.lock().unwrap().settings.clone()
     }
 
+    /// One part of the settings (without a copy of them all).
+    pub fn part(&self, key: &str) -> Value {
+        self.st.lock().unwrap().settings[key].clone()
+    }
+
     /// The settings in force once they are kept; an error (and the settings as they were) when not.
     pub fn set(&self, next: &Value) -> Result<Value, DbError> {
         let mut st = self.st.lock().unwrap();

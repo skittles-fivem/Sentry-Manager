@@ -193,7 +193,7 @@ impl AppState {
     /// An admin outside the home network with "admin pages only at home" on counts as a viewer there.
     pub fn role_for(&self, client: &str, user: &str) -> DbResult<Option<String>> {
         let role = self.accounts.role_of(Some(user))?;
-        if role.as_deref() == Some("admin") && super::accounts::truthy(&self.access.get()["homeOnly"]["adminPages"]) && !self.from_home(client) {
+        if role.as_deref() == Some("admin") && super::accounts::truthy(&self.access.part("homeOnly")["adminPages"]) && !self.from_home(client) {
             return Ok(Some("viewer".into()));
         }
         Ok(role)
@@ -204,13 +204,13 @@ impl AppState {
         if !self.accounts.is_admin(user)? {
             return Ok(false);
         }
-        let rules = self.access.get()["homeOnly"].clone();
+        let rules = self.access.part("homeOnly");
         Ok(!((super::accounts::truthy(&rules["adminChanges"]) || super::accounts::truthy(&rules["adminPages"])) && !self.from_home(client)))
     }
 
     /// The two-step rules for a signed-in account here: "ok", "out" (signed out) or "setup" (only setting it up is open).
     pub fn two_factor_state(&self, user: &str, home: bool) -> DbResult<&'static str> {
-        let rules = self.access.get()["twoFactor"].clone();
+        let rules = self.access.part("twoFactor");
         let (outside, everyone) = (super::accounts::truthy(&rules["outside"]), super::accounts::truthy(&rules["everyone"]));
         if user.is_empty() || (!outside && !everyone) || self.accounts.two_factor_on(user)? {
             return Ok("ok");
