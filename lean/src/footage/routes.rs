@@ -171,7 +171,7 @@ fn say_car(c: &Value) -> String {
 }
 
 /// smbTest.js: mount once with the typed details, read, look for footage, try a write, unmount.
-fn test_smb(app: &App, source: Option<&Value>, vehicle_id: Option<&str>) -> Res<Value> {
+fn test_smb(app: &App, who: &Caller, source: Option<&Value>, vehicle_id: Option<&str>) -> Res<Value> {
     let existing = match vehicle_id {
         Some(id) => app.vehicles.try_get(id)?.map(|v| v.source),
         None => None,
@@ -182,6 +182,10 @@ fn test_smb(app: &App, source: Option<&Value>, vehicle_id: Option<&str>) -> Res<
         Ok(s) => s,
         Err(e) => return Ok(json!({ "ok": false, "stage": "details", "error": e.message })),
     };
+    // (the saved password goes only to the server it was saved for, unless the admin confirms)
+    if super::smb::reuses_password_elsewhere(source.unwrap_or(&empty), prev, &smb) {
+        who.require_confirmed()?;
+    }
     let test_id = super::vehicles::TEST_ID;
     if app.vehicles.try_get(test_id)?.is_some() {
         return Ok(json!({ "ok": false, "stage": "details", "error": format!("A vehicle uses the id \"{test_id}\", which the test needs. Rename that vehicle first.") }));
@@ -269,7 +273,7 @@ pub fn handle(app: &Arc<App>, who: &Caller, method: &str, seg: &[&str], query: &
             if let Some(id) = vid {
                 tri!(vehicle_or_404(app, id));
             }
-            let result = tri!(test_smb(app, b.get("source"), vid));
+            let result = tri!(test_smb(app, who, b.get("source"), vid));
             let share: String = b.get("source").and_then(|s| s.get("share")).filter(|s| js::truthy(Some(s))).map(js::string).unwrap_or_default()
                 .chars().map(|c| if (c as u32) < 0x20 || (0x7f..=0x9f).contains(&(c as u32)) { ' ' } else { c }).collect();
             let outcome = if result["ok"] == true { "connected".to_string() } else { format!("failed ({})", js::string(&result["stage"])) };
