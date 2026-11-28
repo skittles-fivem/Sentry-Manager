@@ -15,7 +15,7 @@ use super::js;
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::io::{self, Read, Write};
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -134,7 +134,10 @@ const FSYNC_TOLERATED: [&str; 7] = ["EINVAL", "EISDIR", "ENOTSUP", "EOPNOTSUPP",
 
 /// fsyncPath: a file or folder; a folder some filesystems (SMB, FUSE) cannot fsync is let be.
 fn fsync_path(p: &Path) -> Result<(), RecordError> {
-    let r = File::open(p).and_then(|f| f.sync_all());
+    tolerate_fsync(File::open(p).and_then(|f| f.sync_all()), p)
+}
+
+fn tolerate_fsync(r: io::Result<()>, p: &Path) -> Result<(), RecordError> {
     match r {
         Ok(()) => Ok(()),
         Err(e) => {
@@ -155,19 +158,54 @@ fn random_hex(bytes: usize) -> String {
     b.iter().map(|x| format!("{x:02x}")).collect()
 }
 
+/// The record's folder, opened without following a link (the share is not trusted: a
+/// `.sentrymanager` planted as a link is refused), and every file in it reached through
+/// that open folder without following a link either. `shown` is its path for messages.
+struct RecordDir {
+    dir: File,
+    shown: PathBuf,
+}
+
+impl RecordDir {
+    fn open(shown: &Path) -> Result<RecordDir, RecordError> {
+        let dir = OpenOptions::new().read(true).custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC).open(shown).map_err(|e| RecordError::io(&e, "open", shown))?;
+        Ok(RecordDir { dir, shown: shown.to_path_buf() })
+    }
+    /// `name` in the open folder, whatever its path now leads to
+    fn at(&self, name: &str) -> PathBuf {
+        use std::os::fd::AsRawFd;
+        PathBuf::from(format!("/proc/self/fd/{}/{name}", self.dir.as_raw_fd()))
+    }
+    fn shown(&self, name: &str) -> PathBuf {
+        self.shown.join(name)
+    }
+    /// a file in it, never through a link
+    fn file(&self, name: &str, o: &mut OpenOptions) -> io::Result<File> {
+        o.custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC).open(self.at(name))
+    }
+    fn read(&self, name: &str) -> io::Result<Vec<u8>> {
+        let mut out = Vec::new();
+        self.file(name, OpenOptions::new().read(true))?.read_to_end(&mut out)?;
+        Ok(out)
+    }
+    fn fsync(&self) -> Result<(), RecordError> {
+        tolerate_fsync(self.dir.sync_all(), &self.shown)
+    }
+}
+
 /// writeAtomic: a dot-named temporary file, fsynced, renamed over `name`, the folder fsynced.
-fn write_atomic(dir: &Path, name: &str, data: &[u8]) -> Result<(), RecordError> {
-    let tmp = dir.join(format!(".{name}.tmp-{}", random_hex(6)));
-    let mut f = OpenOptions::new().write(true).create_new(true).mode(0o644).open(&tmp).map_err(|e| RecordError::io(&e, "open", &tmp))?;
+fn write_atomic(dir: &RecordDir, name: &str, data: &[u8]) -> Result<(), RecordError> {
+    let tmp_name = format!(".{name}.tmp-{}", random_hex(6));
+    let tmp = dir.shown(&tmp_name);
+    let mut f = dir.file(&tmp_name, OpenOptions::new().write(true).create_new(true).mode(0o644)).map_err(|e| RecordError::io(&e, "open", &tmp))?;
     let w = f.write_all(data).and_then(|_| f.sync_all());
     drop(f);
     w.map_err(|e| RecordError::io(&e, "write", &tmp))?;
-    let target = dir.join(name);
-    if let Err(e) = fs::rename(&tmp, &target) {
-        let _ = fs::remove_file(&tmp);
+    if let Err(e) = fs::rename(dir.at(&tmp_name), dir.at(name)) {
+        let _ = fs::remove_file(dir.at(&tmp_name));
         return Err(RecordError::io(&e, "rename", &tmp));
     }
-    fsync_path(dir)
+    dir.fsync()
 }
 
 fn is_day(s: &str) -> bool {
@@ -193,8 +231,8 @@ struct Mark {
     offset: u64,
 }
 
-fn read_marks(dir: &Path) -> Option<Vec<Mark>> {
-    let text = fs::read(dir.join(MARKS)).ok()?;
+fn read_marks(dir: &RecordDir) -> Option<Vec<Mark>> {
+    let text = dir.read(MARKS).ok()?;
     let raw: Value = serde_json::from_str(&String::from_utf8_lossy(&text)).ok()?;
     if raw.get("v") != Some(&json!(1)) {
         return None;
@@ -297,15 +335,17 @@ impl Recorder {
         if created_dir {
             fsync_path(Path::new(root))?;
         }
-        let mut fh = OpenOptions::new().append(true).create(true).mode(0o644).open(file).map_err(|e| RecordError::io(&e, "open", file))?;
+        // (a link in place of the folder or the record is refused: Err, the original is kept)
+        let rd = RecordDir::open(dir)?;
+        let mut fh = rd.file(FILE, OpenOptions::new().read(true).append(true).create(true).mode(0o644)).map_err(|e| RecordError::io(&e, "open", file))?;
         let mut size = fh.metadata().map_err(|e| RecordError::io(&e, "fstat", file))?.len();
         let created = size == 0;
         let mut data = line.as_bytes().to_vec();
         if size > 0 {
             // a torn last line (never ours, but): start on a line of its own
+            use std::os::unix::fs::FileExt;
             let mut last = [0u8; 1];
-            let mut r = File::open(file).map_err(|e| RecordError::io(&e, "open", file))?;
-            r.seek(SeekFrom::Start(size - 1)).and_then(|_| r.read(&mut last)).map_err(|e| RecordError::io(&e, "read", file))?;
+            fh.read_at(&mut last, size - 1).map_err(|e| RecordError::io(&e, "read", file))?;
             if last[0] != b'\n' {
                 data.insert(0, b'\n');
             }
@@ -317,10 +357,10 @@ impl Recorder {
         }
         drop(fh);
         if created {
-            fsync_path(dir)?;
+            rd.fsync()?;
         }
         // the day's first line: note where it starts (for pruning)
-        if let Err(e) = self.mark(dir, file, size) {
+        if let Err(e) = self.mark(&rd, file, size) {
             self.say("warn", &format!("Checksum record {}: {}", file.display(), e.message));
         }
         Ok(())
@@ -332,7 +372,7 @@ impl Recorder {
         }
     }
 
-    fn mark(&self, dir: &Path, file: &Path, size: u64) -> Result<(), RecordError> {
+    fn mark(&self, dir: &RecordDir, file: &Path, size: u64) -> Result<(), RecordError> {
         let today = js::utc_day((self.now)());
         // (no sidecar: the lines before this one count as older than it)
         let mut marks = read_marks(dir).unwrap_or_default();
@@ -345,14 +385,14 @@ impl Recorder {
     }
 
     /// Drop the lines from before the oldest day kept (rewrite + rename).
-    fn prune(&self, dir: &Path, file: &Path, marks: Vec<Mark>, today: &str) -> Result<Vec<Mark>, RecordError> {
+    fn prune(&self, dir: &RecordDir, file: &Path, marks: Vec<Mark>, today: &str) -> Result<Vec<Mark>, RecordError> {
         let keep: Vec<&Mark> = marks.iter().filter(|m| days_between(&m.day, today).is_some_and(|d| d < KEEP_DAYS)).collect();
         let dropped: Vec<&Mark> = marks.iter().filter(|m| days_between(&m.day, today).is_some_and(|d| d >= KEEP_DAYS)).collect();
         let Some(oldest) = dropped.first() else { return Ok(marks) };
         if days_between(&oldest.day, today).is_some_and(|d| d < KEEP_DAYS + PRUNE_SLACK_DAYS) {
             return Ok(marks);
         }
-        let data = fs::read(file).map_err(|e| RecordError::io(&e, "open", file))?;
+        let data = dir.read(FILE).map_err(|e| RecordError::io(&e, "open", file))?;
         // everything before the first day kept was written more than KEEP_DAYS ago
         let cut = keep.first().map_or(data.len() as u64, |m| m.offset);
         if cut == 0 || cut > data.len() as u64 || (cut < data.len() as u64 && data[cut as usize - 1] != b'\n') {

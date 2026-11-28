@@ -930,6 +930,34 @@ fn record_a_torn_last_line_gets_a_line_of_its_own() {
     let _ = fs::remove_dir_all(&root);
 }
 
+#[test]
+fn record_never_writes_through_a_link_on_the_share() {
+    let root = tmp("linked");
+    let share = root.join("share");
+    let data = root.join("data");
+    fs::create_dir_all(share.join("RecentClips")).unwrap();
+    fs::create_dir_all(&data).unwrap();
+    fs::write(data.join("settings.json"), "{}").unwrap();
+    let rec = Recorder::new(|_| true).with_clock(|| 1_767_268_800_000.0);
+    let clip = share.join("RecentClips/a.mp4").to_string_lossy().into_owned();
+    // the record's folder is a link out of the share: refused, nothing written there
+    std::os::unix::fs::symlink(&data, share.join(".sentrymanager")).unwrap();
+    assert!(rec.record(&clip, None, &"d".repeat(64)).is_err());
+    assert_eq!(fs::read_dir(&data).unwrap().count(), 1);
+    assert_eq!(fs::read_to_string(data.join("settings.json")).unwrap(), "{}");
+    // a real folder, the record itself a link (to a file, or to one that is not there): refused
+    fs::remove_file(share.join(".sentrymanager")).unwrap();
+    fs::create_dir_all(share.join(".sentrymanager")).unwrap();
+    std::os::unix::fs::symlink(data.join("settings.json"), share.join(".sentrymanager").join(record::FILE)).unwrap();
+    assert!(rec.record(&clip, None, &"d".repeat(64)).is_err());
+    assert_eq!(fs::read_to_string(data.join("settings.json")).unwrap(), "{}");
+    fs::remove_file(share.join(".sentrymanager").join(record::FILE)).unwrap();
+    std::os::unix::fs::symlink(data.join("new.sha256"), share.join(".sentrymanager").join(record::FILE)).unwrap();
+    assert!(rec.record(&clip, None, &"d".repeat(64)).is_err());
+    assert!(!data.join("new.sha256").exists());
+    let _ = fs::remove_dir_all(&root);
+}
+
 // ---- the converter's before-replace hook ----------------------------------------
 
 #[test]
