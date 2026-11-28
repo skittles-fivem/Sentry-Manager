@@ -416,13 +416,15 @@ async function appearance(box) {
     <p class="small faint">Keyboard: press <kbd>?</kbd> for every shortcut, <kbd>Ctrl</kbd> <kbd>K</kbd> for the command palette.</p></section>`;
   box.querySelector('#calm').onchange = (e) => busy(null, async () => {
     const on = e.target.checked;
-    try { await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: on } }); } catch (err) { e.target.checked = !on; throw err; }
+    e.target.disabled = true;
+    try { await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: on } }); } catch (err) { e.target.checked = !on; throw err; } finally { e.target.disabled = false; }
     document.documentElement.classList.toggle('calm', on);
     toast('Saved.');
   });
   box.querySelector('#clock24').onchange = (e) => busy(null, async () => {
     const on = e.target.checked;
-    try { await api('/api/settings/appearance', { method: 'PUT', body: { clock24: on } }); } catch (err) { e.target.checked = !on; throw err; }
+    e.target.disabled = true;
+    try { await api('/api/settings/appearance', { method: 'PUT', body: { clock24: on } }); } catch (err) { e.target.checked = !on; throw err; } finally { e.target.disabled = false; }
     clockPref.h24 = on;
     toast('Saved.');
   });

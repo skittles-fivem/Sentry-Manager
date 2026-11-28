@@ -122,7 +122,7 @@ pub fn holds(s: &Server, abs: &str) -> bool {
     let v = match vehicle_at(s, abs) {
         Ok(Some((v, _))) => v,
         Ok(None) => return false,
-        Err(unknown) => return unknown_holds(unknown.iter().map(|v| v.id.as_str()), healthy, |vid| can.usb.fresh(vid), |vid| can.usb.get(vid).and_then(|st| crate::arrival::holds::TransferStatus::parse(&st.raw_json)), crate::scanner::now_ms(), abs),
+        Err(unknown) => return unknown_holds(unknown.iter().map(|v| v.id.as_str()), healthy, |vid| bounded_fresh(&can, vid), |vid| can.usb.get(vid).and_then(|st| crate::arrival::holds::TransferStatus::parse(&st.raw_json)), crate::scanner::now_ms(), abs),
     };
     // (a share that stopped answering is not looked at here: the arrival would wait on it)
     if healthy(&v.id) {
@@ -130,6 +130,19 @@ pub fn holds(s: &Server, abs: &str) -> bool {
     }
     let status = can.usb.get(&v.id).and_then(|st| crate::arrival::holds::TransferStatus::parse(&st.raw_json));
     crate::arrival::holds::holds(status.as_ref(), crate::scanner::now_ms(), abs)
+}
+
+/// can.usb.fresh(vid) for a vehicle whose real folder did not answer in time: looked at for 2 s
+/// at most and one look at a time per vehicle (its share may be hanging although its health
+/// check has not said so yet); its last status stands when the look does not answer.
+fn bounded_fresh(can: &Arc<crate::can::routes::Can>, vid: &str) {
+    static BUSY: std::sync::Mutex<Option<std::collections::HashMap<String, Arc<std::sync::atomic::AtomicBool>>>> = std::sync::Mutex::new(None);
+    let busy = BUSY.lock().unwrap_or_else(|e| e.into_inner()).get_or_insert_with(Default::default).entry(vid.to_string()).or_default().clone();
+    let (c, v) = (can.clone(), vid.to_string());
+    let _ = crate::footage::share::with_timeout_one(&busy, std::time::Duration::from_secs(2), "Sentry USB status", move || {
+        c.usb.fresh(&v);
+        Ok(())
+    });
 }
 
 /// holds() for a clip in none of the vehicles whose folder is known: held only when the status

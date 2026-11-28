@@ -306,6 +306,7 @@ async function look({ el }) {
     el.querySelectorAll('[data-theme-pick]').forEach((b) => { b.onclick = () => { setTheme(b.dataset.themePick); draw(); el.querySelector(`[data-theme-pick="${b.dataset.themePick}"]`)?.focus(); }; });
     el.querySelector('#calm').onchange = async (e) => {
       const on = e.target.checked;
+      e.target.disabled = true;
       document.documentElement.classList.toggle('calm', on);
       store.set('calm', on);
       try { await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: on } }); toast(on ? 'Calm mode on.' : 'Calm mode off.', { kind: 'good' }); } catch (err) {
@@ -314,11 +315,14 @@ async function look({ el }) {
         document.documentElement.classList.toggle('calm', !on);
         store.set('calm', !on);
         fail(err);
+      } finally {
+        e.target.disabled = false;
       }
     };
     el.querySelector('#clock24').onchange = async (e) => {
       const on = e.target.checked;
-      try { await api('/api/settings/appearance', { method: 'PUT', body: { clock24: on } }); clockPref.h24 = on; toast(on ? '24-hour clock on.' : '12-hour clock on.', { kind: 'good' }); } catch (err) { e.target.checked = !on; fail(err); }
+      e.target.disabled = true;
+      try { await api('/api/settings/appearance', { method: 'PUT', body: { clock24: on } }); clockPref.h24 = on; toast(on ? '24-hour clock on.' : '12-hour clock on.', { kind: 'good' }); } catch (err) { e.target.checked = !on; fail(err); } finally { e.target.disabled = false; }
     };
   };
   if (settings.appearance) {
