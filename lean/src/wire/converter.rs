@@ -179,8 +179,6 @@ pub fn job_progress(s: &Value) -> (f64, f64) {
     (counts(s).0 as f64, saved)
 }
 
-/// The vehicle a job's sourceRoot is in (vehicleForReal, then vehicleForPath: the converter keeps
-/// the real path). Err: the vehicles could not be read.
 /// What a job freed on its vehicle's share so far, as (clips, bytes): a copy to another folder
 /// (outputMode "separate") leaves the originals there, so it frees nothing.
 fn freed(s: &Value) -> (f64, f64) {
@@ -190,6 +188,8 @@ fn freed(s: &Value) -> (f64, f64) {
     job_progress(s)
 }
 
+/// The vehicle a job's sourceRoot is in (vehicleForReal, then vehicleForPath: the converter keeps
+/// the real path). Err: the vehicles could not be read.
 pub fn try_vehicle_of(srv: &Server, src: &str) -> Result<Option<crate::footage::vehicles::Vehicle>, String> {
     if src.is_empty() {
         return Ok(None);

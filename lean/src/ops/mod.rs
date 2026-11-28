@@ -362,17 +362,19 @@ impl Ops {
 
     /// recordSavings: a converter job's saved space, onto its vehicle's total.
     pub fn record_savings(&self, s: &JobSnapshot) {
+        let bytes = if s.saved_bytes.is_finite() { s.saved_bytes } else { 0.0 };
+        // (what a job added is kept under its id, whatever its vehicle: one that adds nothing
+        // needs neither the savings nor its vehicle, so it never fills the retries)
+        if self.seen.lock().unwrap().get(&s.id).is_some_and(|&(b, c)| bytes <= b && s.clips <= c) {
+            self.pending.lock().unwrap().remove(&s.id);
+            return;
+        }
         if s.vehicle_unread {
             // (its vehicle is looked up again with the retry)
             self.keep_pending(s);
             return;
         }
         let Some(v) = &s.vehicle_id else { return };
-        let bytes = if s.saved_bytes.is_finite() { s.saved_bytes } else { 0.0 };
-        if self.seen.lock().unwrap().get(&s.id).is_some_and(|&(b, c)| bytes <= b && s.clips <= c) {
-            self.pending.lock().unwrap().remove(&s.id);
-            return;
-        }
         let r = power::record_at(&self.ctx.db(), &s.id, v, bytes, s.clips, s.at_ms.unwrap_or_else(store::now_ms));
         if let (true, Err(e)) = (self.unread.first("savings", r.is_err()), &r) {
             self.ctx.log("server", Level::Warn, &format!("Space saved by conversions is not counted until manager.db can be written: {e}"));

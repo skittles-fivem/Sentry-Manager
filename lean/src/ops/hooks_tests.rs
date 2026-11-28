@@ -174,6 +174,22 @@ fn savings_not_kept_are_tried_again_in_their_month() {
     o.stop();
 }
 
+// a job listed again at the start while the vehicles cannot be read, that adds nothing to what
+// it already added, is not kept to try again (the retries stay for what is still owed)
+#[test]
+fn a_snapshot_that_adds_nothing_is_not_kept_while_the_vehicles_are_unread() {
+    let (ctx, o) = ops();
+    o.job_snapshot(&JobSnapshot { id: "j1".into(), vehicle_id: Some("car".into()), saved_bytes: 500.0, clips: 5.0, ..Default::default() });
+    o.job_snapshot(&JobSnapshot { id: "j1".into(), vehicle_unread: true, source_root: "/footage/car/TeslaCam".into(), saved_bytes: 500.0, clips: 5.0, ..Default::default() });
+    assert!(o.pending.lock().unwrap().is_empty(), "nothing is owed");
+    o.job_snapshot(&JobSnapshot { id: "j1".into(), vehicle_unread: true, source_root: "/footage/car/TeslaCam".into(), saved_bytes: 800.0, clips: 8.0, ..Default::default() });
+    assert_eq!(o.pending.lock().unwrap().len(), 1, "what it adds is owed");
+    o.retry_savings();
+    assert!(o.pending.lock().unwrap().is_empty());
+    assert_eq!(power::for_vehicle(&ctx.db(), "car").unwrap(), json!({ "bytes": 800, "clips": 8 }));
+    o.stop();
+}
+
 // savings that cannot be kept are said once; what a report or the stats cannot read is unknown
 #[test]
 fn savings_not_kept_are_said_once_and_unread_settings_are_unknown_or_an_error() {
