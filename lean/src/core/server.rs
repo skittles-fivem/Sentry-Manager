@@ -1146,11 +1146,26 @@ pub fn shutdown(state: &AppState, why: &str) {
     state.log.info(format!("{why}: shutting down"));
     state.hub.close_all();
     let work: Vec<_> = std::mem::take(&mut *state.hooks.on_shutdown.lock().unwrap());
-    for f in work {
-        f();
+    let failed = run_shutdown_work(work);
+    if failed > 0 {
+        state.log.warn(format!("{failed} part(s) of the shutdown work failed"));
     }
     state.log.info("Stopped cleanly");
     std::process::exit(0);
+}
+
+/// The areas' shutdown work, on a thread of its own: shutdown is called from async tasks (the
+/// signal task, the supervisor link) whose worker threads may not block on the runtime, and
+/// some of the work does (the supervisor mounter's unmount and forget). The thread still sees
+/// the runtime, so work that spawns onto it keeps working. One piece that panics does not stop
+/// the rest, nor the exit. Answers how many pieces failed.
+fn run_shutdown_work(work: Vec<Box<dyn FnOnce() + Send>>) -> usize {
+    let rt = tokio::runtime::Handle::try_current().ok();
+    let t = std::thread::spawn(move || {
+        let _in_rt = rt.as_ref().map(|h| h.enter());
+        work.into_iter().map(|f| std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err()).filter(|e| *e).count()
+    });
+    t.join().unwrap_or(1)
 }
 
 /// The router every request goes through (set once, before listening).
@@ -1165,6 +1180,37 @@ pub fn not_found_status() -> axum::http::StatusCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Shutdown runs on an async worker; work that blocks on the runtime (the supervisor
+    // mounter's forget) must not panic there, and a piece that panics must not stop the rest.
+    #[test]
+    fn shutdown_work_may_block_on_the_runtime() {
+        let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().unwrap();
+        let h = rt.handle().clone();
+        let done = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let d = done.clone();
+        let failed = rt.block_on(async move {
+            tokio::spawn(async move {
+                let d1 = d.clone();
+                let work: Vec<Box<dyn FnOnce() + Send>> = vec![
+                    Box::new(move || {
+                        h.block_on(async { tokio::task::yield_now().await });
+                        d1.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                    }),
+                    Box::new(|| panic!("one piece fails")),
+                    Box::new(move || {
+                        let _ = tokio::runtime::Handle::current();
+                        d.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                    }),
+                ];
+                run_shutdown_work(work)
+            })
+            .await
+            .unwrap()
+        });
+        assert_eq!(failed, 1);
+        assert_eq!(done.load(std::sync::atomic::Ordering::SeqCst), 2);
+    }
 
     #[test]
     fn paths_as_whatwg_url() {
