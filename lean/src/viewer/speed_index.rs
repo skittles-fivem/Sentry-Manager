@@ -558,7 +558,7 @@ impl SpeedIndex {
             };
             while !self.stopped.load(Ordering::SeqCst) {
                 self.pace.demand(in_flight, left > 0);
-                let cap = self.pace.allowed() as usize;
+                let mut cap = self.pace.allowed() as usize;
                 while in_flight < cap && left > 0 && !self.stopped.load(Ordering::SeqCst) {
                     let Some(c) = next(&mut queues) else { break };
                     left -= 1;
@@ -593,6 +593,9 @@ impl SpeedIndex {
                         in_flight -= 1;
                         self.pace.demand(in_flight, left > 0);
                     }
+                    // (asked again before each clip: reads done within the rest kept this loop
+                    // going on the number it began with, past a step up, a pause or the Viewer)
+                    cap = self.pace.allowed() as usize;
                 }
                 if in_flight == 0 && left == 0 {
                     break;

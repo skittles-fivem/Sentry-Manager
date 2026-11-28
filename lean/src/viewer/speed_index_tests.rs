@@ -338,3 +338,33 @@ fn stats_of_a_clip() {
     assert!(stats_of(&json!([null]), &Value::Null).is_none());
     assert!(stats_of(&Value::Null, &Value::Null).is_none());
 }
+
+#[test]
+fn a_pause_is_seen_before_the_next_clip_however_fast_the_reads() {
+    use std::sync::atomic::AtomicBool;
+    let car = Car::new("si-pause");
+    let recs: Vec<Option<Rec>> = (0..4).map(|n| Some(Rec { v: n as f32, ..Rec::default() })).collect();
+    for n in 0..40 {
+        testkit::clip(&car.root.join(format!("RecentClips/2026-10-01_10-{n:02}-00-front.mp4")), 4, &recs, 4);
+    }
+    car.scan();
+    let busy = Arc::new(AtomicBool::new(false));
+    let b = busy.clone();
+    // reads far quicker than the rest between clips (as with clips in the page cache)
+    let idx = SpeedIndex::new(car.data.join("speeds"), car.ctx.clone(), Arc::new(Pace::fixed(move || b.load(Ordering::SeqCst))), 30, Limiter::new(|| 2));
+    let done = |i: &SpeedIndex| i.status()["done"].as_u64().unwrap();
+    idx.kick();
+    while done(&idx) < 3 {
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    // a conversion starts: no more clips are started until it ends
+    busy.store(true, Ordering::SeqCst);
+    std::thread::sleep(Duration::from_millis(100));
+    let at = done(&idx);
+    std::thread::sleep(Duration::from_millis(400));
+    assert_eq!(done(&idx), at, "nothing read while paused");
+    assert!(at < 40);
+    busy.store(false, Ordering::SeqCst);
+    idx.settled();
+    assert_eq!(done(&idx), 40);
+}
