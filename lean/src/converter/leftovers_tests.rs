@@ -1085,3 +1085,19 @@ fn rc5_root_overmounted_by_parent_chain() {
     assert_eq!(by_chain, Outcome::Kept(format!("job {paused} still has files to settle in \"{root}\", which cannot be told apart from this folder now")), "nlink now {nlink}");
     assert_eq!(nlink, 2);
 }
+
+#[test]
+fn a_conversions_removal_quarantine_name_is_reported_and_kept() {
+    let e = env();
+    fs::write(e.dir.join(A), h265()).unwrap();
+    let left = ".sentry-owned-remove-0123456789abcdef";
+    fs::write(e.dir.join(left), h264()).unwrap();
+    // (not this shape: left alone and not reported)
+    fs::write(e.dir.join(".sentry-owned-remove-xyz"), b"x").unwrap();
+    assert!(is_leftover_name(left) && !is_leftover_name(".sentry-owned-remove-xyz"));
+    let r = run(&e, None);
+    assert_eq!(kept_why(&r, left), OWNED_LEFT);
+    assert_eq!(r.len(), 1, "{r:?}");
+    assert_eq!(fs::read(e.dir.join(left)).unwrap(), h264(), "never touched");
+    assert_eq!(fs::read(e.dir.join(A)).unwrap(), h265());
+}

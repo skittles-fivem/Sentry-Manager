@@ -55,6 +55,8 @@ pub const QUARANTINE: &str = ".sentry-tidy-";
 /// Why an original beside its converted copy is kept when the copy is not proven good
 /// (the interfaces count these: web/backupCleanup.js).
 pub const UNVERIFIED: &str = "the converted copy beside it is not verified";
+/// Why a conversion's removal quarantine name is kept (never touched by the tidy).
+pub const OWNED_LEFT: &str = "a file a conversion was removing when it stopped (hidden name); it may be an original, so it is kept: check it and delete it by hand";
 
 /// The leftover name L that a tidy quarantine name stands for.
 pub fn quarantined_name(name: &str) -> Option<&str> {
@@ -63,11 +65,20 @@ pub fn quarantined_name(name: &str) -> Option<&str> {
     (h.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) && !l.is_empty()).then_some(l)
 }
 
+/// The quarantine name of a conversion's own removal (owned::remove): `.sentry-owned-remove-<16 hex>`.
+pub const OWNED_QUARANTINE: &str = ".sentry-owned-remove-";
+
+/// A conversion's removal stopped between its quarantine rename and the unlink. The name
+/// says nothing of the clip it was, and it may be the only copy of an original.
+pub fn is_owned_quarantine(name: &str) -> bool {
+    name.strip_prefix(OWNED_QUARANTINE).is_some_and(|h| h.len() == 16 && h.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
+}
+
 /// A name the tidy looks at (any letter case: other cases are reported, never touched),
-/// and the tidy's own quarantine names.
+/// the tidy's own quarantine names, and a conversion's removal quarantine names (reported).
 pub fn is_leftover_name(name: &str) -> bool {
     let up = |p: &str| name.len() >= p.len() && name.as_bytes()[..p.len()].eq_ignore_ascii_case(p.as_bytes());
-    up(PREFIX) || COPY_PREFIXES.iter().any(|(p, _)| up(p)) || quarantined_name(name).is_some()
+    up(PREFIX) || COPY_PREFIXES.iter().any(|(p, _)| up(p)) || quarantined_name(name).is_some() || is_owned_quarantine(name)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -545,6 +556,9 @@ pub enum Role {
 /// or why it is only reported.
 /// A tidy quarantine name answers for the leftover name it stands for.
 pub fn clip_of(f: &Found) -> Result<(&str, Role), String> {
+    if is_owned_quarantine(&f.name) {
+        return Err(OWNED_LEFT.into());
+    }
     match quarantined_name(&f.name) {
         Some(l) if quarantined_name(l).is_some() => Err("a leftover name of a leftover name".into()),
         Some(l) => clip_of_name(l, f.kind),

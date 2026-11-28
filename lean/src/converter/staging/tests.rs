@@ -142,7 +142,7 @@ fn prepare_copies_beside_the_original_and_swap_puts_it_in_place() {
     let result = env.tx.swap_replacement(&Op { prepared: Some(&prepared), persist: Some(&rec), ..Default::default() }).unwrap();
     assert_eq!(result.phase, Some(ReplacementPhase::BackupDeleted));
     let phases: Vec<String> = env.writes.lock().unwrap().iter().map(|w| w["phase"].as_str().unwrap().to_string()).collect();
-    assert_eq!(phases, ["candidate-written", "original-backed-up", "candidate-promoted"]);
+    assert_eq!(phases, ["candidate-written", "original-backed-up", "candidate-promoted", "final-validated"], "the clip at the original's name is read in full before the original goes");
     assert_eq!(env.writes.lock().unwrap()[0]["ownedArtifacts"]["replacementBackup"]["state"], "intent");
     assert_eq!(fs::read(&env.source).unwrap(), env.conversion);
     assert_eq!(env.names(), [Path::new(&env.source).file_name().unwrap().to_string_lossy().to_string()]);
@@ -382,7 +382,7 @@ fn a_crash_before_any_record_of_a_replacement_recovers_safely() {
     let rec = probe.recorder();
     probe.tx.replace_original(&probe.op(&rec)).unwrap();
     let total = probe.writes.lock().unwrap().len();
-    assert_eq!(total, 7, "prepare, writing, owned, candidate-written, original-backed-up, candidate-promoted, backup-deleted");
+    assert_eq!(total, 8, "prepare, writing, owned, candidate-written, original-backed-up, candidate-promoted, final-validated, backup-deleted");
     let mut outcomes = Vec::new();
     for n in 0..total {
         let env = setup(&format!("crash-{n}"));
@@ -518,6 +518,60 @@ fn a_backup_that_still_reports_two_links_names_the_link_count() {
     assert!(!backup.exists() && !Path::new(&env.candidate()).exists());
     assert_eq!(env.writes.lock().unwrap().last().unwrap()["phase"], "backup-restored");
     fs::remove_file(&extra).unwrap();
+}
+
+/// The backup's removal fails after its quarantine rename (the original left only under
+/// `.sentry-owned-remove-<hex>`): the rollback puts the original back from there, never
+/// reporting it restored while the copy holds its name.
+#[test]
+fn a_backup_removal_stopped_in_quarantine_rolls_back_to_the_original() {
+    let env = setup("quarantined-backup");
+    let rec = env.recorder();
+    let prepared = env.tx.prepare_replacement(&env.op(&rec)).unwrap();
+    let backup = PathBuf::from(&prepared.backup);
+    let b2 = backup.clone();
+    let once = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let o2 = once.clone();
+    *crate::converter::owned::TEST_HOOK.write().unwrap() = Some(Arc::new(move |event: &str, from: &Path, _to: &Path| {
+        if event == "quarantined" && from == b2.as_path() && !o2.swap(true, Ordering::SeqCst) {
+            return Err(io::Error::from_raw_os_error(libc::EIO));
+        }
+        Ok(())
+    }));
+    let r = env.tx.swap_replacement(&Op { prepared: Some(&prepared), persist: Some(&rec), ..Default::default() });
+    *crate::converter::owned::TEST_HOOK.write().unwrap() = None;
+    assert!(once.load(Ordering::SeqCst), "the removal stopped in quarantine");
+    let e = r.err().expect("refused");
+    assert!(e.rolled_back.is_some() && e.valid_final.is_none(), "{e:?}");
+    assert_eq!(fs::read(&env.source).unwrap(), env.original, "the original is back at its name");
+    assert_eq!(env.names(), [Path::new(&env.source).file_name().unwrap().to_string_lossy().to_string()], "no backup, copy or quarantine name left");
+    assert_eq!(env.writes.lock().unwrap().last().unwrap()["phase"], "backup-restored");
+}
+
+/// With no backup name left and the copy at the original's name, a rollback never reports
+/// the original restored: it fails and keeps the records.
+#[test]
+fn a_rollback_with_the_copy_at_the_originals_name_and_no_backup_fails() {
+    let env = setup("lost-backup");
+    let rec = env.recorder();
+    let prepared = env.tx.prepare_replacement(&env.op(&rec)).unwrap();
+    let candidate = prepared.owned_paths["replacementCandidate"].clone();
+    // the original moved away by hand (not under any name the rollback knows), the copy promoted
+    let away = env.root.join("elsewhere.mp4");
+    fs::rename(&env.source, &away).unwrap();
+    let st = fs::symlink_metadata(&away).unwrap();
+    fs::rename(&candidate, &env.source).unwrap();
+    let mut arts = prepared.owned_artifacts.clone();
+    arts.insert("replacementBackup".into(), Meta { path: prepared.backup.clone(), nonce: prepared.backup_nonce.clone(), state: ArtifactState::Owned, size: Some(st.size()), sha256: Some(env.expected.sha256.clone()), device: Some(st.dev().to_string()), inode: Some(st.ino().to_string()), journal: None });
+    let mut paths = prepared.owned_paths.clone();
+    paths.insert("replacementBackup".into(), prepared.backup.clone());
+    let op = Op { owned_paths: paths, owned_artifacts: arts, ..env.op(&rec) };
+    let e = env.tx.rollback_replacement(&op).err().expect("refused");
+    assert_eq!(e.code, "ROLLBACK_FAILED");
+    let last = env.writes.lock().unwrap().last().unwrap().clone();
+    assert_eq!(last["phase"], "rollback-failed");
+    assert!(last["ownedPaths"].get("replacementBackup").is_some(), "the backup's record is kept: {last}");
+    assert_eq!(fs::read(&env.source).unwrap(), env.conversion, "the copy stays where it is");
 }
 
 #[test]

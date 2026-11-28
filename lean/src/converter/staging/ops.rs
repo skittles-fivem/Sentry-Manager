@@ -518,6 +518,12 @@ impl Tx {
             persist(op, Snap::new(&paths, &arts).phase(ReplacementPhase::RollbackStarted).artifact(persisted.as_ref()))?;
             // stopped between linking the backup and the rename over the original
             self.drop_backup_alias(&source, &backup)?;
+            // the copy at the original's name and the original gone from its backup name: a
+            // removal of the backup stopped, or refused and not put back, after it renamed the
+            // original to its quarantine name. The original goes back to its backup name first.
+            if lstat_or_none(&backup)?.is_none() && lstat_or_none(&source)?.is_some_and(|ss| matches_identity(arts.get("replacementCandidate"), &ss)) {
+                self.restore_quarantined(&backup, arts.get("replacementBackup"))?;
+            }
             let ss = lstat_or_none(&source)?;
             let bs = lstat_or_none(&backup)?;
             if let (Some(ss), Some(_)) = (&ss, &bs) {
@@ -546,6 +552,13 @@ impl Tx {
                     arts.shift_remove("replacementBackup");
                 }
             } else {
+                // no backup name: the file at the original's name must be the original (the
+                // backup's file when one was made; never the copy), or the records stay
+                if let Some(ss) = lstat_or_none(&source)? {
+                    if !is_original_at(&ss, arts.get("replacementBackup"), arts.get("replacementCandidate")) {
+                        return Err(txe("ROLLBACK_FAILED"));
+                    }
+                }
                 paths.shift_remove("replacementBackup");
                 arts.shift_remove("replacementBackup");
             }
@@ -772,12 +785,21 @@ impl Tx {
             }
             let pend: Vec<String> = if source_removed { vec![] } else { vec!["replacementCandidate".into()] };
             persist(op, Snap::new(&paths, &arts).phase(ReplacementPhase::CandidatePromoted).artifact(Some(artifact)).pending(&pend))?;
-            if op.verify_readable.is_some() {
-                self.validate_readable(source, artifact, op.verify_readable, "FINAL_VALIDATION_FAILED")?;
-                persist(op, Snap::new(&paths, &arts).phase(ReplacementPhase::FinalValidated).artifact(Some(artifact)))?;
-            }
+            // the clip now at the original's name is read in full before the original goes
+            // (as a separate-folder publication and recovery always do)
+            self.validate_readable(source, artifact, op.verify_readable, "FINAL_VALIDATION_FAILED")?;
+            persist(op, Snap::new(&paths, &arts).phase(ReplacementPhase::FinalValidated).artifact(Some(artifact)))?;
             let ef = if source_removed { arts.get("replacementCandidate").cloned() } else { None };
-            self.remove_replacement_backup(backup, arts.get("replacementBackup"), source, artifact, ef.as_ref(), quick.as_ref().and_then(|q| q.mtime_ns.as_deref()), backup_mtime.as_deref())?;
+            if let Err(e) = self.remove_replacement_backup(backup, arts.get("replacementBackup"), source, artifact, ef.as_ref(), quick.as_ref().and_then(|q| q.mtime_ns.as_deref()), backup_mtime.as_deref()) {
+                // the original already gone (removed, then its folder not synced): the validated
+                // copy is the clip now, never rolled back over a missing original
+                if matches!(lstat_or_none(backup), Ok(None)) && self.find_quarantined(backup, arts.get("replacementBackup")).is_ok_and(|q| q.is_empty()) {
+                    paths.shift_remove("replacementBackup");
+                    arts.shift_remove("replacementBackup");
+                    backup_deleted = true;
+                }
+                return Err(e);
+            }
             paths.shift_remove("replacementBackup");
             arts.shift_remove("replacementBackup");
             backup_deleted = true;
@@ -940,4 +962,14 @@ impl Tx {
         }
         Ok(Saved { final_path: p.destination.clone(), output_bytes: p.artifact.size, phase: None, owned_paths: paths, owned_artifacts: arts, cleanup_pending: pending })
     }
+}
+
+/// The file at the original's name after a rollback with no backup name left is the original:
+/// the backup's own file when the backup was made (a rename or a link keeps it), otherwise
+/// anything but the copy.
+fn is_original_at(st: &fs::Metadata, backup: Option<&Meta>, candidate: Option<&Meta>) -> bool {
+    if backup.is_some_and(|b| b.state != ArtifactState::Intent && b.device.is_some() && b.inode.is_some()) {
+        return matches_identity(backup, st);
+    }
+    !matches_identity(candidate, st)
 }

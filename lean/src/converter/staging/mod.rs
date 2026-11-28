@@ -517,6 +517,16 @@ pub(crate) fn lstat_or_none(p: &str) -> R<Option<fs::Metadata>> {
     }
 }
 
+/// Ask the kernel to drop this file's clean cached pages (best effort; written pages not yet
+/// on the file system stay, so nothing is lost).
+fn drop_cached_pages(f: &File) {
+    use std::os::fd::AsRawFd;
+    // SAFETY: an open file descriptor; the call only advises the page cache
+    unsafe {
+        libc::posix_fadvise(f.as_raw_fd(), 0, 0, libc::POSIX_FADV_DONTNEED);
+    }
+}
+
 fn exact_lstat(p: &str) -> R<fs::Metadata> {
     Ok(fresh_lstat(p)?)
 }
@@ -998,6 +1008,9 @@ impl Tx {
             if !before.is_file() {
                 return Err(refuse(code, CHECK, target, "fstat: not a regular file"));
             }
+            // (the proof reads what the file system holds, not this machine's cached pages of
+            // what was written: a cifs or NFS client would otherwise answer from its own cache)
+            drop_cached_pages(&f);
             let (n, sha) = self.hash_open(&mut f, cancel)?;
             let after = f.metadata()?;
             if !same_identity(&before, &after) || Some(n) != size || Some(before.size()) != size || Some(after.size()) != size || Some(sha.as_str()) != sha256 {
@@ -1599,7 +1612,10 @@ impl Tx {
             return Err(txe("INVALID_PUBLICATION_ARTIFACT"));
         }
         match self.remove_private_snapshot(a, m) {
-            Ok(()) => Ok(true),
+            Ok(()) => {
+                self.registry.forget(&a.token);
+                Ok(true)
+            }
             Err(e) if e.tx && e.code == "OWNED_CLEANUP_FAILED" => Ok(false),
             Err(e) => Err(e),
         }
@@ -1636,27 +1652,49 @@ impl Tx {
         Ok(r.removed)
     }
 
-    /// removeQuarantined: a removal stopped between its quarantine rename and the unlink.
-    fn remove_quarantined(&self, target: &str, m: Option<&Meta>, guard: Option<(&str, &Expected)>) -> bool {
-        let Some(m) = m.filter(|m| m.state != ArtifactState::Intent) else { return false };
+    /// The quarantine names (`.sentry-owned-remove-<16 hex>` beside `target`) a removal of
+    /// the recorded file left: a removal stopped, or refused and not put back, between its
+    /// quarantine rename and the unlink. Err: the folder could not be listed.
+    pub(super) fn find_quarantined(&self, target: &str, m: Option<&Meta>) -> R<Vec<String>> {
+        let Some(m) = m.filter(|m| m.state != ArtifactState::Intent) else { return Ok(vec![]) };
         let folder = dirname(target);
-        let Ok(names) = fs::read_dir(&folder) else { return false };
-        for n in names.flatten() {
-            let name = n.file_name().to_string_lossy().into_owned();
+        let mut out = vec![];
+        for n in fs::read_dir(&folder)? {
+            let name = n?.file_name().to_string_lossy().into_owned();
             let Some(h) = name.strip_prefix(".sentry-owned-remove-") else { continue };
             if h.len() != 16 || !h.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) {
                 continue;
             }
             let left = s(&folder.join(&name));
-            let Ok(Some(st)) = lstat_or_none(&left) else { continue };
-            if !is_regular(&st) || !matches_stat(Some(m), &st) {
-                continue;
-            }
-            if let Ok(true) = self.adapter_remove(&left, &m.expected(), guard) {
-                return true;
+            let Some(st) = lstat_or_none(&left)? else { continue };
+            if is_regular(&st) && matches_stat(Some(m), &st) {
+                out.push(left);
             }
         }
-        false
+        Ok(out)
+    }
+
+    /// removeQuarantined: a removal stopped between its quarantine rename and the unlink.
+    fn remove_quarantined(&self, target: &str, m: Option<&Meta>, guard: Option<(&str, &Expected)>) -> bool {
+        let Some(m) = m.filter(|m| m.state != ArtifactState::Intent) else { return false };
+        let Ok(found) = self.find_quarantined(target, Some(m)) else { return false };
+        found.iter().any(|left| matches!(self.adapter_remove(left, &m.expected(), guard), Ok(true)))
+    }
+
+    /// The recorded file put back at `target` (missing) from a quarantine name a removal left
+    /// (renamed without replacing, then checked as the recorded file). false: none found.
+    pub(super) fn restore_quarantined(&self, target: &str, m: Option<&Meta>) -> R<bool> {
+        if lstat_or_none(target)?.is_some() {
+            return Ok(false);
+        }
+        let Some(left) = self.find_quarantined(target, m)?.into_iter().next() else { return Ok(false) };
+        owned::move_noreplace(Path::new(&left), Path::new(target))?;
+        let st = lstat_or_none(target)?;
+        if !st.is_some_and(|st| is_regular(&st) && matches_stat(m, &st)) {
+            return Err(unsafe_path("restore-quarantined", target, "the file put back is not the recorded one"));
+        }
+        sync_directory(&dirname(target))?;
+        Ok(true)
     }
 
     /// removeShareCopy: an interrupted copy of the verified snapshot on the share.
