@@ -13,7 +13,7 @@ use crate::core::db::{JobUpdate, NewJob, NewNotification};
 use crate::core::http::{error_json, ApiRaw, Res};
 use crate::core::{Ctx as CoreCtx, HttpError, Reply};
 use axum::body::Body;
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, Weak};
@@ -153,8 +153,13 @@ fn counts(s: &Value) -> (u64, u64, u64) {
         let n = |k: &str| c[k].as_u64().unwrap_or(0);
         return (n("converted"), n("skipped"), n("failed"));
     }
+    clip_counts(s["items"].as_array().into_iter().flatten())
+}
+
+/// (converted, skipped, failed) of a job's clips
+fn clip_counts<'a>(items: impl Iterator<Item = &'a Value>) -> (u64, u64, u64) {
     let (mut ok, mut skipped, mut failed) = (0, 0, 0);
-    for it in s["items"].as_array().into_iter().flatten() {
+    for it in items {
         if it["kind"] != "video" {
             continue;
         }
@@ -186,19 +191,36 @@ fn vehicle_of(srv: &Server, src: &str) -> Option<crate::footage::vehicles::Vehic
 
 /// index.js slimJob: a job as kept, its counts without its clip list
 fn slim(s: &Value) -> Value {
-    let mut out = s.clone();
-    if s["items"].as_array().is_some_and(|a| !a.is_empty()) {
-        let (converted, skipped, failed) = counts(s);
-        let (clips, _) = job_progress(s);
-        out["items"] = json!([]);
-        out["itemCounts"] = json!({ "converted": converted, "skipped": skipped, "failed": failed });
-        out["progressClips"] = json!(clips);
+    let Some(m) = s.as_object() else { return s.clone() };
+    let items = s["items"].as_array().filter(|a| !a.is_empty());
+    // (the fields but the clip list, in their order)
+    let mut out: Map<String, Value> = m.iter().map(|(k, v)| (k.clone(), if k == "items" && items.is_some() { json!([]) } else { v.clone() })).collect();
+    if let Some(items) = items {
+        slim_counts(&mut out, clip_counts(items.iter()));
     }
-    out
+    Value::Object(out)
+}
+
+/// slim(snap.to_value()), the clips not copied
+fn slim_snap(snap: &crate::converter::service::Snap) -> Value {
+    let mut out = snap.head().clone();
+    out.insert("items".into(), json!([]));
+    if !snap.is_empty() {
+        slim_counts(&mut out, clip_counts((0..snap.len()).map(|n| snap.stored(n))));
+    }
+    Value::Object(out)
+}
+
+/// the counts slim keeps of a job's clips (counts and job_progress of the full job)
+fn slim_counts(out: &mut Map<String, Value>, (converted, skipped, failed): (u64, u64, u64)) {
+    out.insert("itemCounts".into(), json!({ "converted": converted, "skipped": skipped, "failed": failed }));
+    out.insert("progressClips".into(), json!(converted as f64));
 }
 
 /// What index.js does with each job snapshot: the savings and the stats' job mark (ops), and,
 /// for a live snapshot (not a job listed at the start), its Activity line (mirrorConverterJob).
+/// A live snapshot is handed slimmed: what each of these reads of it is the same (slim keeps
+/// the counts of the clips).
 fn on_snapshot(srv: &Server, conv: &Conv, s: &Value, live: bool) {
     let Some(id) = s["id"].as_str() else { return };
     let st = s["state"].as_str().unwrap_or("");
@@ -442,7 +464,7 @@ pub fn spawn(srv: &Arc<Server>) {
                 listed: std::sync::atomic::AtomicBool::new(false),
             });
             let (w, c) = (Arc::downgrade(&s), Arc::downgrade(&conv));
-            conv.runtime.service.subscribe(Arc::new(move |event: &Value| {
+            conv.runtime.service.subscribe(Arc::new(move |event: &crate::converter::service::Event| {
                 let (Some(srv), Some(conv)) = (w.upgrade(), c.upgrade()) else { return };
                 // the heartbeat's conversion speed and device (convertStats.js; at most a sample every 30 s)
                 if event["type"] == "progress" {
@@ -451,7 +473,10 @@ pub fn spawn(srv: &Arc<Server>) {
                     return;
                 }
                 if event["type"] == "snapshot" && event["snapshot"].is_object() {
-                    on_snapshot(&srv, &conv, &event["snapshot"], true);
+                    match event.snap() {
+                        Some(snap) => on_snapshot(&srv, &conv, &slim_snap(snap), true),
+                        None => on_snapshot(&srv, &conv, &event["snapshot"], true),
+                    }
                 }
             }));
             let _ = s.converter.set(conv.clone());
@@ -552,5 +577,44 @@ mod cheap_now_tests {
         db.conn().execute_batch("CREATE TABLE gone (x); ALTER TABLE settings RENAME TO settings_kept; CREATE VIEW settings AS SELECT * FROM gone; DROP TABLE gone;").unwrap();
         cheap(90_000);
         assert_eq!(said(), 2, "again after it could be read");
+    }
+}
+
+#[cfg(test)]
+mod slim_tests {
+    //! A live snapshot is slimmed from its Snap as slim did from the whole snapshot.
+    use super::*;
+    use crate::converter::service::{snap_tests as jobs, Snap};
+
+    fn reference_slim(s: &Value) -> Value {
+        let mut out = s.clone();
+        if s["items"].as_array().is_some_and(|a| !a.is_empty()) {
+            let (converted, skipped, failed) = counts(s);
+            let (clips, _) = job_progress(s);
+            out["items"] = json!([]);
+            out["itemCounts"] = json!({ "converted": converted, "skipped": skipped, "failed": failed });
+            out["progressClips"] = json!(clips);
+        }
+        out
+    }
+
+    #[test]
+    fn slim_keeps_what_it_kept() {
+        for n in [0, 3, 300] {
+            let m = jobs::job(&format!("slim-{n}"), n);
+            let full = jobs::reference_public_snapshot(&m);
+            let want = reference_slim(&full);
+            let text = serde_json::to_string(&want).unwrap();
+            assert_eq!(serde_json::to_string(&slim(&full)).unwrap(), text, "{n} clips");
+            let from_snap = slim_snap(&Snap::of(&m));
+            assert_eq!(serde_json::to_string(&from_snap).unwrap(), text, "{n} clips");
+            // what on_snapshot reads of a live snapshot is the same slimmed
+            assert_eq!(job_progress(&from_snap), job_progress(&full));
+            assert_eq!(counts(&from_snap), counts(&full));
+            assert_eq!(serde_json::to_string(&slim(&from_snap)).unwrap(), text);
+        }
+        for odd in [json!(null), json!({ "items": 3 }), json!({ "items": [], "itemCounts": { "converted": 2 }, "progressClips": 7 }), json!({ "a": 1, "items": [{ "kind": "video", "state": "completed" }], "b": 2, "itemCounts": 1 })] {
+            assert_eq!(serde_json::to_string(&slim(&odd)).unwrap(), serde_json::to_string(&reference_slim(&odd)).unwrap());
+        }
     }
 }

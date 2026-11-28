@@ -234,7 +234,7 @@ impl Converter {
         let _ = auto_cell.set(auto.clone());
         // each verified clip leaves its empty snapshot folder: removed once a job ends
         let (s4, b4, t4) = (service.clone(), bench.clone(), temp_path.clone());
-        service.subscribe(Arc::new(move |e: &Value| {
+        service.subscribe(Arc::new(move |e: &super::service::Event| {
             if e["type"] == "snapshot" && ["completed", "failed", "cancelled"].contains(&e["snapshot"]["state"].as_str().unwrap_or("")) {
                 let (s, b, t) = (s4.clone(), b4.clone(), t4.clone());
                 std::thread::spawn(move || {
