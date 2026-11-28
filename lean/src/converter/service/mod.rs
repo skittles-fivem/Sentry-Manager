@@ -876,6 +876,11 @@ impl Service {
         if ps != ns && (ps.is_idle() || ns.is_idle()) {
             return true;
         }
+        // a clip's encode starting goes out at once too: a short clip can finish within one timed
+        // snapshot, and the page would never see the job encode (at most one per clip started)
+        if ps != ns && ns == JobState::Encoding {
+            return true;
+        }
         let same = |k: &str| previous.get(k).unwrap_or(&Value::Null) == next.get(k).unwrap_or(&Value::Null);
         !same("recovery") || !same("failure") || !same("summary") || previous.get("summaryDismissed") != next.get("summaryDismissed")
     }
