@@ -979,11 +979,12 @@ impl SentryUsb {
         r
     }
 
-    /// poll(): every minute, the cars whose status says a transfer runs (and the ones not read yet).
+    /// poll(): every minute, every car whose share is reachable: a Pi that was idle and has
+    /// started a transfer since is seen within the minute (a look is a stat; the status file is
+    /// read again only when it changed), so its clips are held while they are copied.
     pub fn poll(&self) {
         for v in self.ctx.vehicles() {
-            let c = self.cache.lock().unwrap().get(&v.id).cloned();
-            if c.as_ref().is_some_and(|c| c.status.as_ref().is_none_or(|s| s.state != "transferring")) {
+            if !self.ctx.share_healthy(&v.id) {
                 continue;
             }
             self.refresh(&v.id);
@@ -995,5 +996,68 @@ impl SentryUsb {
         self.arrived.lock().unwrap().remove(vid);
         self.car_files.lock().unwrap().remove(vid);
         self.devices.lock().unwrap().remove(vid);
+    }
+}
+
+#[cfg(test)]
+mod poll_tests {
+    use super::*;
+    use std::path::Path;
+
+    struct OneCar {
+        root: PathBuf,
+        healthy: std::sync::atomic::AtomicBool,
+    }
+    impl CanCtx for OneCar {
+        fn data_dir(&self) -> PathBuf {
+            self.root.clone()
+        }
+        fn setting(&self, _: &str) -> Result<Option<Value>, String> {
+            Ok(None)
+        }
+        fn set_setting(&self, _: &str, _: Value) -> Result<(), String> {
+            Ok(())
+        }
+        fn vehicles(&self) -> Vec<Car> {
+            vec![Car { id: "car1".into(), name: "Car".into(), timezone: String::new(), root: Some(self.root.clone()), studio_root: None, car: None }]
+        }
+        fn scan_of(&self, _: &str) -> Option<super::super::ctx::Scan> {
+            None
+        }
+        fn rescan(&self, _: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn share_healthy(&self, _: &str) -> bool {
+            self.healthy.load(std::sync::atomic::Ordering::SeqCst)
+        }
+        fn announce(&self, _: &str) {}
+        fn audit(&self, _: &str, _: &str) {}
+    }
+
+    fn write_state(root: &Path, state: &str) {
+        std::fs::create_dir_all(root.join(DIR)).unwrap();
+        // a different length each time, so the change is seen whatever the clock's resolution
+        let pad = if state == "idle" { "" } else { "     " };
+        std::fs::write(root.join(DIR).join(FILE), format!("{{\"schema\":1,\"state\":\"{state}\"{pad}}}")).unwrap();
+    }
+
+    #[test]
+    fn the_minute_poll_sees_a_transfer_that_started_after_an_idle_read() {
+        let root = std::env::temp_dir().join(format!("sentry-usb-poll-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        write_state(&root, "idle");
+        let ctx = Arc::new(OneCar { root: root.clone(), healthy: true.into() });
+        let usb = SentryUsb::new(ctx.clone());
+        usb.poll();
+        assert_eq!(usb.get("car1").map(|s| s.state), Some("idle"));
+        write_state(&root, "transferring");
+        // a share that is not answering is left alone
+        ctx.healthy.store(false, std::sync::atomic::Ordering::SeqCst);
+        usb.poll();
+        assert_eq!(usb.get("car1").map(|s| s.state), Some("idle"));
+        ctx.healthy.store(true, std::sync::atomic::Ordering::SeqCst);
+        usb.poll();
+        assert_eq!(usb.get("car1").map(|s| s.state), Some("transferring"));
+        let _ = std::fs::remove_dir_all(&root);
     }
 }
