@@ -507,7 +507,8 @@ impl ScrubFrames {
     }
 }
 
-/// Previews made ahead after each scan: the newest `days` days, newest clip first, one at a time.
+/// Previews made ahead after each scan: the newest `days` days, newest clip first, a few at a
+/// time (`at_once`).
 pub struct ScrubPrepare {
     ctx: Arc<dyn Ctx>,
     frames: Arc<ScrubFrames>,
@@ -562,20 +563,29 @@ impl ScrubPrepare {
         all.into_iter().filter(|c| done.get(&c.0) != Some(&c.1)).collect()
     }
 
+    /// How many previews are made ahead at once: one fewer than the scrubPreviews limit, so one
+    /// is always free for a clip someone opens, and at least one.
+    fn at_once(&self) -> usize {
+        (self.frames.most)().max(1).saturating_sub(1).max(1)
+    }
+
     fn pass(&self) -> usize {
-        let mut made = 0;
-        for (real, key, _, _) in self.todo() {
-            use std::sync::atomic::Ordering;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let todo = self.todo();
+        let (next, made) = (AtomicUsize::new(0), AtomicUsize::new(0));
+        // each maker takes the newest clip not taken yet
+        let one = || loop {
             if self.stopped.load(Ordering::SeqCst) {
-                break;
+                return;
             }
+            let Some((real, key, _, _)) = todo.get(next.fetch_add(1, Ordering::SeqCst)) else { return };
             while !(self.idle)() && !self.stopped.load(Ordering::SeqCst) {
                 std::thread::sleep(Duration::from_secs(5));
             }
             let started = Instant::now();
-            let grid = self.frames.get(&real, false, false, false);
+            let grid = self.frames.get(real, false, false, false);
             let mut done = self.done.lock().unwrap();
-            done.insert(real, key);
+            done.insert(real.clone(), key.clone());
             if done.len() > 50_000 {
                 if let Some(k) = done.keys().next().cloned() {
                     done.remove(&k);
@@ -583,13 +593,23 @@ impl ScrubPrepare {
             }
             drop(done);
             if grid.is_some() && started.elapsed() > Duration::from_millis(20) {
-                made += 1;
+                made.fetch_add(1, Ordering::SeqCst);
                 if self.pause_ms > 0 {
                     std::thread::sleep(Duration::from_millis(self.pause_ms));
                 }
             }
+        };
+        let n = self.at_once().min(todo.len().max(1));
+        if n <= 1 {
+            one();
+        } else {
+            std::thread::scope(|s| {
+                for _ in 0..n {
+                    s.spawn(one);
+                }
+            });
         }
-        made
+        made.into_inner()
     }
 
     /// Prepare what is new; again after this pass if more came meanwhile.
