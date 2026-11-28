@@ -41,6 +41,10 @@ pub struct Conv {
     listed: std::sync::atomic::AtomicBool,
     /// the jobs whose folder is in no vehicle, said once each
     unmatched: Mutex<std::collections::HashSet<String>>,
+    /// jobId -> the revision of the newest live snapshot taken in. Held while a snapshot is
+    /// mirrored, so an older snapshot delivered late (the delayed one, after the urgent one of
+    /// the job's end) is dropped instead of reopening the finished row.
+    revs: Mutex<HashMap<String, i64>>,
 }
 
 pub struct CoreConverter {
@@ -245,6 +249,12 @@ fn slim_counts(out: &mut Map<String, Value>, (converted, skipped, failed): (u64,
 /// the counts of the clips).
 fn on_snapshot(srv: &Server, conv: &Conv, s: &Value, live: bool) {
     let Some(id) = s["id"].as_str() else { return };
+    // (live snapshots one at a time, the newest of each job wins: the service can deliver an
+    // older one after a newer one)
+    let mut revs = if live { Some(conv.revs.lock().unwrap_or_else(|p| p.into_inner())) } else { None };
+    if revs.as_mut().is_some_and(|revs| !take_newer(revs, id, s)) {
+        return;
+    }
     let st = s["state"].as_str().unwrap_or("");
     conv.jobs.lock().unwrap().insert(id.to_string(), st.to_string());
     let src = s["config"]["sourceRoot"].as_str().unwrap_or("");
@@ -277,6 +287,16 @@ fn on_snapshot(srv: &Server, conv: &Conv, s: &Value, live: bool) {
     }
 }
 
+/// Whether live snapshot `s` of job `id` is not older than the newest taken in (kept as the newest)
+fn take_newer(revs: &mut HashMap<String, i64>, id: &str, s: &Value) -> bool {
+    let Some(r) = s["revision"].as_i64() else { return true };
+    if revs.get(id).is_some_and(|last| *last > r) {
+        return false;
+    }
+    revs.insert(id.to_string(), r);
+    true
+}
+
 /// index.js settleConversionRows: once the converter has listed its jobs, a conversion's
 /// Activity row still "running" for a job it no longer runs gets the job's real end, or
 /// "interrupted" when the converter no longer has the job; rows of jobs under way stay.
@@ -300,6 +320,8 @@ pub fn settle(srv: &Server, conv: &Conv) -> usize {
             continue;
         }
         let id = &ext["converter:".len()..];
+        // (not between a live snapshot's checks and its mirror)
+        let _live = conv.revs.lock().unwrap_or_else(|p| p.into_inner());
         let snap = conv.snaps.lock().unwrap().get(id).cloned();
         match snap {
             Some(s) if ACTIVE.contains(&s["state"].as_str().unwrap_or("")) => continue,
@@ -517,6 +539,7 @@ pub fn spawn(srv: &Arc<Server>) {
                 snaps: Mutex::new(HashMap::new()),
                 listed: std::sync::atomic::AtomicBool::new(false),
                 unmatched: Mutex::new(Default::default()),
+                revs: Mutex::new(HashMap::new()),
             });
             let (w, c) = (Arc::downgrade(&s), Arc::downgrade(&conv));
             conv.runtime.service.subscribe(Arc::new(move |event: &crate::converter::service::Event| {
@@ -714,6 +737,24 @@ mod cheap_now_tests {
         db.conn().execute_batch("CREATE TABLE gone (x); ALTER TABLE settings RENAME TO settings_kept; CREATE VIEW settings AS SELECT * FROM gone; DROP TABLE gone;").unwrap();
         cheap(90_000);
         assert_eq!(said(), 2, "again after it could be read");
+    }
+}
+
+#[cfg(test)]
+mod snapshot_order_tests {
+    use super::*;
+
+    #[test]
+    fn an_older_snapshot_delivered_late_is_dropped() {
+        let mut revs = HashMap::new();
+        let snap = |r: i64| json!({ "id": "j", "state": if r < 9 { "verifying" } else { "completed" }, "revision": r });
+        assert!(take_newer(&mut revs, "j", &snap(8)));
+        assert!(take_newer(&mut revs, "j", &snap(9)), "the job's end");
+        assert!(!take_newer(&mut revs, "j", &snap(8)), "the delayed 'verifying' after the end: it would reopen the row");
+        assert!(take_newer(&mut revs, "j", &snap(9)), "the same revision again");
+        assert!(take_newer(&mut revs, "j", &snap(10)), "a retry runs it again");
+        assert!(take_newer(&mut revs, "other", &snap(1)), "each job by itself");
+        assert!(take_newer(&mut revs, "j", &json!({ "id": "j" })), "no revision: taken as before");
     }
 }
 
