@@ -423,6 +423,8 @@ impl App {
             self.jobs.submit(format!("codecs:{vid}"), Priority::Normal, move || app.probe_codecs(&id));
         }
         footage::integrity::resume(self, vid);
+        // (the scan's earlier file list goes once the last answer made with it is out)
+        crate::core::trim::soon();
         Ok(entry)
     }
 

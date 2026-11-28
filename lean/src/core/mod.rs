@@ -23,6 +23,7 @@ pub mod server;
 pub mod state;
 pub mod supervised;
 pub mod tls;
+pub mod trim;
 
 pub use config::Config;
 pub use http::{Access, Ctx, HttpError, RawReq, Reply, Router, WebReq};
