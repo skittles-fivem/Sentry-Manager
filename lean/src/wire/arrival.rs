@@ -102,7 +102,10 @@ impl ArrivalCtx for CoreArrival {
 /// transfer that started since the last look holds its clips at once).
 pub fn holds(s: &Server, abs: &str) -> bool {
     let (Some(can), Some(v)) = (s.can().cloned(), s.app().vehicles.vehicle_for_path(std::path::Path::new(abs))) else { return false };
-    can.usb.fresh(&v.id);
+    // (a share that stopped answering is not looked at here: the arrival would wait on it)
+    if s.app().vehicles.share(&v.id).is_none_or(|sh| sh.is_healthy()) {
+        can.usb.fresh(&v.id);
+    }
     let status = can.usb.get(&v.id).and_then(|st| crate::arrival::holds::TransferStatus::parse(&st.raw_json));
     crate::arrival::holds::holds(status.as_ref(), crate::scanner::now_ms(), abs)
 }
