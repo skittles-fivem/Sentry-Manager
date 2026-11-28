@@ -384,6 +384,9 @@ fn chunk_offsets(tree: &Tree, stbl: &Node) -> Result<Vec<u64>> {
     (0..count).map(|i| if width == 4 { be32(p, 8 + i * 4).map(u64::from) } else { be64(p, 8 + i * 8) }).collect()
 }
 
+/// The most samples a track may have: four hours at 240 frames a second.
+pub const MAX_SAMPLES: usize = 4 * 3600 * 240;
+
 fn sample_sizes(tree: &Tree, stbl: &Node) -> Result<Vec<u32>> {
     let p = tree.full_box(stbl.child(b"stsz")?, 12)?;
     if p[0] != 0 {
@@ -391,7 +394,12 @@ fn sample_sizes(tree: &Tree, stbl: &Node) -> Result<Vec<u32>> {
     }
     let default = be32(p, 4)?;
     let count = be32(p, 8)? as usize;
-    if default != 0 && count as u128 * default as u128 > tree.file_size as u128 {
+    // (a sample table cannot make the reader allocate more than a real clip needs)
+    if count > MAX_SAMPLES {
+        return err("stsz sample count is too large");
+    }
+    let media: u128 = tree.root.find_all(b"mdat").iter().map(|m| m.end.saturating_sub(m.content) as u128).sum();
+    if default != 0 && count as u128 * default as u128 > (tree.file_size as u128).min(media) {
         return err("stsz sample count exceeds the file");
     }
     if default != 0 {
@@ -700,4 +708,27 @@ fn read_some(file: &File, buf: &mut [u8], pos: u64) -> std::io::Result<usize> {
         }
     }
     Ok(got)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::converter::mp4w::tests::uniform;
+
+    fn index_of(bytes: &[u8]) -> Result<Vec<Sample>> {
+        let p = std::env::temp_dir().join(format!("lean-mp4-stsz-{}-{}", std::process::id(), bytes.len()));
+        std::fs::write(&p, bytes).unwrap();
+        let file = File::open(&p).unwrap();
+        let _ = std::fs::remove_file(&p);
+        let tree = open_tree(&file)?;
+        let (track, _) = video_track(&tree)?;
+        sample_index(&tree, track)
+    }
+
+    #[test]
+    fn a_sample_table_larger_than_the_media_is_refused_before_it_is_built() {
+        assert_eq!(index_of(&uniform(1, 100, 100, 0)).unwrap().len(), 100);
+        assert_eq!(index_of(&uniform(1, 5000, 100, 6000)).err().unwrap().to_string(), "stsz sample count exceeds the file");
+        assert_eq!(index_of(&uniform(1, MAX_SAMPLES as u32 + 1, 100, 0)).err().unwrap().to_string(), "stsz sample count is too large");
+    }
 }

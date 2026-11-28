@@ -342,7 +342,12 @@ fn sample_sizes(tree: &Tree, stbl: usize) -> CResult<Vec<u32>> {
     }
     let default = be32(p, 4);
     let count = be32(p, 8);
-    if default != 0 && count as u128 * default as u128 > tree.len() as u128 {
+    // (a sample table cannot make the reader allocate more than a real clip needs)
+    if count as usize > crate::mp4::MAX_SAMPLES {
+        return Err(mp4_error("stsz sample count is too large"));
+    }
+    let media: u128 = tree.find(ROOT, b"mdat").iter().map(|&m| tree.nodes[m].end.saturating_sub(tree.nodes[m].content) as u128).sum();
+    if default != 0 && count as u128 * default as u128 > (tree.len() as u128).min(media) {
         return Err(mp4_error("stsz sample count exceeds the file"));
     }
     if default != 0 {
@@ -741,6 +746,43 @@ pub mod tests {
         let big = rewrite_chunk_offsets(&t, 1 << 33).unwrap();
         assert_eq!(big.len(), f.len() + 4);
         assert!(big.windows(4).any(|w| w == b"co64"));
+    }
+
+    /// A one-track file whose stsz says `count` samples of `default` bytes each (a table of
+    /// zeros when 0), one chunk, an mdat of `media` bytes and `pad` bytes of free space after.
+    pub fn uniform(default: u32, count: u32, media: usize, pad: usize) -> Vec<u8> {
+        let ftyp = bx(b"ftyp", b"isom\0\0\0\0");
+        let mdat = bx(b"mdat", &vec![0u8; media]);
+        let first = (ftyp.len() + 8) as u32;
+        let mut tkhd = vec![0u8; 80];
+        tkhd[8..12].copy_from_slice(&1u32.to_be_bytes());
+        let mut hdlr = vec![0u8; 20];
+        hdlr[4..8].copy_from_slice(b"vide");
+        let mut mdhd = vec![0u8; 20];
+        mdhd[8..12].copy_from_slice(&1000u32.to_be_bytes());
+        // (with a default size the readers still want four bytes after the count)
+        let table = vec![0u8; if default == 0 { count as usize * 4 } else { 4 }];
+        let stbl = bx(
+            b"stbl",
+            &[full(b"stts", 0, &u32s(&[1, count, 33])), full(b"stsc", 0, &u32s(&[1, 1, count, 1])), full(b"stsz", 0, &[u32s(&[default, count]), table].concat()), full(b"stco", 0, &u32s(&[1, first]))].concat(),
+        );
+        let mdia = bx(b"mdia", &[full(b"mdhd", 0, &mdhd), full(b"hdlr", 0, &hdlr), bx(b"minf", &stbl)].concat());
+        let moov = bx(b"moov", &bx(b"trak", &[full(b"tkhd", 0, &tkhd), mdia].concat()));
+        [ftyp, mdat, moov, bx(b"free", &vec![0u8; pad])].concat()
+    }
+
+    #[test]
+    fn a_sample_table_larger_than_the_media_is_refused_before_it_is_built() {
+        let ok = uniform(1, 100, 100, 0);
+        let t = parse(&ok).unwrap();
+        assert_eq!(build_sample_index(&t, select_video_track(&t).unwrap().0).unwrap().len(), 100);
+        // the file is long enough (free space), the media data is not
+        let f = uniform(1, 5000, 100, 6000);
+        let t = parse(&f).unwrap();
+        assert_eq!(build_sample_index(&t, select_video_track(&t).unwrap().0).err().unwrap().message, "stsz sample count exceeds the file");
+        let f = uniform(1, crate::mp4::MAX_SAMPLES as u32 + 1, 100, 0);
+        let t = parse(&f).unwrap();
+        assert_eq!(build_sample_index(&t, select_video_track(&t).unwrap().0).err().unwrap().message, "stsz sample count is too large");
     }
 
     #[test]
