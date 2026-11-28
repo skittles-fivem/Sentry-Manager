@@ -547,9 +547,10 @@ const REAL_ROOT_KEEP: std::time::Duration = std::time::Duration::from_secs(300);
 /// The longest one look-up of a vehicle folder's real path may wait on its share.
 const REAL_ROOT_WAIT: std::time::Duration = std::time::Duration::from_secs(2);
 
-/// Each vehicle folder's real path as last found (None: it could not be found), when it was
-/// looked up, and the flag that keeps a look-up stuck on a hung share from being started twice.
-type RealRoots = HashMap<PathBuf, (Option<PathBuf>, Option<std::time::Instant>, Arc<std::sync::atomic::AtomicBool>)>;
+/// Each vehicle folder's real path as last found (None: no answer yet; Some(None): it could not
+/// be found), when it was looked up, and the flag that keeps a look-up stuck on a hung share
+/// from being started twice.
+type RealRoots = HashMap<PathBuf, (Option<Option<PathBuf>>, Option<std::time::Instant>, Arc<std::sync::atomic::AtomicBool>)>;
 
 fn real_roots() -> &'static Mutex<RealRoots> {
     static R: OnceLock<Mutex<RealRoots>> = OnceLock::new();
@@ -559,7 +560,8 @@ fn real_roots() -> &'static Mutex<RealRoots> {
 /// The real path of a vehicle folder without waiting long on its share: a recent answer is kept;
 /// a share that is not healthy is not asked (its last answer stands); otherwise one look-up at a
 /// time, given REAL_ROOT_WAIT, and a share that does not answer keeps its last answer.
-fn real_root(root: &Path, healthy: bool) -> Option<PathBuf> {
+/// None: its share has not answered yet, so it is not known.
+fn real_root(root: &Path, healthy: bool) -> Option<Option<PathBuf>> {
     let now = std::time::Instant::now();
     let busy = {
         let mut m = real_roots().lock().unwrap();
@@ -572,12 +574,12 @@ fn real_root(root: &Path, healthy: bool) -> Option<PathBuf> {
     let r = root.to_path_buf();
     let found = super::share::with_timeout_one(&busy, REAL_ROOT_WAIT, "Finding a vehicle folder's real path", move || std::fs::canonicalize(r));
     let mut m = real_roots().lock().unwrap();
-    let Some(e) = m.get_mut(root) else { return None };
+    let e = m.get_mut(root)?;
     e.1 = Some(std::time::Instant::now());
     match found {
-        Ok(real) => e.0 = Some(real),
+        Ok(real) => e.0 = Some(Some(real)),
         Err(err) if err.kind() == std::io::ErrorKind::TimedOut => {}
-        Err(_) => e.0 = None,
+        Err(_) => e.0 = Some(None),
     }
     e.0.clone()
 }
@@ -586,14 +588,26 @@ fn real_root(root: &Path, healthy: bool) -> Option<PathBuf> {
 /// (a job's snapshot, under the job's own lock): the folder it is named by first, with no disk
 /// read, then each vehicle folder's real path as `real_root` finds it, asked only of a share
 /// `healthy` says is answering. (Two vehicles never share or nest in each other's folders, so
-/// the order does not change which vehicle is found.)
-pub fn vehicle_in_quick(list: Vec<Vehicle>, p: &Path, healthy: impl Fn(&Vehicle) -> bool) -> Option<Vehicle> {
+/// the order does not change which vehicle is found.) Err: it is in none of the vehicles whose
+/// real folder is known, and the share of another has not answered yet, so it is not known
+/// (the caller looks again later rather than count the job as in no vehicle).
+pub fn vehicle_in_quick(list: Vec<Vehicle>, p: &Path, healthy: impl Fn(&Vehicle) -> bool) -> Result<Option<Vehicle>, String> {
     let abs = super::safe_fs::resolve(p);
     if let Some(i) = list.iter().position(|v| is_inside(&abs, &v.root)) {
-        return list.into_iter().nth(i);
+        return Ok(list.into_iter().nth(i));
     }
-    let i = list.iter().position(|v| real_root(&v.root, healthy(v)).is_some_and(|r| is_inside(&abs, &r)))?;
-    list.into_iter().nth(i)
+    let mut unknown = None;
+    for (i, v) in list.iter().enumerate() {
+        match real_root(&v.root, healthy(v)) {
+            Some(Some(r)) if is_inside(&abs, &r) => return Ok(list.into_iter().nth(i)),
+            None if unknown.is_none() => unknown = Some(v.name.clone()),
+            _ => {}
+        }
+    }
+    match unknown {
+        Some(name) => Err(format!("the real folder of vehicle {name} is not known yet: its share has not answered")),
+        None => Ok(None),
+    }
 }
 
 /// index.js describeSource (audit lines)
@@ -674,13 +688,21 @@ mod tests {
             asked.lock().unwrap().push(x.id.clone());
             x.id != "van"
         };
-        assert_eq!(vehicle_in_quick(list(), &dir.join("plain/TeslaCam"), &healthy).unwrap().id, "plain");
+        assert_eq!(vehicle_in_quick(list(), &dir.join("plain/TeslaCam"), &healthy).unwrap().unwrap().id, "plain");
         assert!(asked.lock().unwrap().is_empty(), "the folder it is named by needs no share");
         let real = std::fs::canonicalize(dir.join("tank/car/TeslaCam")).unwrap();
-        assert_eq!(vehicle_in_quick(list(), &real, &healthy).unwrap().id, "car", "a symlinked folder by its real path");
+        assert_eq!(vehicle_in_quick(list(), &real, &healthy).unwrap().unwrap().id, "car", "a symlinked folder by its real path");
+        // a share that is not healthy is not asked for its real path: until it has answered, a
+        // job that may be in it is not known to be in no vehicle (its savings are kept to retry)
         let van = std::fs::canonicalize(dir.join("tank/van/TeslaCam")).unwrap();
-        assert!(vehicle_in_quick(list(), &van, &healthy).is_none(), "a share that is not healthy is not asked for its real path");
-        assert!(vehicle_in_quick(list(), &dir.join("elsewhere"), &healthy).is_none());
+        assert!(vehicle_in_quick(list(), &van, &healthy).is_err());
+        assert!(vehicle_in_quick(list(), &dir.join("elsewhere"), &healthy).is_err());
+        // once it is healthy and has answered, it is found, and a folder in no vehicle is in none
+        let all = |_: &Vehicle| true;
+        assert_eq!(vehicle_in_quick(list(), &van, all).unwrap().unwrap().id, "van");
+        assert!(vehicle_in_quick(list(), &dir.join("elsewhere"), all).unwrap().is_none());
+        // and it is not asked again while it is not healthy: its last answer stands
+        assert_eq!(vehicle_in_quick(list(), &van, &healthy).unwrap().unwrap().id, "van");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

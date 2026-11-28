@@ -608,7 +608,11 @@ impl Bridge {
             let list: Vec<(String, Arc<Sink>, Arc<std::sync::atomic::AtomicBool>)> = senders.lock().unwrap().iter().map(|(k, s)| (k.clone(), s.sink.clone(), s.alive.clone())).collect();
             for (k, sink, alive) in list {
                 if !alive.load(std::sync::atomic::Ordering::SeqCst) || !sink(&text) {
-                    senders.lock().unwrap().remove(&k);
+                    // (only that stream's: a page that reconnected meanwhile keeps its new one)
+                    let mut s = senders.lock().unwrap();
+                    if s.get(&k).is_some_and(|e| Arc::ptr_eq(&e.alive, &alive)) {
+                        s.remove(&k);
+                    }
                 }
             }
         }));

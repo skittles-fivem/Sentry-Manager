@@ -191,14 +191,15 @@ fn freed(s: &Value) -> (f64, f64) {
 /// The vehicle a job's sourceRoot is in (the converter keeps the real path, so a vehicle whose
 /// folder is a symlink is found by its real folder too). It runs in each job snapshot, under the
 /// job's own lock: it never waits long on a share, and asks no share that is not healthy
-/// (vehicle_in_quick). Err: the vehicles could not be read.
+/// (vehicle_in_quick). Err: the vehicles could not be read, or a share that may hold it has not
+/// answered yet (the job's savings are kept and its vehicle looked up again).
 pub fn try_vehicle_of(srv: &Server, src: &str) -> Result<Option<crate::footage::vehicles::Vehicle>, String> {
     if src.is_empty() {
         return Ok(None);
     }
     let vehicles = &srv.app().vehicles;
     let list = vehicles.try_list().map_err(|e| e.to_string())?;
-    Ok(crate::footage::vehicles::vehicle_in_quick(list, std::path::Path::new(src), |v| vehicles.share(&v.id).is_none_or(|s| s.is_healthy())))
+    crate::footage::vehicles::vehicle_in_quick(list, std::path::Path::new(src), |v| vehicles.share(&v.id).is_none_or(|s| s.is_healthy()))
 }
 
 fn vehicle_of(srv: &Server, src: &str) -> Option<crate::footage::vehicles::Vehicle> {
