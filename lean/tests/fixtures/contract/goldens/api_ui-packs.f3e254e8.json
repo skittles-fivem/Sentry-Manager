@@ -44,7 +44,7 @@
         {
           "author": "Daylight pack",
           "builtin": true,
-          "bytes": 391855,
+          "bytes": 391850,
           "description": "A calm, friendly interface: a Today page that answers your questions first, a calendar of footage, a big six-camera Viewer, guided conversions, light and dark looks.",
           "files": 32,
           "id": "daylight",
@@ -70,7 +70,7 @@
         {
           "author": "Sentry Six Manager examples",
           "builtin": true,
-          "bytes": 415935,
+          "bytes": 415955,
           "description": "Retro-futuristic synthwave cockpit: neon HUD panels over an endless grid that runs toward a setting sun. Dashboard instrument cluster, track-list footage, heads-up Viewer and a dyno-room Encoder.",
           "files": 28,
           "id": "horizon",

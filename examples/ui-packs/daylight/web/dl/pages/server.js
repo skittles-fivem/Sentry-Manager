@@ -162,7 +162,7 @@ export async function render(ctx) {
   const drawStats = () => {
     if (!ctx.alive()) return;
     const h = snap?.host;
-    $('#host-line').innerHTML = error && !snap ? `<span style="color:var(--bad)">Can’t get the numbers: ${esc(error)}</span>`
+    $('#host-line').innerHTML = error && !snap ? '<span class="muted">Server details aren’t available right now.</span>'
       : h ? esc([h.hostname, h.os, h.kernel && `kernel ${h.kernel}`, fin(h.uptimeS) && `on for ${span(h.uptimeS)}`, fin(h.appUptimeS) && `Sentry Six up ${span(h.appUptimeS)}`, h.version && (/^Build \d/.test(h.version) ? h.version : `version ${h.version}`)].filter(Boolean).join(' · ')) + (error ? ' · <span style="color:var(--warn)">not updating right now</span>' : '') : 'Asking the server…';
     if (!snap) {
       // nothing read yet: why, in place of the numbers (it also tries again every 2 s)

@@ -189,11 +189,11 @@
 .usb-status summary { padding: 9px 16px; }
 .usb-status .usb-details { padding: 2px 16px 14px; }
 .usb-status .usb-details dt { text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
-.bar { display: block; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); overflow: hidden; min-width: 40px; }
-.bar > i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--cyan), var(--mag)); transition: width 0.4s; }
-.bar.org > i { background: linear-gradient(90deg, var(--yel), var(--org)); }
-.bar.red > i { background: linear-gradient(90deg, var(--org), var(--red)); }
-.bar.grn > i { background: linear-gradient(90deg, #2fd6a0, var(--grn)); }
+span.bar { display: block; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); overflow: hidden; min-width: 40px; }
+span.bar > i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--cyan), var(--mag)); transition: width 0.4s; }
+span.bar.org > i { background: linear-gradient(90deg, var(--yel), var(--org)); }
+span.bar.red > i { background: linear-gradient(90deg, var(--org), var(--red)); }
+span.bar.grn > i { background: linear-gradient(90deg, #2fd6a0, var(--grn)); }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; font-size: 14px; }
 .kv dt { color: var(--faint); }
 .kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }

@@ -209,8 +209,23 @@ pub fn whatwg_path(raw: &str) -> String {
     format!("/{}", out.join("/"))
 }
 
+/// An HTTP/2 browser may send each cookie as a Cookie header of its own (RFC 9113 8.2.3):
+/// they are joined into one, as HTTP/1 sends them, so every reader of the header sees them
+/// all (the session, the /original fallback, a two-step sign-in in progress).
+fn join_cookies(h: &mut HeaderMap) {
+    let all: Vec<&[u8]> = h.get_all(axum::http::header::COOKIE).iter().map(|v| v.as_bytes()).collect();
+    if all.len() < 2 {
+        return;
+    }
+    let joined = all.join(&b"; "[..]);
+    if let Ok(v) = axum::http::HeaderValue::from_bytes(&joined) {
+        h.insert(axum::http::header::COOKIE, v);
+    }
+}
+
 /// The whole request handler.
 pub async fn dispatch(state: Arc<AppState>, mut req: Request<Body>, conn: ConnInfo) -> Res {
+    join_cookies(req.headers_mut());
     let path = req.uri().path();
     if path.contains('\\') || path.split('/').any(|s| s == "." || s == ".." || s.to_ascii_lowercase().contains("%2e")) {
         let fixed = whatwg_path(path);
@@ -1582,6 +1597,21 @@ mod tests {
     }
 
     /// An HTTP/2 client on `io`: its request sender (the connection driven in a task).
+    #[test]
+    fn cookies_sent_as_separate_headers_are_read_as_one() {
+        use axum::http::{header::COOKIE, HeaderValue};
+        let mut h = HeaderMap::new();
+        h.append(COOKIE, HeaderValue::from_static("sm_ui_original=1"));
+        h.append(COOKIE, HeaderValue::from_static("sid=abc"));
+        join_cookies(&mut h);
+        assert_eq!(h.get_all(COOKIE).iter().count(), 1);
+        assert_eq!(h.get(COOKIE).unwrap(), "sm_ui_original=1; sid=abc");
+        let mut one = HeaderMap::new();
+        one.insert(COOKIE, HeaderValue::from_static("sid=abc"));
+        join_cookies(&mut one);
+        assert_eq!(one.get(COOKIE).unwrap(), "sid=abc");
+    }
+
     async fn h2_client(io: tokio::io::DuplexStream) -> hyper::client::conn::http2::SendRequest<http_body_util::Empty<bytes::Bytes>> {
         let (send, conn) = hyper::client::conn::http2::handshake(hyper_util::rt::TokioExecutor::new(), hyper_util::rt::TokioIo::new(io)).await.unwrap();
         tokio::spawn(conn);
