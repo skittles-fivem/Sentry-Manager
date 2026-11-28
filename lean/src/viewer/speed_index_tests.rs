@@ -378,3 +378,21 @@ fn a_pause_is_seen_before_the_next_clip_however_fast_the_reads() {
     idx.settled();
     assert_eq!(done(&idx), 40);
 }
+
+#[test]
+fn a_reader_resting_after_its_clip_is_in_use() {
+    let mut s = Started::new(Duration::from_millis(150));
+    assert_eq!(s.in_use(0), 0);
+    s.one();
+    s.one();
+    // both read already: resting, still in use
+    assert_eq!(s.in_use(0), 2);
+    assert_eq!(s.in_use(3), 3);
+    std::thread::sleep(Duration::from_millis(200));
+    assert_eq!(s.in_use(0), 0, "rested");
+    // no rest: only what is reading
+    let mut s = Started::new(Duration::ZERO);
+    s.one();
+    assert_eq!(s.in_use(0), 0);
+    assert_eq!(s.in_use(1), 1);
+}
