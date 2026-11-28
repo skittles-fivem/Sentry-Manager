@@ -18,26 +18,42 @@ const PEAKS_KEPT: usize = 64;
 
 /// The local calendar date of t.
 pub fn local_date(t: i64) -> NaiveDate {
-    Local.timestamp_millis_opt(t).single().or_else(|| Local.timestamp_millis_opt(t).earliest()).map(|d| d.date_naive()).unwrap_or_default()
+    local_date_in(&Local, t)
+}
+
+/// local_date in the time zone `tz`.
+pub fn local_date_in<Tz: TimeZone>(tz: &Tz, t: i64) -> NaiveDate {
+    tz.timestamp_millis_opt(t).single().or_else(|| tz.timestamp_millis_opt(t).earliest()).map(|d| d.date_naive()).unwrap_or_default()
 }
 
 /// new Date(y, m, d, hour).getTime() for a local date (a time in a DST gap moves on, as V8 does).
 pub fn local_ms(d: NaiveDate, hour: u32) -> i64 {
+    local_ms_in(&Local, d, hour)
+}
+
+/// local_ms in the time zone `tz`. An hour in a DST gap (clocks went forward at it, as at
+/// midnight in Santiago, Asuncion, Havana, Beirut or Cairo) gives the first instant after the
+/// gap: the start of the day stays on that day.
+pub fn local_ms_in<Tz: TimeZone>(tz: &Tz, d: NaiveDate, hour: u32) -> i64 {
     let ndt = d.and_hms_opt(hour, 0, 0).unwrap_or_default();
-    match Local.from_local_datetime(&ndt) {
+    match tz.from_local_datetime(&ndt) {
         chrono::LocalResult::Single(x) => x.timestamp_millis(),
         chrono::LocalResult::Ambiguous(a, _) => a.timestamp_millis(),
         chrono::LocalResult::None => {
-            // the hour does not exist (clocks went forward): the same wall time an hour on
-            let later = ndt + chrono::Duration::hours(1);
-            Local.from_local_datetime(&later).earliest().map(|x| x.timestamp_millis() - 3_600_000).unwrap_or(0)
+            // the first wall time after the gap (gaps are whole minutes, a day at most)
+            (1..=24 * 60).find_map(|m| tz.from_local_datetime(&(ndt + chrono::Duration::minutes(m))).earliest()).map_or(0, |x| x.timestamp_millis())
         }
     }
 }
 
 /// 'YYYY-MM-DD' in the server's time zone.
 pub fn day_key(t: i64) -> String {
-    let d = local_date(t);
+    day_key_in(&Local, t)
+}
+
+/// day_key in the time zone `tz`.
+pub fn day_key_in<Tz: TimeZone>(tz: &Tz, t: i64) -> String {
+    let d = local_date_in(tz, t);
     format!("{:04}-{:02}-{:02}", d.year(), d.month(), d.day())
 }
 
