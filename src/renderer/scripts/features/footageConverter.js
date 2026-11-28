@@ -119,6 +119,11 @@ function apiError(code, details) {
     return error;
 }
 
+// Cancel failures that are about the connection or the moment, not the job:
+// these never lead to the offer to set the job aside.
+const CANCEL_NOT_JOB_FAULT = new Set(['NETWORK_ERROR', 'SIGNED_OUT', 'JOB_ACTIVE', 'SERVICE_SHUTDOWN', 'CANCELLED', 'CONVERTER_STARTING']);
+export const cancelFailureOffersDiscard = (code) => !CANCEL_NOT_JOB_FAULT.has(code);
+
 function unwrap(result) {
     if (result && typeof result === 'object' && Object.prototype.hasOwnProperty.call(result, 'ok')) {
         if (result.ok === true) return result.value;
@@ -2273,8 +2278,17 @@ function createFootageConverterController(options = {}) {
             if (next) applySnapshot(next, next.revision);
             return;
         } catch (error) {
-            if (typeof api.discardConverterJob !== 'function') {
+            // Only a job the server could not end is offered for setting aside:
+            // a lost connection, a sign-out or a busy job says nothing about the
+            // job itself (the cancel may still be finishing on the server).
+            if (typeof api.discardConverterJob !== 'function' || !cancelFailureOffersDiscard(error?.code)) {
                 notify(describeError(error), { type: 'error' });
+                if (error?.code === 'NETWORK_ERROR' && typeof api.getCurrentConverterJob === 'function') {
+                    try {
+                        const current = unwrap(await api.getCurrentConverterJob());
+                        if (current) applySnapshot(current, current.revision);
+                    } catch { /* the live updates show it when the server answers */ }
+                }
                 return;
             }
         }

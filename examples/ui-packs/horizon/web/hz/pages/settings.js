@@ -11,7 +11,7 @@ import '/web/units.js';
 
 const TABS = [['vehicles', 'Vehicles', 'car'], ['places', 'Places', 'map'], ['account', 'Account', 'lock'], ['interface', 'Interface', 'horizon'], ['display', 'Background', 'hud'], ['updates', 'Updates', 'download'], ['security', 'Security', 'shield'], ['system', 'System', 'info'], ['power', 'Electricity', 'bolt'], ['nodes', 'Nodes', 'nodes'], ['help', 'Help & feedback', 'chat']];
 // Help & feedback is for admins only (a watch-only account does not see it, and /api/reports refuses it)
-const isAdmin = () => fetch('/api/auth/me', { credentials: 'same-origin' }).then((r) => r.json()).then((m) => m?.role === 'admin').catch(() => false);
+const isAdmin = () => api('/api/auth/me', { timeout: 8000 }).then((m) => m?.role === 'admin').catch(() => false);
 const WEEK = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']];
 let system = null;
 
@@ -195,8 +195,8 @@ async function iface(box) {
     <p class="small dim">How Sentry Six Manager looks and works for everyone who signs in. <b>Sentry Six</b> is the main interface; the others come with the app or were uploaded.</p>
     ${ui.original ? `<div class="note org" style="margin-top:10px">This browser shows the original interface because you opened <span class="mono">/original</span>${ui.active ? `; everyone else sees <b>${h(activeName || '')}</b>` : ''}. <a href="/original?off=1">Show the chosen interface</a></div>` : ''}
     <label class="fld" style="max-width:420px;margin-top:12px">Interface for everyone<select class="in" id="ui-pick">${ui.packs.map((x) => `<option value="${h(x.id)}"${x.id === ui.active ? ' selected' : ''}>${h(x.name)}</option>`).join('')}</select></label>
-    ${ui.packs.length ? `<ul class="packs">${ui.packs.map((x) => `<li class="pack"><div class="grow"><b>${h(x.name)}</b> ${x.id === ui.active ? pill('in use', 'grn') : ''}${x.description ? `<p class="small dim">${h(x.description)}</p>` : ''}<p class="small faint">${x.author ? `by ${h(x.author)} · ` : ''}${h((x.replaces || []).map((k) => (k === 'web' ? 'pages' : 'Studio pages')).join(', '))} · ${h(x.files)} files · ${size(x.bytes)} · uploaded ${h(stampFull(Date.parse(x.uploadedAt)))}</p></div>
-      <div class="row">${x.id === ui.active ? '' : `<button class="btn sm" type="button" data-use="${h(x.id)}">Use</button>`}<button class="btn sm danger" type="button" data-del="${h(x.id)}">${ico('bin')}Delete</button></div></li>`).join('')}</ul>` : ''}
+    ${ui.packs.length ? `<ul class="packs">${ui.packs.map((x) => `<li class="pack"><div class="grow"><b>${h(x.name)}</b> ${x.id === ui.active ? pill('in use', 'grn') : ''}${x.description ? `<p class="small dim">${h(x.description)}</p>` : ''}<p class="small faint">${x.author ? `by ${h(x.author)} · ` : ''}${h((x.replaces || []).map((k) => (k === 'web' ? 'pages' : 'Studio pages')).join(', '))} · ${h(x.files)} files · ${size(x.bytes)}${x.builtin ? ' · built in' : ` · uploaded ${h(stampFull(Date.parse(x.uploadedAt)))}`}</p></div>
+      <div class="row">${x.id === ui.active ? '' : `<button class="btn sm" type="button" data-use="${h(x.id)}">Use</button>`}${x.builtin ? '' : `<button class="btn sm danger" type="button" data-del="${h(x.id)}">${ico('bin')}Delete</button>`}</div></li>`).join('')}</ul>` : ''}
     <div class="row" style="margin-top:12px">
       <input type="file" id="ui-file" accept=".zip,application/zip" class="sr-only">
       <label class="btn go" for="ui-file">${ico('upload')}Upload a pack (.zip)</label>

@@ -337,13 +337,13 @@ qs('#hz-dlg').addEventListener('click', (e) => { if (e.target.id === 'hz-dlg') e
 
 // ---------- start ----------
 (async () => {
-  try {
-    const s = await api('/api/settings');
+  // at the same time, each under the reads' time limit, so the first page never waits long
+  const settings = api('/api/settings').then((s) => {
     app.power = s.power || null;
     document.documentElement.classList.toggle('calm-ui', Boolean(s.appearance?.reduceEffects));
     clockPref.h24 = Boolean(s.appearance?.clock24);
-  } catch { /* pages show errors */ }
-  await Promise.all([loadCars().catch(() => {}), loadNotes().catch(() => {})]);
+  }, () => { /* pages show errors */ });
+  await Promise.all([settings, loadCars().catch(() => {}), loadNotes().catch(() => {})]);
   drawCarPick();
   drawNoteBadge();
   render();

@@ -97,6 +97,11 @@ impl RealRoots {
     fn hold(&self, real: &Path) -> bool {
         self.0.iter().any(|r| real.starts_with(r))
     }
+
+    /// Whether `real` (a real path) is inside one of the roots.
+    pub fn holds(&self, real: &Path) -> bool {
+        self.hold(real)
+    }
 }
 
 /// resolve_inside with the roots' real paths found already.

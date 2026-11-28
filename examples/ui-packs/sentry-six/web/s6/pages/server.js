@@ -12,11 +12,13 @@ async function renderPage(el, ctx) {
     histAt = 0,
     stopped = false,
     timer = null,
-    loading = false;
+    loading = false,
+    // why the last sample could not be read ('' once one comes)
+    failed = '';
   const more = {},
     seen = new Map();
   el.innerHTML =
-    '<a class="back" href="#/health">‹ Health</a><h2>Server details</h2><p data-host></p><div class="toolbar"><div class="segments"><button data-range="15m" class="active">15 min</button><button data-range="24h">24 h</button></div><a data-csv download>Download CSV</a></div><section class="card savings"><h3>Space saved by converting</h3><div data-savings></div></section><div data-stats>Reading the server…</div>';
+    '<a class="back" href="#/health">‹ Health</a><h2>Server details</h2><p data-host></p><div class="toolbar"><div class="segments"><button data-range="15m" class="active">15 min</button><button data-range="24h">24 h</button></div><a data-csv download>Download CSV</a></div><section class="card savings"><h3>Space freed by conversions</h3><div data-savings></div></section><div data-stats>Reading the server…</div>';
   const savings = createSavingsChart(el.querySelector('[data-savings]'), {
     vehicleId: ctx.current()?.id,
   });
@@ -26,7 +28,9 @@ async function renderPage(el, ctx) {
   function draw() {
     if (stopped || !ctx.alive()) return;
     el.querySelector('[data-host]').innerHTML = hostLine(snap?.host);
-    el.querySelector('[data-stats]').innerHTML = snap
+    el.querySelector('[data-stats]').innerHTML = !snap && failed
+      ? `<div class="card"><p>${esc(failed)}</p><div class="form-actions"><button class="btn solid" data-again>Try again</button></div></div>`
+      : snap
       ? serverBody(snap, {
           admin,
           range,
@@ -49,21 +53,34 @@ async function renderPage(el, ctx) {
       // (the day's history changes slowly: read again at most once a minute)
       const day = range === '24h' && Date.now() - histAt > 60000;
       const values = await Promise.all([
-        api('/api/stats'),
-        day ? api('/api/stats/history?range=24h') : null,
+        api('/api/stats', { timeout: 10000 }),
+        day ? api('/api/stats/history?range=24h', { timeout: 20000 }) : null,
       ]);
       snap = values[0];
       if (day) histAt = Date.now();
       if (day || range !== '24h') hist = values[1];
+      failed = '';
       draw();
     } catch (e) {
-      if (!stopped && ctx.alive()) toast(e.message, true);
+      if (e?.name === 'AbortError' || stopped || !ctx.alive()) return;
+      // said once, not on every poll; with nothing shown yet, in place of the numbers
+      if (e.message !== failed) {
+        failed = e.message;
+        if (snap) toast(e.message, true);
+        else draw();
+      }
     } finally {
       loading = false;
       if (!stopped && ctx.alive() && !document.hidden) timer = setTimeout(poll, 2000);
     }
   }
   el.onclick = act(async (e) => {
+    if (e.target.closest('[data-again]')) {
+      failed = '';
+      el.querySelector('[data-stats]').textContent = 'Reading the server…';
+      await poll();
+      return;
+    }
     const b = e.target.closest('[data-range]'),
       m = e.target.closest('[data-nd-more]');
     if (b) {

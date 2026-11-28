@@ -48,7 +48,10 @@ the page itself, and every page runs under a strict Content-Security-Policy.
 
 **Your password again** is needed for changes that could hand someone your
 shares or the server: adding a vehicle or changing its footage source, the
-certificate names, and deleting from the Recycle Bin for good.
+certificate names, and deleting from the Recycle Bin for good. A cleanup
+policy change that lets it take more (days kept or the size limit added or
+lowered, emptying the Recycle Bin after fewer days, or turning such a policy
+on), and running a policy that empties the Recycle Bin, need it too.
 
 **No root for the web app.** Only a small supervisor runs as root, to mount
 shares and keep the certificate authority, and it never loads anything from

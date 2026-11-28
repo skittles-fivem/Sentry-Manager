@@ -154,18 +154,29 @@ pub fn start(app: &Arc<App>, vid: &str) -> Value {
     let a = app.clone();
     let id = vid.to_string();
     std::thread::spawn(move || {
-        run(&a, &id);
-        if let Some(r) = a.footage.integrity.runs.lock().unwrap().get_mut(&id) {
-            r.running = false;
-            r.finished_at = Some(super::js::now().trunc());
+        // (ended however the run ends, a panic too: a check that cannot run again is never left)
+        struct Ended<'a>(&'a App, &'a str);
+        impl Drop for Ended<'_> {
+            fn drop(&mut self) {
+                let mut runs = self.0.footage.integrity.runs.lock().unwrap_or_else(|e| e.into_inner());
+                if let Some(r) = runs.get_mut(self.1) {
+                    r.running = false;
+                    r.finished_at = Some(super::js::now().trunc());
+                }
+            }
         }
+        let _ended = Ended(&a, &id);
+        run(&a, &id);
     });
     status(app, vid)
 }
 
 fn run(app: &App, vid: &str) {
     let data = load(app, vid);
-    let Some(v) = app.vehicle(vid) else { return };
+    let Some(v) = app.vehicle(vid) else {
+        mark(app, vid, false);
+        return;
+    };
     let todo: Vec<FileEntry> = {
         let d = data.lock().unwrap();
         clips_of(app, vid).into_iter().filter(|f| !fresh(d.get(&f.rel), f)).collect()
@@ -179,12 +190,23 @@ fn run(app: &App, vid: &str) {
     let next = AtomicUsize::new(0);
     let unreadable = AtomicUsize::new(0);
     let since_save = AtomicUsize::new(0);
+    // a read the share does not answer stops the run (at most one stuck thread per worker):
+    // what was not read is read the next time
+    let hung = std::sync::atomic::AtomicBool::new(false);
     std::thread::scope(|s| {
         for _ in 0..CONCURRENCY {
             s.spawn(|| loop {
+                if hung.load(Ordering::SeqCst) {
+                    return;
+                }
                 let i = next.fetch_add(1, Ordering::SeqCst);
                 let Some(f) = todo.get(i) else { return };
-                let res = check_file(&v.root.join(&f.rel));
+                let path = v.root.join(&f.rel);
+                let res = super::share::with_timeout(super::share::FS_TIMEOUT, "Reading a clip", move || check_file(&path));
+                if res.as_ref().is_err_and(|e| e.kind() == std::io::ErrorKind::TimedOut) {
+                    hung.store(true, Ordering::SeqCst);
+                    return;
+                }
                 {
                     let mut d = data.lock().unwrap();
                     match res {
@@ -217,7 +239,10 @@ fn run(app: &App, vid: &str) {
     save(app, vid, &snapshot);
     let bad = snapshot.values().filter(|x| x.get(2).is_some_and(|p| super::js::truthy(Some(p)))).count();
     let u = unreadable.load(Ordering::SeqCst);
-    app.core.log("integrity", super::ctx::Level::Info, &format!("Footage check of {vid}: {} file(s) read, {bad} that will not play{}", todo.len(),
+    if hung.load(Ordering::SeqCst) {
+        app.core.log("integrity", super::ctx::Level::Warn, &format!("Footage check of {vid}: the share is not responding, so the check stops; it goes on where it was next time."));
+    }
+    app.core.log("integrity", super::ctx::Level::Info, &format!("Footage check of {vid}: {} file(s) read, {bad} that will not play{}", done.load(Ordering::SeqCst),
         if u > 0 { format!(", {u} that could not be read now (checked again next time)") } else { String::new() }));
     mark(app, vid, false);
 }

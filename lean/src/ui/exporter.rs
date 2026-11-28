@@ -37,6 +37,10 @@ pub const MAX_SECONDS: f64 = 3600.0;
 pub const MAX_CLIPS: usize = 120;
 const KEEP_MS: f64 = 24.0 * 3600.0 * 1000.0;
 const KEEP_FILES: usize = 10;
+/// Finished, failed, cancelled and expired exports listed at most (the newest)
+const KEEP_LISTED: usize = 50;
+/// How long reading one camera file's picture size may take
+const PROBE_LIMIT: Duration = Duration::from_secs(20);
 pub const GPU_ENCODERS: [&str; 3] = ["h264_nvenc", "h264_qsv", "h264_vaapi"];
 
 /// A refusal of the request (400, shown as written).
@@ -367,6 +371,88 @@ fn public(x: &Export) -> Value {
 
 type Shared = Arc<Mutex<Export>>;
 
+/// The size of one camera's picture (ffprobe), None when it cannot be read: in time, or at all.
+/// While it runs its pid is the export's, so a cancel or the server stopping kills it; one
+/// still running at the limit is killed.
+fn probe_size(ffprobe: &str, x: &Shared, file: &str, limit: Duration) -> Option<(i64, i64)> {
+    let mut child = Command::new(ffprobe)
+        .args(["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", file])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+    let mut stdout = child.stdout.take()?;
+    let reader = std::thread::spawn(move || {
+        let mut out = Vec::new();
+        let _ = stdout.read_to_end(&mut out);
+        out
+    });
+    x.lock().unwrap().pid = Some(child.id());
+    let until = std::time::Instant::now() + limit;
+    let ok = loop {
+        {
+            // (reaped and its pid let go under the export's lock: a cancel never kills another process)
+            let mut g = x.lock().unwrap();
+            match child.try_wait() {
+                Ok(Some(st)) => {
+                    g.pid = None;
+                    // (what it printed counts, whatever its exit code, as before)
+                    let _ = st;
+                    break true;
+                }
+                Ok(None) if !g.cancel && std::time::Instant::now() < until => {}
+                _ => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    g.pid = None;
+                    break false;
+                }
+            }
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    };
+    let out = reader.join().unwrap_or_default();
+    if !ok {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&out);
+    let t = text.trim();
+    let (w, rest) = t.split_once('x')?;
+    let h: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+    if w.is_empty() || h.is_empty() || !w.bytes().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    Some((w.parse().ok()?, h.parse().ok()?))
+}
+
+/// The list kept: exports waiting, running or done (their file is there), and of the rest
+/// (failed, cancelled, expired) those that ended in the last day, the newest KEEP_LISTED.
+fn trim_list(all: &mut Vec<Shared>, now: f64) {
+    all.retain(|x| {
+        let g = x.lock().unwrap();
+        matches!(g.state.as_str(), "waiting" | "running" | "done") || now - g.finished_at.unwrap_or(g.created_at) < KEEP_MS
+    });
+    let mut ended: Vec<(f64, usize)> = all
+        .iter()
+        .enumerate()
+        .filter_map(|(i, x)| {
+            let g = x.lock().unwrap();
+            (!matches!(g.state.as_str(), "waiting" | "running" | "done")).then(|| (g.finished_at.unwrap_or(g.created_at), i))
+        })
+        .collect();
+    if ended.len() <= KEEP_LISTED {
+        return;
+    }
+    ended.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+    let gone: std::collections::HashSet<usize> = ended.into_iter().skip(KEEP_LISTED).map(|(_, i)| i).collect();
+    let mut i = 0;
+    all.retain(|_| {
+        i += 1;
+        !gone.contains(&(i - 1))
+    });
+}
+
 pub struct ExporterCfg {
     pub dir: PathBuf,
     pub ffmpeg: String,
@@ -537,6 +623,8 @@ impl Exporter {
                 g.state = "expired".into();
             }
         }
+        drop(all);
+        trim_list(&mut self.all.lock().unwrap(), now);
         Ok(())
     }
 
@@ -582,24 +670,6 @@ impl Exporter {
         }
         *c = Some(pick.clone());
         pick
-    }
-
-    /// The size of one camera's picture.
-    fn probe_size(&self, file: &str) -> Option<(i64, i64)> {
-        let out = Command::new(&self.ffprobe)
-            .args(["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", file])
-            .stdin(Stdio::null())
-            .stderr(Stdio::null())
-            .output()
-            .ok()?;
-        let text = String::from_utf8_lossy(&out.stdout);
-        let t = text.trim();
-        let (w, rest) = t.split_once('x')?;
-        let h: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
-        if w.is_empty() || h.is_empty() || !w.bytes().all(|c| c.is_ascii_digit()) {
-            return None;
-        }
-        Some((w.parse().ok()?, h.parse().ok()?))
     }
 
     fn ffmpeg(&self, x: &Shared, args: &[String], cwd: &Path, part_seconds: f64) -> Result<(), String> {
@@ -673,7 +743,13 @@ impl Exporter {
                     continue;
                 }
                 let f = clip.file(&cam).unwrap().to_string();
-                if self.probe_size(&f).is_none() {
+                if x.lock().unwrap().cancel {
+                    return Err("cancelled".into());
+                }
+                if probe_size(&self.ffprobe, x, &f, PROBE_LIMIT).is_none() {
+                    if x.lock().unwrap().cancel {
+                        return Err("cancelled".into());
+                    }
                     clip.files.retain(|(c, _)| *c != cam);
                     notes.push(format!("{} at {} could not be read (black)", cam_name(&cam), wall_at(&clip.key, 0.0, self.clock24()).chars().skip(11).collect::<String>()));
                 }
@@ -695,7 +771,24 @@ impl Exporter {
         Ok(parts)
     }
 
-    fn run(self: Arc<Self>, x: Shared) {
+    /// Render x, then each export queued behind it, one after another.
+    fn run(self: Arc<Self>, mut x: Shared) {
+        loop {
+            self.run_one(&x);
+            let next = {
+                let mut running = self.running.lock().unwrap();
+                let next = self.queue.lock().unwrap().pop_front();
+                *running = next.clone();
+                next
+            };
+            match next {
+                Some(n) => x = n,
+                None => break,
+            }
+        }
+    }
+
+    fn run_one(&self, x: &Shared) {
         let (id, job_id) = {
             let mut g = x.lock().unwrap();
             g.state = "running".into();
@@ -712,7 +805,7 @@ impl Exporter {
             let mut layout = layout_for(&clips, &camera);
             if camera != "grid" {
                 let sample = clips.iter().find_map(|c| c.file(&camera)).unwrap().to_string();
-                let s = self.probe_size(&sample);
+                let s = probe_size(&self.ffprobe, x, &sample, PROBE_LIMIT);
                 let w = s.map_or(1280, |s| if s.0 == 0 { 1280 } else { s.0 }).min(1920);
                 let lw = w - (w % 2);
                 layout.w = Some(lw);
@@ -787,15 +880,6 @@ impl Exporter {
             }
         }
         let _ = std::fs::remove_dir_all(&work);
-        let next = {
-            let mut running = self.running.lock().unwrap();
-            let next = self.queue.lock().unwrap().pop_front();
-            *running = next.clone();
-            next
-        };
-        if let Some(n) = next {
-            self.run(n);
-        }
     }
 }
 
@@ -849,6 +933,65 @@ mod tests {
     }
 
     // test/exporter.test.js
+    fn export(state: &str, finished_at: Option<f64>) -> Shared {
+        let req = normalize(&json!({ "clips": [clip("2026-10-01_10-00-00", 0.0, 10.0, &["front"])] })).unwrap();
+        Arc::new(Mutex::new(Export {
+            id: random_id(), vehicle_id: "v".into(), req, state: state.into(), done_seconds: 0.0, name: String::new(), title: String::new(), file: PathBuf::from("/nonexistent/x.mp4"),
+            created_at: finished_at.unwrap_or(0.0), finished_at, job_id: Value::Null, error: None, notes: Vec::new(), bytes: 0, cancel: false, pid: None, encoder: None,
+        }))
+    }
+
+    fn random_id() -> String {
+        crate::ui::packs::random_hex(8)
+    }
+
+    #[test]
+    fn the_list_keeps_what_is_waiting_running_done_and_the_newest_ended() {
+        let now = 1e13;
+        let mut all = vec![export("running", None), export("waiting", None), export("done", Some(now - 2.0 * KEEP_MS)), export("failed", Some(now - 2.0 * KEEP_MS)), export("expired", Some(now - 2.0 * KEEP_MS))];
+        for i in 0..(KEEP_LISTED + 10) {
+            all.push(export(if i % 2 == 0 { "cancelled" } else { "failed" }, Some(now - 1000.0 * (i as f64 + 1.0))));
+        }
+        trim_list(&mut all, now);
+        let states: Vec<String> = all.iter().map(|x| x.lock().unwrap().state.clone()).collect();
+        assert_eq!(&states[..3], ["running", "waiting", "done"]);
+        assert_eq!(all.len(), 3 + KEEP_LISTED, "the old ended ones and the oldest beyond the limit go");
+        let oldest = all[3..].iter().map(|x| x.lock().unwrap().finished_at.unwrap()).fold(f64::INFINITY, f64::min);
+        assert_eq!(oldest, now - 1000.0 * KEEP_LISTED as f64);
+    }
+
+    #[test]
+    fn a_hung_size_probe_is_killed_at_its_limit_or_on_cancel() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("lean-export-probe-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let script = |name: &str, body: &str| {
+            let p = dir.join(name);
+            std::fs::write(&p, format!("#!/bin/sh\n{body}")).unwrap();
+            std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+            p.to_string_lossy().into_owned()
+        };
+        let (hung, good) = (script("hung", "exec sleep 30\n"), script("good", "echo 1280x960\n"));
+        let x = export("running", None);
+        let began = std::time::Instant::now();
+        assert_eq!(probe_size(&hung, &x, "a.mp4", Duration::from_millis(300)), None);
+        assert!(began.elapsed() < Duration::from_secs(5));
+        assert_eq!(x.lock().unwrap().pid, None);
+        let (y, h) = (x.clone(), hung.clone());
+        let t = std::thread::spawn(move || probe_size(&h, &y, "a.mp4", Duration::from_secs(30)));
+        let began = std::time::Instant::now();
+        while x.lock().unwrap().pid.is_none() {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        x.lock().unwrap().cancel = true;
+        assert_eq!(t.join().unwrap(), None);
+        assert!(began.elapsed() < Duration::from_secs(5), "a cancel ends it");
+        x.lock().unwrap().cancel = false;
+        assert_eq!(probe_size(&good, &x, "a.mp4", Duration::from_secs(5)), Some((1280, 960)));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn wall_clock() {
         assert_eq!(wall_at("2026-11-03_23-59-50", 15.0, false), "2026-11-04 12:00:05 AM");

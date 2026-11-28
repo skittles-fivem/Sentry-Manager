@@ -31,8 +31,12 @@ fn camera_of(name: &str) -> Option<&str> {
     }
     let digits = |r: std::ops::Range<usize>| b[r].iter().all(u8::is_ascii_digit);
     let ok = digits(0..4) && b[4] == b'-' && digits(5..7) && b[7] == b'-' && digits(8..10) && b[10] == b'_' && digits(11..13) && b[13] == b'-' && digits(14..16) && b[16] == b'-' && digits(17..19) && b[19] == b'-';
-    let cam = &name[20..name.len() - 4];
-    (ok && CAMERAS.contains(&cam)).then_some(cam)
+    if !ok {
+        return None;
+    }
+    // (bytes 0..20 are ASCII here, so 20 starts a character)
+    let cam = name.get(20..name.len() - 4)?;
+    CAMERAS.contains(&cam).then_some(cam)
 }
 
 fn event_folder(name: &str) -> bool {
@@ -152,24 +156,15 @@ pub struct NodeBenchmark(Arc<Inner>);
 
 /// ffprobe's format duration in seconds (30 s at most).
 fn duration_of(ffprobe: &str, file: &Path) -> Result<Option<f64>, String> {
-    let mut child = std::process::Command::new(ffprobe)
-        .args(["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0"]).arg(file)
-        .stdin(std::process::Stdio::null()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::null())
-        .spawn().map_err(|e| e.to_string())?;
-    let started = Instant::now();
-    loop {
-        if child.try_wait().map_err(|e| e.to_string())?.is_some() {
-            break;
-        }
-        if started.elapsed() > Duration::from_secs(30) {
-            let _ = child.kill();
-        }
-        std::thread::sleep(Duration::from_millis(20));
+    let args: [&std::ffi::OsStr; 7] = ["-v".as_ref(), "error".as_ref(), "-show_entries".as_ref(), "format=duration".as_ref(), "-of".as_ref(), "csv=p=0".as_ref(), file.as_os_str()];
+    // (killed after 30 s; one stuck where SIGKILL waits is reaped on a thread of its own)
+    let r = crate::ops::gpu::run_os(ffprobe, &args, Duration::from_secs(30));
+    // (only a program that could not be started stops the benchmark; one that was killed
+    // or timed out skips this clip, as before)
+    if let Some(e) = r.spawn_error {
+        return Err(e);
     }
-    let mut out = String::new();
-    use std::io::Read;
-    child.stdout.take().map(|mut s| s.read_to_string(&mut out));
-    let s = out.trim().parse::<f64>().ok().filter(|s| s.is_finite() && *s > 0.0);
+    let s = r.stdout.trim().parse::<f64>().ok().filter(|s| s.is_finite() && *s > 0.0);
     Ok(s)
 }
 
@@ -345,5 +340,17 @@ impl NodeBenchmark {
         let Some(s) = g.get(id) else { return Value::Null };
         json!({ "state": s.state, "phase": s.phase, "codec": s.codec, "results": s.results, "suggested": s.suggested, "error": s.error,
             "startedAt": s.started_at, "endedAt": s.ended_at, "samples": s.samples.filter(|n| *n > 0), "converted": s.converted })
+    }
+}
+
+#[cfg(test)]
+mod duration_tests {
+    use std::path::Path;
+
+    // only an ffprobe that cannot be started stops the benchmark; a clip it fails on is skipped
+    #[test]
+    fn a_clip_ffprobe_fails_on_is_skipped() {
+        assert!(super::duration_of("/nonexistent/ffprobe", Path::new("x.mp4")).is_err());
+        assert_eq!(super::duration_of("false", Path::new("x.mp4")), Ok(None));
     }
 }

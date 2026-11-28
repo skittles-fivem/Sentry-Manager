@@ -263,6 +263,9 @@ impl Converter {
         let summaries = self.store.summaries()?;
         self.sweep_unreferenced_snapshot_folders(&summaries);
         let mut recovered = Vec::new();
+        // (one job that cannot be recovered now, say its share is still reconnecting, does not hold
+        // up the others or the converter: it is tried again in the background until it can be)
+        let mut retry = Vec::new();
         for m in summaries.iter() {
             if !ACTIVE_RECOVERY_STATES.contains(&m["state"].as_str().unwrap_or("")) {
                 continue;
@@ -270,7 +273,14 @@ impl Converter {
             let id = m["id"].as_str().unwrap_or("").to_string();
             match self.service.recover(&id, true) {
                 Ok(snap) => recovered.push(snap),
-                Err(e) => return Err(CError::new(e.code.as_deref().unwrap_or("RECOVERY_FAILED"), "The interrupted job could not be recovered.")),
+                Err(e) => {
+                    let code = e.code.as_deref().unwrap_or("RECOVERY_FAILED").to_string();
+                    eprintln!("[CONVERTER] The interrupted job {id} could not be recovered yet ({code}); it is tried again");
+                    // (the job file as it was left: once anything changes it, a Resume, Cancel or
+                    // Discard by the user, it is no longer this thread's to recover)
+                    let revision = self.store.load(&id).ok().flatten().map(|m| m.revision());
+                    retry.push((id, revision));
+                }
             }
         }
         let service = self.service.clone();
@@ -280,6 +290,7 @@ impl Converter {
                 let _ = service.continue_recovery(&id);
                 let _ = service.when_idle(&id);
             }
+            retry_recoveries(&service, retry);
         });
         // automatic conversion's settings and index before any automatic job resumes discovering
         self.auto.start();
@@ -758,4 +769,54 @@ impl crate::nodes::ctx::WorkerRuntime for Converter {
 /// (allocate takes a list it could not get as none, as Node does).
 pub(crate) fn auto_devices(d: Arc<super::devices::Registry>) -> Arc<dyn Fn() -> Result<Vec<Value>, String> + Send + Sync> {
     Arc::new(move || Ok(d.recent_or_local()))
+}
+
+/// The interrupted jobs start() could not recover, tried again with a growing wait until each is
+/// recovered and resumed, or the converter stops. Only a job whose paths cannot be inspected yet (a
+/// share still reconnecting) is tried again; any other refusal is final and the job waits for the
+/// user (Resume, Cancel or Discard), as it is.
+fn retry_recoveries(service: &Service, mut ids: Vec<(String, Option<i64>)>) {
+    let mut delay = service.0.o.backoff_initial_ms.saturating_mul(5).max(1);
+    let max = service.0.o.backoff_max_ms.saturating_mul(10).max(delay);
+    while !ids.is_empty() {
+        let end = std::time::Instant::now() + std::time::Duration::from_millis(delay);
+        while std::time::Instant::now() < end {
+            if service.0.shutting_down.load(Ordering::SeqCst) {
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(delay.min(100)));
+        }
+        let mut still = Vec::new();
+        for (id, revision) in ids {
+            if service.0.shutting_down.load(Ordering::SeqCst) {
+                return;
+            }
+            // only the job as start() left it: not one the user has resumed, paused, cancelled or
+            // discarded meanwhile (its recovery is theirs then)
+            let left = match service.0.o.store.load(&id) {
+                Ok(Some(m)) => revision.is_some_and(|r| r == m.revision()) && ACTIVE_RECOVERY_STATES.contains(&m.state().as_str()),
+                Ok(None) => false,
+                // (the job file not readable now: tried again later)
+                Err(_) => {
+                    still.push((id, revision));
+                    continue;
+                }
+            };
+            if !left {
+                eprintln!("[CONVERTER] The interrupted job {id} changed since the restart; it is no longer tried again");
+                continue;
+            }
+            match service.recover(&id, true) {
+                Ok(_) => {
+                    eprintln!("[CONVERTER] The interrupted job {id} is recovered and carries on");
+                    let _ = service.continue_recovery(&id);
+                    let _ = service.when_idle(&id);
+                }
+                Err(e) if e.code.as_deref() == Some("INSPECTION_FAILED") => still.push((id, revision)),
+                Err(e) => eprintln!("[CONVERTER] The interrupted job {id} could not be recovered ({}); it waits for Resume, Cancel or Discard", e.code.as_deref().unwrap_or("RECOVERY_FAILED")),
+            }
+        }
+        ids = still;
+        delay = (delay.saturating_mul(2)).min(max);
+    }
 }

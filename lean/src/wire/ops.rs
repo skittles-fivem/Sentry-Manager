@@ -114,6 +114,10 @@ impl OpsCtx for CoreOps {
         let Some(srv) = self.srv() else { return Vec::new() };
         srv.app().vehicles.list().iter().filter_map(|v| vehicle_info(&srv, &v.id)).collect()
     }
+    fn vehicle_of_source(&self, source_root: &str) -> Result<Option<String>, String> {
+        let Some(srv) = self.srv() else { return Err("the server is stopping".into()) };
+        Ok(super::converter::try_vehicle_of(&srv, source_root)?.map(|v| v.id))
+    }
     fn vehicle_shares(&self) -> Vec<(String, Option<String>, Option<String>)> {
         // (vehicle_info's name, first root and source type, without the summaries: the
         // vehicle by its id is the list's first with that id)

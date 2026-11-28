@@ -9,12 +9,14 @@ import nodesPage from './nodes.js';
 
 const TABS = [['vehicles', 'Vehicles'], ['places', 'Places'], ['account', 'Account'], ['interface', 'Interface'], ['updates', 'Updates'], ['security', 'Security'], ['system', 'System'], ['power', 'Electricity'], ['appearance', 'Appearance'], ['nodes', 'Nodes'], ['help', 'Help & feedback']];
 // Help & feedback is for admins only (a watch-only account does not see it, and /api/reports refuses it)
-const isAdmin = () => fetch('/api/auth/me', { credentials: 'same-origin' }).then((r) => r.json()).then((m) => m?.role === 'admin').catch(() => false);
+const isAdmin = () => api('/api/auth/me', { timeoutMs: 8000 }).then((m) => m?.role === 'admin').catch(() => false);
 const WEEK = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']];
 
 export default {
   async mount(el, { sub, params, go, seq }) {
     const shown = (await isAdmin()) ? TABS : TABS.filter(([k]) => k !== 'help');
+    // left while asking: the shared page is the next page's now
+    if (!seq()) return {};
     const tab = shown.some(([k]) => k === sub.split('/')[0]) ? sub.split('/')[0] : 'vehicles';
     let inner = null; // the Nodes page, when that section shows
     if (tab === 'nodes') document.title = 'Nodes · Settings · Flux · Sentry Six Manager';
@@ -195,8 +197,8 @@ async function iface(box) {
     ${ui.original ? `<div class="note amber small">This browser shows the original interface because you opened <span class="mono">/original</span>${ui.active ? `; everyone else sees <b>${esc(activeName || '')}</b>` : ''}. <a href="/original?off=1">Show the chosen interface</a></div>` : ''}
     <label class="field narrow">Interface for everyone<select class="input" id="ui-pick">${ui.packs.map((x) => `<option value="${esc(x.id)}"${x.id === ui.active ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>
     ${ui.packs.length ? `<div class="tscroll"><table class="dtable stack"><thead><tr><th>pack</th><th>changes</th><th>uploaded</th><th class="r"></th></tr></thead><tbody>${ui.packs.map((x) => `<tr><td><b>${esc(x.name)}</b>${x.id === ui.active ? ` ${chip('in use', 'green')}` : ''}${x.description ? `<div class="small muted">${esc(x.description)}</div>` : ''}${x.author ? `<div class="small faint">by ${esc(x.author)}</div>` : ''}</td>
-      <td class="small">${esc((x.replaces || []).map((k) => (k === 'web' ? 'pages' : 'Studio pages')).join(', '))} · ${x.files} files · ${bytes(x.bytes)}</td><td class="small num">${esc(isoish(Date.parse(x.uploadedAt)))}</td>
-      <td class="r nowrap">${x.id === ui.active ? '' : `<button class="btn sm" type="button" data-use="${esc(x.id)}">Use</button>`}<button class="btn sm danger" type="button" data-del="${esc(x.id)}">Delete</button></td></tr>`).join('')}</tbody></table></div>` : ''}
+      <td class="small">${esc((x.replaces || []).map((k) => (k === 'web' ? 'pages' : 'Studio pages')).join(', '))} · ${x.files} files · ${bytes(x.bytes)}</td><td class="small num">${x.builtin ? 'Built in' : esc(isoish(Date.parse(x.uploadedAt)))}</td>
+      <td class="r nowrap">${x.id === ui.active ? '' : `<button class="btn sm" type="button" data-use="${esc(x.id)}">Use</button>`}${x.builtin ? '' : `<button class="btn sm danger" type="button" data-del="${esc(x.id)}">Delete</button>`}</td></tr>`).join('')}</tbody></table></div>` : ''}
     <div class="row-actions">
       <input type="file" id="ui-file" accept=".zip,application/zip" class="sr-only">
       <label class="btn primary" for="ui-file" id="ui-upload">${icon('plus')}Upload a pack (.zip)</label>

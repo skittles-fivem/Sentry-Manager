@@ -16,6 +16,8 @@ use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 const TIMEOUT: Duration = Duration::from_secs(60);
+/// How long a request waits for its place in line before it gives up (no thumbnail this time)
+const WAIT_FOR_PLACE: Duration = Duration::from_secs(90);
 
 /// How many ffmpeg runs make pictures at once: recording card thumbnails and clip strips share it.
 /// Places are given in the order they were asked for.
@@ -25,12 +27,22 @@ pub struct Slots {
     at_once: Box<dyn Fn() -> usize + Send + Sync>,
 }
 
-/// (places taken; the next ticket to give; the ticket that goes next)
+/// (places taken; the next ticket to give; the ticket that goes next; tickets given up)
 #[derive(Default)]
 struct Line {
     busy: usize,
     next: u64,
     serving: u64,
+    left: HashSet<u64>,
+}
+
+impl Line {
+    /// Past the tickets whose holders stopped waiting
+    fn skip_left(&mut self) {
+        while self.left.remove(&self.serving) {
+            self.serving += 1;
+        }
+    }
 }
 
 /// A run's place; freed when dropped.
@@ -49,17 +61,39 @@ impl Slots {
     /// Wait for a free place, after everyone who asked before (a limit raised meanwhile is seen
     /// within half a second).
     pub fn take(&self) -> Slot<'_> {
+        self.take_by(None).expect("no deadline")
+    }
+
+    /// take, or None once `deadline` passes: the place in line is given up, and those behind go on.
+    pub fn take_until(&self, deadline: Instant) -> Option<Slot<'_>> {
+        self.take_by(Some(deadline))
+    }
+
+    fn take_by(&self, deadline: Option<Instant>) -> Option<Slot<'_>> {
         let mut l = self.line.lock().unwrap();
         let me = l.next;
         l.next += 1;
-        while l.serving != me || l.busy >= self.limit() {
-            l = self.freed.wait_timeout(l, Duration::from_millis(500)).unwrap().0;
+        loop {
+            l.skip_left();
+            if l.serving == me && l.busy < self.limit() {
+                break;
+            }
+            let now = Instant::now();
+            if deadline.is_some_and(|d| now >= d) {
+                l.left.insert(me);
+                l.skip_left();
+                drop(l);
+                self.freed.notify_all();
+                return None;
+            }
+            let wait = deadline.map_or(Duration::from_millis(500), |d| (d - now).min(Duration::from_millis(500)));
+            l = self.freed.wait_timeout(l, wait).unwrap().0;
         }
         l.serving += 1;
         l.busy += 1;
         // (the next in line may go too, if there is room)
         self.freed.notify_all();
-        Slot(self)
+        Some(Slot(self))
     }
 }
 
@@ -76,8 +110,51 @@ pub fn server_slots() -> Arc<Slots> {
     SLOTS.get_or_init(|| Slots::new(|| crate::viewer::get().map_or(2, |v| v.thumbnails_at_once()))).clone()
 }
 
+/// Cached pictures kept at most in a folder (the newest)
+pub const KEPT: usize = 20_000;
+/// A prune every so many pictures written
+pub const PRUNE_EVERY: usize = 500;
+/// A leftover work file (its run ended with the process) goes once it is this old
+const STALE_TMP: Duration = Duration::from_secs(10 * 60);
+
+/// Keep the newest `keep` pictures (*.jpg) in `dir`, by time; work files (*.tmp.jpg) are not
+/// counted, and go once they are older than any run can be.
+pub fn prune(dir: &Path, keep: usize) {
+    let Ok(list) = std::fs::read_dir(dir) else { return };
+    let now = std::time::SystemTime::now();
+    let mut pictures: Vec<(std::time::SystemTime, PathBuf)> = Vec::new();
+    for e in list.flatten() {
+        let name = e.file_name().to_string_lossy().into_owned();
+        if !name.ends_with(".jpg") {
+            continue;
+        }
+        let Ok(m) = e.metadata() else { continue };
+        if !m.is_file() {
+            continue;
+        }
+        let at = m.modified().unwrap_or(std::time::UNIX_EPOCH);
+        if name.ends_with(".tmp.jpg") {
+            if now.duration_since(at).is_ok_and(|age| age > STALE_TMP) {
+                let _ = std::fs::remove_file(e.path());
+            }
+            continue;
+        }
+        pictures.push((at, e.path()));
+    }
+    if pictures.len() > keep {
+        pictures.sort_by(|a, b| a.0.cmp(&b.0));
+        let n = pictures.len() - keep;
+        for (_, p) in pictures.into_iter().take(n) {
+            let _ = std::fs::remove_file(p);
+        }
+    }
+}
+
 pub struct Thumbnails {
     pub dir: PathBuf,
+    /// pictures written (a prune with the first, then every PRUNE_EVERY)
+    written: std::sync::atomic::AtomicUsize,
+    keep: usize,
     ffmpeg: String,
     /// clips being made now (by their cache file)
     busy: Mutex<HashSet<PathBuf>>,
@@ -109,7 +186,7 @@ impl Thumbnails {
 
     /// Runs take their place in `slots` (shared with the clip strips in the server).
     pub fn with_slots(dir: PathBuf, ffmpeg: String, slots: Arc<Slots>) -> Thumbnails {
-        Thumbnails { dir, ffmpeg, busy: Mutex::new(HashSet::new()), changed: Condvar::new(), slots }
+        Thumbnails { dir, written: Default::default(), keep: KEPT, ffmpeg, busy: Mutex::new(HashSet::new()), changed: Condvar::new(), slots }
     }
 
     /// The cache file of a clip as it is now: sha1 of "real path|size|floor(mtimeMs)", as thumbnails.js names it.
@@ -133,17 +210,24 @@ impl Thumbnails {
         {
             let mut b = self.busy.lock().unwrap();
             if b.contains(&out) {
-                // (being made for another request: its answer)
+                // (being made for another request: its answer, or none if that takes too long)
+                let until = Instant::now() + WAIT_FOR_PLACE + 2 * TIMEOUT;
                 while b.contains(&out) {
-                    b = self.changed.wait(b).unwrap();
+                    let now = Instant::now();
+                    if now >= until {
+                        return Ok(None);
+                    }
+                    b = self.changed.wait_timeout(b, until - now).unwrap().0;
                 }
                 return Ok(out.exists().then_some(out));
             }
             b.insert(out.clone());
         }
-        let made = {
-            let _place = self.slots.take();
-            self.make(real, &out)
+        // (a request waits so long for its place, then has none this time: a page of cards on a
+        // slow share cannot hold the server's threads for ever)
+        let made = match self.slots.take_until(Instant::now() + WAIT_FOR_PLACE) {
+            Some(_place) => self.make(real, &out),
+            None => Ok(false),
         };
         self.busy.lock().unwrap().remove(&out);
         self.changed.notify_all();
@@ -169,7 +253,11 @@ impl Thumbnails {
             }
         }
         // (ffmpeg can end well and write nothing: a seek past the end of a clip under a second)
-        std::fs::rename(&tmp, out).map(|_| true).map_err(|e| e.to_string())
+        std::fs::rename(&tmp, out).map_err(|e| e.to_string())?;
+        if self.written.fetch_add(1, std::sync::atomic::Ordering::Relaxed) % PRUNE_EVERY == 0 {
+            prune(&self.dir, self.keep);
+        }
+        Ok(true)
     }
 }
 
@@ -210,6 +298,45 @@ pub(crate) mod fake {
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn one_who_stops_waiting_gives_up_the_place_and_the_line_goes_on() {
+        let slots = Slots::new(|| 1);
+        let held = slots.take();
+        let began = Instant::now();
+        assert!(slots.take_until(Instant::now() + Duration::from_millis(200)).is_none());
+        assert!(began.elapsed() < Duration::from_secs(3));
+        let s = slots.clone();
+        let next = std::thread::spawn(move || s.take_until(Instant::now() + Duration::from_secs(10)).is_some());
+        std::thread::sleep(Duration::from_millis(50));
+        drop(held);
+        assert!(next.join().unwrap(), "the ticket given up is skipped");
+        let _again = slots.take();
+    }
+
+    #[test]
+    fn a_folder_of_pictures_keeps_the_newest_and_no_old_work_files() {
+        let dir = std::env::temp_dir().join(format!("lean-thumb-prune-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let now = std::time::SystemTime::now();
+        let put = |name: &str, age: u64| {
+            let p = dir.join(name);
+            std::fs::write(&p, b"x").unwrap();
+            std::fs::File::options().write(true).open(&p).unwrap().set_modified(now - Duration::from_secs(age)).unwrap();
+        };
+        for (i, n) in ["a.jpg", "b.jpg", "c.jpg", "d.jpg", "e.jpg"].iter().enumerate() {
+            put(n, 1000 - i as u64 * 100);
+        }
+        put("old.jpg.1.tmp.jpg", 3600);
+        put("new.jpg.2.tmp.jpg", 5);
+        put("notes.txt", 9999);
+        prune(&dir, 3);
+        let mut left: Vec<String> = std::fs::read_dir(&dir).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+        left.sort();
+        assert_eq!(left, ["c.jpg", "d.jpg", "e.jpg", "new.jpg.2.tmp.jpg", "notes.txt"]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn a_place_goes_to_who_asked_first_even_when_another_frees_and_asks_again_at_once() {

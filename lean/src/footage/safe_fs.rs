@@ -76,9 +76,15 @@ const DIR_FLAGS: libc::c_int = libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFO
 
 /// Open the folder `dir_abs` (the root or below it) walking from the root, never following
 /// a symlink. `create` makes missing folders as it goes (mkdir -p, symlink-safe).
+/// (A root reached through a symlink, a folder vehicle at a linked path say, is walked from
+/// where it really is: the components below the root as written, else below its real path.)
 pub fn open_dir_inside(root: &Path, dir_abs: &Path, create: bool) -> io::Result<OwnedFd> {
     let real_root = std::fs::canonicalize(root)?;
-    let parts = parts_inside(&real_root, dir_abs)?;
+    let lex_root = resolve(root);
+    let parts = match parts_inside(&lex_root, dir_abs) {
+        Ok(p) => p,
+        Err(_) => parts_inside(&real_root, dir_abs)?,
+    };
     let mut dir = open_at(libc::AT_FDCWD, real_root.as_os_str().as_bytes(), libc::O_RDONLY | libc::O_DIRECTORY)?;
     for part in parts {
         let next = match open_at(dir.as_raw_fd(), &part, DIR_FLAGS) {
@@ -274,5 +280,24 @@ mod tests {
         rename_inside_noreplace(&root, &root.join("a/one"), &root.join("a/three")).unwrap();
         assert_eq!(std::fs::read(root.join("a/three")).unwrap(), b"1");
         assert_eq!(safe_join(&root, "a/./b").unwrap(), root.join("a/b"));
+    }
+
+    #[test]
+    fn a_root_reached_through_a_link_is_walked_where_it_really_is() {
+        let real = tmp("real-root");
+        let outside = tmp("outside2");
+        let at = tmp("linked").join("car");
+        std::os::unix::fs::symlink(&real, &at).unwrap();
+        std::fs::create_dir_all(real.join("a")).unwrap();
+        std::fs::write(real.join("a/f.mp4"), b"x").unwrap();
+        mkdirp_inside(&at, &at.join("bin/x/a")).unwrap();
+        rename_inside(&at, &at.join("a/f.mp4"), &at.join("bin/x/a/f.mp4.binned")).unwrap();
+        assert!(real.join("bin/x/a/f.mp4.binned").exists());
+        unlink_inside(&at, &at.join("bin/x/a/f.mp4.binned")).unwrap();
+        assert!(!real.join("bin/x/a/f.mp4.binned").exists());
+        // still no link out below it
+        std::os::unix::fs::symlink(&outside, real.join("out")).unwrap();
+        assert!(is_escape(&mkdirp_inside(&at, &at.join("out/deeper")).unwrap_err()));
+        assert!(!outside.join("deeper").exists());
     }
 }

@@ -393,6 +393,10 @@ pub struct PromoteResult {
 pub type TestHook = std::sync::Arc<dyn Fn(&str, &Path, &Path) -> io::Result<()> + Send + Sync>;
 #[cfg(test)]
 pub static TEST_HOOK: std::sync::RwLock<Option<TestHook>> = std::sync::RwLock::new(None);
+/// Held by an in-process test for as long as it has a hook set (the hook is global, and
+/// tests run in parallel).
+#[cfg(test)]
+pub static TEST_HOOK_SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[cfg(test)]
 fn test_hook(event: &str, from: &Path, to: &Path) -> io::Result<()> {

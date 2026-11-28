@@ -175,7 +175,10 @@ async function render() {
   try {
     mod = await ROUTES[route].load();
   } catch (err) {
-    view.innerHTML = `<div class="page"><div class="note note-bad">${icon('alert')}<span>This page couldn’t load: ${esc(err.message)}</span></div></div>`;
+    // a page left before its code arrived leaves the next page alone
+    if (seq !== current.seq) return;
+    view.innerHTML = `<div class="page"><div class="note note-bad">${icon('alert')}<span>This page couldn’t load: ${esc(err.message)}</span></div><p style="margin-top:16px"><button class="btn" type="button" id="retry">Try again</button></p></div>`;
+    $('#retry')?.addEventListener('click', () => render());
     return;
   }
   if (seq !== current.seq) return;

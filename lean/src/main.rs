@@ -27,6 +27,8 @@ fn main() {
     unsafe {
         libc::mallopt(libc::M_MMAP_THRESHOLD, 128 * 1024);
     }
+    // room for every connection limit (Docker's default soft limit is 1024)
+    let open_files = core::server::raise_open_files_limit();
     // glibc keeps freed memory; hand it back
     #[cfg(target_env = "gnu")]
     std::thread::spawn(|| loop {
@@ -34,7 +36,7 @@ fn main() {
         unsafe { libc::malloc_trim(0) };
     });
     let workers = http_workers(sentry_lean::viewer::work_limits::detect_resources().cpus);
-    tokio::runtime::Builder::new_multi_thread().worker_threads(workers).enable_all().build().expect("runtime").block_on(run(fd));
+    tokio::runtime::Builder::new_multi_thread().worker_threads(workers).enable_all().build().expect("runtime").block_on(run(fd, open_files));
 }
 
 /// The threads that answer the pages (TLS, the network; the routes' own work runs on blocking
@@ -55,7 +57,7 @@ mod tests {
     }
 }
 
-async fn run(fd: Option<std::os::fd::OwnedFd>) {
+async fn run(fd: Option<std::os::fd::OwnedFd>, open_files: u64) {
     let link = sentry_lean::supervisor::link::Link::from_fd(fd).map(Arc::new);
     let mut config = core::Config::from_env();
     // (Node: supervised only with SENTRY_SUPERVISED=1 and a channel to the supervisor)
@@ -69,6 +71,9 @@ async fn run(fd: Option<std::os::fd::OwnedFd>) {
             std::process::exit(1);
         }
     };
+    if open_files < 4096 {
+        state.log.warn(format!("Open-files limit is {open_files}: the web port takes fewer connections (raise the container's nofile limit)"));
+    }
     match restored {
         Ok(true) => state.log.warn(sentry_lean::ops::snapshots::restored_line(&state.config.db_file())),
         Ok(false) => {}

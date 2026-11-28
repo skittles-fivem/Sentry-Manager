@@ -123,6 +123,23 @@ pub fn normalize_smb(input: &Value, prev: Option<&Value>) -> Result<Value, Fail>
     Ok(json!({ "type": "smb", "share": share, "username": username, "password": password, "domain": domain, "version": version, "encrypt": encrypt, "port": port }))
 }
 
+/// Whether normalize_smb gave `smb` the stored password of `prev` for another server, share,
+/// user, domain or port than it is kept for (the password would be sent where it was not
+/// saved for: that needs the admin's password again).
+pub fn reuses_password_elsewhere(input: &Value, prev: Option<&Value>, smb: &Value) -> bool {
+    let Some(prev) = prev else { return false };
+    if js::nn(input.get("password")).is_some() {
+        return false;
+    }
+    let kept_share = parse_share(prev.get("share")).unwrap_or_default();
+    let text = |v: &Value, k: &str| js::trim(&js::string_or(v.get(k), "")).to_lowercase();
+    let port = |v: &Value| v.get("port").map(|p| js::number(Some(p))).filter(|n| n.is_finite());
+    kept_share.to_lowercase() != text(smb, "share")
+        || text(prev, "username") != text(smb, "username")
+        || text(prev, "domain") != text(smb, "domain")
+        || port(prev) != port(smb)
+}
+
 fn version_label(v: &str) -> String {
     VERSIONS.iter().find(|(k, _)| *k == v).map_or_else(|| v.to_string(), |(_, l)| l.to_string())
 }
@@ -139,6 +156,23 @@ pub fn security_summary(encrypt: bool, version: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_saved_password_goes_only_where_it_was_saved_for() {
+        let prev = json!({ "type": "smb", "share": "//NAS.local/TeslaCam", "username": "tesla", "password": "secret", "domain": "", "version": "3.1.1", "encrypt": true, "port": null });
+        let elsewhere = |input: Value| {
+            let smb = normalize_smb(&input, Some(&prev)).unwrap();
+            reuses_password_elsewhere(&input, Some(&prev), &smb)
+        };
+        assert!(!elsewhere(json!({ "share": "//nas.local/TeslaCam/", "username": "tesla" })), "the same NAS again");
+        assert!(!elsewhere(json!({ "share": "//nas.local/TeslaCam", "username": "tesla", "version": "3.0" })));
+        assert!(elsewhere(json!({ "share": "//attacker.example/x", "username": "tesla" })));
+        assert!(elsewhere(json!({ "share": "//nas.local/TeslaCam", "username": "other" })));
+        assert!(elsewhere(json!({ "share": "//nas.local/TeslaCam", "username": "tesla", "port": 4455 })));
+        assert!(!elsewhere(json!({ "share": "//attacker.example/x", "username": "tesla", "password": "typed" })), "a typed password");
+        let input = json!({ "share": "//attacker.example/x", "username": "tesla", "password": "typed" });
+        assert!(!reuses_password_elsewhere(&input, None, &normalize_smb(&input, None).unwrap()), "no vehicle");
+    }
 
     #[test]
     fn shares_and_fields() {

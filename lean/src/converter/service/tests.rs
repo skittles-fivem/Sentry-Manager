@@ -602,6 +602,71 @@ fn crash_at_each_point_of_one_clip_finishes_by_itself() {
 
 // ---- test/restartResume.test.js and a cancel ------------------------------------
 
+/// The restart comes while the footage share cannot be inspected yet (here a file stands where its
+/// folder is, so every path in it answers ENOTDIR, as a share still reconnecting answers EHOSTDOWN or
+/// ESTALE): the converter starts all the same, and once the share is back the interrupted
+/// replacement is recovered and the job finishes, with no Resume and no restart.
+#[test]
+fn a_share_unreachable_at_the_restart_does_not_stop_the_converter_and_the_job_resumes_once_it_is_back() {
+    if !available() {
+        eprintln!("skipped: needs ffmpeg with libx265 and node");
+        return;
+    }
+    let base = make_base("crash-unreachable", 1);
+    let (names, before) = names_and_hashes(&base);
+    let died = crash(&base, "backup-renamed", "replace", "direct", 1, false);
+    use std::os::unix::process::ExitStatusExt;
+    assert_eq!(died.status.signal(), Some(libc::SIGKILL), "the converter died: {}", String::from_utf8_lossy(&died.stderr).chars().take(600).collect::<String>());
+    let share = base.join("footage/TeslaCam");
+    let away = base.join("footage/TeslaCam.away");
+    fs::rename(&share, &away).unwrap();
+    fs::write(&share, b"not a folder").unwrap();
+    let c = open(&base, "ffmpeg", "ffprobe", None);
+    c.start().expect("the converter starts while one job cannot be recovered yet");
+    let id = c.store.list().unwrap()[0].id().to_string();
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    assert_ne!(c.service.get(&id).unwrap()["state"], "completed");
+    fs::remove_file(&share).unwrap();
+    fs::rename(&away, &share).unwrap();
+    assert!(until(|| c.service.get(&id).unwrap()["state"] == "completed", 120_000), "the job carries on once the share is back: {}", c.service.get(&id).unwrap());
+    let job = c.service.when_idle(&id).unwrap();
+    c.shutdown();
+    assert_recovered(&base, &job, "replace", &names, &before);
+    fs::remove_dir_all(&base).unwrap();
+}
+
+/// What the background retry recovers is the job as the restart left it: one the user has acted on
+/// meanwhile (its job file changed) is theirs, and not recovered behind their back.
+#[test]
+fn a_job_changed_while_its_share_was_unreachable_is_not_recovered_behind_the_users_back() {
+    if !available() {
+        eprintln!("skipped: needs ffmpeg with libx265 and node");
+        return;
+    }
+    let base = make_base("crash-unreachable-changed", 1);
+    let died = crash(&base, "backup-renamed", "replace", "direct", 1, false);
+    use std::os::unix::process::ExitStatusExt;
+    assert_eq!(died.status.signal(), Some(libc::SIGKILL), "the converter died: {}", String::from_utf8_lossy(&died.stderr).chars().take(600).collect::<String>());
+    let share = base.join("footage/TeslaCam");
+    let away = base.join("footage/TeslaCam.away");
+    fs::rename(&share, &away).unwrap();
+    fs::write(&share, b"not a folder").unwrap();
+    let c = open(&base, "ffmpeg", "ffprobe", None);
+    c.start().expect("the converter starts while one job cannot be recovered yet");
+    let id = c.store.list().unwrap()[0].id().to_string();
+    let before = c.store.load(&id).unwrap().unwrap();
+    // (stands for a command of the user's: the job file is written again)
+    c.store.transition(&id, Patch::new()).unwrap();
+    fs::remove_file(&share).unwrap();
+    fs::rename(&away, &share).unwrap();
+    std::thread::sleep(std::time::Duration::from_secs(4));
+    let after = c.store.load(&id).unwrap().unwrap();
+    assert_eq!(after.state(), before.state(), "not recovered by the retry: {}", c.service.get(&id).unwrap());
+    assert_eq!(after.revision(), before.revision() + 1);
+    c.shutdown();
+    fs::remove_dir_all(&base).unwrap();
+}
+
 fn holding_probe(base: &Path) -> String {
     let b = base.to_string_lossy();
     wrapper(base, "ffprobe", &format!("case \"$*\" in *07-42-00-front*) [ -f \"{b}/released\" ] || {{ touch \"{b}/reached\"; while [ ! -f \"{b}/released\" ]; do sleep 0.05; done; }} ;; esac"))
@@ -642,6 +707,29 @@ fn stopped_between_two_clips_the_job_carries_on_after_the_restart() {
     let job = c.service.when_idle(&id).unwrap();
     assert_eq!(job["state"], "completed", "no Resume or Cancel needed");
     assert_eq!(job["items"].as_array().unwrap().iter().filter(|i| i["state"] == "completed").count(), 4);
+    c.shutdown();
+    fs::remove_dir_all(&base).unwrap();
+}
+
+/// An ffmpeg that does not end on SIGTERM (stuck on a dropped share) is killed a few seconds after
+/// a Cancel: the Cancel, and every other job's commands behind it, do not wait out the stall timeout.
+#[test]
+fn cancel_does_not_wait_for_an_encoder_that_ignores_the_stop() {
+    if !available() {
+        eprintln!("skipped: needs ffmpeg with libx265 and node");
+        return;
+    }
+    let base = make_base("cancel-stuck", 2);
+    let b = base.to_string_lossy().to_string();
+    let ffmpeg = wrapper(&base, "ffmpeg", &format!("case \"$*\" in *-progress*) trap '' TERM; touch \"{b}/encoding\"; while :; do sleep 0.05; done;; esac"));
+    let c = open(&base, &ffmpeg, "ffprobe", None);
+    c.start().unwrap();
+    let id = c.service.start(&config(&base, "replace", "direct", 1)).unwrap();
+    assert!(until(|| base.join("encoding").exists(), 60_000), "an encode started");
+    let t = std::time::Instant::now();
+    let job = c.service.cancel(&id).unwrap();
+    assert!(t.elapsed() < std::time::Duration::from_secs(25), "the cancel took {:?}", t.elapsed());
+    assert_eq!(job["state"], "cancelled");
     c.shutdown();
     fs::remove_dir_all(&base).unwrap();
 }

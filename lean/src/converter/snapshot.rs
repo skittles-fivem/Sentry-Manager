@@ -7,7 +7,7 @@
 
 use super::owned::errno_code;
 use super::tesla_sei::sha256_hex;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Write};
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
@@ -179,8 +179,9 @@ pub struct Artifact {
 /// createVerificationSnapshotRegistry
 pub struct Registry {
     pub temp_root: PathBuf,
+    /// the snapshots made and not yet consumed or removed (a consumed token is taken out,
+    /// so it can never be consumed again and the map does not grow with every conversion)
     live: Mutex<HashMap<String, Artifact>>,
-    consumed: Mutex<HashSet<String>>,
 }
 
 fn resolve(p: &Path) -> PathBuf {
@@ -204,7 +205,7 @@ pub enum Validate<'a> {
 
 impl Registry {
     pub fn new(temp_root: PathBuf) -> Registry {
-        Registry { temp_root: resolve(&temp_root), live: Mutex::new(HashMap::new()), consumed: Mutex::new(HashSet::new()) }
+        Registry { temp_root: resolve(&temp_root), live: Mutex::new(HashMap::new()) }
     }
 
     /// structurallyOwnedSnapshot
@@ -243,6 +244,16 @@ impl Registry {
         self.live.lock().unwrap().insert(a.token.clone(), a);
     }
 
+    /// A snapshot removed without being published: forgotten.
+    pub fn forget(&self, token: &str) {
+        self.live.lock().unwrap().remove(token);
+    }
+
+    #[cfg(test)]
+    pub fn live_len(&self) -> usize {
+        self.live.lock().unwrap().len()
+    }
+
     /// validate(artifact, { mode })
     pub fn validate(&self, a: &Artifact, mode: Validate) -> bool {
         if !self.structurally_owned(a) {
@@ -250,12 +261,11 @@ impl Registry {
         }
         match mode {
             Validate::Consume => {
-                let live = self.live.lock().unwrap();
-                let mut consumed = self.consumed.lock().unwrap();
-                if live.get(&a.token) != Some(a) || consumed.contains(&a.token) {
+                let mut live = self.live.lock().unwrap();
+                if live.get(&a.token) != Some(a) {
                     return false;
                 }
-                consumed.insert(a.token.clone());
+                live.remove(&a.token);
                 true
             }
             Validate::Reconcile(persisted) => a == persisted,
@@ -295,6 +305,7 @@ mod tests {
         s.transfer().unwrap();
         assert!(reg.validate(&a, Validate::Consume));
         assert!(!reg.validate(&a, Validate::Consume), "consumed once");
+        assert_eq!(reg.live_len(), 0, "a consumed snapshot is not kept in memory");
         assert!(reg.validate(&a, Validate::Reconcile(&a)));
         let forged = Artifact { path: root.join("x/y.mp4").to_string_lossy().into(), token: "y".into(), ..a.clone() };
         assert!(!reg.validate(&forged, Validate::Reconcile(&forged)));
@@ -307,6 +318,12 @@ mod tests {
         let s2 = reg.create(&bytes, &sha, Some(&cand), true).unwrap();
         assert!(!cand.exists());
         assert_eq!(fs::read(&s2.path).unwrap(), bytes);
+        let a2 = Artifact { path: s2.path.to_string_lossy().into(), token: s2.token.clone(), sha256: sha.clone(), size: bytes.len() as u64 };
+        assert!(!reg.validate(&Artifact { size: 1, ..a2.clone() }, Validate::Consume), "a different artifact under the token");
+        assert_eq!(reg.live_len(), 1, "a refused consume keeps the snapshot");
+        reg.forget(&s2.token);
+        assert_eq!(reg.live_len(), 0);
+        assert!(!reg.validate(&a2, Validate::Consume), "a forgotten snapshot is never consumed");
         fs::remove_dir_all(&root).unwrap_or_else(|_| {
             let _ = fs::set_permissions(&s2.path, fs::Permissions::from_mode(0o600));
             fs::remove_dir_all(&root).unwrap();

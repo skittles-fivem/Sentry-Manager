@@ -81,17 +81,21 @@ impl Drop for UploadSlot {
 /// takeUploadSlot(nodeId, signal): None when the signal was aborted while it
 /// waited (a waiter that gives up leaves the line).
 pub fn take_upload_slot(node: &str, signal: &Cancel) -> Option<UploadSlot> {
+    take_upload_slot_with(node, signal, &mut || {})
+}
+
+/// take_upload_slot, calling `waiting` on every wake while it waits in line.
+fn take_upload_slot_with(node: &str, signal: &Cancel, waiting: &mut dyn FnMut()) -> Option<UploadSlot> {
     let (m, cv) = upload_slots();
+    // (before the line's lock: on a signal already aborted the listener runs here at once,
+    // and it never takes the line's lock, so an abort can never wait on it; a wake it
+    // misses costs at most one wait_timeout)
+    let wake = signal.on_abort(|| upload_slots().1.notify_all());
     let mut g = m.lock().unwrap();
     let s = g.entry(node.to_string()).or_insert(SlotLine { busy: 0, line: VecDeque::new(), next: 0 });
     s.next += 1;
     let me = s.next;
     s.line.push_back(me);
-    let wake = signal.on_abort(|| {
-        let (m, cv) = upload_slots();
-        drop(m.lock().unwrap());
-        cv.notify_all();
-    });
     loop {
         let s = g.get_mut(node).unwrap();
         if signal.aborted() {
@@ -110,6 +114,7 @@ pub fn take_upload_slot(node: &str, signal: &Cancel) -> Option<UploadSlot> {
             return Some(UploadSlot { node: node.to_string(), released: false });
         }
         g = cv.wait_timeout(g, Duration::from_millis(500)).unwrap().0;
+        waiting();
     }
 }
 
@@ -137,7 +142,8 @@ pub fn parse_address(text: &Value) -> Option<(String, u16)> {
     let s = super::js_text(text);
     let mut v = super::js_trim(&s).to_string();
     for p in ["http://", "https://"] {
-        if v.len() >= p.len() && v[..p.len()].eq_ignore_ascii_case(p) {
+        // (bytes: a slice of the text could end inside a character)
+        if v.as_bytes().get(..p.len()).is_some_and(|b| b.eq_ignore_ascii_case(p.as_bytes())) {
             v = v[p.len()..].to_string();
             break;
         }
@@ -422,6 +428,46 @@ struct NInner {
 #[derive(Clone)]
 pub struct Nodes(Arc<NInner>);
 
+/// How often a clip that waits or moves (a slot, a busy node, the clip sent or brought back)
+/// tells the converter it is alive: its stall watch sees no progress lines meanwhile.
+const BEAT_MS: u64 = 30_000;
+/// Status polls in a row that may fail (the node busy or the link dropping for a moment)...
+const POLL_TRIES: u32 = 5;
+/// ...and for how long, before the clip counts as lost.
+const POLL_LOST_MS: i64 = 90_000;
+
+/// "alive=1" (a line the converter reads as nothing but resets its stall watch with), at most every BEAT_MS.
+struct Beat {
+    s: Arc<EncodeShared>,
+    at: std::time::Instant,
+}
+
+impl Beat {
+    fn new(s: &Arc<EncodeShared>) -> Beat {
+        Beat { s: s.clone(), at: std::time::Instant::now() }
+    }
+    fn tick(&mut self) {
+        if self.at.elapsed() >= Duration::from_millis(BEAT_MS) {
+            self.at = std::time::Instant::now();
+            self.s.emit("alive=1\n".into());
+        }
+    }
+}
+
+/// The clip as it is sent, beating as it goes.
+struct BeatReader<R> {
+    inner: R,
+    beat: Beat,
+}
+
+impl<R: std::io::Read> std::io::Read for BeatReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let n = self.inner.read(buf)?;
+        self.beat.tick();
+        Ok(n)
+    }
+}
+
 fn sleep_or_abort(ms: u64, c: &Cancel) {
     let end = std::time::Instant::now() + Duration::from_millis(ms);
     while std::time::Instant::now() < end && !c.aborted() {
@@ -530,7 +576,10 @@ impl Nodes {
     fn refresh_now(&self, node: &Value) -> Info {
         let id = node["id"].as_str().unwrap_or("").to_string();
         let before = self.0.info.lock().unwrap().get(&id).cloned();
-        let result: Result<(), NodeError> = (|| {
+        // (kept only while the node is still listed: one removed while it was asked is not
+        // brought back; a list that cannot be read keeps it, as before)
+        let still_listed = || !matches!(self.by_id(&id), Ok(None));
+        let result: Result<Info, NodeError> = (|| {
             let r = request(&Nodes::target(node), Options::get("/node/v1/info", 8000))?;
             if r.status != 200 || !crate::ops::js::truthy(&r.json) {
                 let e = peer_text(&r.json["error"], 160);
@@ -554,12 +603,16 @@ impl Nodes {
                 devices: devices.clone(),
                 hardware: parse_hardware(&j["hardware"]),
             };
-            self.0.info.lock().unwrap().insert(id.clone(), info);
-            self.note_power(&id, j);
             // remembered with the node when they change, for when it does not answer (a list that
             // cannot be read or kept is logged in stored or save: the node still answered)
             let _g = self.0.saving.lock().unwrap();
-            if let Ok(Some(current)) = self.by_id(&id) {
+            let current = self.by_id(&id);
+            if matches!(current, Ok(None)) {
+                return Ok(info);
+            }
+            self.0.info.lock().unwrap().insert(id.clone(), info.clone());
+            self.note_power(&id, j);
+            if let Ok(Some(current)) = current {
                 let now_listed = devices.as_deref().map(listed_of).unwrap_or(Value::Null);
                 let kept = current.get("devices").cloned().filter(|d| crate::ops::js::truthy(d)).unwrap_or(Value::Null);
                 if kept.to_string() != now_listed.to_string() {
@@ -579,15 +632,21 @@ impl Nodes {
                     }
                 }
             }
-            Ok(())
+            Ok(info)
         })();
-        if let Err(e) = result {
-            // offline: its devices as last known, so their lanes stay
-            let known = before.as_ref().and_then(|b| b.devices.clone()).or_else(|| self.by_id(&id).ok().flatten().and_then(|n| stored_devices(&n)));
-            let info = Info { at: self.now(), online: false, error: Some(e.message), name: None, encoders: json!({}), slots: None, busy: None, encoding: None, devices: known, hardware: before.map(|b| b.hardware).unwrap_or(Value::Null) };
-            self.0.info.lock().unwrap().insert(id.clone(), info);
+        match result {
+            Ok(info) => info,
+            Err(e) => {
+                // offline: its devices as last known, so their lanes stay
+                let known = before.as_ref().and_then(|b| b.devices.clone()).or_else(|| self.by_id(&id).ok().flatten().and_then(|n| stored_devices(&n)));
+                let info = Info { at: self.now(), online: false, error: Some(e.message), name: None, encoders: json!({}), slots: None, busy: None, encoding: None, devices: known, hardware: before.map(|b| b.hardware).unwrap_or(Value::Null) };
+                let _g = self.0.saving.lock().unwrap();
+                if still_listed() {
+                    self.0.info.lock().unwrap().insert(id.clone(), info.clone());
+                }
+                info
+            }
         }
-        self.0.info.lock().unwrap().get(&id).cloned().unwrap()
     }
 
     /// A refresh in the background (one at a time per node): its result to wait for.
@@ -941,10 +1000,11 @@ impl Nodes {
             let _g = self.0.saving.lock().unwrap();
             let list: Vec<Value> = self.stored()?.into_iter().filter(|n| n["id"].as_str() != Some(id)).collect();
             self.save(&list)?;
+            // (under `saving`: a refresh that ends after this sees the node gone and keeps nothing)
+            self.0.info.lock().unwrap().remove(id);
+            self.0.powers.lock().unwrap().remove(id);
+            self.0.working.lock().unwrap().remove(id);
         }
-        self.0.info.lock().unwrap().remove(id);
-        self.0.powers.lock().unwrap().remove(id);
-        self.0.working.lock().unwrap().remove(id);
         Ok(Some(node))
     }
 
@@ -983,7 +1043,12 @@ impl Nodes {
                     s.forget();
                     s.close(Some(0), None);
                 }
-                Ok(false) => {}
+                // (cancelled: a job the node accepted just as the kill came is deleted there too;
+                // forget sends it once at most)
+                Ok(false) => {
+                    let f = s.clone();
+                    std::thread::spawn(move || f.forget());
+                }
                 Err(e) => {
                     if s.closed.load(Ordering::SeqCst) {
                         return;
@@ -1027,6 +1092,7 @@ impl Nodes {
         let settings = Value::Object(settings).to_string();
         let target = &s.target;
         let wait_until = self.now() + BUSY_WAIT_MS;
+        let mut beat = Beat::new(s);
         let sent: Answer;
         loop {
             let free = match request(target, Options { cancel: Some(controller), ..Options::get("/node/v1/info", 10_000) }) {
@@ -1059,7 +1125,7 @@ impl Nodes {
                 if controller.aborted() {
                     return Ok(false);
                 }
-                let Some(slot) = take_upload_slot(node_id, controller) else { return Ok(false) };
+                let Some(slot) = take_upload_slot_with(node_id, controller, &mut || beat.tick()) else { return Ok(false) };
                 let upload = Cancel::new();
                 let done = Arc::new(AtomicBool::new(false));
                 *s.upload.lock().unwrap() = Some((upload.clone(), done.clone()));
@@ -1072,6 +1138,7 @@ impl Nodes {
                     Err(e) => Err(NodeError::new(format!("The node connection failed ({}).", client::errno_name(&e)), 502, "NODE_UNREACHABLE")),
                     Ok(f) => {
                         let d = done.clone();
+                        let f = BeatReader { inner: f, beat: Beat::new(s) };
                         request(target, Options {
                             method: "POST", path: "/node/v1/jobs", headers, cancel: Some(&upload), timeout_ms: 60_000, deadline_ms: Some(30 * 60_000), pin: None, on_response: None,
                             body: Body::Reader { reader: Box::new(f), on_end: Some(Box::new(move || d.store(true, Ordering::SeqCst))) },
@@ -1113,13 +1180,21 @@ impl Nodes {
             if controller.aborted() {
                 return Ok(false);
             }
+            beat.tick();
         }
         let Some(job_id) = valid_job_id(&sent.json["id"]).filter(|_| sent.status == 200) else {
             let e = peer_text(&sent.json["error"], 160);
             return Err(NodeError::new(if e.is_empty() { format!("The node refused the clip ({}).", sent.status) } else { e }, 502, "NODE_ERROR"));
         };
         *s.job_id.lock().unwrap() = Some(job_id.clone());
+        if controller.aborted() {
+            // (a kill that came before the id was kept could not delete the job)
+            s.forget();
+            return Ok(false);
+        }
         let mut last_out: i64 = -1;
+        let mut fails: u32 = 0;
+        let mut last_ok = self.now();
         let queued_since = self.now();
         let job_path = format!("/node/v1/jobs/{job_id}");
         loop {
@@ -1134,7 +1209,30 @@ impl Nodes {
                     self.fresh(node, false);
                 }
             }
-            let st = request(target, Options { cancel: Some(controller), ..Options::get(&job_path, 15_000) })?;
+            // a poll that fails for a moment (the link, or a node busy encoding) is tried again
+            // a few times before the clip counts as lost; a clear answer counts at once
+            let st = match request(target, Options { cancel: Some(controller), ..Options::get(&job_path, 15_000) }) {
+                Ok(a) if !matches!(a.status, 502..=504) => a,
+                Err(e) if e.code == "CANCELLED" || controller.aborted() => return Err(e),
+                Err(e) if !matches!(e.code, "NODE_UNREACHABLE" | "NODE_TIMEOUT") => return Err(e),
+                failed => {
+                    fails += 1;
+                    if fails >= POLL_TRIES || self.now() - last_ok > POLL_LOST_MS {
+                        return match failed {
+                            Err(e) => Err(e),
+                            Ok(a) => {
+                                let e = peer_text(&a.json["error"], 160);
+                                Err(NodeError::new(if e.is_empty() { format!("The node lost the clip ({}).", a.status) } else { e }, 502, "NODE_ERROR"))
+                            }
+                        };
+                    }
+                    beat.tick();
+                    sleep_or_abort(1000 * u64::from(fails), controller);
+                    continue;
+                }
+            };
+            fails = 0;
+            last_ok = self.now();
             if st.status != 200 || !crate::ops::js::truthy(&st.json) {
                 let e = peer_text(&st.json["error"], 160);
                 return Err(NodeError::new(if e.is_empty() { format!("The node lost the clip ({}).", st.status) } else { e }, 502, "NODE_ERROR"));
@@ -1175,7 +1273,9 @@ impl Nodes {
         }
         // the encoded file, written new (never over an existing file)
         let out_path = req.target.clone();
-        request(target, Options {
+        let mut beat = Beat::new(s);
+        let watch = controller.clone();
+        let got = request(target, Options {
             cancel: Some(controller), deadline_ms: Some(30 * 60_000),
             on_response: Some(Box::new(move |head, body| {
                 let expected = head.header("content-length").and_then(|v| v.parse::<u64>().ok());
@@ -1187,29 +1287,50 @@ impl Nodes {
                 }
                 use std::io::Write;
                 use std::os::unix::fs::OpenOptionsExt;
+                if watch.aborted() {
+                    return Err(NodeError::cancelled());
+                }
                 let mut out = std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&out_path)
                     .map_err(|e| NodeError::new(format!("{}: {e}", client::errno_name(&e)), 500, "NODE_ERROR"))?;
-                let mut written: u64 = 0;
-                let mut buf = vec![0u8; 256 * 1024];
-                loop {
-                    let n = body.read(&mut buf).map_err(client::stream_error)?;
-                    if n == 0 {
-                        break;
+                // (this thread made the file, so it removes what it could not finish: a kill's
+                // cleanup may already have run, and would never see it)
+                let result = (|| {
+                    let mut written: u64 = 0;
+                    let mut buf = vec![0u8; 256 * 1024];
+                    loop {
+                        let n = body.read(&mut buf).map_err(client::stream_error)?;
+                        if n == 0 {
+                            break;
+                        }
+                        written += n as u64;
+                        if written > limit {
+                            return Err(large());
+                        }
+                        out.write_all(&buf[..n]).map_err(|e| NodeError::new(format!("{}: {e}", client::errno_name(&e)), 500, "NODE_ERROR"))?;
+                        beat.tick();
                     }
-                    written += n as u64;
-                    if written > limit {
-                        return Err(large());
+                    out.flush().map_err(|e| NodeError::new(e.to_string(), 500, "NODE_ERROR"))?;
+                    if expected.is_some_and(|e| e != written) {
+                        return Err(NodeError::new("The encoded file did not arrive whole.", 502, "NODE_ERROR"));
                     }
-                    out.write_all(&buf[..n]).map_err(|e| NodeError::new(format!("{}: {e}", client::errno_name(&e)), 500, "NODE_ERROR"))?;
+                    if watch.aborted() {
+                        return Err(NodeError::cancelled());
+                    }
+                    Ok(written)
+                })();
+                if result.is_err() {
+                    drop(out);
+                    let _ = std::fs::remove_file(&out_path);
                 }
-                out.flush().map_err(|e| NodeError::new(e.to_string(), 500, "NODE_ERROR"))?;
-                if expected.is_some_and(|e| e != written) {
-                    return Err(NodeError::new("The encoded file did not arrive whole.", 502, "NODE_ERROR"));
-                }
-                Ok(written)
+                result
             })),
             ..Options::get(&format!("{job_path}/output"), 60_000)
         })?;
+        // anything but the file (the job gone, stopped or not done there): not encoded
+        if got.status != 200 || got.value.is_none() {
+            let e = peer_text(&got.json["error"], 160);
+            return Err(NodeError::new(if e.is_empty() { format!("The node did not send the encoded file ({}).", got.status) } else { e }, 502, "NODE_ERROR"));
+        }
         Ok(true)
     }
 

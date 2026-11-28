@@ -94,23 +94,33 @@ fn failed(ctx: &dyn CanCtx, e: &str) -> HttpError {
 }
 
 // ---- streamed bodies: a channel from a worker thread
-struct ChanStream(tokio::sync::mpsc::Receiver<Bytes>);
+struct ChanStream(tokio::sync::mpsc::Receiver<std::io::Result<Bytes>>);
 impl futures_core::Stream for ChanStream {
     type Item = Result<Bytes, std::io::Error>;
     fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Self::Item>> {
-        self.0.poll_recv(cx).map(|o| o.map(Ok))
+        self.0.poll_recv(cx)
     }
 }
 
 /// A writer into a response body: blocks while the reader is slow, ends the download once it took
 /// nothing for `stall` (stopWhenStalled), fails once the reader has gone.
 pub struct BodyWriter {
-    tx: tokio::sync::mpsc::Sender<Bytes>,
+    tx: tokio::sync::mpsc::Sender<std::io::Result<Bytes>>,
     buf: Vec<u8>,
     stall: Duration,
 }
 impl BodyWriter {
     fn send(&mut self, b: Bytes) -> std::io::Result<()> {
+        self.send_item(Ok(b))
+    }
+    /// Ends the download as failed: the body is cut off without its proper end, so the browser
+    /// says the download failed instead of keeping a file that looks whole (what was not sent
+    /// yet is dropped).
+    fn fail(&mut self, e: std::io::Error) {
+        self.buf.clear();
+        let _ = self.send_item(Err(e));
+    }
+    fn send_item(&mut self, b: std::io::Result<Bytes>) -> std::io::Result<()> {
         let mut item = b;
         let start = std::time::Instant::now();
         loop {
@@ -152,7 +162,7 @@ impl Drop for BodyWriter {
 }
 
 fn streamed(stall: Duration) -> (BodyWriter, Body) {
-    let (tx, rx) = tokio::sync::mpsc::channel::<Bytes>(16);
+    let (tx, rx) = tokio::sync::mpsc::channel::<std::io::Result<Bytes>>(16);
     (BodyWriter { tx, buf: Vec::new(), stall }, Body::from_stream(ChanStream(rx)))
 }
 
@@ -198,6 +208,9 @@ const CAN_DECODED_HOURS: f64 = 24.0;
 const CAN_DECODED_ROWS: usize = 5_000_000;
 const CAN_HEARTBEAT_MS: f64 = 60_000.0;
 const CAN_STALL: Duration = Duration::from_secs(60);
+/// How long a bundle's candump text waits for the columns decoder another download holds
+/// (then that log's text is a note line, and the bundle goes on).
+const BUNDLE_SLOT_WAIT: Duration = Duration::from_secs(60);
 /// GET /api/can/now: an answer is worked out at most this often (a Stream Deck asks once per key every few seconds)
 const NOW_TTL_MS: f64 = 3000.0;
 
@@ -256,6 +269,10 @@ pub struct Can {
     now_cache: Mutex<indexmap::IndexMap<String, (f64, Option<Value>)>>,
     /// the background checks of logs not judged yet are running
     backfilling: AtomicBool,
+    /// held across every read-modify-write of the 'can' and 'can-vehicles' settings (the
+    /// upload threads stamp tokens while an admin revokes one or turns uploads off: an update
+    /// read before must never be written back over it)
+    cfg_lock: Mutex<()>,
 }
 
 /// Logs judged at a time by the background checks (then a pause, so uploads and the
@@ -367,6 +384,7 @@ impl Can {
                 progress_due: AtomicBool::new(false),
                 now_cache: Mutex::new(indexmap::IndexMap::new()),
                 backfilling: AtomicBool::new(false),
+                cfg_lock: Mutex::new(()),
             }
         })
         .with_footage_hook()
@@ -417,18 +435,20 @@ impl Can {
         std::thread::spawn(move || {
             me.derive_tombstones();
         });
+        // the cheap timers on one thread; the work that reads the share (the prune, with its
+        // rescans, and the Sentry USB look) on threads of their own, so a slow rescan or a share
+        // that stops answering never holds up the announcements, the checks or the cleanup
         let me = self.clone();
         std::thread::spawn(move || {
             let t0 = std::time::Instant::now();
-            let (mut judged, mut indexed, mut swept) = (false, false, false);
-            let mut last = [t0; 5];
+            let (mut judged, mut indexed) = (false, false);
+            let mut last = [t0; 2];
             loop {
                 std::thread::sleep(Duration::from_millis(250));
                 let el = t0.elapsed();
                 if me.progress_due.swap(false, Ordering::SeqCst) {
                     me.ctx.announce("can");
                 }
-                me.prune.tick();
                 if !judged && el >= Duration::from_secs(15) || judged && last[0].elapsed() >= Duration::from_secs(300) {
                     judged = true;
                     last[0] = std::time::Instant::now();
@@ -442,16 +462,28 @@ impl Can {
                     last[1] = std::time::Instant::now();
                     me.logs.clean_stale(2.0 * 24.0 * 3600_000.0);
                 }
-                if !swept && el >= Duration::from_secs(600) || swept && last[2].elapsed() >= Duration::from_secs(3600) {
+            }
+        });
+        let me = self.clone();
+        std::thread::spawn(move || {
+            let t0 = std::time::Instant::now();
+            let mut swept = false;
+            let mut last = t0;
+            loop {
+                std::thread::sleep(Duration::from_millis(250));
+                let el = t0.elapsed();
+                me.prune.tick();
+                if !swept && el >= Duration::from_secs(600) || swept && last.elapsed() >= Duration::from_secs(3600) {
                     swept = true;
-                    last[2] = std::time::Instant::now();
+                    last = std::time::Instant::now();
                     me.prune.sweep();
                 }
-                if last[3].elapsed() >= Duration::from_secs(60) || el < Duration::from_millis(300) {
-                    last[3] = std::time::Instant::now();
-                    me.usb.poll();
-                }
             }
+        });
+        let me = self.clone();
+        std::thread::spawn(move || loop {
+            me.usb.poll();
+            std::thread::sleep(Duration::from_secs(60));
         });
         if self.port_wanted().unwrap_or(true) {
             self.sync_port();
@@ -549,6 +581,11 @@ impl Can {
             return Ok((enabled, at, vec![t]));
         }
         Ok((enabled, at, c.get("tokens").and_then(|t| t.as_array()).cloned().unwrap_or_default()))
+    }
+    /// The lock of the 'can' settings' read-modify-writes (a panic while it was held leaves
+    /// nothing half written: the settings are written whole).
+    fn cfg_guard(&self) -> std::sync::MutexGuard<'_, ()> {
+        self.cfg_lock.lock().unwrap_or_else(|e| e.into_inner())
     }
     fn save_can_cfg(&self, enabled: bool, at: &Value, tokens: &[Value]) -> Result<(), String> {
         self.ctx.set_setting("can", json!({ "enabled": enabled, "at": if json::truthy(Some(at)) { at.clone() } else { Value::Null }, "tokens": tokens }))
@@ -753,7 +790,7 @@ impl Can {
     fn drop_log(&self, key: &str, name: &str) {
         self.index.remove_log(key, name);
         if let Some(nm) = parse_name(name) {
-            self.sync.indexed(key, (nm.started_at - 2 * 60_000) as f64, (nm.started_at + 30 * 60_000) as f64);
+            self.sync.indexed(key, (nm.started_at - super::index::LOG_BEFORE_MS) as f64, (nm.started_at + super::index::LOG_AFTER_MS) as f64);
         }
     }
 
@@ -1104,6 +1141,7 @@ impl Can {
             Some(id) => Some(self.vehicle_or_404(&logs::js_string(id))?.id),
             None => None,
         };
+        let guard = self.cfg_guard();
         let mut map = self.can_map().map_err(|e| failed(&*self.ctx, &e))?;
         match &vid {
             Some(id) => {
@@ -1114,6 +1152,7 @@ impl Can {
             }
         }
         self.ctx.set_setting("can-vehicles", Value::Object(map.clone())).map_err(|e| failed(&*self.ctx, &e))?;
+        drop(guard);
         self.ctx.audit("info", &format!("CAN car {} is {}: {}", key, vid.as_deref().unwrap_or("no vehicle"), req.who.by));
         self.index.kick();
         Ok(ok(json!({ "map": map })))
@@ -1213,10 +1252,12 @@ impl Can {
     fn enable(&self, req: &Req) -> R {
         confirmed(req)?;
         let body = body_json(req)?;
+        let guard = self.cfg_guard();
         let (_, at, mut tokens) = self.can_cfg().map_err(|e| failed(&*self.ctx, &e))?;
         let at = if json::truthy(Some(&at)) { at } else { n(util::now_ms()) };
         let made = if tokens.is_empty() { Some(self.new_token_entry(&mut tokens, body.get("vehicleId"), None)?) } else { None };
         self.save_can_cfg(true, &at, &tokens).map_err(|e| failed(&*self.ctx, &e))?;
+        drop(guard);
         self.ctx.audit("warn", &format!("CAN Bridge uploads turned on{}: {}", made.as_ref().map(|m| format!(" (token \"{}\")", m.1["label"].as_str().unwrap_or(""))).unwrap_or_default(), req.who.by));
         self.sync_port();
         Ok(ok(json!({ "enabled": true, "token": made.as_ref().map(|m| m.0.clone()), "tokenId": made.as_ref().map(|m| m.1["id"].clone()), "fingerprint": self.ctx.cert_fingerprint(), "port": self.ctx.can_port() })))
@@ -1224,8 +1265,10 @@ impl Can {
 
     fn disable(&self, req: &Req) -> R {
         confirmed(req)?;
+        let guard = self.cfg_guard();
         let (_, at, tokens) = self.can_cfg().map_err(|e| failed(&*self.ctx, &e))?;
         self.save_can_cfg(false, &at, &tokens).map_err(|e| failed(&*self.ctx, &e))?;
+        drop(guard);
         self.ctx.audit("warn", &format!("CAN Bridge uploads turned off: {}", req.who.by));
         self.sync_port();
         Ok(ok(json!({ "enabled": false })))
@@ -1234,19 +1277,23 @@ impl Can {
     fn new_token(&self, req: &Req) -> R {
         confirmed(req)?;
         let body = body_json(req)?;
+        let guard = self.cfg_guard();
         let (enabled, at, mut tokens) = self.can_cfg().map_err(|e| failed(&*self.ctx, &e))?;
         let (token, entry) = self.new_token_entry(&mut tokens, body.get("vehicleId"), body.get("label"))?;
         self.save_can_cfg(enabled, &at, &tokens).map_err(|e| failed(&*self.ctx, &e))?;
+        drop(guard);
         self.ctx.audit("warn", &format!("CAN Bridge token \"{}\" made: {}", entry["label"].as_str().unwrap_or(""), req.who.by));
         Ok(ok(json!({ "token": token, "id": entry["id"], "fingerprint": self.ctx.cert_fingerprint(), "port": self.ctx.can_port() })))
     }
 
     fn revoke(&self, req: &Req, id: &str) -> R {
         confirmed(req)?;
+        let guard = self.cfg_guard();
         let (enabled, at, tokens) = self.can_cfg().map_err(|e| failed(&*self.ctx, &e))?;
         let Some(t) = tokens.iter().find(|x| x.get("id").and_then(|i| i.as_str()) == Some(id)).cloned() else { return Err(he(404, "No such token.")) };
         let rest: Vec<Value> = tokens.into_iter().filter(|x| x.get("id").and_then(|i| i.as_str()) != Some(id)).collect();
         self.save_can_cfg(enabled, &at, &rest).map_err(|e| failed(&*self.ctx, &e))?;
+        drop(guard);
         self.ctx.audit("warn", &format!("CAN Bridge token \"{}\" revoked: {}", t.get("label").map(|l| json::js_str(Some(l))).unwrap_or_default(), req.who.by));
         Ok(ok(json!({ "ok": true })))
     }
@@ -1682,6 +1729,8 @@ impl Can {
                     put(format!("\n# Sentry Six Manager: this log ends early: {}\n", t.replace(['\r', '\n'], " ")).as_bytes())?;
                 }
             }
+            // (the decoder stayed busy with another download: the bundle goes on without this text)
+            Err(e) if e.busy => put(b"\n# Sentry Six Manager: skipped: the columns decoder was busy with another download; download this log alone (\"candump .log\") for its candump text\n")?,
             Err(e) if e.retry => return Err(std::io::Error::other(e.message)),
             Err(e) => put(format!("\n# Sentry Six Manager: could not read this log as candump text: {}\n", e.message.replace(['\r', '\n'], " ")).as_bytes())?,
         }
@@ -1822,6 +1871,8 @@ impl Can {
             return Err(he(404, "No logs of this car key in that time."));
         }
         let with_text = matches!(q(req, "candump"), Some("1") | Some("true"));
+        // the files deleted while the bundle streams (manifest.json, made last, marks them)
+        let missing: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let mut entries: Vec<zip::Entry> = Vec::new();
         let mut manifest = Vec::new();
         let (mut total, mut text_bytes) = (0u64, 0u64);
@@ -1837,7 +1888,20 @@ impl Can {
                         format = Some(v.get("format").cloned().unwrap_or(Value::Null));
                     }
                 }
-                entries.push(zip::Entry { name: format!("{}/{}", key, name), mtime: Some(mtime), source: zip::Source::Sized(size, Box::new(LazyFile(file, None))) });
+                let (entry, gone) = (format!("{}/{}", key, name), missing.clone());
+                entries.push(zip::Entry {
+                    name: entry.clone(),
+                    mtime: Some(mtime),
+                    // opened at its turn: a file deleted meanwhile (a prune, a trash) leaves a note in
+                    // its place and the zip goes on
+                    source: zip::Source::Lazy(Box::new(move || match std::fs::File::open(&file).and_then(|f| f.metadata().map(|m| (f, m.len()))) {
+                        Ok((f, len)) => (None, zip::Source::Sized(len, Box::new(f))),
+                        Err(e) => {
+                            gone.lock().unwrap().push(name.clone());
+                            (Some(format!("{entry}.missing.txt")), zip::Source::Data(format!("Sentry Six Manager: {name} was deleted while this bundle was being made ({e}), so it is not in it.\n").into_bytes()))
+                        }
+                    })),
+                });
             }
             let log = self.can_file_of(nm);
             if let (true, Some((file, size, mtime, _))) = (with_text, &log) {
@@ -1849,7 +1913,7 @@ impl Can {
                 entries.push(zip::Entry {
                     name: format!("{}/{}", key, nm.strip_suffix(".xz").unwrap_or(nm)),
                     mtime: Some(*mtime),
-                    source: zip::Source::Stream(Some(most + 400), Box::new(move |put| Self::candump_text(&f, &reader::Opts { download: true, ..Default::default() }, Some(most), put, None, false))),
+                    source: zip::Source::Stream(Some(most + 400), Box::new(move |put| Self::candump_text(&f, &reader::Opts { download: true, slot_wait: Some(BUNDLE_SLOT_WAIT), ..Default::default() }, Some(most), put, None, false))),
                 });
             }
             let rec = self.trust.record(&key, nm);
@@ -1915,8 +1979,17 @@ impl Can {
             }
         };
         let k3 = key.clone();
+        let gone = missing.clone();
         let manifest_json = move || {
             let list = ids_of();
+            let gone = gone.lock().unwrap().clone();
+            let mut manifest = manifest;
+            for m in manifest.iter_mut() {
+                let name = m.get("name").and_then(|x| x.as_str()).unwrap_or("").to_string();
+                if gone.iter().any(|g| *g == name || *g == format!("{name}.json")) {
+                    m["missing"] = json!(true);
+                }
+            }
             let v = json!({
                 "vehicleKey": k3, "from": iso_of(from), "to": iso_of(to), "madeAt": iso_of(util::now_ms()), "logs": manifest,
                 "ids": { "count": list.len(), "unknown": list.iter().filter(|e| e.name.is_none()).count() },
@@ -1929,8 +2002,11 @@ impl Can {
         let (w, body) = streamed(if with_text { CAN_STALL } else { Duration::from_secs(600) });
         let c = self.ctx.clone();
         std::thread::spawn(move || {
-            if let Err(e) = zip::stream_zip(w, entries) {
+            let mut w = w;
+            if let Err(e) = zip::stream_zip(&mut w, entries) {
                 c.log("warn", &format!("CAN bundle {}: {}", file, e));
+                // (not a clean end: the browser shows the download failed, not a broken zip)
+                w.fail(e);
             }
         });
         let fname = format!("can-{}-{}-to-{}.zip", key, stamp(from), stamp(to));
@@ -2235,6 +2311,8 @@ impl Can {
     /// claimToken/bindToken: the car key a token is for (tied now when it is not yet); an error
     /// when the settings cannot be read or the tie was not kept (a token is tied to one car once).
     fn claim(&self, tok_id: &str, key: &str, bind: bool) -> Result<Option<String>, String> {
+        // read, changed and written back under the lock: a token revoked meanwhile stays gone
+        let _guard = self.cfg_guard();
         let (enabled, at, mut tokens) = self.can_cfg()?;
         let Some(t) = tokens.iter_mut().find(|x| x.get("id").and_then(|i| i.as_str()) == Some(tok_id)) else { return Ok(None) };
         let mut tied = None;
@@ -2293,8 +2371,9 @@ impl Can {
     }
 
     /// The upload API's first checks, once per request (uploads on, HTTPS, the token, the
-    /// token's pace): the token, or the answer.
-    fn upload_gate(&self, req: &Req, raw_path: &str) -> Result<UploadGate, Res> {
+    /// token's pace): the token, or the answer. Made before the body is read (see
+    /// `wire::can::serve_upload`); Ok: read the body, then `upload_gated` with this.
+    pub fn upload_gate(&self, req: &Req, raw_path: &str) -> Result<UploadGate, Res> {
         let (enabled, _, tokens) = match self.can_cfg() {
             Ok(c) => c,
             Err(e) => return Err(self.upload_failed(&e)),
@@ -2495,16 +2574,6 @@ pub struct UploadGate {
     tok_id: String,
 }
 
-/// A file opened when the zip comes to it.
-struct LazyFile(PathBuf, Option<std::fs::File>);
-impl std::io::Read for LazyFile {
-    fn read(&mut self, b: &mut [u8]) -> std::io::Result<usize> {
-        if self.1.is_none() {
-            self.1 = Some(std::fs::File::open(&self.0)?);
-        }
-        self.1.as_mut().unwrap().read(b)
-    }
-}
 
 
 /// decodedRows: the rows a decoded export writes for one minute.
@@ -2570,6 +2639,22 @@ mod token_tests {
     use super::*;
 
     #[test]
+    fn a_body_that_fails_ends_with_an_error_not_a_clean_end() {
+        use std::io::Write;
+        let rt = tokio::runtime::Builder::new_current_thread().build().unwrap();
+        let (mut w, body) = streamed(Duration::from_secs(5));
+        let t = std::thread::spawn(move || {
+            w.write_all(b"the start").unwrap();
+            w.flush().unwrap();
+            w.write_all(b"never sent").unwrap();
+            w.fail(std::io::Error::other("a file went away"));
+        });
+        let got = rt.block_on(http_body_util::BodyExt::collect(body));
+        t.join().unwrap();
+        assert!(got.is_err(), "the download is cut off as failed");
+    }
+
+    #[test]
     fn a_token_is_found_as_the_upload_api_finds_it() {
         let tokens = vec![json!({ "id": "a", "hash": util::sha256_hex(b"right") }), json!({ "id": "b", "hash": "short" })];
         let with = |auth: &str| {
@@ -2583,5 +2668,87 @@ mod token_tests {
         assert_eq!(with("Bearer wrong"), None);
         assert_eq!(with("Bearer "), None);
         assert_eq!(Can::token_in(&HeaderMap::new(), &tokens), None);
+    }
+
+    /// Settings in memory, each write a little slow (as manager.db's can be), so a
+    /// read-modify-write that is not locked loses to the one beside it.
+    struct SlowCtx {
+        data: PathBuf,
+        settings: Mutex<HashMap<String, Value>>,
+    }
+    impl CanCtx for SlowCtx {
+        fn data_dir(&self) -> PathBuf {
+            self.data.clone()
+        }
+        fn setting(&self, key: &str) -> Result<Option<Value>, String> {
+            Ok(self.settings.lock().unwrap().get(key).cloned())
+        }
+        fn set_setting(&self, key: &str, value: Value) -> Result<(), String> {
+            std::thread::sleep(Duration::from_millis(2));
+            self.settings.lock().unwrap().insert(key.to_string(), value);
+            Ok(())
+        }
+        fn vehicles(&self) -> Vec<Car> {
+            Vec::new()
+        }
+        fn scan_of(&self, _: &str) -> Option<super::super::ctx::Scan> {
+            None
+        }
+        fn rescan(&self, _: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn announce(&self, _: &str) {}
+        fn audit(&self, _: &str, _: &str) {}
+        fn log(&self, _: &str, _: &str) {}
+    }
+
+    #[test]
+    fn a_token_revoked_while_its_bridge_uploads_stays_revoked() {
+        let data = std::env::temp_dir().join(format!("can-cfg-lock-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&data);
+        std::fs::create_dir_all(&data).unwrap();
+        for round in 0..5 {
+            let ctx = Arc::new(SlowCtx { data: data.join(round.to_string()), settings: Mutex::new(HashMap::new()) });
+            ctx.settings.lock().unwrap().insert(
+                "can".into(),
+                json!({ "enabled": true, "at": null, "tokens": [{ "id": "t1", "hash": util::sha256_hex(b"x"), "key": "abcdef123456", "vehicleId": null, "label": "One", "lastUsedAt": null }] }),
+            );
+            let can = Can::new(ctx.clone());
+            let stop = Arc::new(AtomicBool::new(false));
+            let uploads: Vec<_> = (0..4)
+                .map(|_| {
+                    let (can, stop) = (can.clone(), stop.clone());
+                    std::thread::spawn(move || {
+                        while !stop.load(Ordering::SeqCst) {
+                            let _ = can.claim("t1", "abcdef123456", true);
+                        }
+                    })
+                })
+                .collect();
+            std::thread::sleep(Duration::from_millis(20));
+            let req = Req {
+                method: Method::DELETE,
+                path: "/api/can/tokens/t1".into(),
+                query: HashMap::new(),
+                headers: HeaderMap::new(),
+                body: Bytes::new(),
+                remote: "127.0.0.1".into(),
+                local_port: 0,
+                encrypted: true,
+                who: Default::default(),
+                confirmed: true,
+                closed: Arc::new(AtomicBool::new(false)),
+            };
+            let r = can.handle(&req).unwrap();
+            assert_eq!(r.status().as_u16(), 200);
+            std::thread::sleep(Duration::from_millis(30));
+            stop.store(true, Ordering::SeqCst);
+            for u in uploads {
+                u.join().unwrap();
+            }
+            let tokens = ctx.settings.lock().unwrap()["can"]["tokens"].clone();
+            assert_eq!(tokens, json!([]), "round {round}: the revoked token came back");
+        }
+        let _ = std::fs::remove_dir_all(&data);
     }
 }

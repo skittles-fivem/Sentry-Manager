@@ -814,13 +814,23 @@ impl JobStore {
         r.map_err(|_| se("MANIFEST_READ_FAILED"))
     }
 
+    /// A damaged job file (or journal) is copied aside once: the copy is named by its content, so the
+    /// same damage read again (every poll lists the jobs) is not copied again and the data disk does
+    /// not fill. The job file and journal themselves stay as they are.
     fn quarantine(&self, paths: &Paths, bytes: &[u8]) -> R<bool> {
+        use sha2::Digest;
+        let digest = sha2::Sha256::digest(bytes);
+        let tag: String = digest.iter().take(16).map(|b| format!("{b:02x}")).collect();
+        let target = paths.directory.join(format!("{}.corrupt-{}", MANIFEST_NAME, tag));
+        if fs::symlink_metadata(&target).is_ok_and(|m| m.is_file() && m.len() == bytes.len() as u64) {
+            return Ok(true);
+        }
         let mut created: Option<PathBuf> = None;
         let r = (|| -> io::Result<()> {
             let mut file = None;
             for _ in 0..1000 {
                 let seq = self.quarantine_seq.fetch_add(1, Ordering::SeqCst) + 1;
-                let p = paths.directory.join(format!("{}.corrupt-{}-{}-{}", MANIFEST_NAME, base36(now_ms()), std::process::id(), seq));
+                let p = paths.directory.join(format!("{}.corrupt-{}-{}-{}-{}.tmp", MANIFEST_NAME, tag, base36(now_ms()), std::process::id(), seq));
                 match OpenOptions::new().write(true).create_new(true).mode(0o600).open(&p) {
                     Ok(f) => {
                         created = Some(p);
@@ -835,6 +845,9 @@ impl JobStore {
             f.write_all(bytes)?;
             f.sync_all()?;
             drop(f);
+            // (a copy torn by an earlier stop, at the same name, is replaced whole)
+            fs::rename(created.as_ref().unwrap(), &target)?;
+            created = None;
             Self::sync_directory(&paths.directory)
         })();
         match r {
@@ -1099,11 +1112,14 @@ impl JobStore {
         let names = self.job_folders()?;
         let mut out = Vec::new();
         for name in &names {
+            let mut read_at: Option<String> = None;
             let r = (|| -> R<Option<Result<Arc<Value>, String>>> {
                 let stamp = self.stamp_of(name)?;
+                read_at = Some(stamp.clone());
                 if let Some((s, v)) = self.summary_cache.lock().unwrap().get(name) {
                     if *s == stamp {
-                        return Ok(Some(Ok(v.clone())));
+                        // (null: this job's files, as they are, were found damaged; not read again)
+                        return Ok(if v.is_null() { None } else { Some(Ok(v.clone())) });
                     }
                 }
                 if held(name) {
@@ -1128,7 +1144,16 @@ impl JobStore {
                 Ok(Some(v)) => out.push(v),
                 Ok(None) => {}
                 Err(e) => {
-                    self.summary_cache.lock().unwrap().remove(name);
+                    // a damaged job is remembered by its files' stamp, so the next poll neither reads
+                    // it nor copies it aside again; it is read again once either file changes
+                    match read_at.filter(|_| e.code == "CORRUPT_MANIFEST") {
+                        Some(stamp) => {
+                            self.summary_cache.lock().unwrap().insert(name.clone(), (stamp, Arc::new(Value::Null)));
+                        }
+                        None => {
+                            self.summary_cache.lock().unwrap().remove(name);
+                        }
+                    }
                     if e.code != "CORRUPT_MANIFEST" {
                         (self.on_unreadable)(name, &e);
                     }

@@ -20,15 +20,41 @@ const NETWORK_FS: [&str; 6] = ["cifs", "smb3", "smbfs", "nfs", "nfs4", "fuse.ssh
 
 /// Run `f` on a thread of its own, giving up after `ms` (share.js withTimeout): the
 /// answer, or the time-out error ("<what> timed out after 15s (share not responding)").
+/// (A thread the system will not start is an error here, never a panic.)
 pub fn with_timeout<T: Send + 'static>(limit: Duration, what: &str, f: impl FnOnce() -> std::io::Result<T> + Send + 'static) -> std::io::Result<T> {
     let (tx, rx) = std::sync::mpsc::channel();
-    std::thread::spawn(move || {
-        let _ = tx.send(f());
-    });
+    std::thread::Builder::new()
+        .name("share-probe".into())
+        .spawn(move || {
+            let _ = tx.send(f());
+        })
+        .map_err(|e| std::io::Error::other(format!("{what} could not start: {e}")))?;
     match rx.recv_timeout(limit) {
         Ok(r) => r,
         Err(_) => Err(std::io::Error::new(std::io::ErrorKind::TimedOut, format!("{what} timed out after {}s (share not responding)", limit.as_secs()))),
     }
+}
+
+/// Clears a probe's busy flag when the probe ends (or never started).
+struct ProbeDone(Arc<AtomicBool>);
+
+impl Drop for ProbeDone {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
+}
+
+/// with_timeout, one at a time on `busy`: while an earlier probe is still stuck on a hung
+/// mount, the answer is the time-out at once, and no other thread is left waiting behind it.
+pub fn with_timeout_one<T: Send + 'static>(busy: &Arc<AtomicBool>, limit: Duration, what: &str, f: impl FnOnce() -> std::io::Result<T> + Send + 'static) -> std::io::Result<T> {
+    if busy.swap(true, Ordering::SeqCst) {
+        return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, format!("{what} timed out: an earlier check has not answered yet (share not responding)")));
+    }
+    let done = ProbeDone(busy.clone());
+    with_timeout(limit, what, move || {
+        let _done = done;
+        f()
+    })
 }
 
 use std::collections::HashSet;
@@ -319,14 +345,22 @@ pub fn errno_name(n: i32) -> &'static str {
 
 /// checkWritable: every step of a real save in `root`, on two files that are removed again.
 pub fn check_writable(root: &Path) -> WriteCheck {
+    check_writable_one(root, &Arc::new(AtomicBool::new(false)))
+}
+
+/// check_writable, one probe at a time on `busy` (with_timeout_one).
+fn check_writable_one(root: &Path, busy: &Arc<AtomicBool>) -> WriteCheck {
     let root = root.to_path_buf();
     let state = Arc::new(Mutex::new(("write", None::<bool>)));
     let s2 = state.clone();
     let r2 = root.clone();
-    let res = with_timeout(FS_TIMEOUT, "Write test", move || {
+    let res = with_timeout_one(busy, FS_TIMEOUT, "Write test", move || {
         use std::io::Write;
         let a = r2.join(".sentry-six-manager-check-a");
         let b = r2.join(".sentry-six-manager-check-b");
+        // (a failed test removes its files here, on this thread: when the share stopped
+        // answering, that waits here too, never on the share's own thread)
+        let steps = || -> std::io::Result<()> {
         let set = |step: &'static str| s2.lock().unwrap().0 = step;
         let fail = |e: std::io::Error, call: &str, p: &Path| std::io::Error::new(e.kind(), node_message(&e, call, p));
         std::fs::write(&a, "old").map_err(|e| fail(e, "open", &a))?;
@@ -355,13 +389,18 @@ pub fn check_writable(root: &Path) -> WriteCheck {
         set("remove");
         std::fs::remove_file(&a).map_err(|e| fail(e, "unlink", &a))?;
         Ok(())
+        };
+        let r = steps();
+        if r.is_err() {
+            let _ = std::fs::remove_file(&a);
+            let _ = std::fs::remove_file(&b);
+        }
+        r
     });
     let (step, rename_overwrite) = *state.lock().unwrap();
     match res {
         Ok(()) => WriteCheck { ok: true, step: None, error: None, hint: None, rename_overwrite },
         Err(e) => {
-            let _ = std::fs::remove_file(root.join(".sentry-six-manager-check-a"));
-            let _ = std::fs::remove_file(root.join(".sentry-six-manager-check-b"));
             let msg = e.to_string();
             let denied = msg.starts_with("EACCES") || msg.starts_with("EPERM") || msg.starts_with("EROFS");
             WriteCheck {
@@ -433,6 +472,10 @@ pub struct Share {
     inner: Mutex<Inner>,
     /// one mount or check at a time (share.js queue)
     work: Mutex<()>,
+    /// a probe of the share (listing, free space, write test) still running: one at a time,
+    /// so a hung mount leaves at most one thread stuck on it (a new mount starts afresh: a
+    /// probe stuck on the old one does not hold it up)
+    probe: Mutex<Arc<AtomicBool>>,
     stopped: AtomicBool,
     events: Events,
 }
@@ -453,9 +496,14 @@ impl Share {
             ctx,
             inner: Mutex::new(Inner { st: ShareState::default(), mounted_by_us: false, failures: 0, next_mount_at: 0.0, backoff_ms: CHECK_INTERVAL_MS, read_only_now: false }),
             work: Mutex::new(()),
+            probe: Mutex::new(Arc::new(AtomicBool::new(false))),
             stopped: AtomicBool::new(false),
             events,
         })
+    }
+
+    fn probe(&self) -> Arc<AtomicBool> {
+        self.probe.lock().unwrap().clone()
     }
 
     fn smb_mode(&self) -> bool {
@@ -561,6 +609,7 @@ impl Share {
             None => MountResult { code: -1, output: "An SMB vehicle needs a mounter.".into(), ..Default::default() },
         };
         if res.code == 0 {
+            *self.probe.lock().unwrap() = Arc::new(AtomicBool::new(false));
             let mut i = self.inner.lock().unwrap();
             i.mounted_by_us = true;
             i.backoff_ms = CHECK_INTERVAL_MS;
@@ -620,7 +669,7 @@ impl Share {
             i.st.warning = None;
         }
         let root = self.root.clone();
-        let listed = with_timeout(FS_TIMEOUT, "Listing the share", move || std::fs::read_dir(&root).map(drop));
+        let listed = with_timeout_one(&self.probe(), FS_TIMEOUT, "Listing the share", move || std::fs::read_dir(&root).map(drop));
         let local = !self.smb_mode();
         if let Err(e) = listed {
             let mounted = {
@@ -653,7 +702,7 @@ impl Share {
             return;
         }
         let root = self.root.clone();
-        let space = with_timeout(FS_TIMEOUT, "Reading free space", move || disk_space(&root));
+        let space = with_timeout_one(&self.probe(), FS_TIMEOUT, "Reading free space", move || disk_space(&root));
         let due = {
             let mut i = self.inner.lock().unwrap();
             match space {
@@ -691,7 +740,7 @@ impl Share {
             self.read_only(&format!("{} is mounted read-only", self.root.display()));
             return;
         }
-        let r = check_writable(&self.root);
+        let r = check_writable_one(&self.root, &self.probe());
         if r.ok {
             let was = {
                 let mut i = self.inner.lock().unwrap();
@@ -874,5 +923,35 @@ mod tests {
         assert_eq!(r.step.as_deref(), Some("writing a file"));
         assert!(r.error.unwrap().starts_with("ENOENT: no such file or directory, open"));
         assert_eq!(r.hint, None);
+    }
+
+    #[test]
+    fn a_stuck_probe_leaves_one_thread_waiting_and_answers_at_once_until_it_ends() {
+        let busy = Arc::new(AtomicBool::new(false));
+        let (release, wait) = std::sync::mpsc::channel::<()>();
+        let started = std::time::Instant::now();
+        let first = with_timeout_one(&busy, Duration::from_millis(50), "Listing the share", move || {
+            let _ = wait.recv();
+            Ok(())
+        });
+        assert_eq!(first.unwrap_err().kind(), std::io::ErrorKind::TimedOut);
+        assert!(busy.load(Ordering::SeqCst), "the stuck probe still runs");
+        let ran = Arc::new(AtomicBool::new(false));
+        let r2 = ran.clone();
+        let second = with_timeout_one(&busy, Duration::from_secs(5), "Listing the share", move || {
+            r2.store(true, Ordering::SeqCst);
+            Ok(())
+        });
+        assert_eq!(second.unwrap_err().kind(), std::io::ErrorKind::TimedOut);
+        assert!(!ran.load(Ordering::SeqCst) && started.elapsed() < Duration::from_secs(2), "no second thread, no waiting");
+        release.send(()).unwrap();
+        for _ in 0..200 {
+            if !busy.load(Ordering::SeqCst) {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert!(with_timeout_one(&busy, Duration::from_secs(5), "Listing the share", || Ok(7)).unwrap() == 7, "free again once it ended");
+        assert!(!busy.load(Ordering::SeqCst));
     }
 }

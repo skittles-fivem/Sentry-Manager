@@ -270,10 +270,12 @@ pub struct UploadAt {
     pub secure: bool,
 }
 
-/// One upload API request to `can`: the body read (at most a chunk and 1 MiB), then answered.
-/// With `Expect: 100-continue`, every check the headers decide is made first: a refusal (or
-/// `201` `already` for a file all here) is answered without reading the body, so hyper sends
-/// no 100 Continue and the bridge never sends the piece; the connection then closes.
+/// One upload API request to `can`: its token checked, the body read (at most a chunk and
+/// 1 MiB), then answered. A refusal of the token (uploads off, plain HTTP, a wrong token, its
+/// pace) is answered before any of the body is read, and the connection then closes. With
+/// `Expect: 100-continue`, every check the headers decide is made first: a refusal (or `201`
+/// `already` for a file all here) is answered without reading the body, so hyper sends no
+/// 100 Continue and the bridge never sends the piece; the connection then closes.
 pub async fn serve_upload(can: Arc<Can>, req: axum::http::Request<axum::body::Body>, at: UploadAt) -> crate::core::http::Res {
     let (parts, body) = req.into_parts();
     let path = parts.uri.path().to_string();
@@ -301,31 +303,30 @@ pub async fn serve_upload(can: Arc<Can>, req: axum::http::Request<axum::body::Bo
         confirmed: false,
         closed: Arc::new(AtomicBool::new(false)),
     };
-    let mut gate = None;
-    if expect {
-        let early = |mut r: crate::core::http::Res| {
-            crate::core::body::close_after(&mut r);
-            r
-        };
-        let declared = req.headers.get(axum::http::header::CONTENT_LENGTH).and_then(|v| v.to_str().ok()).and_then(|v| v.trim().parse::<u64>().ok());
-        if declared.is_some_and(|l| l > limit as u64) {
-            return early(too_large());
-        }
-        let (c, w, p) = (can.clone(), who.clone(), path.clone());
-        let Ok((back, head)) = tokio::task::spawn_blocking(move || {
-            let head = super::as_who(w, || c.upload_head(&req, &p, declared));
-            (req, head)
-        })
-        .await
-        else {
-            return early(internal());
-        };
-        req = back;
-        match head {
-            Ok(g) => gate = Some(g),
-            Err(r) => return early(r),
-        }
+    let early = |mut r: crate::core::http::Res| {
+        crate::core::body::close_after(&mut r);
+        r
+    };
+    let declared = req.headers.get(axum::http::header::CONTENT_LENGTH).and_then(|v| v.to_str().ok()).and_then(|v| v.trim().parse::<u64>().ok());
+    if declared.is_some_and(|l| l > limit as u64) {
+        return early(too_large());
     }
+    // the token (uploads on, HTTPS, its pace) is checked before any of the body is read, with
+    // or without Expect: a client with no token never has its body held here
+    let (c, w, p) = (can.clone(), who.clone(), path.clone());
+    let Ok((back, head)) = tokio::task::spawn_blocking(move || {
+        let head = super::as_who(w, || if expect { c.upload_head(&req, &p, declared) } else { c.upload_gate(&req, &p) });
+        (req, head)
+    })
+    .await
+    else {
+        return early(internal());
+    };
+    req = back;
+    let gate = match head {
+        Ok(g) => g,
+        Err(r) => return early(r),
+    };
     // (a bridge that lost Wi-Fi or power mid-upload sends nothing more: 408 after 2 minutes,
     // and its connection closes, instead of holding the connection for ever)
     req.body = match crate::core::body::collect(body, limit).await {
@@ -338,10 +339,7 @@ pub async fn serve_upload(can: Arc<Can>, req: axum::http::Request<axum::body::Bo
         Err(_) => return too_large(),
     };
     tokio::task::spawn_blocking(move || {
-        super::as_who(who, || match gate {
-            Some(g) => can.upload_gated(&req, &path, g),
-            None => can.upload(&req, &path),
-        })
+        super::as_who(who, || can.upload_gated(&req, &path, gate))
     })
     .await
     .unwrap_or_else(|_| internal())

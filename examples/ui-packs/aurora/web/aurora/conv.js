@@ -37,6 +37,7 @@ const ERRORS = {
   CONVERTER_STARTING: 'The converter is still starting. Try again in a moment.',
   RECOVERY_REQUIRED: 'This job stopped in the middle of replacing a file. Resume it so it can finish safely.',
   NETWORK_ERROR: 'Can’t reach the server.',
+  TIMEOUT: 'The server took too long to answer.',
   CANCELLED: 'Cancelled.'
 };
 export function explain(err) {

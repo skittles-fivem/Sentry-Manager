@@ -97,9 +97,15 @@ impl ArrivalCtx for CoreArrival {
     }
 }
 
-/// sentryUsb.holds(abs): the vehicle's status file says this clip is still being copied.
+/// sentryUsb.holds(abs): the vehicle's status file says this clip is still being copied (the
+/// file looked at again when the last look is over 5 s old, 1 s while a transfer runs: a
+/// transfer that started since the last look holds its clips at once).
 pub fn holds(s: &Server, abs: &str) -> bool {
     let (Some(can), Some(v)) = (s.can().cloned(), s.app().vehicles.vehicle_for_path(std::path::Path::new(abs))) else { return false };
+    // (a share that stopped answering is not looked at here: the arrival would wait on it)
+    if s.app().vehicles.share(&v.id).is_none_or(|sh| sh.is_healthy()) {
+        can.usb.fresh(&v.id);
+    }
     let status = can.usb.get(&v.id).and_then(|st| crate::arrival::holds::TransferStatus::parse(&st.raw_json));
     crate::arrival::holds::holds(status.as_ref(), crate::scanner::now_ms(), abs)
 }

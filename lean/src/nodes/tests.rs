@@ -302,6 +302,10 @@ fn addresses_host_and_port_nothing_else() {
     for bad in ["", "a b", "host:99999", "user@host", "host;rm -rf /"] {
         assert_eq!(parse_address(&json!(bad)), None, "{bad}");
     }
+    // a character of more than one byte where a scheme would end: refused, not a crash
+    for bad in ["192.168\u{3002}1.20", "1234567\u{e9}x", "http:/\u{e9}host"] {
+        assert_eq!(parse_address(&json!(bad)), None, "{bad}");
+    }
 }
 
 #[test]
@@ -462,6 +466,44 @@ fn upload_slots_a_waiter_that_gives_up_leaves_the_line() {
         h.join().unwrap();
     }
     assert_eq!(most.lock().unwrap().1, 2);
+}
+
+#[test]
+fn upload_slots_a_waiter_already_cancelled_gives_up_at_once_and_leaves_no_lock_held() {
+    let id = format!("slot-test-{}", hex(&random_bytes(4)));
+    let gone = Cancel::new();
+    gone.abort();
+    let (tx, rx) = std::sync::mpsc::channel();
+    {
+        let id = id.clone();
+        std::thread::spawn(move || {
+            let _ = tx.send(take_upload_slot(&id, &gone).is_none());
+        });
+    }
+    assert_eq!(rx.recv_timeout(Duration::from_secs(5)), Ok(true), "gave up without hanging");
+    // the line is free: both slots can still be taken, by this node and by others
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let a = take_upload_slot(&id, &Cancel::new()).is_some();
+        let b = take_upload_slot(&id, &Cancel::new()).is_some();
+        let _ = tx.send(a && b);
+    });
+    assert_eq!(rx.recv_timeout(Duration::from_secs(5)), Ok(true));
+}
+
+#[test]
+fn benchmark_samples_skip_names_with_characters_of_more_than_one_byte() {
+    let dir = tmp("samples-utf8");
+    let recent = dir.join("RecentClips");
+    std::fs::create_dir_all(&recent).unwrap();
+    for n in ["2024\u{5e74}10\u{6708}03\u{65e5}_\u{4e8b}\u{6545}.mp4", "2026-10-21_10-00-0\u{e9}-front.mp4", "2026-10-21_10-00-00-\u{fffd}front.mp4", "2026-10-21_10-00-00-front.mp4"] {
+        std::fs::write(recent.join(n), vec![0u8; 2048]).unwrap();
+    }
+    let codec = |_: &Path| Some("h264".to_string());
+    let (files, _) = pick_samples(&dir, 4, &codec, 1024, 5000);
+    let names: Vec<String> = files.iter().map(|p| p.file_name().unwrap().to_string_lossy().into_owned()).collect();
+    assert_eq!(names, vec!["2026-10-21_10-00-00-front.mp4"]);
+    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[test]
@@ -1003,6 +1045,13 @@ fn the_worker_refuses_anything_but_an_mp4_limits_wrong_codes_per_address_and_a_n
         raw(w.port, Some(&"y".repeat(43)), "GET", "/node/v1/info", vec![], None);
     }
     assert_eq!(raw(w.port, Some(&token), "GET", "/node/v1/info", vec![], None), (429, json!({ "error": "Too many refused requests." })));
+    // ...until that address pairs again with the right code (as a main whose old pairing was
+    // revoked does): its new token is let in at once
+    let code = w.worker.start_pairing().unwrap()["pairing"]["code"].as_str().unwrap().to_string();
+    let again = nodes.add(&addr, &json!(code)).unwrap();
+    let id = again["id"].as_str().unwrap().to_string();
+    let info = nodes.refresh(&id).unwrap();
+    assert!(info.online, "{:?}", info.error);
     w.close();
     let _ = std::fs::remove_dir_all(dir);
 }
@@ -1516,5 +1565,64 @@ fn parity_the_rust_worker_answers_as_nodes_worker_answered() {
     wait_empty(&dir);
     assert!(work_files(&dir).is_empty());
     w.close();
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn a_status_poll_that_fails_for_a_moment_is_tried_again_and_an_output_the_node_does_not_send_is_no_encode() {
+    if !has_tools() {
+        eprintln!("skipped: needs openssl and ffmpeg");
+        return;
+    }
+    let dir = tmp("lost-output");
+    let m = certs(&dir, "fake-node");
+    let polls = Arc::new(Mutex::new(0u32));
+    let deleted = Arc::new(AtomicBool::new(false));
+    let job = "0123456789abcdef0123456789abcdef";
+    let handler: Handler = {
+        let (polls, deleted) = (polls.clone(), deleted.clone());
+        Arc::new(move |r| {
+            use std::io::Read;
+            let mut sink = Vec::new();
+            let _ = r.body.read_to_end(&mut sink);
+            let reply = super::worker::WorkerReply::json;
+            match (r.method, r.path) {
+                ("GET", "/node/v1/info") => reply(200, &json!({ "slots": 1, "busy": 0 })),
+                ("POST", "/node/v1/jobs") => reply(200, &json!({ "id": job })),
+                ("DELETE", _) => {
+                    deleted.store(true, Ordering::SeqCst);
+                    reply(200, &json!({}))
+                }
+                ("GET", p) if p.ends_with("/output") => reply(404, &json!({ "error": "No such job." })),
+                ("GET", _) => {
+                    let mut n = polls.lock().unwrap();
+                    *n += 1;
+                    // the first two polls: the node too busy to answer
+                    if *n <= 2 { reply(503, &json!({ "error": "Busy for a moment." })) } else { reply(200, &json!({ "state": "done", "outTimeUs": 2_000_000 })) }
+                }
+                _ => reply(404, &json!({})),
+            }
+        })
+    };
+    let server = serve(&m.cert, &m.key, 0, handler).unwrap();
+    let fp = cert_fingerprint(&super::pin::der_of(&m.cert).unwrap()).unwrap();
+    let (nodes, ctx) = main_nodes(&dir);
+    ctx.set("nodes", json!([{ "id": "fakefake1234", "name": "fake", "host": "127.0.0.1", "port": server.port, "token": "t".repeat(43), "pin": { "fingerprint": fp, "authority": null }, "pairedAt": 1 }]));
+    let source = dir.join("source.mp4");
+    std::fs::write(&source, vec![0u8; 4096]).unwrap();
+    let target = dir.join("target.mp4");
+    assert_eq!(encode_code(&nodes, enc("node:fakefake1234", &source, &target)), Some(1), "not reported as encoded");
+    assert!(!target.exists(), "no file left at the target");
+    assert!(*polls.lock().unwrap() >= 3, "the busy polls were tried again");
+    let logs = ctx.logs.lock().unwrap().clone();
+    assert!(logs.iter().any(|l| l == "Node fake: No such job."), "{logs:?}");
+    for _ in 0..50 {
+        if deleted.load(Ordering::SeqCst) {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    assert!(deleted.load(Ordering::SeqCst), "the job was deleted on the node");
+    server.close();
     let _ = std::fs::remove_dir_all(dir);
 }

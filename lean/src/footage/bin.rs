@@ -540,6 +540,17 @@ fn still_moving() -> Fail {
     Fail::new(409, "This item is still being moved to the Recycle Bin.")
 }
 
+/// Whether none of the item's files (nor its folder) is in this folder's Recycle Bin: the
+/// vehicle's folder or share changed since, most likely, and the files are in the old one's.
+fn none_here(root: &Path, item: &BinItem) -> bool {
+    let dir_here = safe_join(root, &format!("{BIN_DIR}/{}", item.id)).map_or(false, |d| exists(&d));
+    !dir_here && !item.files.iter().any(|f| safe_join(root, &f.bin_rel).is_ok_and(|p| exists(&p)))
+}
+
+fn not_here(vehicle: &str) -> Fail {
+    Fail::new(409, format!("This item's files are not in the Recycle Bin of {vehicle}'s current folder (was its folder or share changed?). It stays listed; set the folder back to reach them."))
+}
+
 /// Put an item back where it was; files whose spot is taken stay in the bin.
 /// { restored, conflicts }; a full scan follows in the background.
 pub fn restore(app: &Arc<App>, item_id: &str) -> Res<Value> {
@@ -551,7 +562,11 @@ pub fn restore(app: &Arc<App>, item_id: &str) -> Res<Value> {
             return Err(still_moving());
         }
         let (vehicle, root) = root_of(app, &item.vehicle_id)?;
+        if !item.files.is_empty() && none_here(&root, &item) {
+            return Err(not_here(&vehicle.name));
+        }
         let mut left: Vec<BinFile> = Vec::new();
+        let mut missing = 0;
         let mut restored = 0;
         let mut back: Vec<String> = Vec::new();
         for f in &item.files {
@@ -559,7 +574,10 @@ pub fn restore(app: &Arc<App>, item_id: &str) -> Res<Value> {
                 left.push(BinFile { conflict: true, ..f.clone() });
                 continue;
             };
+            // (a bin copy that is not there stays listed: it is not restored, nor forgotten)
             if !exists(&from) {
+                missing += 1;
+                left.push(f.clone());
                 continue;
             }
             if exists(&to) {
@@ -586,7 +604,12 @@ pub fn restore(app: &Arc<App>, item_id: &str) -> Res<Value> {
         let source = vehicle.source_key();
         lock.moved.lock().unwrap().retain(|(s, r)| !(*s == source && back.contains(r)));
         lock.restores.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        let detail = format!("{restored} file(s) restored{}", if left.is_empty() { String::new() } else { format!(", {} could not (a file with that name exists)", left.len()) });
+        let taken = left.len() - missing;
+        let detail = format!(
+            "{restored} file(s) restored{}{}",
+            if taken == 0 { String::new() } else { format!(", {taken} could not (a file with that name exists)") },
+            if missing == 0 { String::new() } else { format!(", {missing} not found in the Recycle Bin") }
+        );
         // (the files are back either way: an Activity row that was not kept is only logged)
         match app.core.job_start("restore", Some(&item.vehicle_id), &format!("Restore {}", item.label)) {
             Ok(job) => app.core.job_finish(job, if left.is_empty() { "done" } else { "failed" }, &detail, None),
@@ -623,7 +646,11 @@ pub fn delete_files(app: &App, item_id: &str) -> Res<(u64, DbResult<()>)> {
         if item.files.iter().any(|f| f.pending) {
             return Err(still_moving());
         }
-        let (_, root) = root_of(app, &item.vehicle_id)?;
+        let (vehicle, root) = root_of(app, &item.vehicle_id)?;
+        // (nothing of it here: its files are elsewhere, and are not forgotten as deleted)
+        if !item.files.is_empty() && none_here(&root, &item) {
+            return Err(not_here(&vehicle.name));
+        }
         let mut bytes = 0;
         for f in &item.files {
             let target = safe_join(&root, &f.bin_rel).map_err(|e| Fail::internal(e.to_string()))?;
@@ -741,5 +768,31 @@ mod tests {
         assert_eq!(delete_forever(&c.app, &id).unwrap(), 12);
         assert!(c.app.core.db().bin_item(&id).unwrap().is_none());
         assert_eq!(std::fs::read(&x).unwrap(), b"original", "the clip is untouched");
+    }
+
+    #[test]
+    fn an_item_whose_files_are_not_in_this_folder_stays_listed_and_is_not_noted_deleted() {
+        use std::os::unix::fs::MetadataExt;
+        let c = crate::footage::testing::on_core("bin-elsewhere");
+        let car = std::fs::canonicalize(c.dir.join("footage/car")).unwrap();
+        let ev = car.join("TeslaCam/RecentClips");
+        std::fs::create_dir_all(&ev).unwrap();
+        let x = ev.join("2026-08-30_20-53-04-front.mp4");
+        let backup = ev.join("BACKUP-2026-08-30_20-53-04-front.mp4");
+        std::fs::write(&x, b"converted").unwrap();
+        std::fs::write(&backup, b"original").unwrap();
+        let st = std::fs::metadata(&backup).unwrap();
+        let id = adopt_original(&c.app, &backup, &x, st.dev(), st.ino()).unwrap();
+        std::fs::remove_file(&x).unwrap();
+        // the bin as it is in another folder now (the vehicle's folder changed, say)
+        std::fs::rename(car.join(BIN_DIR), c.dir.join("old-bin")).unwrap();
+        assert_eq!(restore(&c.app, &id).unwrap_err().status, 409);
+        assert_eq!(delete_forever(&c.app, &id).unwrap_err().status, 409);
+        assert!(c.app.core.db().bin_item(&id).unwrap().is_some(), "still listed");
+        assert!(super::super::deleted_clips::list(c.app.core.db(), "car", super::super::js::now()).unwrap().is_empty(), "not noted as deleted for good");
+        // back where it was: restored
+        std::fs::rename(c.dir.join("old-bin"), car.join(BIN_DIR)).unwrap();
+        assert_eq!(restore(&c.app, &id).unwrap(), json!({ "restored": 1, "conflicts": 0 }));
+        assert_eq!(std::fs::read(&x).unwrap(), b"original");
     }
 }

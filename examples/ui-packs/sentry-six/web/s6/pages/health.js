@@ -81,7 +81,8 @@ async function renderPage(el, ctx) {
     async function search() {
       const q = query();
       el.querySelector('[data-download]').href = '/api/logs/search?' + q + '&download=1';
-      const d = await api('/api/logs/search?' + q);
+      // a search reads every kept log file: it may take a while
+      const d = await api('/api/logs/search?' + q, { timeout: 60000 });
       if (alive())
         el.querySelector('[data-lines]').innerHTML = d.lines.length
           ? d.lines
@@ -155,7 +156,8 @@ async function renderPage(el, ctx) {
     await load();
   } else {
     async function load(run = false) {
-      const d = await api(run ? '/api/health/run' : '/api/health', run ? { method: 'POST' } : {});
+      // the first read after a start runs every check: it may take a while
+      const d = await api(run ? '/api/health/run' : '/api/health', run ? { method: 'POST' } : { timeout: 60000 });
       if (!alive()) return;
       const h = healthSummary(d.checks || []);
       el.innerHTML = `<div class="hero">${h.problems.some((c) => ['bad', 'fail'].includes(c.status)) ? 'Your server needs a look.' : 'Your server is working.'} ${h.problems.length ? `<span class="warn">${h.problems.length.toLocaleString()} ${h.problems.length === 1 ? 'thing needs' : 'things need'} a look.</span>` : ''}</div><div class="toolbar"><p class="grow">${plural(h.total, 'check')} · last run ${ago(d.at)}</p>${admin ? `<button data-run>Run again</button>` : ''}</div>${h.problems.length ? `<section class="card health-problems">${h.problems.map((c) => check(c) + (admin ? `<a href="${c.id?.startsWith('space-') ? '#/settings/cleanup' : c.group === 'Access' ? '#/settings/security' : '#/health/logs'}">${c.id?.startsWith('space-') ? 'Review cleanup rules' : c.group === 'Access' ? 'Security settings' : 'View logs'} →</a>` : '')).join('')}</section>` : ''}<div class="row health-section-title"><h3 class="grow muted">Checks</h3><span class="muted">${h.passed.toLocaleString()} of ${h.total.toLocaleString()} passed</span></div><section class="card health-groups">${

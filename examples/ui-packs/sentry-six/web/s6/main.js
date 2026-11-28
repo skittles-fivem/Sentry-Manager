@@ -180,7 +180,7 @@ export async function render(vehicleChanged = false, { quiet = false } = {}) {
     } else teardown();
   } catch (e) {
     if (ticket !== seq || e?.name === 'AbortError' || quiet) return;
-    page.innerHTML = `<div class="card"><p>${esc(offline(e) ? OFFLINE_TEXT : e.message)}</p><div class="form-actions">${offline(e) ? '<button class="btn solid" data-again>Try again</button>' : ''}<a class="btn" href="/original">Open Original</a></div></div>`;
+    page.innerHTML = `<div class="card"><p>${esc(offline(e) && !e.timeout ? OFFLINE_TEXT : e.message)}</p><div class="form-actions">${offline(e) ? '<button class="btn solid" data-again>Try again</button>' : ''}<a class="btn" href="/original">Open Original</a></div></div>`;
     page.querySelector('[data-again]')?.addEventListener('click', () => render());
   } finally {
     // a quiet redraw that was not kept (failed, or overtaken by another)
@@ -241,14 +241,11 @@ Promise.all([api('/api/updates'), import('/web/buildLabel.js'), api('/api/auth/m
   .catch(() => {});
 await refresh().catch((e) => toast(e.message, true));
 await render();
-const events = new EventSource('/api/events');
-events.addEventListener('changed', (event) => {
-  let topics;
-  try {
-    topics = JSON.parse(event.data).topics || [];
-  } catch {
-    return;
-  }
+// Live updates. The browser retries a dropped stream by itself, but an answer
+// that is not the stream (signed out, too many connections, a proxy's 502
+// while the app restarts) closes it for good: it is opened again here, with
+// backoff, and the page catches up once on what was missed.
+function onChanged(topics) {
   if (topics.includes('interface')) {
     location.reload();
     return;
@@ -262,7 +259,42 @@ events.addEventListener('changed', (event) => {
       })
       // a live update the server could not answer: the next one tries again
       .catch((e) => offline(e) || toast(e.message, true));
-});
+}
+let eventsRetry = 1000;
+function connectEvents(reopened = false) {
+  const events = new EventSource('/api/events');
+  events.addEventListener('open', () => {
+    eventsRetry = 1000;
+    if (reopened) {
+      reopened = false;
+      onChanged(['inventory', 'notifications', 'vehicles']);
+    }
+  });
+  events.addEventListener('error', () => {
+    if (events.readyState !== EventSource.CLOSED) return; // the browser is trying again itself
+    const wait = eventsRetry;
+    eventsRetry = Math.min(eventsRetry * 2, 30000);
+    fetch('/api/auth/me', { credentials: 'same-origin', signal: AbortSignal.timeout?.(10000) })
+      .then((r) => (r.ok ? r.json() : r.status === 401 ? {} : { user: true }))
+      .then(
+        (me) => {
+          if (me.user) setTimeout(() => connectEvents(true), wait);
+          else location.href = '/login?next=' + encodeURIComponent(location.pathname + location.hash);
+        },
+        () => setTimeout(() => connectEvents(true), wait)
+      );
+  });
+  events.addEventListener('changed', (event) => {
+    let topics;
+    try {
+      topics = JSON.parse(event.data).topics || [];
+    } catch {
+      return;
+    }
+    onChanged(topics);
+  });
+}
+connectEvents();
 // Keep the shell below the shared startup and critical-update bars.
 function fitUnderBarsSoon() {
   requestAnimationFrame(() => {

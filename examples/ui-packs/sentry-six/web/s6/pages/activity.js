@@ -14,7 +14,8 @@ async function renderPage(el, ctx) {
     jobs = [],
     speed = {},
     snapshot = null,
-    encoder = null;
+    encoder = null,
+    shown = false;
   const pace = new Pace(),
     valid = () => alive() && !stopped;
   function draw() {
@@ -97,9 +98,16 @@ async function renderPage(el, ctx) {
       jobs = j.jobs || [];
       speed = s;
       encoder = stats.encoder;
+      shown = true;
       draw();
     } catch (e) {
-      toast(e.message, true);
+      if (e?.name === 'AbortError' || !valid()) return;
+      if (shown) toast(e.message, true);
+      else {
+        // nothing to show yet: why, with Try again (it also tries again by itself)
+        el.innerHTML = `<div class="card"><p>${esc(e.message)}</p><div class="form-actions"><button class="btn solid" data-again>Try again</button></div></div>`;
+        el.querySelector('[data-again]').onclick = () => load();
+      }
     } finally {
       busy = false;
     }
@@ -108,7 +116,8 @@ async function renderPage(el, ctx) {
   if (!valid()) return () => {};
   const stop = follow((s) => {
       snapshot = s;
-      draw();
+      // (until the jobs come, the reason they did not stays on screen)
+      if (shown) draw();
     }, ctx.scope),
     // (a hidden tab asks nothing, so the server's monitor can rest; it catches up when shown)
     timer = setInterval(() => {

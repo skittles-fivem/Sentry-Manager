@@ -68,8 +68,17 @@ function followRun() {
 
 async function start() {
     let controller = null;
+    // (a start-up call that never answers does not keep the skeleton forever:
+    // after 25 s the page shows, with the notice; a late start still shows the encoder)
+    const init = initFootageConverter({ api, root: document, notify, t, onLanguageChange });
+    const timedOut = Symbol('timeout');
     try {
-        controller = await initFootageConverter({ api, root: document, notify, t, onLanguageChange });
+        const first = await Promise.race([init, wait(25000).then(() => timedOut)]);
+        if (first === timedOut) {
+            init.then((late) => { controller = late; late.setVisible(true); }, () => {});
+            throw Object.assign(new Error('The server took too long to answer'), { code: 'TIMEOUT' });
+        }
+        controller = first;
         controller.setVisible(true);
     } catch (error) {
         console.error('Converter failed to start', error);

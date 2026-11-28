@@ -97,6 +97,8 @@ pub struct Recording {
     pub end: Option<String>,
     pub event_at: Option<String>,
     pub day: String,
+    /// the day of its newest clip (a session can run past midnight): what cleanup ages it by
+    pub last_day: String,
     /// the scan's file list, which the positions below point into
     list: Arc<FileList>,
     /// every file, sorted by rel
@@ -155,7 +157,7 @@ fn hash_id(s: &str) -> String {
 fn dirname(rel: &str) -> &str {
     rel.rfind('/').map_or(".", |i| &rel[..i])
 }
-fn basename(rel: &str) -> &str {
+pub(crate) fn basename(rel: &str) -> &str {
     rel.rfind('/').map_or(rel, |i| &rel[i + 1..])
 }
 
@@ -183,6 +185,8 @@ fn finish(out: &mut Vec<Recording>, files: &Arc<FileList>, vehicle: &str, key: S
     let first = stamps.first().copied().or(start_key);
     let event_id = list[0].event_id.clone();
     let typ = list[0].typ;
+    let day = first.map(|s| s[0..10].to_string()).filter(|d| !d.is_empty()).unwrap_or_else(|| list[0].day.clone());
+    let last_day = stamps.last().map(|s| s[0..10].to_string()).filter(|d| *d > day).unwrap_or_else(|| day.clone());
     out.push(Recording {
         id: hash_id(&format!("{vehicle}|{key}")),
         key,
@@ -195,7 +199,8 @@ fn finish(out: &mut Vec<Recording>, files: &Arc<FileList>, vehicle: &str, key: S
         end: display(stamps.last().copied().or(start_key)),
         event_at: if event_id.is_some() { display(start_key) } else { None },
         event_id,
-        day: first.map(|s| s[0..10].to_string()).filter(|d| !d.is_empty()).unwrap_or_else(|| list[0].day.clone()),
+        day,
+        last_day,
         clip_count: clips.len(),
         minutes: stamps.iter().collect::<BTreeSet<_>>().len(),
         bytes: list.iter().map(|f| f.size).sum(),

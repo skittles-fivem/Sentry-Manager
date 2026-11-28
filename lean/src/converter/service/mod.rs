@@ -1033,9 +1033,10 @@ impl Service {
             return Ok(rt);
         }
         let m = self.0.o.store.load(id).map_err(Fail::from)?.ok_or_else(|| service_error("JOB_NOT_FOUND"))?;
-        let rt = Runtime::new(m);
-        self.0.jobs.lock().unwrap().insert(id.to_string(), rt.clone());
-        Ok(rt)
+        // (the job file is read without the lock: whoever made a runtime meanwhile wins, so one job
+        // never has two, one of them running and out of reach of Pause and Cancel)
+        let fresh = Runtime::new(m);
+        Ok(self.0.jobs.lock().unwrap().entry(id.to_string()).or_insert(fresh).clone())
     }
 
     /// liveRuntime(id): a spent runtime is replaced by a fresh one
@@ -1052,8 +1053,15 @@ impl Service {
             return Ok(rt);
         }
         let fresh = Runtime::new(rt.manifest());
-        self.0.jobs.lock().unwrap().insert(id.to_string(), fresh.clone());
-        Ok(fresh)
+        let mut jobs = self.0.jobs.lock().unwrap();
+        match jobs.get(id) {
+            // (replaced only while the map still holds the spent one)
+            Some(cur) if !Arc::ptr_eq(cur, &rt) => Ok(cur.clone()),
+            _ => {
+                jobs.insert(id.to_string(), fresh.clone());
+                Ok(fresh)
+            }
+        }
     }
 
     fn forget_finished(&self, rt: &Arc<Runtime>) {
@@ -1333,7 +1341,9 @@ impl Service {
             Self::wake_paused(&rt);
             self.terminate_children(&rt);
             if rt.lock().running {
-                self.wait_idle(&rt);
+                // (bounded, as Discard's: the other jobs' commands wait behind this one; a job whose
+                // thread is still stuck on a dead share is finalized by that thread when it ends)
+                self.wait_idle_for(&rt, std::time::Duration::from_secs(30));
             } else {
                 self.finalize(&rt)?;
             }
@@ -1412,13 +1422,19 @@ impl Service {
 
     /// dismissSummary(id)
     pub fn dismiss_summary(&self, id: &str) -> SResult<Value> {
-        let rt = self.ensure_runtime(id)?;
-        if rt.manifest().state() != JobState::Completed {
-            return Err(service_error("JOB_NOT_COMPLETED"));
-        }
-        self.update(&rt, |_| Some(Patch::new().set("summary", Value::Null).set("summaryDismissed", json!(true))))?;
-        self.emit(&rt, "summary_dismissed", vec![]);
-        Ok(public_snapshot(&rt.manifest()))
+        // (with the other commands, so it cannot interleave with a Retry failed, Cancel or Discard)
+        self.mutate(|| {
+            let rt = self.ensure_runtime(id)?;
+            if rt.manifest().state() != JobState::Completed {
+                return Err(service_error("JOB_NOT_COMPLETED"));
+            }
+            self.update(&rt, |_| Some(Patch::new().set("summary", Value::Null).set("summaryDismissed", json!(true))))?;
+            self.emit(&rt, "summary_dismissed", vec![]);
+            let snap = public_snapshot(&rt.manifest());
+            // (a finished job's runtime is not kept for the life of the app)
+            self.forget_finished(&rt);
+            Ok(snap)
+        })
     }
 
     /// setConcurrency(id, value): a job with lanes gives the number to its
@@ -1491,6 +1507,18 @@ impl Service {
             unsafe {
                 libc::kill(c.pid, libc::SIGTERM);
             }
+        }
+    }
+
+    fn wait_idle_for(&self, rt: &Runtime, limit: std::time::Duration) {
+        let deadline = std::time::Instant::now() + limit;
+        let mut s = rt.lock();
+        while s.running {
+            let now = std::time::Instant::now();
+            if now >= deadline {
+                return;
+            }
+            s = rt.cv.wait_timeout(s, deadline - now).unwrap_or_else(|p| p.into_inner()).0;
         }
     }
 

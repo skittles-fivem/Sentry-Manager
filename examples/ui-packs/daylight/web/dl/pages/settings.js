@@ -15,11 +15,13 @@ const SECTIONS = [
   ['security', 'Security', 'lock'], ['updates', 'Updates', 'download'], ['system', 'System & power', 'server'], ['nodes', 'Helper servers', 'nodes'], ['help', 'Help & feedback', 'chat']
 ];
 // Help & feedback is for admins only (a watch-only account does not see it, and /api/reports refuses it)
-const isAdmin = () => fetch('/api/auth/me', { credentials: 'same-origin' }).then((r) => r.json()).then((m) => m?.role === 'admin').catch(() => false);
+const isAdmin = () => api('/api/auth/me', { timeoutMs: 8000 }).then((m) => m?.role === 'admin').catch(() => false);
 
 export async function render(ctx) {
   const { view, params } = ctx;
   const shown = (await isAdmin()) ? SECTIONS : SECTIONS.filter(([k]) => k !== 'help');
+  // left while asking: the shared view is the next page's now
+  if (!ctx.alive()) return undefined;
   let section = params[0] || 'vehicles';
   if (section === 'add-vehicle' || section === 'vehicle') { /* vehicle pages */ } else if (!shown.some(([k]) => k === section)) section = 'vehicles';
   const navKey = section === 'add-vehicle' || section === 'vehicle' ? 'vehicles' : section;
@@ -48,13 +50,21 @@ export async function render(ctx) {
   };
   // a section that can't load (a watch-only account's Security or Helper servers, say) says so in
   // its place: the Settings sections stay on screen to pick another
-  try {
-    return await show();
-  } catch (err) {
-    if (err?.status === 401 || !ctx.alive()) return undefined;
-    el.innerHTML = `<div class="note note-bad">${icon('alert')}<span>${esc(err?.message || String(err))}</span></div>`;
-    return undefined;
-  }
+  const attempt = async () => {
+    try {
+      return await show();
+    } catch (err) {
+      if (err?.status === 401 || !ctx.alive()) return undefined;
+      el.innerHTML = `<div class="note note-bad">${icon('alert')}<span>${esc(err?.message || String(err))}</span></div><p style="margin-top:16px"><button class="btn" type="button" data-retry>Try again</button></p>`;
+      el.querySelector('[data-retry]').onclick = () => {
+        if (!ctx.alive()) return;
+        el.innerHTML = '<div class="loading"><span class="spin"></span><span>Loading…</span></div>';
+        attempt();
+      };
+      return undefined;
+    }
+  };
+  return attempt();
 }
 
 // ---------- vehicles ----------
@@ -328,8 +338,8 @@ async function iface({ el, ctx }) {
         ${ui.packs.map((p) => `<option value="${esc(p.id)}"${p.id === ui.active ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
       ${ui.packs.length ? `<ul class="list">${ui.packs.map((p) => `<li class="list-item"><div class="grow"><b>${esc(p.name)}</b> ${p.id === ui.active ? chip('In use', 'good') : ''}
           ${p.description ? `<p class="small" style="margin-top:4px">${esc(p.description)}</p>` : ''}
-          <p class="muted small" style="margin-top:4px">${p.author ? `by ${esc(p.author)} · ` : ''}${esc(p.replaces.map((k) => (k === 'web' ? 'pages' : 'Viewer and Encoder')).join(', '))} · ${plural(p.files, 'file')} · uploaded ${esc(new Date(p.uploadedAt).toLocaleDateString())}</p></div>
-          <div class="item-actions"><button class="btn btn-ghost btn-sm" type="button" data-del="${esc(p.id)}">Delete</button></div></li>`).join('')}</ul>` : ''}
+          <p class="muted small" style="margin-top:4px">${p.author ? `by ${esc(p.author)} · ` : ''}${esc(p.replaces.map((k) => (k === 'web' ? 'pages' : 'Viewer and Encoder')).join(', '))} · ${plural(p.files, 'file')}${p.builtin ? ' · built in' : ` · uploaded ${esc(new Date(p.uploadedAt).toLocaleDateString())}`}</p></div>
+          <div class="item-actions">${p.builtin ? '' : `<button class="btn btn-ghost btn-sm" type="button" data-del="${esc(p.id)}">Delete</button>`}</div></li>`).join('')}</ul>` : ''}
       <div class="row"><input type="file" id="ui-file" accept=".zip,application/zip" hidden>
         <button class="btn btn-primary" type="button" id="ui-upload">${icon('upload')} Upload a pack (.zip)</button>
         <a class="btn" href="/api/ui-packs/original.zip" download>${icon('download')} Download the original to start from</a></div>

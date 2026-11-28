@@ -6,7 +6,7 @@
 //! any link is dropped. The days are kept per scope (container or host), and
 //! the last readings are saved so an app restart alone counts on.
 
-use super::energy::{day_key, local_date, local_ms, week_keys};
+use super::energy::{day_key, day_key_in, local_date_in, local_ms_in, week_keys};
 use super::network::Where;
 use super::util::js_round;
 use crate::ops::js::num as jnum;
@@ -153,17 +153,25 @@ impl Traffic {
     }
 
     fn spread(&mut self, from: i64, to: i64, rx: f64, tx: f64) {
+        self.spread_in(&chrono::Local, from, to, rx, tx)
+    }
+
+    fn spread_in<Tz: chrono::TimeZone>(&mut self, tz: &Tz, from: i64, to: i64, rx: f64, tx: f64) {
         let ms = (to - from) as f64;
-        let end = local_date(to);
-        let mut at = from.max(local_ms(end - chrono::Duration::days(DAYS_KEPT as i64 - 1), 0));
+        let end = local_date_in(tz, to);
+        let mut at = from.max(local_ms_in(tz, end - chrono::Duration::days(DAYS_KEPT as i64 - 1), 0));
         let mut done_rx = js_round(rx * ((at - from) as f64 / ms));
         let mut done_tx = js_round(tx * ((at - from) as f64 / ms));
         while at < to {
-            let d = local_date(at);
-            let until = to.min(local_ms(d + chrono::Duration::days(1), 0));
+            let d = local_date_in(tz, at);
+            let mut until = to.min(local_ms_in(tz, d + chrono::Duration::days(1), 0));
+            // (always forward, whatever a time zone's rules make of midnight)
+            if until <= at {
+                until = to.min(at + 86_400_000);
+            }
             let up_rx = if until == to { rx } else { js_round(rx * ((until - from) as f64 / ms)) };
             let up_tx = if until == to { tx } else { js_round(tx * ((until - from) as f64 / ms)) };
-            let key = day_key(at);
+            let key = day_key_in(tz, at);
             let days = self.days();
             match days.iter_mut().find(|e| e.0 == key) {
                 Some(e) => {
@@ -283,6 +291,26 @@ mod tests {
     fn read(t: &mut Traffic, ms: i64, list: &[(&str, f64, f64)], scope: &'static str) {
         let c: Vec<(String, f64, f64)> = list.iter().map(|(n, r, x)| (n.to_string(), *r, *x)).collect();
         t.add(Some(ms), Some(&c), &w(scope), &|_| Some(2));
+    }
+
+    // Santiago skips 2024-09-08 00:00 (00:00 -04 -> 01:00 -03): a span over it ends
+    #[test]
+    fn a_span_over_a_midnight_that_does_not_exist() {
+        let tz = chrono_tz::America::Santiago;
+        let d = NaiveDate::from_ymd_opt(2024, 9, 8).unwrap();
+        // the day starts at 01:00 -03, 04:00 UTC
+        let start = chrono::Utc.with_ymd_and_hms(2024, 9, 8, 4, 0, 0).unwrap().timestamp_millis();
+        assert_eq!(super::super::energy::local_ms_in(&tz, d, 0), start);
+        assert_eq!(super::super::energy::day_key_in(&tz, start), "2024-09-08");
+        let from = chrono::Utc.with_ymd_and_hms(2024, 9, 8, 2, 0, 0).unwrap().timestamp_millis();
+        let to = chrono::Utc.with_ymd_and_hms(2024, 9, 8, 5, 0, 0).unwrap().timestamp_millis();
+        let mut t = Traffic::new();
+        t.spread_in(&tz, from, to, 3000.0, 0.0);
+        // from past 23:00 on the 7th too
+        t.spread_in(&tz, start - 1_800_000, to, 3000.0, 0.0);
+        let days = t.days_ref().clone();
+        assert_eq!(days.iter().find(|e| e.0 == "2024-09-07").map(|e| e.1 .0), Some(2000.0 + 1000.0));
+        assert_eq!(days.iter().find(|e| e.0 == "2024-09-08").map(|e| e.1 .0), Some(1000.0 + 2000.0));
     }
 
     // test/statsTraffic.test.js: deltas, a span over midnight, a counter that went down, scopes, save and load

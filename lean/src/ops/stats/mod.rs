@@ -209,14 +209,17 @@ impl Launcher for RealLauncher {
             let _ = out.by_ref().take(1 << 20).read_to_end(&mut b);
             let _ = tx.send(b);
         });
+        let start = std::time::Instant::now();
         match rx.recv_timeout(timeout) {
+            // (its output ended: it is exiting, waited for only what is left of the timeout)
             Ok(b) => {
-                let _ = child.wait();
+                crate::ops::gpu::wait_or_kill(child, timeout.saturating_sub(start.elapsed()).max(Duration::from_secs(1)));
                 Some(String::from_utf8_lossy(&b).into_owned())
             }
             Err(_) => {
+                // (our own child; one stuck where SIGKILL waits is reaped on a thread of its own)
                 let _ = child.kill();
-                let _ = child.wait();
+                crate::ops::gpu::reap(child, Duration::from_secs(2));
                 None
             }
         }
@@ -668,6 +671,12 @@ impl Stats {
 
     fn busy(&self) -> bool {
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| (self.o.is_busy)())).unwrap_or(false)
+    }
+
+    /// busy() as the sampling timer asks it (tests).
+    #[cfg(test)]
+    pub fn busy_now(&self) -> bool {
+        self.busy()
     }
 
     fn wanted(&self, e: &Engine, t: i64) -> bool {

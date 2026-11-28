@@ -389,15 +389,15 @@ document.addEventListener('error', (e) => {
 // ---------- start ----------
 renderDock();
 (async () => {
-  try {
-    const s = await api('/api/settings');
+  // at the same time, each under the reads' time limit, so the first page never waits long
+  const settings = api('/api/settings').then((s) => {
     state.power = s.power || null;
     clockPref.h24 = Boolean(s.appearance?.clock24);
-  } catch (err) {
+  }, (err) => {
     if (err.status !== 401) toast(err.message, 'bad');
-  }
+  });
+  await Promise.all([settings, loadVehicles().catch(() => {}), loadNotes().catch(() => {})]);
   tick();
-  await Promise.all([loadVehicles().catch(() => {}), loadNotes().catch(() => {})]);
   refreshJobsBadge();
   render();
   connect();

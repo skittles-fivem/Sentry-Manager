@@ -138,12 +138,26 @@ struct State {
     failures: IndexMap<String, Vec<i64>>,
     /// ban key -> { key, at, until, reason, failures, offences }
     bans: IndexMap<String, Map<String, Value>>,
+    /// bumped each time the bans change (a list is written only when no newer one was)
+    bans_gen: u64,
+}
+
+/// The bans to keep, taken under the state's lock and written after it is let go.
+struct BansSnapshot {
+    gen: u64,
+    list: Value,
 }
 
 pub struct Access {
     db: Arc<Db>,
     audit: Option<Scope>,
+    /// Held only for moments, never across the database: the request handlers read it on the
+    /// server's async workers (is_home, banned, get).
     st: Mutex<State>,
+    /// the generation of the bans last written (writes in order, an older list never after a newer)
+    bans_written: Mutex<u64>,
+    /// settings writes one at a time, in order
+    settings_write: Mutex<()>,
     now: Box<dyn Fn() -> i64 + Send + Sync>,
 }
 
@@ -178,10 +192,11 @@ impl Access {
             }
         }
         let home = home_of(&settings);
-        Ok(Access { db, audit, st: Mutex::new(State { settings, home, failures: IndexMap::new(), bans }), now })
+        Ok(Access { db, audit, st: Mutex::new(State { settings, home, failures: IndexMap::new(), bans, bans_gen: 0 }), bans_written: Mutex::new(0), settings_write: Mutex::new(()), now })
     }
 
-    fn save(&self, st: &mut State) -> Result<(), DbError> {
+    /// The bans as they are to be kept (old ones dropped, at most MAX_BANS), under the lock.
+    fn snapshot(&self, st: &mut State) -> BansSnapshot {
         let t = (self.now)() as f64;
         st.bans.retain(|_, b| f(&b["until"]) + REPEAT_MS >= t);
         if st.bans.len() > MAX_BANS {
@@ -192,7 +207,19 @@ impl Access {
                 st.bans.shift_remove(&k);
             }
         }
-        self.db.set(KEY_BANS, &Value::Array(st.bans.values().cloned().map(Value::Object).collect()))
+        st.bans_gen += 1;
+        BansSnapshot { gen: st.bans_gen, list: Value::Array(st.bans.values().cloned().map(Value::Object).collect()) }
+    }
+
+    /// Writes a snapshot (with the state's lock let go), unless a newer one was written.
+    fn write_bans(&self, snap: BansSnapshot) -> Result<(), DbError> {
+        let mut written = self.bans_written.lock().unwrap();
+        if *written >= snap.gen {
+            return Ok(());
+        }
+        self.db.set(KEY_BANS, &snap.list)?;
+        *written = snap.gen;
+        Ok(())
     }
 
     pub fn get(&self) -> Value {
@@ -206,10 +233,12 @@ impl Access {
 
     /// The settings in force once they are kept; an error (and the settings as they were) when not.
     pub fn set(&self, next: &Value) -> Result<Value, DbError> {
-        let mut st = self.st.lock().unwrap();
+        let _one = self.settings_write.lock().unwrap();
         let settings = with_defaults(Some(next));
         self.db.set(KEY_SETTINGS, &settings)?;
-        st.home = home_of(&settings);
+        let home = home_of(&settings);
+        let mut st = self.st.lock().unwrap();
+        st.home = home;
         st.settings = settings;
         Ok(st.settings.clone())
     }
@@ -256,10 +285,18 @@ impl Access {
         if (count as f64) < f(&cfg["maxFailures"]) {
             return Ok(None);
         }
-        self.ban(&mut st, &key, reason, count).map(Some)
+        let (b, snap, line) = self.ban(&mut st, &key, reason, count);
+        drop(st);
+        // (the ban holds in memory either way; one that was not saved is the request's error)
+        let saved = self.write_bans(snap);
+        if let Some(a) = &self.audit {
+            a.warn(format!("{line}{}", if saved.is_err() { " (not saved: a restart forgets it)" } else { "" }));
+        }
+        saved.map(|_| Some(b))
     }
 
-    fn ban(&self, st: &mut State, key: &str, reason: &str, count: usize) -> Result<Value, DbError> {
+    /// The ban put in force (in memory), the bans to keep and the audit line.
+    fn ban(&self, st: &mut State, key: &str, reason: &str, count: usize) -> (Value, BansSnapshot, String) {
         let cfg = st.settings["bans"].clone();
         let t = (self.now)();
         let prev = st.bans.get(key);
@@ -283,19 +320,11 @@ impl Access {
         st.bans.shift_remove(key);
         st.bans.insert(key.to_string(), b.clone());
         st.failures.shift_remove(key);
-        // (the ban holds in memory either way; one that was not saved is the request's error)
-        let saved = self.save(st);
-        if let Some(a) = &self.audit {
-            let len = if minutes >= 60.0 && minutes % 60.0 == 0.0 { format!("{} h", super::http::num_text(minutes / 60.0)) } else { format!("{} min", super::http::num_text(minutes)) };
-            let repeat = if offences > 1.0 { format!(", ban number {} this week", super::http::num_text(offences)) } else { String::new() };
-            a.warn(format!(
-                "Banned {key} for {len} (until {}) after {count} failed attempts in {} min (last: {reason_text}){repeat}{}",
-                super::log::iso(until),
-                super::http::num_text(f(&cfg["windowMinutes"])),
-                if saved.is_err() { " (not saved: a restart forgets it)" } else { "" }
-            ));
-        }
-        saved.map(|_| Value::Object(b))
+        let snap = self.snapshot(st);
+        let len = if minutes >= 60.0 && minutes % 60.0 == 0.0 { format!("{} h", super::http::num_text(minutes / 60.0)) } else { format!("{} min", super::http::num_text(minutes)) };
+        let repeat = if offences > 1.0 { format!(", ban number {} this week", super::http::num_text(offences)) } else { String::new() };
+        let line = format!("Banned {key} for {len} (until {}) after {count} failed attempts in {} min (last: {reason_text}){repeat}", super::log::iso(until), super::http::num_text(f(&cfg["windowMinutes"])));
+        (Value::Object(b), snap, line)
     }
 
     /// Lift a ban (and forget its history and failures).
@@ -304,14 +333,20 @@ impl Access {
         let mut st = self.st.lock().unwrap();
         let hit = st.bans.get(k).or_else(|| st.bans.get(&ban_key(k))).and_then(|b| b.get("key").and_then(Value::as_str)).map(String::from);
         let Some(hit) = hit else { return Err(super::auth::refuse(404, "That address is not banned.")) };
-        let before = st.bans.clone();
-        st.bans.shift_remove(&hit);
-        if let Err(e) = self.save(&mut st) {
-            // (not lifted: it stays as it is kept)
-            st.bans = before;
+        let Some((at, removed)) = st.bans.shift_remove_full(&hit).map(|(i, _, b)| (i, b)) else { return Err(super::auth::refuse(404, "That address is not banned.")) };
+        let snap = self.snapshot(&mut st);
+        drop(st);
+        if let Err(e) = self.write_bans(snap) {
+            // (not lifted: it stays as it is kept, unless a new ban for it came in meanwhile)
+            let mut st = self.st.lock().unwrap();
+            if !st.bans.contains_key(&hit) {
+                let i = at.min(st.bans.len());
+                st.bans.shift_insert(i, hit.clone(), removed);
+                st.bans_gen += 1;
+            }
             return Err(e.into());
         }
-        st.failures.shift_remove(&hit);
+        self.st.lock().unwrap().failures.shift_remove(&hit);
         if let Some(a) = &self.audit {
             a.warn(format!("Unbanned {hit}{}", if who.is_empty() { String::new() } else { format!(": {who}") }));
         }
@@ -515,6 +550,48 @@ mod tests {
             a.fail("2001:db8:0:1::5", "x").unwrap();
         }
         assert!(a.banned("2001:db8:0:1::99").is_some());
+    }
+
+    #[test]
+    fn a_ban_waiting_on_a_busy_database_holds_up_no_other_check() {
+        let clock = Arc::new(AtomicI64::new(1_000_000_000_000));
+        let (db, a) = access(clock);
+        std::thread::scope(|s| {
+            // the database is busy (another writer holds it): the 10th failure waits to save its ban
+            let busy = db.conn();
+            let banning = s.spawn(|| {
+                for _ in 0..10 {
+                    let _ = a.fail("8.8.8.8", "wrong password");
+                }
+            });
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            let (tx, rx) = std::sync::mpsc::channel();
+            let a = &a;
+            s.spawn(move || {
+                let r = (a.is_home("192.168.1.2"), a.banned("8.8.8.8").is_some(), a.get()["bans"]["enabled"].clone());
+                let _ = tx.send(r);
+            });
+            let got = rx.recv_timeout(std::time::Duration::from_secs(3)).expect("the checks do not wait for the database");
+            assert_eq!(got, (true, true, json!(true)), "the ban is in force while it is saved");
+            drop(busy);
+            banning.join().unwrap();
+        });
+        assert!(db.get(KEY_BANS).unwrap().unwrap().as_array().unwrap().iter().any(|b| b["key"] == "8.8.8.8"), "and it is kept");
+    }
+
+    #[test]
+    fn an_older_list_of_bans_is_never_written_over_a_newer_one() {
+        let clock = Arc::new(AtomicI64::new(1_000_000_000_000));
+        let (db, a) = access(clock);
+        let (old, new) = {
+            let mut st = a.st.lock().unwrap();
+            let old = a.snapshot(&mut st);
+            st.bans.insert("1.2.3.4".into(), json!({ "key": "1.2.3.4", "until": 2_000_000_000_000i64 }).as_object().unwrap().clone());
+            (old, a.snapshot(&mut st))
+        };
+        a.write_bans(new).unwrap();
+        a.write_bans(old).unwrap();
+        assert_eq!(db.get(KEY_BANS).unwrap().unwrap().as_array().unwrap().len(), 1);
     }
 
     #[test]

@@ -62,7 +62,16 @@ pub struct JobSnapshot {
     pub saved_bytes: f64,
     /// jobProgress(s).clips
     pub clips: f64,
+    /// config.sourceRoot (the vehicle is looked up again when it could not be read)
+    pub source_root: String,
+    /// the vehicles could not be read for this snapshot (manager.db): vehicle_id is unknown
+    pub vehicle_unread: bool,
+    /// when the job saved what it did (a job that does not run now: its last change); None: now
+    pub at_ms: Option<i64>,
 }
+
+/// The most savings snapshots kept to try again.
+const PENDING_SAVINGS: usize = 1000;
 
 /// The benchmark's energy token (index.js powerMeter.start).
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -98,6 +107,12 @@ pub struct Ops {
     converting: Arc<Mutex<Converting>>,
     /// what manager.db failed lately in the background (a price, a job's savings): logged once until it works
     unread: Arc<crate::core::db::LogOnce>,
+    /// what each job has added to the savings so far (job id -> bytes, clips), so a snapshot that adds
+    /// nothing does not read the savings again
+    seen: Mutex<HashMap<String, (f64, f64)>>,
+    /// the last snapshot of each job whose savings could not be kept (manager.db, or its vehicle
+    /// could not be read), with when it saved them: tried again once a minute
+    pending: Mutex<HashMap<String, JobSnapshot>>,
 }
 
 /// The stats engine as index.js sets it up: the data folder and the shares,
@@ -106,7 +121,16 @@ fn server_stats(ctx: &Arc<dyn OpsCtx>, notes: &Arc<notes::Notes>, converting: &A
     let mut o = stats::StatsOptions::server(Some(ctx.data_dir()), version);
     let c = ctx.clone();
     let conv = converting.clone();
-    o.is_busy = Arc::new(move || c.stats_busy() || conv.lock().unwrap().benchmarking.is_some());
+    // (called with the stats engine locked: never waits on `converting`, whose holders take
+    // the engine's lock; held just now, it is busy anyway: a job or benchmark is changing)
+    o.is_busy = Arc::new(move || {
+        c.stats_busy()
+            || match conv.try_lock() {
+                Ok(g) => g.benchmarking.is_some(),
+                Err(std::sync::TryLockError::Poisoned(e)) => e.into_inner().benchmarking.is_some(),
+                Err(std::sync::TryLockError::WouldBlock) => true,
+            }
+    });
     let c = ctx.clone();
     o.read_shares = Arc::new(move || stats::shares_from(&c.data_dir(), c.vehicle_shares()));
     let c = ctx.clone();
@@ -188,6 +212,8 @@ impl Ops {
             stats_asked_at: Mutex::new(0),
             converting,
             unread,
+            seen: Mutex::new(HashMap::new()),
+            pending: Mutex::new(HashMap::new()),
             ctx,
         });
         let weak = Arc::downgrade(&ops);
@@ -203,6 +229,10 @@ impl Ops {
             let db = ops.ctx.db();
             if let Err(e) = power::backfill(&db, |job| month_of_job(&db, job)) {
                 ops.ctx.log("server", Level::Warn, &format!("Space saved by month was not filled in from the job history (tried again at the next start): {e}"));
+            }
+            // (unread: each job's first snapshot reads the savings)
+            if let Ok(seen) = power::seen_jobs(&db) {
+                *ops.seen.lock().unwrap() = seen;
             }
         }
         ops
@@ -250,6 +280,7 @@ impl Ops {
             // (index.js ticks these with its housekeeping, once a minute)
             std::thread::sleep(Duration::from_secs(60));
             let Some(me) = me.upgrade() else { return };
+            me.retry_savings();
             me.updates.tick();
             // data used: the network counters once a day, with no page open too
             me.stats.tick();
@@ -305,33 +336,90 @@ impl Ops {
     /// and its saved space goes onto its vehicle's total (savings.record).
     /// Also for the jobs listed at the start (savings of jobs from before).
     pub fn job_snapshot(&self, s: &JobSnapshot) {
-        {
+        // (decided under `converting`, marked after it is let go: the stats engine's lock is
+        // never taken while it is held, as the engine asks is_busy under its own)
+        let mark: Option<Option<String>> = {
             let mut c = self.converting.lock().unwrap();
             if s.running {
                 if c.job.as_deref() != Some(s.id.as_str()) {
                     c.job = Some(s.id.clone());
-                    if c.benchmarking.is_none() {
-                        self.stats.mark_job(Some(&s.id));
-                    }
+                    c.benchmarking.is_none().then(|| Some(s.id.clone()))
+                } else {
+                    None
                 }
             } else if c.job.as_deref() == Some(s.id.as_str()) {
                 c.job = None;
-                if c.benchmarking.is_none() {
-                    self.stats.mark_job(None);
-                }
+                c.benchmarking.is_none().then_some(None)
+            } else {
+                None
             }
+        };
+        if let Some(m) = mark {
+            self.stats.mark_job(m.as_deref());
         }
         self.record_savings(s);
     }
 
     /// recordSavings: a converter job's saved space, onto its vehicle's total.
     pub fn record_savings(&self, s: &JobSnapshot) {
-        let Some(v) = &s.vehicle_id else { return };
         let bytes = if s.saved_bytes.is_finite() { s.saved_bytes } else { 0.0 };
-        // (not kept: the next snapshot adds it, since what a job added is kept with the totals)
-        let r = power::record(&self.ctx.db(), &s.id, v, bytes, s.clips);
+        // (what a job added is kept under its id, whatever its vehicle: one that adds nothing
+        // needs neither the savings nor its vehicle, so it never fills the retries)
+        if self.seen.lock().unwrap().get(&s.id).is_some_and(|&(b, c)| bytes <= b && s.clips <= c) {
+            self.pending.lock().unwrap().remove(&s.id);
+            return;
+        }
+        if s.vehicle_unread {
+            // (its vehicle is looked up again with the retry)
+            self.keep_pending(s);
+            return;
+        }
+        let Some(v) = &s.vehicle_id else { return };
+        let r = power::record_at(&self.ctx.db(), &s.id, v, bytes, s.clips, s.at_ms.unwrap_or_else(store::now_ms));
         if let (true, Err(e)) = (self.unread.first("savings", r.is_err()), &r) {
             self.ctx.log("server", Level::Warn, &format!("Space saved by conversions is not counted until manager.db can be written: {e}"));
+        }
+        if r.is_ok() {
+            self.pending.lock().unwrap().remove(&s.id);
+            let mut seen = self.seen.lock().unwrap();
+            let e = seen.entry(s.id.clone()).or_insert((0.0, 0.0));
+            *e = (e.0.max(bytes), e.1.max(s.clips));
+        } else {
+            // (a running job's next snapshot adds it too; a finished one sends none)
+            self.keep_pending(s);
+        }
+    }
+
+    /// A snapshot whose savings were not kept, tried again by `retry_savings`; it is filed
+    /// in the month it was saved in.
+    fn keep_pending(&self, s: &JobSnapshot) {
+        let mut p = self.pending.lock().unwrap();
+        if p.len() >= PENDING_SAVINGS && !p.contains_key(&s.id) {
+            return;
+        }
+        let mut kept = s.clone();
+        kept.at_ms = Some(s.at_ms.unwrap_or_else(store::now_ms));
+        p.insert(s.id.clone(), kept);
+    }
+
+    /// Once a minute: the savings not kept yet (their vehicle looked up again when it could not be read).
+    pub fn retry_savings(&self) {
+        let list: Vec<JobSnapshot> = self.pending.lock().unwrap().values().cloned().collect();
+        for mut s in list {
+            if s.vehicle_unread {
+                match self.ctx.vehicle_of_source(&s.source_root) {
+                    Ok(v) => {
+                        s.vehicle_unread = false;
+                        s.vehicle_id = v;
+                    }
+                    Err(_) => continue,
+                }
+                if s.vehicle_id.is_none() {
+                    self.pending.lock().unwrap().remove(&s.id);
+                    continue;
+                }
+            }
+            self.record_savings(&s);
         }
     }
 

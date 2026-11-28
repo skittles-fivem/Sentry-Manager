@@ -318,9 +318,16 @@ impl Tx {
                     // removed but for its last step (still under a quarantine name)
                     let fst = exact_lstat(&source)?;
                     let ge = Expected { device: fst.dev().to_string(), inode: fst.ino().to_string(), size: artifact.size, sha256: artifact.sha256.clone(), mtime_ns: None };
-                    self.remove_quarantined(&backup, arts.get("replacementBackup"), Some((&source, &ge)));
-                    paths.shift_remove("replacementBackup");
-                    arts.shift_remove("replacementBackup");
+                    // (a quarantined backup that is not removed now keeps its record: it is the
+                    // only trace of that file)
+                    let left = self.find_quarantined(&backup, arts.get("replacementBackup"));
+                    if left.as_ref().is_ok_and(|l| l.is_empty()) || self.remove_quarantined(&backup, arts.get("replacementBackup"), Some((&source, &ge))) {
+                        paths.shift_remove("replacementBackup");
+                        arts.shift_remove("replacementBackup");
+                    } else if let Some(m) = arts.get_mut("replacementBackup") {
+                        m.state = ArtifactState::CleanupPending;
+                        pending.push("replacementBackup".into());
+                    }
                 }
                 if lstat_or_none(&candidate)?.is_some() {
                     let fst = exact_lstat(&source)?;

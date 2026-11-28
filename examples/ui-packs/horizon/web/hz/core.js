@@ -189,7 +189,10 @@ function toLogin() {
   location.href = `/login?next=${encodeURIComponent(location.pathname + location.hash)}`;
 }
 
-/** A JSON call. opts: { method, body, timeout, headers } */
+/** How long a call may take before it gives up: a read 20 s, a change no limit
+ *  (some run long, and one given up on could still happen on the server). */
+export const READ_TIMEOUT = 20000;
+/** A JSON call. opts: { method, body, timeout, headers }; timeout 0 waits for ever. */
 export async function api(path, opts = {}, isRetry = false) {
   const init = { credentials: 'same-origin', headers: { 'X-Requested-With': 'sentry-six-manager', ...(opts.headers || {}) } };
   init.method = opts.method || (opts.body !== undefined ? 'POST' : 'GET');
@@ -197,22 +200,27 @@ export async function api(path, opts = {}, isRetry = false) {
     init.headers['Content-Type'] = 'application/json';
     init.body = JSON.stringify(opts.body);
   }
-  const ctl = opts.timeout ? new AbortController() : null;
-  const timer = ctl ? setTimeout(() => ctl.abort(), opts.timeout) : null;
+  const ms = opts.timeout ?? (init.method === 'GET' ? READ_TIMEOUT : 0);
+  const ctl = ms ? new AbortController() : null;
+  const timer = ctl ? setTimeout(() => ctl.abort(), ms) : null;
   if (ctl) init.signal = ctl.signal;
+  const late = () => new ApiError('The server took too long to answer.', 0);
   let res;
   try {
     res = await fetch(path, init);
   } catch {
     clearTimeout(timer);
-    throw new ApiError(ctl?.signal.aborted ? 'The server took too long to answer.' : 'The server cannot be reached right now.', 0);
+    throw ctl?.signal.aborted ? late() : new ApiError('The server cannot be reached right now.', 0);
   }
-  clearTimeout(timer);
   if (res.status === 401 && !path.startsWith('/api/auth/')) {
+    clearTimeout(timer);
     toLogin();
     throw new ApiError('Signed out', 401);
   }
+  // the answer's body is under the same clock
   const data = await res.json().catch(() => ({}));
+  clearTimeout(timer);
+  if (ctl?.signal.aborted) throw late();
   if (res.status === 403 && data.code === 'CONFIRM_PASSWORD' && !isRetry) {
     await confirmPassword();
     return api(path, opts, true);
@@ -236,20 +244,29 @@ export async function send(path, body, headers) {
   return data;
 }
 
+/** Converter calls that only read: they give up after 30 s. The rest (start, a
+ *  benchmark, a check) can take long and wait. */
+const QUICK_CONV = /^(get|devices$|subscribeProgress$|unsubscribeProgress$)/;
 /** The converter: always resolves to { ok, value } or { ok: false, error }. */
-export async function conv(name, payload, client = CLIENT) {
+export async function conv(name, payload, client = CLIENT, timeout = QUICK_CONV.test(name) ? 30000 : 0) {
+  const ctl = timeout ? new AbortController() : null;
+  const timer = ctl ? setTimeout(() => ctl.abort(), timeout) : null;
   try {
     const res = await fetch(`/api/converter/invoke/${name}`, {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'sentry-six-manager', 'X-Client-Id': client },
-      body: payload === undefined ? '' : JSON.stringify(payload)
+      body: payload === undefined ? '' : JSON.stringify(payload),
+      ...(ctl ? { signal: ctl.signal } : {})
     });
     if (res.status === 401) { toLogin(); return { ok: false, error: { code: 'SIGNED_OUT' } }; }
     const data = await res.json().catch(() => null);
+    if (ctl?.signal.aborted) return { ok: false, error: { code: 'TIMEOUT' } };
     if (!res.ok || !data) return { ok: false, error: { code: data?.error || `HTTP_${res.status}` } };
     return data;
   } catch {
-    return { ok: false, error: { code: 'NETWORK_ERROR' } };
+    return { ok: false, error: { code: ctl?.signal.aborted ? 'TIMEOUT' : 'NETWORK_ERROR' } };
+  } finally {
+    clearTimeout(timer);
   }
 }
 

@@ -72,7 +72,7 @@ impl NodesCtx for CoreNodes {
                 return Some(v.clone());
             }
         }
-        let v = (crate::ops::diag::cpu_model(), crate::ops::gpu::detect_gpus(&crate::ops::gpu::DetectOptions::default(), &crate::ops::gpu::run));
+        let v = (crate::ops::diag::cpu_model(), crate::ops::gpu::detect_gpus_cached());
         *g = Some((std::time::Instant::now(), v.clone()));
         Some(v)
     }

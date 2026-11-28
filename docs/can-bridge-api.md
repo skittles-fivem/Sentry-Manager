@@ -239,8 +239,12 @@ holds up the `100 Continue` past the bridge's 3 s wait):
 (see "Replacing a failed log") and the answers for a file all here need the
 body, so they come after it.
 Every check is made again once the body is here, so nothing changes between
-the two. Without `Expect` the body is read first, as before (a refused client
-is then not reset while it is still sending).
+the two. Without `Expect` the token's checks still come before the body: `404
+off`, `403 https_only`, `401 bad_token`, `429 slow_down` and a `413` from
+`Content-Length` are answered at once with `Connection: close`, without the
+body being read (a client still sending it may then see its connection reset
+instead of the answer: send `Expect: 100-continue` to always get it). Every
+other check waits for the body, as before.
 
 **On the web port (9000).** The same requests work there, under the web
 port's own limits: no limit per address (browsers share addresses), 1024

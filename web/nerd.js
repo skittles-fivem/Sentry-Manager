@@ -323,9 +323,11 @@ export function openNerdPanel() {
   </div>`;
   const prevFocus = document.activeElement;
   let es = null;
+  let liveTimer = 0;
   let closed = false;
   const close = () => {
     closed = true;
+    clearTimeout(liveTimer);
     es?.close();
     schedule.stop();
     clearTimeout(leaveTimer);
@@ -740,17 +742,30 @@ export function openNerdPanel() {
   // live updates (from /api/events): a few at once taken as one, at most one refresh each 5 s
   const schedule = liveSchedule(() => { if (!closed) draw(); }, { gap: 5000 });
   const live = (ms) => schedule.live(ms);
-  try {
+  // (a stream the browser gave up on, a non-stream answer such as a proxy's 502, is opened again with backoff while the panel is open)
+  let liveRetry = 1000;
+  const openLive = () => {
+    if (closed) return;
     es = new EventSource('/api/events');
     const dot = bg.querySelector('[data-live]');
     const mark = (on) => { dot.textContent = on ? 'live' : 'reconnecting'; dot.classList.toggle('on', on); dot.title = on ? 'Live updates: uploads, checks and the index show as they happen' : 'Live updates: reconnecting'; };
-    es.addEventListener('open', () => mark(true));
-    es.addEventListener('error', () => mark(false));
-    es.addEventListener('changed', (e) => {
+    const mine = es;
+    mine.addEventListener('open', () => { liveRetry = 1000; mark(true); });
+    mine.addEventListener('error', () => {
+      mark(false);
+      if (mine.readyState !== EventSource.CLOSED || closed) return;
+      clearTimeout(liveTimer);
+      liveTimer = setTimeout(() => { if (!closed) { openLive(); live(); } }, liveRetry);
+      liveRetry = Math.min(liveRetry * 2, 30000);
+    });
+    mine.addEventListener('changed', (e) => {
       let topics = [];
       try { ({ topics } = JSON.parse(e.data)); } catch { return; }
       if (topics.includes('can') || topics.includes('vehicles') || topics.includes('carData')) live();
     });
+  };
+  try {
+    openLive();
   } catch { /* no live updates: the panel still works */ }
 
   body.addEventListener('change', async (e) => {

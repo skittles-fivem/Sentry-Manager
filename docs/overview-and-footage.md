@@ -111,11 +111,13 @@ rest, so a clip the Encoder skipped or could not convert is easy to find.
 - **The day in numbers**, above the moments: how far the car drove (from
   its speed each second), how long it was moving and its top speed.
 - **Star this moment**: marks where the video is, with a note if you like
-  ("pothole", "near miss"). Starring also protects the recording, so
+  ("pothole", "near miss"). Starring also protects the recording (both the
+  drive and the Sentry or Saved event, when the clip is in each), so
   policies and *Delete through this date* leave it alone. The vehicle's
   starred moments from every day are listed under the moments, in every
-  interface; picking one opens it, and × removes the star (the recording
-  stays protected until you unprotect it).
+  interface; picking one opens it, and × removes the star. An admin
+  removing the last star of a recording unprotects it, unless it was
+  protected by hand; a watch-only account's × leaves it protected.
 - **Pop out** (picture in picture): the main camera keeps playing in its own
   small window while you use other pages or apps.
 - **Pick up where you left off**: the Viewer remembers, in this browser,

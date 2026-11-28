@@ -173,6 +173,9 @@ impl Service {
                     let base = Self::ownership_for(rt, item_id).unwrap_or_else(|| own.clone());
                     Self::set_ownership(rt, item_id, Some(compose(&base, &json!({}), &keys)));
                 } else {
+                    // (a kept file is never silent: say which clip and which of its files)
+                    let rel = m.item(item_id).and_then(|i| i.str("relativePath").map(str::to_string)).unwrap_or_default();
+                    super::log_line(format!("[CONVERTER] Cleanup kept the files of clip {rel:?} ({} {item_id}): {}", m.id(), r.cleanup_pending.join(", ")));
                     let base = Self::ownership_for(rt, item_id).unwrap_or_default();
                     let mut incoming = result_own.to_value();
                     if !r.clear_owned_keys.is_empty() {

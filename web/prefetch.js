@@ -27,7 +27,18 @@
       const p = abs && early.get(abs);
       if (p) {
         early.delete(abs); // each answer is used once
-        return p.catch(() => realFetch(input, init));
+        const fallback = p.catch(() => realFetch(input, init));
+        const sig = init && init.signal;
+        if (!sig) return fallback;
+        // (the early request carries no signal: the caller's timeout or abort still ends its wait)
+        return new Promise((res, rej) => {
+          const onAbort = () => rej(sig.reason ?? new DOMException('Aborted', 'AbortError'));
+          sig.addEventListener('abort', onAbort, { once: true });
+          fallback.then(
+            (r) => { sig.removeEventListener('abort', onAbort); res(r); },
+            (e) => { sig.removeEventListener('abort', onAbort); rej(e); }
+          );
+        });
       }
     }
     return realFetch(input, init);

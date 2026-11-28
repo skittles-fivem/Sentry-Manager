@@ -528,7 +528,12 @@ async function filmstrip(videoPath) {
     if (!filmstripCache.has(videoPath)) {
         const pending = Promise.resolve(window.electronAPI.getClipThumbnail(videoPath))
             .catch(() => null)
-            .then((strip) => { filmstripCache.set(videoPath, strip || null); return strip || null; });
+            .then((strip) => {
+                // none this time (the server was busy, or could not make it): asked again on the next hover
+                if (strip) filmstripCache.set(videoPath, strip);
+                else filmstripCache.delete(videoPath);
+                return strip || null;
+            });
         filmstripCache.set(videoPath, pending);
     }
     return filmstripCache.get(videoPath);

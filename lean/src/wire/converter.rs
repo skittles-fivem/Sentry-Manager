@@ -39,6 +39,8 @@ pub struct Conv {
     snaps: Mutex<HashMap<String, Value>>,
     /// index.js converterListed: the jobs from before the start were listed
     listed: std::sync::atomic::AtomicBool,
+    /// the jobs whose folder is in no vehicle, said once each
+    unmatched: Mutex<std::collections::HashSet<String>>,
 }
 
 pub struct CoreConverter {
@@ -182,11 +184,27 @@ pub fn job_progress(s: &Value) -> (f64, f64) {
     (counts(s).0 as f64, saved)
 }
 
-fn vehicle_of(srv: &Server, src: &str) -> Option<crate::footage::vehicles::Vehicle> {
-    if src.is_empty() {
-        return None;
+/// What a job freed on its vehicle's share so far, as (clips, bytes): a copy to another folder
+/// (outputMode "separate") leaves the originals there, so it frees nothing.
+fn freed(s: &Value) -> (f64, f64) {
+    if s["config"]["outputMode"] == "separate" {
+        return (0.0, 0.0);
     }
-    srv.app().vehicles.vehicle_for_path(std::path::Path::new(src))
+    job_progress(s)
+}
+
+/// The vehicle a job's sourceRoot is in (vehicleForReal, then vehicleForPath: the converter keeps
+/// the real path). Err: the vehicles could not be read.
+pub fn try_vehicle_of(srv: &Server, src: &str) -> Result<Option<crate::footage::vehicles::Vehicle>, String> {
+    if src.is_empty() {
+        return Ok(None);
+    }
+    let list = srv.app().vehicles.try_list().map_err(|e| e.to_string())?;
+    Ok(crate::footage::vehicles::vehicle_in(list, std::path::Path::new(src)).map(|(v, _)| v))
+}
+
+fn vehicle_of(srv: &Server, src: &str) -> Option<crate::footage::vehicles::Vehicle> {
+    try_vehicle_of(srv, src).ok().flatten()
 }
 
 /// index.js slimJob: a job as kept, its counts without its clip list
@@ -226,10 +244,26 @@ fn on_snapshot(srv: &Server, conv: &Conv, s: &Value, live: bool) {
     let st = s["state"].as_str().unwrap_or("");
     conv.jobs.lock().unwrap().insert(id.to_string(), st.to_string());
     let src = s["config"]["sourceRoot"].as_str().unwrap_or("");
-    let v = vehicle_of(srv, src);
+    let found = try_vehicle_of(srv, src);
+    if live && !src.is_empty() && matches!(found, Ok(None)) && conv.unmatched.lock().unwrap().insert(id.to_string()) {
+        srv.state.logger.scope("converter").warn(format!("Conversion {id}: its folder {src} is in no vehicle, so its space saved is not counted"));
+    }
+    let vehicle_unread = found.is_err();
+    let v = found.ok().flatten();
     if let Some(ops) = srv.ops() {
-        let (clips, saved) = job_progress(s);
-        ops.job_snapshot(&crate::ops::JobSnapshot { id: id.to_string(), running: RUNNING.contains(&st), vehicle_id: v.as_ref().map(|v| v.id.clone()), saved_bytes: saved, clips });
+        let (clips, saved) = freed(s);
+        let running = RUNNING.contains(&st);
+        ops.job_snapshot(&crate::ops::JobSnapshot {
+            id: id.to_string(),
+            running,
+            vehicle_id: v.as_ref().map(|v| v.id.clone()),
+            saved_bytes: saved,
+            clips,
+            source_root: src.to_string(),
+            vehicle_unread,
+            // a job that does not run now saved what it did by its last change (a job listed at the start)
+            at_ms: if running { None } else { s["updatedAt"].as_i64().filter(|t| *t > 0) },
+        });
     }
     if live {
         mirror(srv, conv, s, id, st, src, v.as_ref());
@@ -462,6 +496,7 @@ pub fn spawn(srv: &Arc<Server>) {
                 jobs: Mutex::new(HashMap::new()),
                 snaps: Mutex::new(HashMap::new()),
                 listed: std::sync::atomic::AtomicBool::new(false),
+                unmatched: Mutex::new(Default::default()),
             });
             let (w, c) = (Arc::downgrade(&s), Arc::downgrade(&conv));
             conv.runtime.service.subscribe(Arc::new(move |event: &crate::converter::service::Event| {
@@ -513,6 +548,77 @@ impl Drop for Stream {
     }
 }
 
+/// How much one live-update stream may hold unsent before it is closed: a page that stops reading
+/// (a phone gone off Wi-Fi with the connection still half open) must not grow memory without limit.
+const MAX_QUEUED_BYTES: usize = 8 * 1024 * 1024;
+
+/// One stream's unsent updates, bounded by bytes. Once full it closes for good: what is queued is
+/// still sent, then the stream ends and the page's EventSource reconnects for a fresh snapshot.
+#[derive(Clone)]
+struct EventQueue {
+    tx: Arc<Mutex<Option<tokio::sync::mpsc::UnboundedSender<String>>>>,
+    queued: Arc<std::sync::atomic::AtomicUsize>,
+    limit: usize,
+}
+
+impl EventQueue {
+    fn new(limit: usize) -> (EventQueue, tokio::sync::mpsc::UnboundedReceiver<String>) {
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+        (EventQueue { tx: Arc::new(Mutex::new(Some(tx))), queued: Arc::new(std::sync::atomic::AtomicUsize::new(0)), limit }, rx)
+    }
+
+    /// queue one update; false once the stream is closed (gone or overflowed)
+    fn push(&self, text: &str) -> bool {
+        use std::sync::atomic::Ordering::SeqCst;
+        let mut tx = self.tx.lock().unwrap();
+        let Some(t) = tx.as_ref() else { return false };
+        if self.queued.load(SeqCst).saturating_add(text.len()) > self.limit {
+            *tx = None;
+            return false;
+        }
+        self.queued.fetch_add(text.len(), SeqCst);
+        if t.send(text.to_string()).is_err() {
+            *tx = None;
+            return false;
+        }
+        true
+    }
+
+    /// one update left the queue
+    fn taken(&self, n: usize) {
+        let _ = self.queued.fetch_update(std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst, |q| Some(q.saturating_sub(n)));
+    }
+}
+
+#[cfg(test)]
+mod event_queue_tests {
+    use super::*;
+
+    #[test]
+    fn a_page_that_stops_reading_is_closed_not_buffered_forever() {
+        let (q, mut rx) = EventQueue::new(10);
+        assert!(q.push("12345"));
+        assert!(q.push("12345"));
+        assert!(!q.push("x"), "over the limit: closed");
+        assert!(!q.push(""), "stays closed");
+        assert_eq!(rx.try_recv().unwrap(), "12345");
+        assert_eq!(rx.try_recv().unwrap(), "12345");
+        assert!(matches!(rx.try_recv(), Err(tokio::sync::mpsc::error::TryRecvError::Disconnected)), "the stream ends after what was queued");
+    }
+
+    #[test]
+    fn a_page_that_keeps_reading_keeps_its_stream() {
+        let (q, mut rx) = EventQueue::new(10);
+        for _ in 0..100 {
+            assert!(q.push("12345678"));
+            let t = rx.try_recv().unwrap();
+            q.taken(t.len());
+        }
+        drop(rx);
+        assert!(!q.push("1"), "the page went: closed");
+    }
+}
+
 /// GET /api/converter/events?client=<id>: the live updates (Server-Sent Events).
 pub async fn events(srv: Arc<Server>, a: ApiRaw) -> Res {
     let accept = a.ctx.accept_encoding().to_string();
@@ -525,14 +631,17 @@ pub async fn events(srv: Arc<Server>, a: ApiRaw) -> Res {
         *n += 1;
     }
     let client: String = a.ctx.query.get("client").map(|c| c.encode_utf16().take(64).collect::<Vec<u16>>()).map(|u| String::from_utf16_lossy(&u)).unwrap_or_default();
-    let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-    let _ = tx.send("event: hello\ndata: {}\n\n".into());
-    conv.bridge.attach_events(&client, Box::new(move |text: &str| tx.send(text.to_string()).is_ok()));
+    let (queue, rx) = EventQueue::new(MAX_QUEUED_BYTES);
+    queue.push("event: hello\ndata: {}\n\n");
+    let q = queue.clone();
+    conv.bridge.attach_events(&client, Box::new(move |text: &str| q.push(text)));
     let guard = Stream { conv, client };
-    // (the stream ends when the page goes: the receiver is dropped, the bridge forgets the client)
-    let body = futures_util::stream::unfold((rx, guard), |(mut rx, guard)| async move {
+    // (the stream ends when the page goes: the receiver is dropped, the bridge forgets the client;
+    // or when the page stops reading: the queue overflows, closes, and the page reconnects)
+    let body = futures_util::stream::unfold((rx, queue, guard), |(mut rx, queue, guard)| async move {
         let text = rx.recv().await?;
-        Some((Ok::<_, std::convert::Infallible>(bytes::Bytes::from(text)), (rx, guard)))
+        queue.taken(text.len());
+        Some((Ok::<_, std::convert::Infallible>(bytes::Bytes::from(text)), (rx, queue, guard)))
     });
     axum::http::Response::builder()
         .status(200)
@@ -562,6 +671,13 @@ fn cheap_now(db: Arc<crate::core::db::Db>, log: crate::core::log::Scope) -> Arc<
 #[cfg(test)]
 mod cheap_now_tests {
     use super::*;
+
+    #[test]
+    fn only_a_job_that_replaces_the_originals_frees_space() {
+        let job = |mode: &str| json!({ "config": { "outputMode": mode }, "progressClips": 3, "counters": { "savedBytes": 900 } });
+        assert_eq!(freed(&job("replace")), (3.0, 900.0));
+        assert_eq!(freed(&job("separate")), (0.0, 0.0), "the originals stay on the share");
+    }
 
     #[test]
     fn rates_that_cannot_be_read_are_not_cheap_and_are_said_once_until_they_can() {

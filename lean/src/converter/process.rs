@@ -66,6 +66,28 @@ impl Default for BoundedRunner {
 }
 
 /// validateProcessRequest
+/// The tool ends with the app: should the app die without a chance to stop it (killed, out of
+/// memory), the kernel kills it, so after the restart no leftover encode holds the GPU's sessions,
+/// the CPU or temporary space while the job resumes. Only for a child the spawning thread waits on
+/// until it ends: the signal comes when that thread ends.
+pub fn end_with_app(cmd: &mut Command) {
+    // SAFETY: getpid before the fork; in the child only prctl, getppid and kill, which are
+    // async-signal-safe
+    let app = unsafe { libc::getpid() };
+    unsafe {
+        cmd.pre_exec(move || {
+            if libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL as libc::c_ulong, 0, 0, 0) != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            // (the app already gone between the fork and the prctl)
+            if libc::getppid() != app {
+                libc::kill(libc::getpid(), libc::SIGKILL);
+            }
+            Ok(())
+        });
+    }
+}
+
 pub fn validate_request(command: &str, args: &[String]) -> Result<(), String> {
     if command.is_empty() || command.len() > 32_768 || command.contains('\0') || args.len() > 1_024 || args.iter().any(|a| a.len() > 32_768 || a.contains('\0')) {
         return Err("INVALID_PROCESS_REQUEST".into());
@@ -96,6 +118,7 @@ impl Runner for BoundedRunner {
         }
         let mut cmd = Command::new(command);
         cmd.args(args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).process_group(0);
+        end_with_app(&mut cmd);
         if let Some(d) = &opts.cwd {
             cmd.current_dir(d);
         }
@@ -326,6 +349,24 @@ mod tests {
 
     fn s(v: &[&str]) -> Vec<String> {
         v.iter().map(|x| x.to_string()).collect()
+    }
+
+    /// What stands for the app dying: the thread that started the tool ends without stopping it.
+    #[test]
+    fn a_tool_ends_when_what_started_it_is_gone() {
+        let mut child = std::thread::spawn(|| {
+            let mut cmd = Command::new("sleep");
+            cmd.arg("30");
+            end_with_app(&mut cmd);
+            cmd.spawn().unwrap()
+        })
+        .join()
+        .unwrap();
+        let t = Instant::now();
+        let st = child.wait().unwrap();
+        use std::os::unix::process::ExitStatusExt;
+        assert_eq!(st.signal(), Some(libc::SIGKILL));
+        assert!(t.elapsed() < Duration::from_secs(10));
     }
 
     #[test]

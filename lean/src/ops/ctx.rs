@@ -136,6 +136,11 @@ pub trait OpsCtx: Send + Sync + 'static {
     /// the live-update hub (`announce(topic)`: batched every 400 ms by core)
     fn announce(&self, topic: &str);
     fn vehicles(&self) -> Vec<VehicleInfo>;
+    /// The id of the vehicle a converter job's sourceRoot is in (vehicleForReal / vehicleForPath);
+    /// Err while the vehicles cannot be read.
+    fn vehicle_of_source(&self, _source_root: &str) -> Result<Option<String>, String> {
+        Ok(None)
+    }
     /// What the monitor's share list needs of each vehicle, in `vehicles()`'s order:
     /// (name, roots[0], source_type). The server answers it without the summaries.
     fn vehicle_shares(&self) -> Vec<(String, Option<String>, Option<String>)> {

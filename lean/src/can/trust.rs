@@ -643,22 +643,19 @@ impl CanTrust {
             .map(|(nm, _)| at(nm).unwrap())
             .collect();
         geneses.sort();
-        let older = |a: i64| mine.iter().filter(|(nm, _)| at(nm).is_some_and(|x| x < a)).count();
+        // (every lookup below is a sort, a binary search or a map: a car keeps up to 200,000
+        // logs, and this runs under the car's trust lock)
+        let mut starts: Vec<i64> = mine.iter().filter_map(|(nm, _)| at(nm)).collect();
+        starts.sort();
+        let older = |a: i64| starts.partition_point(|&x| x < a);
         let mut bounds: Vec<i64> = Vec::new();
         for (k, &a) in geneses.iter().enumerate() {
-            if ((k > 0 && a > geneses[0]) || older(a) >= 2) && !bounds.contains(&a) {
+            // (geneses are sorted, so a bound already taken is the last one)
+            if ((k > 0 && a > geneses[0]) || older(a) >= 2) && bounds.last() != Some(&a) {
                 bounds.push(a);
             }
         }
-        let seg_of = |nm: &str| -> usize {
-            let mut k = 0;
-            if let Some(a) = at(nm) {
-                while k < bounds.len() && bounds[k] <= a {
-                    k += 1;
-                }
-            }
-            k
-        };
+        let seg_of = |nm: &str| -> usize { at(nm).map_or(0, |a| bounds.partition_point(|&b| b <= a)) };
         let mut parts: Vec<Vec<&(String, &Value)>> = vec![Vec::new(); bounds.len() + 1];
         for e in &mine {
             parts[seg_of(&e.0)].push(e);
@@ -669,20 +666,25 @@ impl CanTrust {
         for (p, part) in parts.iter().enumerate() {
             // index -> (name, record), in first-seen order
             let mut by_index: Vec<(i64, String, &Value)> = Vec::new();
+            let mut pos: HashMap<i64, usize> = HashMap::new();
+            // every copy of each index, for a log that names another copy of the one before
+            let mut copies: HashMap<i64, Vec<(&String, &Value)>> = HashMap::new();
             for (name, r) in part.iter().map(|e| (&e.0, e.1)) {
                 let i = idx(r);
-                if let Some(other) = by_index.iter().find(|x| x.0 == i) {
+                copies.entry(i).or_default().push((name, r));
+                if let Some(other) = pos.get(&i).map(|&p| &by_index[p]) {
                     if &other.1 != name {
                         let note = { let a = note_of(r); if a.is_empty() { note_of(other.2) } else { a } };
                         issues.push(json!({ "kind": "duplicate", "index": i, "names": [other.1, name], "text": format!("two logs with index {}{}", i, note) }));
                     }
                 } else {
+                    pos.insert(i, by_index.len());
                     by_index.push((i, name.clone(), r));
                 }
             }
             let mut keys: Vec<i64> = by_index.iter().map(|x| x.0).collect();
             keys.sort();
-            let get = |i: i64| by_index.iter().find(|x| x.0 == i);
+            let get = |i: i64| pos.get(&i).map(|&p| &by_index[p]);
             if p > 0 {
                 let before = segments.last();
                 if let Some(s0) = keys.first().and_then(|&i| get(i)) {
@@ -713,7 +715,7 @@ impl CanTrust {
                     let names = |n: &str, r: &Value| s(cur.2, "prevName").as_deref() == Some(n) && cur.2.get("prevSha256") == r.get("sha256");
                     // (it may name another copy of that index: a chain continued from an older
                     // sidecar repeats indexes, each a duplicate above, and goes on from its own)
-                    let follows = names(&prev.1, prev.2) || part.iter().any(|e| idx(e.1) == i - 1 && names(&e.0, e.1));
+                    let follows = names(&prev.1, prev.2) || copies.get(&(i - 1)).is_some_and(|c| c.iter().any(|(nm, r)| names(nm, r)));
                     if s(prev.2, "status").as_deref() != Some("failed") && !follows {
                         issues.push(json!({ "kind": "mismatch", "index": i, "name": cur.1, "text": format!("log {} ({}) does not follow the stored log {} ({}): swapped or changed{}", i, cur.1, i - 1, prev.1, note_of(cur.2)) }));
                     }
@@ -1114,3 +1116,40 @@ fn fault_of(r: &Value) -> &'static str {
 
 #[allow(dead_code)]
 fn _unused(_: BTreeSet<i64>) {}
+
+#[cfg(test)]
+mod chain_size_tests {
+    use super::*;
+
+    /// A log name `i` minutes after 2026-01-01.
+    fn name(i: i64) -> String {
+        let iso = super::super::tz::iso(1_767_225_600_000 + i * 60_000);
+        let t: String = iso[..19].chars().filter(|c| *c != '-' && *c != ':').collect();
+        format!("abcdef123456_{t}Z_{}.log.xz", i % 1000)
+    }
+
+    #[test]
+    fn the_chain_of_a_car_with_many_logs_is_worked_out_quickly_and_the_same() {
+        let n = 60_000i64;
+        let mut logs = Map::new();
+        let sha = |i: i64| format!("{:064x}", i);
+        for i in 0..n {
+            // log 30,000 is missing: one gap
+            if i == 30_000 {
+                continue;
+            }
+            let (pn, ps) = if i == 0 { ("-".to_string(), ZERO.to_string()) } else { (name(i - 1), sha(i - 1)) };
+            logs.insert(name(i), json!({ "status": "verified", "signed": true, "fingerprint": "ab:cd", "index": i, "prevName": pn, "prevSha256": ps, "sha256": sha(i) }));
+        }
+        let t = TrustFile { v: 1.0, pin: json!({ "fingerprint": "abcd" }), new_key: Value::Null, logs, tombstones: Map::new(), tombstones_v: Value::Null };
+        let began = std::time::Instant::now();
+        let c = CanTrust::chain_of(&t);
+        assert!(began.elapsed() < std::time::Duration::from_secs(10), "took {:?}", began.elapsed());
+        assert_eq!(c["count"], json!(n - 1));
+        assert_eq!((c["first"].clone(), c["last"].clone()), (json!(0), json!(n - 1)));
+        let kinds: Vec<&str> = c["issues"].as_array().unwrap().iter().map(|x| x["kind"].as_str().unwrap()).collect();
+        // only the gap (log 30,001 has no stored log before it to be checked against)
+        assert_eq!(kinds, ["gap"], "{}", c["issues"]);
+        assert_eq!(c["issues"][0]["text"], "log 30000 is missing");
+    }
+}

@@ -223,6 +223,9 @@ pub struct Health {
     done: Condvar,
 }
 
+/// The longest a caller waits for a run already going before it takes the last result.
+const RUN_WAIT: Duration = Duration::from_secs(120);
+
 impl Default for Health {
     fn default() -> Self {
         Health { last: Mutex::new(None), running: Mutex::new(false), done: Condvar::new() }
@@ -237,20 +240,26 @@ impl Health {
     /// Runs every check; a run already going is waited for and its result given.
     pub fn run(&self, ctx: &dyn OpsCtx, snapshots: Option<&Snapshots>, startup: bool) -> Value {
         {
-            let mut r = self.running.lock().unwrap();
+            let mut r = self.running.lock().unwrap_or_else(|e| e.into_inner());
             if *r {
-                while *r {
-                    r = self.done.wait(r).unwrap();
-                }
+                // (bounded: a run that never ends does not hold every later caller with it)
+                let (_r, _) = self.done.wait_timeout_while(r, RUN_WAIT, |running| *running).unwrap_or_else(|e| e.into_inner());
                 return self.last().unwrap_or(Value::Null);
             }
             *r = true;
         }
+        // the run is over however it ends (a panic in a check too)
+        struct Over<'a>(&'a Health);
+        impl Drop for Over<'_> {
+            fn drop(&mut self) {
+                *self.0.running.lock().unwrap_or_else(|e| e.into_inner()) = false;
+                self.0.done.notify_all();
+            }
+        }
+        let _over = Over(self);
         let list = checks(ctx, snapshots);
         let res = json!({ "at": now_ms(), "checks": list, "startup": startup });
-        *self.last.lock().unwrap() = Some(res.clone());
-        *self.running.lock().unwrap() = false;
-        self.done.notify_all();
+        *self.last.lock().unwrap_or_else(|e| e.into_inner()) = Some(res.clone());
         res
     }
 

@@ -504,10 +504,125 @@ fn service(state: Arc<AppState>, conn: ConnInfo, plain_only: bool) -> impl hyper
     })
 }
 
-fn auto_builder() -> hyper_util::server::conn::auto::Builder<hyper_util::rt::TokioExecutor> {
+/// The HTTPS connection's builder for the protocol the TLS handshake chose (ALPN): h2 when
+/// the client asked for it, else HTTP/1.1. Choosing here means hyper never waits, unbounded,
+/// for the first bytes to tell the two apart. An HTTP/1.1 connection is bounded by its header
+/// timeout (also between requests); an HTTP/2 one by keep-alive pings (a peer that stops
+/// answering them is dropped) and the idle watchdog in `serve_tls`.
+fn auto_builder(h2: bool) -> hyper_util::server::conn::auto::Builder<hyper_util::rt::TokioExecutor> {
     let mut b = hyper_util::server::conn::auto::Builder::new(hyper_util::rt::TokioExecutor::new());
     b.http1().timer(hyper_util::rt::TokioTimer::new()).header_read_timeout(Duration::from_secs(120));
-    b
+    b.http2().timer(hyper_util::rt::TokioTimer::new()).keep_alive_interval(Some(Duration::from_secs(30))).keep_alive_timeout(Duration::from_secs(20));
+    if h2 {
+        b.http2_only()
+    } else {
+        b.http1_only()
+    }
+}
+
+/// An HTTP/2 connection with no request open for this long is closed (gracefully: GOAWAY).
+const H2_IDLE: Duration = Duration::from_secs(120);
+/// After the GOAWAY, the most a connection is kept for its peer to finish.
+const H2_CLOSE_GRACE: Duration = Duration::from_secs(10);
+
+/// What one connection is doing: requests open (until their answer's body is done or
+/// dropped) and when the last one started.
+struct Activity {
+    open: std::sync::atomic::AtomicUsize,
+    last: std::sync::Mutex<tokio::time::Instant>,
+}
+
+impl Activity {
+    fn new() -> Arc<Activity> {
+        Arc::new(Activity { open: Default::default(), last: std::sync::Mutex::new(tokio::time::Instant::now()) })
+    }
+
+    fn start(self: &Arc<Activity>) -> InFlight {
+        self.open.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        *self.last.lock().unwrap() = tokio::time::Instant::now();
+        InFlight(self.clone())
+    }
+
+    /// Whether nothing is open and nothing started for `idle`.
+    fn idle_for(&self, idle: Duration) -> bool {
+        self.open.load(std::sync::atomic::Ordering::SeqCst) == 0 && self.last.lock().unwrap().elapsed() >= idle
+    }
+}
+
+/// One open request: counted until dropped.
+struct InFlight(Arc<Activity>);
+
+impl Drop for InFlight {
+    fn drop(&mut self) {
+        self.0.open.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+        *self.0.last.lock().unwrap() = tokio::time::Instant::now();
+    }
+}
+
+/// An answer's body that keeps its request counted as open until it is done or dropped
+/// (a live-updates stream stays open as long as it runs).
+struct TrackedBody {
+    inner: Body,
+    _open: InFlight,
+}
+
+impl hyper::body::Body for TrackedBody {
+    type Data = bytes::Bytes;
+    type Error = axum::Error;
+    fn poll_frame(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Result<hyper::body::Frame<bytes::Bytes>, axum::Error>>> {
+        std::pin::Pin::new(&mut self.inner).poll_frame(cx)
+    }
+    fn is_end_stream(&self) -> bool {
+        self.inner.is_end_stream()
+    }
+    fn size_hint(&self) -> hyper::body::SizeHint {
+        self.inner.size_hint()
+    }
+}
+
+/// `service` with each request counted in `activity` while it is open.
+fn tracked_service(state: Arc<AppState>, conn: ConnInfo, activity: Arc<Activity>) -> impl hyper::service::Service<Request<hyper::body::Incoming>, Response = Res, Error = std::convert::Infallible, Future = futures_util::future::BoxFuture<'static, Result<Res, std::convert::Infallible>>> + Clone {
+    let inner = service(state, conn, false);
+    hyper::service::service_fn(move |req: Request<hyper::body::Incoming>| {
+        use hyper::service::Service;
+        let open = activity.start();
+        let fut = inner.call(req);
+        let fut: futures_util::future::BoxFuture<'static, Result<Res, std::convert::Infallible>> = Box::pin(async move {
+            let r = fut.await?;
+            Ok(r.map(|inner| Body::new(TrackedBody { inner, _open: open })))
+        });
+        fut
+    })
+}
+
+/// Serves an HTTPS connection after its handshake. An HTTP/2 one that has had no request
+/// open for `H2_IDLE` is asked to close (GOAWAY), and dropped `H2_CLOSE_GRACE` later if the
+/// peer has not let it go, so silent connections cannot hold the port's slots for ever.
+async fn serve_tls<I>(io: I, state: Arc<AppState>, conn: ConnInfo, h2: bool, idle: Duration)
+where
+    I: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+{
+    let builder = auto_builder(h2);
+    if !h2 {
+        let _ = builder.serve_connection(hyper_util::rt::TokioIo::new(io), service(state, conn, false)).await;
+        return;
+    }
+    let activity = Activity::new();
+    let c = builder.serve_connection(hyper_util::rt::TokioIo::new(io), tracked_service(state, conn, activity.clone()));
+    let mut c = std::pin::pin!(c);
+    let tick = (idle / 4).max(Duration::from_millis(10));
+    loop {
+        tokio::select! {
+            _ = c.as_mut() => return,
+            _ = tokio::time::sleep(tick) => {
+                if activity.idle_for(idle) {
+                    break;
+                }
+            }
+        }
+    }
+    c.as_mut().graceful_shutdown();
+    let _ = tokio::time::timeout(H2_CLOSE_GRACE, c).await;
 }
 
 /// Load (or make) the certificate and put it in use.
@@ -519,8 +634,93 @@ pub fn reload_tls(state: &AppState) -> Result<(), String> {
     Ok(())
 }
 
-/// Connections open on the web port in all (more than a household's devices ever need).
+/// Connections open on the web port in all (more than a household's devices ever need),
+/// when the open-files limit allows that many (see `web_connections`).
 const WEB_CONNECTIONS: usize = 1024;
+/// Connections from this machine (the container's health check) that are still taken when
+/// the web port is full.
+const LOOPBACK_RESERVE: usize = 8;
+/// Open files kept free for everything else (the database, logs, ffmpeg's pipes, mounts).
+const FD_RESERVE: usize = 256;
+
+/// The web port's connection limit for an open-files limit of `soft`: WEB_CONNECTIONS, or
+/// fewer so that every port's connections and FD_RESERVE still fit under it.
+fn web_connections(soft: u64) -> usize {
+    let soft = usize::try_from(soft).unwrap_or(usize::MAX);
+    let others = FD_RESERVE + DEVICE_CONNECTIONS + 2 * REFUSING + LOOPBACK_RESERVE;
+    soft.saturating_sub(others).clamp(64, WEB_CONNECTIONS)
+}
+
+/// The soft open-files limit asked for at start (no higher: programs started from here,
+/// such as ffmpeg and mount, inherit it, and some walk every possible descriptor).
+const OPEN_FILES_WANTED: u64 = 65536;
+
+/// Raises the soft open-files limit towards the hard one, up to OPEN_FILES_WANTED (Docker
+/// gives 1024 by default, fewer than the connection limits need). The soft limit after.
+pub fn raise_open_files_limit() -> u64 {
+    let mut r = libc::rlimit { rlim_cur: 0, rlim_max: 0 };
+    // SAFETY: getrlimit/setrlimit only read and write the struct passed
+    if unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, &mut r) } != 0 {
+        return 1024;
+    }
+    let want = (r.rlim_max as u64).min(OPEN_FILES_WANTED) as libc::rlim_t;
+    if r.rlim_cur < want {
+        let next = libc::rlimit { rlim_cur: want, rlim_max: r.rlim_max };
+        if unsafe { libc::setrlimit(libc::RLIMIT_NOFILE, &next) } == 0 {
+            r.rlim_cur = want;
+        }
+    }
+    r.rlim_cur as u64
+}
+
+/// The soft open-files limit now.
+fn open_files_limit() -> u64 {
+    let mut r = libc::rlimit { rlim_cur: 0, rlim_max: 0 };
+    // SAFETY: as above
+    if unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, &mut r) } != 0 {
+        return 1024;
+    }
+    r.rlim_cur as u64
+}
+
+/// Whether an accept() error is about one connection only (taken again at once); any other
+/// (out of open files or memory) is waited out.
+fn accept_error_is_per_connection(e: &std::io::Error) -> bool {
+    matches!(e.kind(), std::io::ErrorKind::ConnectionAborted | std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::ConnectionRefused | std::io::ErrorKind::Interrupted)
+}
+
+/// The next connection on `listener`. An accept() error never ends the port: one about a
+/// single connection is passed over, any other (too many open files) is named in the log
+/// once a minute and retried every 100 ms, so the server neither exits nor spins.
+async fn accept_retry(listener: &tokio::net::TcpListener, log: &super::log::Scope, what: &str, warned_at: &mut Option<tokio::time::Instant>) -> (tokio::net::TcpStream, std::net::SocketAddr) {
+    loop {
+        match listener.accept().await {
+            Ok(c) => return c,
+            Err(e) if accept_error_is_per_connection(&e) => continue,
+            Err(e) => {
+                if warned_at.is_none_or(|at| at.elapsed() >= Duration::from_secs(60)) {
+                    *warned_at = Some(tokio::time::Instant::now());
+                    log.warn(format!("{what}: cannot take connections: {e}; retrying"));
+                }
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+        }
+    }
+}
+
+/// Whether an address is this machine (an IPv4-mapped one too).
+fn is_loopback(ip: std::net::IpAddr) -> bool {
+    match ip {
+        std::net::IpAddr::V4(a) => a.is_loopback(),
+        std::net::IpAddr::V6(a) => a.is_loopback() || a.to_ipv4_mapped().is_some_and(|m| m.is_loopback()),
+    }
+}
+
+/// A web-port slot for a connection from `ip`: one of the port's own, else (from this
+/// machine) one of the loopback reserve.
+fn web_slot(slots: &Arc<tokio::sync::Semaphore>, loopback: &Arc<tokio::sync::Semaphore>, ip: std::net::IpAddr) -> Option<tokio::sync::OwnedSemaphorePermit> {
+    slots.clone().try_acquire_owned().ok().or_else(|| if is_loopback(ip) { loopback.clone().try_acquire_owned().ok() } else { None })
+}
 
 /// Listen on PORT: HTTPS with plain HTTP redirected, or plain HTTP only with TLS_MODE=off.
 pub async fn serve(state: Arc<AppState>) -> std::io::Result<()> {
@@ -529,10 +729,22 @@ pub async fn serve(state: Arc<AppState>) -> std::io::Result<()> {
     let listener = tokio::net::TcpListener::bind((host.as_str(), port)).await?;
     if state.tls.is_none() {
         state.log.warn(format!("Sentry Six Manager on http://{host}:{port} WITHOUT HTTPS (TLS_MODE=off): only use this behind a reverse proxy that does HTTPS."));
+        let cap = web_connections(open_files_limit());
+        let slots = Arc::new(tokio::sync::Semaphore::new(cap));
+        let loopback = Arc::new(tokio::sync::Semaphore::new(LOOPBACK_RESERVE));
+        let refusing = Arc::new(tokio::sync::Semaphore::new(REFUSING));
+        let warned: Arc<Warned> = Default::default();
+        let mut accept_warned = None;
         loop {
-            let (sock, peer) = listener.accept().await?;
+            let (sock, peer) = accept_retry(&listener, &state.log, "Web port", &mut accept_warned).await;
+            let Some(permit) = web_slot(&slots, &loopback, peer.ip()) else {
+                let why = Refusal { line: format!("Web port: {cap} connections open in all; answering 503 to {}", peer.ip()), answer: TOO_MANY_IN_ALL };
+                refused_connection(&state, &refusing, &warned, sock, peer, why, "Web port");
+                continue;
+            };
             let st = state.clone();
             tokio::spawn(async move {
+                let _permit = permit;
                 let conn = ConnInfo { peer: Some(peer), encrypted: false, device: false };
                 let mut b = hyper::server::conn::http1::Builder::new();
                 b.timer(hyper_util::rt::TokioTimer::new()).header_read_timeout(Duration::from_secs(120));
@@ -576,14 +788,17 @@ pub async fn serve(state: Arc<AppState>) -> std::io::Result<()> {
         }
     }
     state.log.info(format!("Sentry Six Manager on https://{host}:{port} (lean)"));
-    let slots = Arc::new(tokio::sync::Semaphore::new(WEB_CONNECTIONS));
+    let cap = web_connections(open_files_limit());
+    let slots = Arc::new(tokio::sync::Semaphore::new(cap));
+    let loopback = Arc::new(tokio::sync::Semaphore::new(LOOPBACK_RESERVE));
     // past it, a connection is answered 503 too_many_connections (a CAN upload can arrive here)
     let refusing = Arc::new(tokio::sync::Semaphore::new(REFUSING));
     let warned: Arc<Warned> = Default::default();
+    let mut accept_warned = None;
     loop {
-        let (sock, peer) = listener.accept().await?;
-        let Ok(permit) = slots.clone().try_acquire_owned() else {
-            let why = Refusal { line: format!("Web port: {WEB_CONNECTIONS} connections open in all; answering 503 to {}", peer.ip()), answer: TOO_MANY_IN_ALL };
+        let (sock, peer) = accept_retry(&listener, &state.log, "Web port", &mut accept_warned).await;
+        let Some(permit) = web_slot(&slots, &loopback, peer.ip()) else {
+            let why = Refusal { line: format!("Web port: {cap} connections open in all; answering 503 to {}", peer.ip()), answer: TOO_MANY_IN_ALL };
             refused_connection(&state, &refusing, &warned, sock, peer, why, "Web port");
             continue;
         };
@@ -599,7 +814,8 @@ pub async fn serve(state: Arc<AppState>) -> std::io::Result<()> {
                 let Some(cfg) = st.tls_config.read().unwrap().clone() else { return };
                 let Ok(Ok(tls)) = tokio::time::timeout(Duration::from_secs(15), tokio_rustls::TlsAcceptor::from(cfg).accept(sock)).await else { return };
                 let conn = ConnInfo { peer: Some(peer), encrypted: true, device: false };
-                let _ = auto_builder().serve_connection(hyper_util::rt::TokioIo::new(tls), service(st, conn, false)).await;
+                let h2 = tls.get_ref().1.alpn_protocol() == Some(b"h2".as_slice());
+                serve_tls(tls, st, conn, h2, H2_IDLE).await;
             } else {
                 let conn = ConnInfo { peer: Some(peer), encrypted: false, device: false };
                 let mut b = hyper::server::conn::http1::Builder::new();
@@ -824,8 +1040,9 @@ async fn device_serve(state: Arc<AppState>, listener: tokio::net::TcpListener) {
     let refusing = Arc::new(tokio::sync::Semaphore::new(REFUSING));
     let per_address: Arc<std::sync::Mutex<HashMap<std::net::IpAddr, usize>>> = Default::default();
     let warned: Arc<Warned> = Default::default();
+    let mut accept_warned = None;
     loop {
-        let Ok((sock, peer)) = listener.accept().await else { continue };
+        let (sock, peer) = accept_retry(&listener, &state.log, "Device port", &mut accept_warned).await;
         let ip = peer.ip();
         let Ok(permit) = slots.clone().try_acquire_owned() else {
             let why = Refusal { line: format!("Device port: {DEVICE_CONNECTIONS} connections open in all; answering 503 to {ip}"), answer: TOO_MANY_IN_ALL };
@@ -1292,5 +1509,133 @@ mod tests {
         assert_eq!(unversion("/v/abc123/web/app.js".into()), ("/web/app.js".into(), Some("abc123".into())));
         assert_eq!(unversion("/v/abc/api/jobs".into()), ("/v/abc/api/jobs".into(), None));
         assert_eq!(unversion("/v/assets/x.png".into()), ("/assets/x.png".into(), None));
+    }
+
+    // ---- the web port under load: open-files limit, accept errors, idle HTTP/2
+
+    #[test]
+    fn web_connections_fit_under_the_open_files_limit() {
+        assert_eq!(web_connections(65536), WEB_CONNECTIONS);
+        let n = web_connections(1024);
+        assert!(n + DEVICE_CONNECTIONS + 2 * REFUSING + LOOPBACK_RESERVE + FD_RESERVE <= 1024, "{n}");
+        assert!(n >= 64);
+        assert_eq!(web_connections(10), 64);
+    }
+
+    #[test]
+    fn only_per_connection_accept_errors_are_passed_over_at_once() {
+        use std::io::{Error, ErrorKind};
+        assert!(accept_error_is_per_connection(&Error::from(ErrorKind::ConnectionAborted)));
+        assert!(accept_error_is_per_connection(&Error::from(ErrorKind::Interrupted)));
+        // EMFILE, ENFILE, ENOBUFS: waited out, never the end of the port
+        assert!(!accept_error_is_per_connection(&Error::from_raw_os_error(libc::EMFILE)));
+        assert!(!accept_error_is_per_connection(&Error::from_raw_os_error(libc::ENFILE)));
+        assert!(!accept_error_is_per_connection(&Error::from_raw_os_error(libc::ENOBUFS)));
+    }
+
+    #[test]
+    fn the_loopback_reserve_is_only_for_this_machine() {
+        let slots = Arc::new(tokio::sync::Semaphore::new(0));
+        let loopback = Arc::new(tokio::sync::Semaphore::new(1));
+        assert!(web_slot(&slots, &loopback, "203.0.113.5".parse().unwrap()).is_none());
+        assert!(is_loopback("::ffff:127.0.0.1".parse().unwrap()));
+        let p = web_slot(&slots, &loopback, "127.0.0.1".parse().unwrap());
+        assert!(p.is_some());
+        assert!(web_slot(&slots, &loopback, "::1".parse().unwrap()).is_none(), "reserve used up");
+    }
+
+    #[test]
+    fn raising_the_open_files_limit_never_lowers_it() {
+        let before = open_files_limit();
+        let after = raise_open_files_limit();
+        assert!(after >= before.min(OPEN_FILES_WANTED));
+        assert_eq!(after, open_files_limit());
+    }
+
+    /// A state whose /api/can/logs/long answers a byte a minute for 15 minutes.
+    fn web_state(name: &str) -> Arc<AppState> {
+        let dir = std::env::temp_dir().join(format!("lean-web-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let env = [("DATA_PATH", dir.to_string_lossy().into_owned()), ("TLS_MODE", "off".into())];
+        let config = crate::core::Config::from_map(env.into_iter().map(|(k, v)| (k.to_string(), v)).collect());
+        let logger = super::super::log::Logger::with("info", 100, true, None, 1);
+        let st = AppState::open_with(config, logger).unwrap();
+        let mut r = Router::new();
+        r.raw("/api/can/logs/long", |_q: RawReq| {
+            Box::pin(async move {
+                let s = futures_util::stream::unfold(0, |i| async move {
+                    if i == 15 {
+                        return None;
+                    }
+                    tokio::time::sleep(Duration::from_secs(60)).await;
+                    Some((Ok::<_, std::io::Error>(bytes::Bytes::from_static(b"x")), i + 1))
+                });
+                Response::builder().status(200).body(Body::from_stream(s)).unwrap()
+            })
+        });
+        install(&st, r);
+        st
+    }
+
+    fn web_conn() -> ConnInfo {
+        ConnInfo { peer: Some("127.0.0.1:5000".parse().unwrap()), encrypted: true, device: false }
+    }
+
+    /// An HTTP/2 client on `io`: its request sender (the connection driven in a task).
+    async fn h2_client(io: tokio::io::DuplexStream) -> hyper::client::conn::http2::SendRequest<http_body_util::Empty<bytes::Bytes>> {
+        let (send, conn) = hyper::client::conn::http2::handshake(hyper_util::rt::TokioExecutor::new(), hyper_util::rt::TokioIo::new(io)).await.unwrap();
+        tokio::spawn(conn);
+        send
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn an_idle_http2_connection_is_closed() {
+        let st = web_state("h2idle");
+        let (client, server) = tokio::io::duplex(64 * 1024);
+        let served = tokio::spawn(serve_tls(server, st, web_conn(), true, Duration::from_secs(120)));
+        let mut send = h2_client(client).await;
+        let r = send.send_request(Request::get("https://x/healthz").body(http_body_util::Empty::new()).unwrap()).await.unwrap();
+        assert_eq!(r.status(), 200);
+        drop(r);
+        let start = Instant::now();
+        tokio::time::timeout(Duration::from_secs(3600), served).await.expect("closed").unwrap();
+        let took = start.elapsed();
+        assert!(took >= Duration::from_secs(119) && took < Duration::from_secs(120 + 60), "{took:?}");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_silent_http2_connection_is_closed() {
+        let st = web_state("h2silent");
+        // the peer finished its TLS handshake and then sent nothing at all
+        let (_client, server) = tokio::io::duplex(64 * 1024);
+        let start = Instant::now();
+        tokio::time::timeout(Duration::from_secs(3600), serve_tls(server, st, web_conn(), true, Duration::from_secs(120))).await.expect("closed");
+        assert!(start.elapsed() < Duration::from_secs(120 + 60), "{:?}", start.elapsed());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_silent_http1_connection_is_closed() {
+        let st = web_state("h1silent");
+        let (_client, server) = tokio::io::duplex(64 * 1024);
+        let start = Instant::now();
+        tokio::time::timeout(Duration::from_secs(3600), serve_tls(server, st, web_conn(), false, Duration::from_secs(120))).await.expect("closed");
+        assert!(start.elapsed() <= Duration::from_secs(121), "{:?}", start.elapsed());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn an_http2_answer_still_streaming_keeps_its_connection() {
+        let st = web_state("h2stream");
+        let (client, server) = tokio::io::duplex(64 * 1024);
+        let served = tokio::spawn(serve_tls(server, st, web_conn(), true, Duration::from_secs(120)));
+        let mut send = h2_client(client).await;
+        let r = send.send_request(Request::get("https://x/api/can/logs/long").body(http_body_util::Empty::new()).unwrap()).await.unwrap();
+        assert_eq!(r.status(), 200);
+        let body = tokio::spawn(async move { http_body_util::BodyExt::collect(r.into_body()).await.map(|b| b.to_bytes().len()) });
+        // 15 minutes of answer: the connection is not idle while it runs
+        tokio::time::sleep(Duration::from_secs(300)).await;
+        assert!(!served.is_finished(), "closed while its answer was still streaming");
+        let got = tokio::time::timeout(Duration::from_secs(3600), body).await.expect("answer").unwrap().unwrap();
+        assert_eq!(got, 15);
+        tokio::time::timeout(Duration::from_secs(3600), served).await.expect("closed afterwards").unwrap();
     }
 }

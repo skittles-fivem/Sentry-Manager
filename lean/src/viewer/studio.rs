@@ -330,7 +330,11 @@ pub fn browse(ctx: &dyn Ctx, body: &Value) -> Result<Value, (u16, String)> {
 const STRIP_FRAMES: usize = 6;
 const STRIP_WIDTH: u32 = 160;
 const STRIPS_KEPT: usize = 20_000;
-const STRIPS_QUEUED: usize = 2_000;
+/// Strips waiting at most: each waiting request holds a server thread
+const STRIPS_QUEUED: usize = 100;
+/// How long a request waits for its strip; after that it has none this time (the strip is
+/// still made, and found on the next ask)
+const STRIP_WAIT: Duration = Duration::from_secs(30);
 /// The newest request goes first (the clips in view), but one that has waited this long goes next.
 const OLDEST_FIRST_AFTER: Duration = Duration::from_secs(10);
 
@@ -353,6 +357,8 @@ pub struct ClipStrips {
     /// runs take their place here (shared with the recording thumbnails in the server)
     slots: Arc<crate::thumbnails::Slots>,
     oldest_first_after: Duration,
+    strip_wait: Duration,
+    written: std::sync::atomic::AtomicUsize,
 }
 
 fn run(cmd: &str, args: &[String], limit: Duration) -> (i32, String) {
@@ -381,7 +387,7 @@ fn run(cmd: &str, args: &[String], limit: Duration) -> (i32, String) {
 
 impl ClipStrips {
     pub fn new(dir: PathBuf, ffmpeg: String, ffprobe: String, slots: Arc<crate::thumbnails::Slots>) -> Arc<ClipStrips> {
-        Arc::new(ClipStrips { dir, ffmpeg, ffprobe, q: Mutex::new(StripQueue::default()), slots, oldest_first_after: OLDEST_FIRST_AFTER })
+        Arc::new(ClipStrips { dir, ffmpeg, ffprobe, q: Mutex::new(StripQueue::default()), slots, oldest_first_after: OLDEST_FIRST_AFTER, strip_wait: STRIP_WAIT, written: Default::default() })
     }
 
     fn prepare(&self) {
@@ -392,15 +398,7 @@ impl ClipStrips {
         q.prepared = true;
         drop(q);
         let _ = std::fs::create_dir_all(&self.dir);
-        let Ok(list) = std::fs::read_dir(&self.dir) else { return };
-        let mut names: Vec<(f64, PathBuf)> = list.flatten().filter(|e| e.file_name().to_string_lossy().ends_with(".jpg")).filter_map(|e| e.metadata().ok().map(|m| (crate::scanner::ms_of(m.mtime(), m.mtime_nsec()), e.path()))).collect();
-        if names.len() > STRIPS_KEPT {
-            names.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
-            let n = names.len() - STRIPS_KEPT;
-            for (_, p) in names.into_iter().take(n) {
-                let _ = std::fs::remove_file(p);
-            }
-        }
+        crate::thumbnails::prune(&self.dir, STRIPS_KEPT);
     }
 
     pub fn cache_path_for(&self, video: &Path) -> Option<PathBuf> {
@@ -448,6 +446,10 @@ impl ClipStrips {
         }
         let out = if ok && std::fs::rename(&tmp, target).is_ok() { Some(target.to_path_buf()) } else { None };
         let _ = std::fs::remove_file(&tmp);
+        // (kept to STRIPS_KEPT while the server runs, not only at its start)
+        if out.is_some() && self.written.fetch_add(1, std::sync::atomic::Ordering::Relaxed) % crate::thumbnails::PRUNE_EVERY == crate::thumbnails::PRUNE_EVERY - 1 {
+            crate::thumbnails::prune(&self.dir, STRIPS_KEPT);
+        }
         out
     }
 
@@ -504,9 +506,14 @@ impl ClipStrips {
             }
         };
         self.pump();
+        let until = Instant::now() + self.strip_wait;
         let mut r = w.0.lock().unwrap();
         while r.is_none() {
-            r = w.1.wait(r).unwrap();
+            let now = Instant::now();
+            if now >= until {
+                return None;
+            }
+            r = w.1.wait_timeout(r, until - now).unwrap().0;
         }
         r.clone().unwrap()
     }
@@ -559,6 +566,24 @@ mod tests {
         limit.store(4, Ordering::SeqCst);
         assert!(make(&["e.mp4", "f.mp4", "g.mp4", "h.mp4"]));
         assert!(fake::most_at_once(&log) >= 2);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_strip_that_takes_too_long_answers_none_and_is_there_the_next_time() {
+        use crate::thumbnails::{fake, Slots};
+        let dir = std::env::temp_dir().join(format!("lean-strips-wait-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut strips = ClipStrips::new(dir.join("strips"), fake::ffmpeg(&dir, &dir.join("runs.log")), fake::ffprobe(&dir), Slots::new(|| 1));
+        Arc::get_mut(&mut strips).unwrap().strip_wait = Duration::from_millis(50);
+        let clip = dir.join("a.mp4");
+        std::fs::write(&clip, b"a").unwrap();
+        let began = Instant::now();
+        assert_eq!(strips.get(&clip), None);
+        assert!(began.elapsed() < Duration::from_millis(250));
+        std::thread::sleep(Duration::from_millis(800));
+        assert!(strips.get(&clip).is_some(), "made meanwhile");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

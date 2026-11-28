@@ -155,7 +155,7 @@ fn stts_payload(durations: &[u64]) -> Vec<u8> {
 fn timed_header_payload(tree: &Tree, node: usize, timescale: Option<u32>, duration: u64) -> CResult<Vec<u8>> {
     let o = tree.payload(node)?;
     let typ = tree.typ(node);
-    let v = o[0];
+    let Some(&v) = o.first() else { return Err(e("INVALID_MP4", format!("Truncated {} box", mp4w::type_str(&typ)))) };
     if v != 0 && v != 1 {
         return Err(e("UNSUPPORTED_CONTAINER", format!("Unsupported {} version", mp4w::type_str(&typ))));
     }
@@ -197,7 +197,11 @@ fn timed_header_payload(tree: &Tree, node: usize, timescale: Option<u32>, durati
 
 fn movie_timescale(tree: &Tree, mvhd: usize) -> CResult<u32> {
     let p = tree.payload(mvhd)?;
-    let at = if p[0] == 1 { 20 } else { 12 };
+    let Some(&version) = p.first() else { return Err(e("INVALID_MP4", "Truncated mvhd box")) };
+    if version > 1 {
+        return Err(e("UNSUPPORTED_CONTAINER", "Unsupported mvhd version"));
+    }
+    let at = if version == 1 { 20 } else { 12 };
     if p.len() < at + 4 {
         return Err(e("INVALID_MP4", "Truncated mvhd box"));
     }
@@ -293,4 +297,31 @@ pub fn retime_to_source(encoded: &[u8], timescale: u32, ticks: &[u64]) -> CResul
         return Err(e("CONTAINER_INVALID", "Retimed track does not match the original timing"));
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::converter::mp4w::tests::{bx, simple};
+
+    #[test]
+    fn header_only_timing_boxes_are_refused_not_a_crash() {
+        for typ in [b"mdhd", b"tkhd", b"mvhd"] {
+            let f = bx(typ, b"");
+            let t = mp4w::parse(&f).unwrap();
+            let node = t.top()[0];
+            assert_eq!(timed_header_payload(&t, node, None, 10).err().unwrap().code, "INVALID_MP4");
+        }
+        let f = bx(b"mvhd", b"");
+        let t = mp4w::parse(&f).unwrap();
+        assert_eq!(movie_timescale(&t, t.top()[0]).err().unwrap().code, "INVALID_MP4");
+        // a whole encode whose mvhd is only a header
+        let one = simple(&[b"abcd"], b"vide");
+        let t = mp4w::parse(&one).unwrap();
+        let moov = t.top().iter().copied().find(|&c| &t.typ(c) == b"moov").unwrap();
+        let start = t.node(moov).start as usize;
+        let trak = t.payload(moov).unwrap().to_vec();
+        let f = [one[..start].to_vec(), bx(b"moov", &[bx(b"mvhd", b""), trak].concat())].concat();
+        assert_eq!(retime_to_source(&f, 1000, &[33]).err().unwrap().code, "INVALID_MP4");
+    }
 }

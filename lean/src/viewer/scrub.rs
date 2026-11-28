@@ -27,6 +27,10 @@ pub const FRAME_WIDTH: u32 = 240;
 const MAX_CACHED: usize = 6_000;
 const MAX_QUEUED: usize = 200;
 const TIMEOUT: Duration = Duration::from_secs(60);
+/// How long the keyframe probe (ffprobe over every packet) may take
+const PROBE_TIMEOUT: Duration = Duration::from_secs(30);
+/// A keyframe sample larger than this is not read (a damaged sample table)
+const MAX_PICK_BYTES: u32 = 16 << 20;
 const SETTLE_MS: f64 = 2.0 * 60_000.0;
 
 /// A keyframe: (sample index, pts, duration, offset, size)
@@ -166,6 +170,9 @@ fn write_picks(path: &Path, plan: &Plan, out: &mut dyn Write) -> std::io::Result
     let (ls, sets) = plan.config.as_ref().unwrap();
     let mut last: Option<(u32, Vec<u8>)> = None;
     for k in &plan.picks {
+        if k.size > MAX_PICK_BYTES {
+            continue;
+        }
         if last.as_ref().map_or(true, |l| l.0 != k.index) {
             let mut buf = vec![0u8; k.size as usize];
             let n = read_some(&file, &mut buf, k.offset)?;
@@ -225,6 +232,36 @@ fn wait(mut child: Child, limit: Duration) -> i32 {
     }
 }
 
+/// A child fed on its stdin by `feed` on a thread of its own, so the deadline runs from the
+/// start: one that stops reading is killed, and the writer then ends on the closed pipe. (The
+/// writer is not waited for: it may be stuck in a read of the share.)
+fn wait_fed(mut child: Child, limit: Duration, feed: impl FnOnce(&mut std::process::ChildStdin) + Send + 'static) -> i32 {
+    if let Some(mut stdin) = child.stdin.take() {
+        let spawned = std::thread::Builder::new().name("scrub-feed".into()).spawn(move || feed(&mut stdin));
+        if spawned.is_err() {
+            let _ = child.kill();
+            let _ = child.wait();
+            return -1;
+        }
+    }
+    wait(child, limit)
+}
+
+/// A child's whole stdout when it exits well within the limit; None when it fails or is killed
+/// at the limit. (stdout is read on a thread so a full pipe cannot hold the deadline up.)
+fn output_within(mut child: Child, limit: Duration) -> Option<Vec<u8>> {
+    let mut stdout = child.stdout.take()?;
+    let reader = std::thread::spawn(move || {
+        use std::io::Read;
+        let mut out = Vec::new();
+        let _ = stdout.read_to_end(&mut out);
+        out
+    });
+    let code = wait(child, limit);
+    let out = reader.join().unwrap_or_default();
+    (code == 0).then_some(out)
+}
+
 fn lower_priority(child: &Child) {
     unsafe {
         libc::setpriority(libc::PRIO_PROCESS, child.id(), 10);
@@ -261,6 +298,9 @@ pub struct ScrubFrames {
     pub dir: PathBuf,
     ffmpeg: String,
     ffprobe: Option<String>,
+    /// ffmpeg's and the keyframe probe's time limits (TIMEOUT, PROBE_TIMEOUT)
+    run_limit: Duration,
+    probe_limit: Duration,
     most: Box<dyn Fn() -> usize + Send + Sync>,
     q: Mutex<Queue>,
     /// folders' clip names as listed lately (next_clip_of), by folder
@@ -305,7 +345,7 @@ fn is_clip_name(name: &str) -> Option<String> {
 
 impl ScrubFrames {
     pub fn new(dir: PathBuf, ffmpeg: String, ffprobe: Option<String>, most: impl Fn() -> usize + Send + Sync + 'static) -> Arc<ScrubFrames> {
-        Arc::new(ScrubFrames { dir, ffmpeg, ffprobe, most: Box::new(most), q: Mutex::new(Queue::default()), listings: Mutex::default() })
+        Arc::new(ScrubFrames { dir, ffmpeg, ffprobe, run_limit: TIMEOUT, probe_limit: PROBE_TIMEOUT, most: Box::new(most), q: Mutex::new(Queue::default()), listings: Mutex::default() })
     }
 
     fn prune(&self) {
@@ -344,20 +384,21 @@ impl ScrubFrames {
     /// The longest gap between keyframes from the packets' flags (ffprobe); infinity when unknown.
     fn keyframe_gap(&self, video: &Path) -> f64 {
         let Some(probe) = &self.ffprobe else { return f64::INFINITY };
-        let Ok(out) = Command::new(probe)
+        let Ok(child) = Command::new(probe)
             .args(["-v", "error", "-select_streams", "v:0", "-show_entries", "packet=pts_time,flags", "-of", "csv=p=0", "-protocol_whitelist", "file"])
             .arg(video)
             .stdin(Stdio::null())
+            .stdout(Stdio::piped())
             .stderr(Stdio::null())
-            .output()
+            .spawn()
         else {
             return f64::INFINITY;
         };
-        if !out.status.success() {
-            return f64::INFINITY;
-        }
+        lower_priority(&child);
+        // (one that hangs, on a stalled share or an odd file, is killed: the gap is unknown)
+        let Some(out) = output_within(child, self.probe_limit) else { return f64::INFINITY };
         let (mut last, mut gap) = (None::<f64>, 0f64);
-        for line in String::from_utf8_lossy(&out.stdout).lines() {
+        for line in String::from_utf8_lossy(&out).lines() {
             let mut it = line.split(',');
             let (t, flags) = (it.next().unwrap_or(""), it.next());
             if !flags.is_some_and(|f| f.contains('K')) {
@@ -390,13 +431,14 @@ impl ScrubFrames {
                 Some(p) => {
                     let mut cmd = Command::new(&self.ffmpeg);
                     cmd.args(["-hide_banner", "-loglevel", "error", "-threads", "2", "-f", "h264", "-framerate", "1", "-i", "pipe:0", "-vf", &vf_tile]).args(tail).arg(&tmp);
-                    let Ok(mut child) = cmd.stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn() else { return None };
+                    let Ok(child) = cmd.stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn() else { return None };
                     lower_priority(&child);
-                    let mut stdin = child.stdin.take().unwrap();
-                    // (ffmpeg may stop reading once it has its grid: a closed pipe is no error)
-                    let _ = write_picks(video, p, &mut stdin);
-                    drop(stdin);
-                    wait(child, TIMEOUT)
+                    let (clip, picks) = (video.to_path_buf(), Plan { gap: p.gap, picks: p.picks.clone(), config: p.config.clone() });
+                    // (ffmpeg may stop reading once it has its grid: a closed pipe is no error; the
+                    // deadline counts from the start, the writing included)
+                    wait_fed(child, self.run_limit, move |stdin| {
+                        let _ = write_picks(&clip, &picks, stdin);
+                    })
                 }
                 None => {
                     let mut cmd = Command::new(&self.ffmpeg);
@@ -409,7 +451,7 @@ impl ScrubFrames {
                     cmd.args(["-threads", "2", "-protocol_whitelist", "file", "-i"]).arg(video).args(["-vf", &format!("fps=1:eof_action=pass,{vf_tile}")]).args(tail).arg(&tmp);
                     let Ok(child) = cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn() else { return None };
                     lower_priority(&child);
-                    wait(child, TIMEOUT)
+                    wait(child, self.run_limit)
                 }
             };
             if status != 0 || std::fs::metadata(&tmp).map_or(true, |m| m.len() == 0) {
@@ -561,11 +603,37 @@ impl ScrubFrames {
             }
         };
         self.pump();
+        // (never waited for forever: a worker stuck past every limit of its own gives no grid;
+        // the time counts from when the job left the queue, so a wait in line is no failure)
+        let limit = self.run_limit * 2 + self.probe_limit;
+        let look = Duration::from_millis(500).min(limit);
+        let mut deadline = Instant::now() + limit;
         let mut r = waiter.0.lock().unwrap();
         while r.is_none() {
-            r = waiter.1.wait(r).unwrap();
+            let now = Instant::now();
+            if now >= deadline {
+                return None;
+            }
+            let (got, timed_out) = waiter.1.wait_timeout(r, (deadline - now).min(look)).unwrap();
+            r = got;
+            if r.is_none() && timed_out.timed_out() {
+                // (still in line: the time starts again)
+                drop(r);
+                if self.q.lock().unwrap().jobs.iter().any(|j| j.target == target) {
+                    deadline = Instant::now() + limit;
+                }
+                r = waiter.0.lock().unwrap();
+            }
         }
-        r.clone().unwrap()
+        let out = r.clone().unwrap();
+        drop(r);
+        // a grid asked for now is kept longest, also when it was being made ahead (with the clip's time)
+        if touch {
+            if let Some(p) = &out {
+                let _ = std::fs::File::options().write(true).open(p).and_then(|f| f.set_modified(SystemTime::now()));
+            }
+        }
+        out
     }
 }
 
@@ -758,6 +826,78 @@ mod tests {
         assert_eq!(keyframe_plan(&sparse).unwrap().gap, 2.0);
         std::fs::write(dir.join("bad.mp4"), b"not a clip").unwrap();
         assert!(keyframe_plan(&dir.join("bad.mp4")).is_none());
+    }
+
+    fn script(path: &Path, body: &str) -> String {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::write(path, format!("#!/bin/sh\n{body}")).unwrap();
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        path.to_string_lossy().into_owned()
+    }
+
+    #[test]
+    fn a_child_that_stops_reading_or_hangs_is_killed_at_the_limit() {
+        let began = Instant::now();
+        let child = Command::new("sleep").arg("30").stdin(Stdio::piped()).spawn().unwrap();
+        let code = wait_fed(child, Duration::from_millis(300), |stdin| {
+            let _ = stdin.write_all(&vec![0u8; 4 << 20]);
+        });
+        assert_eq!(code, -1);
+        assert!(began.elapsed() < Duration::from_secs(5), "the writing is inside the deadline");
+        let began = Instant::now();
+        let child = Command::new("sh").args(["-c", "echo hi; exec sleep 30"]).stdout(Stdio::piped()).spawn().unwrap();
+        assert_eq!(output_within(child, Duration::from_millis(300)), None);
+        assert!(began.elapsed() < Duration::from_secs(5));
+        let child = Command::new("sh").args(["-c", "echo hi"]).stdout(Stdio::piped()).spawn().unwrap();
+        assert_eq!(output_within(child, Duration::from_secs(5)), Some(b"hi\n".to_vec()));
+    }
+
+    #[test]
+    fn a_hung_keyframe_probe_does_not_hold_the_grid_and_a_grid_asked_for_now_is_kept_longest() {
+        let dir = testkit::tmp("scrub-hung-probe");
+        let ffmpeg = crate::thumbnails::fake::ffmpeg(&dir, &dir.join("runs.log"));
+        let ffprobe = script(&dir.join("ffprobe"), "exec sleep 30\n");
+        let mut frames = ScrubFrames::new(dir.join("scrub"), ffmpeg, Some(ffprobe), || 1);
+        Arc::get_mut(&mut frames).unwrap().probe_limit = Duration::from_millis(300);
+        let clip = dir.join("2026-10-01_10-00-00-front.mp4");
+        std::fs::write(&clip, b"not parsed: the probe decides").unwrap();
+        let old = SystemTime::now() - Duration::from_secs(30 * 86400);
+        std::fs::File::options().write(true).open(&clip).unwrap().set_modified(old).unwrap();
+        let began = Instant::now();
+        let (f, c) = (frames.clone(), clip.clone());
+        let ahead = std::thread::spawn(move || f.get(&c, false, false, false));
+        std::thread::sleep(Duration::from_millis(50));
+        let grid = frames.get(&clip, true, false, true).expect("a grid");
+        assert!(began.elapsed() < Duration::from_secs(10), "{:?}", began.elapsed());
+        assert_eq!(ahead.join().unwrap(), Some(grid.clone()));
+        let at = std::fs::metadata(&grid).unwrap().modified().unwrap();
+        assert!(at > SystemTime::now() - Duration::from_secs(600), "made ahead with the clip's time, then used now");
+    }
+
+    #[test]
+    fn a_wait_in_line_behind_other_grids_is_not_given_up() {
+        let dir = testkit::tmp("scrub-wait-in-line");
+        let ffmpeg = crate::thumbnails::fake::ffmpeg(&dir, &dir.join("runs.log"));
+        let ffprobe = script(&dir.join("ffprobe"), "exec sleep 30\n");
+        let mut frames = ScrubFrames::new(dir.join("scrub"), ffmpeg, Some(ffprobe), || 1);
+        {
+            let f = Arc::get_mut(&mut frames).unwrap();
+            f.probe_limit = Duration::from_millis(1000);
+            f.run_limit = Duration::from_millis(1000);
+        }
+        // each grid takes about 1.3 s, the limit is 3 s: the last of four waits longer in line
+        let mut asks = Vec::new();
+        for i in 0..4 {
+            let clip = dir.join(format!("2026-10-01_10-0{i}-00-front.mp4"));
+            std::fs::write(&clip, b"not parsed: the probe decides").unwrap();
+            let f = frames.clone();
+            asks.push(std::thread::spawn(move || f.get(&clip, false, false, false)));
+            std::thread::sleep(Duration::from_millis(30));
+        }
+        let began = Instant::now();
+        for (i, a) in asks.into_iter().enumerate() {
+            assert!(a.join().unwrap().is_some(), "ask {i} after {:?}", began.elapsed());
+        }
     }
 
     #[test]

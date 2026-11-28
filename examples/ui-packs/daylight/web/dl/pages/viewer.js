@@ -107,6 +107,8 @@ async function player(ctx, v, day, recId) {
     const q = new URLSearchParams({ date: day, limit: '500' });
     playlist = (await api(`/api/vehicles/${enc(v.id)}/recordings?${q}`)).recordings
       .sort((a, b) => String(a.startKey).localeCompare(String(b.startKey)));
+    // left while the list came: the shared view is the next page's now
+    if (!ctx.alive()) return;
   }
   // a link to a moment (search by place, Find moments): at=<clip>~<second>
   const [atClip, atSec] = String(ctx.query.get('at') || '').split('~');

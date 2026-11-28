@@ -181,7 +181,8 @@ export default {
     });
 
     // ---------- playlist ----------
-    const detail = (id) => api(`/api/vehicles/${encodeURIComponent(v.id)}/recordings/${encodeURIComponent(id)}`);
+    // (a whole day asks for every recording at once: the browser queues them, so each may wait)
+    const detail = (id) => api(`/api/vehicles/${encodeURIComponent(v.id)}/recordings/${encodeURIComponent(id)}`, { timeout: 120000 });
     async function build() {
       const recId = params.get('rec');
       let day = params.get('day');

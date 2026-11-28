@@ -1170,9 +1170,12 @@ fn verify_owned_snapshot(o: &VerifyOptions, profile_id: &str, sb: u64, ob: u64, 
     Verdict { ok: true, reason: None, retryable: false, source_bytes: s, output_bytes: b, details: Value::Object(d), publication_artifact: None }
 }
 
-fn cleanup_failure(snap: &mut Snapshot, v: Verdict) -> Verdict {
+fn cleanup_failure(registry: &Registry, snap: &mut Snapshot, v: Verdict) -> Verdict {
     match snap.cleanup() {
-        Ok(()) => v,
+        Ok(()) => {
+            registry.forget(&snap.token);
+            v
+        }
         Err(_) => failure(R::SNAPSHOT_CLEANUP_FAILED, v.source_bytes, v.output_bytes, json!({ "kind": "cleanup-failed", "priorReason": v.reason })),
     }
 }
@@ -1223,17 +1226,17 @@ pub fn verify_candidate(o: &VerifyOptions) -> Verdict {
     // normalizeSnapshotContract: never the candidate's or the original's own path
     let same = |a: &Path, c: &Path| super::owned::resolve(a) == super::owned::resolve(c);
     if same(&snap.path, &o.candidate) || same(&snap.path, &o.source) || snap.size != ob || snap.sha256 != sha {
-        return cleanup_failure(&mut snap, failure(R::SNAPSHOT_FAILED, s, b, json!({ "kind": "invalid-contract" })));
+        return cleanup_failure(o.registry, &mut snap, failure(R::SNAPSHOT_FAILED, s, b, json!({ "kind": "invalid-contract" })));
     }
     let v = verify_owned_snapshot(o, &profile_id, sb, ob, &sha, &snap);
     if !v.ok {
-        return cleanup_failure(&mut snap, v);
+        return cleanup_failure(o.registry, &mut snap, v);
     }
     if !o.trusted_snapshot && read_exact_snapshot(&snap, ob, &sha, false).is_none() {
-        return cleanup_failure(&mut snap, failure(R::SNAPSHOT_FAILED, s, b, json!({ "kind": "integrity-failed" })));
+        return cleanup_failure(o.registry, &mut snap, failure(R::SNAPSHOT_FAILED, s, b, json!({ "kind": "integrity-failed" })));
     }
     if snap.transfer().is_err() {
-        return cleanup_failure(&mut snap, failure(R::SNAPSHOT_TRANSFER_FAILED, s, b, json!({ "kind": "transfer-failed" })));
+        return cleanup_failure(o.registry, &mut snap, failure(R::SNAPSHOT_TRANSFER_FAILED, s, b, json!({ "kind": "transfer-failed" })));
     }
     Verdict {
         publication_artifact: Some(Artifact { path: snap.path.to_string_lossy().into_owned(), token: snap.token.clone(), sha256: sha, size: ob }),

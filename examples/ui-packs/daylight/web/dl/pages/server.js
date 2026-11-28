@@ -164,7 +164,14 @@ export async function render(ctx) {
     const h = snap?.host;
     $('#host-line').innerHTML = error && !snap ? `<span style="color:var(--bad)">Can’t get the numbers: ${esc(error)}</span>`
       : h ? esc([h.hostname, h.os, h.kernel && `kernel ${h.kernel}`, fin(h.uptimeS) && `on for ${span(h.uptimeS)}`, fin(h.appUptimeS) && `Sentry Six up ${span(h.appUptimeS)}`, h.version && (/^Build \d/.test(h.version) ? h.version : `version ${h.version}`)].filter(Boolean).join(' · ')) + (error ? ' · <span style="color:var(--warn)">not updating right now</span>' : '') : 'Asking the server…';
-    if (!snap) return;
+    if (!snap) {
+      // nothing read yet: why, in place of the numbers (it also tries again every 2 s)
+      if (error) {
+        $('#tiles').innerHTML = `<div class="note note-bad">${icon('alert')}<span>Can’t get the numbers: ${esc(error)}</span></div><p style="margin-top:12px"><button class="btn btn-sm" type="button" data-stats-retry>Try again</button></p>`;
+        $('#tiles [data-stats-retry]').onclick = () => { $('#tiles').innerHTML = '<div class="loading"><span class="spin"></span><span>Loading…</span></div>'; poll(); };
+      }
+      return;
+    }
     $('#alerts').innerHTML = (snap.alerts || []).filter((a) => a?.message).map((a) => `<div class="note note-${a.level === 'error' ? 'bad' : 'warn'}" style="margin-bottom:12px">${icon('alert')}<span><b>${a.level === 'error' ? 'Problem' : 'Worth a look'}:</b> ${esc(unitText(a.message))}</span></div>`).join('');
     $('#tiles').innerHTML = tiles(snap, range === '24h' ? hist : null, showAll) || '<p class="muted">The server has no numbers to show here.</p>';
     const unlock = (snap.unlock || []).filter((u) => u?.adds);
@@ -199,7 +206,13 @@ export async function render(ctx) {
       logs.lines = (await api(`/api/logs?level=${logs.all ? 'all' : 'problems'}`, { timeoutMs: 15000 })).lines;
       drawLogs();
       if (tell) $('#log-status').textContent = `${plural(logs.lines.length, 'line')} loaded.`;
-    } catch (err) { fail(err); }
+    } catch (err) {
+      if (!ctx.alive()) return;
+      if (logs.lines) { fail(err); return; }
+      // no lines shown yet: why, in their place
+      $('#log-list').innerHTML = `<div class="note note-bad" style="margin:14px;font-family:var(--font)">${icon('alert')}<span>${esc(err.message)}</span></div><p style="margin:0 14px 14px"><button class="btn btn-sm" type="button" data-logs-retry>Try again</button></p>`;
+      $('#log-list [data-logs-retry]').onclick = () => { $('#log-list').innerHTML = '<div class="loading" style="padding:14px"><span class="spin"></span><span>Loading…</span></div>'; loadLogs(); };
+    }
   };
   const loadArchives = async () => {
     try {

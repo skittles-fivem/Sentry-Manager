@@ -165,6 +165,10 @@ pub struct EncodeRequest<'a> {
     pub lane_id: Option<&'a str>,
 }
 
+
+/// How long ffmpeg has to end by itself after a cancel or stop before it is killed.
+const STOP_GRACE: Duration = Duration::from_secs(5);
+
 impl Service {
     /// liveCounts: clips waiting on a node, and those encoding now (here, or started on a node)
     fn live_counts(s: &RtState) -> (usize, usize) {
@@ -229,6 +233,8 @@ impl Service {
         }
         let mut cmd = Command::new(&ffmpeg);
         cmd.args(&args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
+        // (this thread waits on it to its end: see end_with_app)
+        super::super::process::end_with_app(&mut cmd);
         if super::super::process::cuda_by_index(&args) {
             cmd.env("CUDA_DEVICE_ORDER", "PCI_BUS_ID");
         }
@@ -354,6 +360,9 @@ impl Service {
             }
         });
         let stall = Duration::from_millis(self.0.o.encode_stall_ms.max(1));
+        // a cancel or stop asks ffmpeg to end (SIGTERM); one that has not ended a few seconds later
+        // is killed, so a Cancel does not wait out the stall timeout
+        let mut stop_seen: Option<std::time::Instant> = None;
         // looked at every 50 ms, and soon after its output closed (1 ms, then longer)
         let mut after_close = Duration::from_millis(1);
         let result = loop {
@@ -373,6 +382,18 @@ impl Service {
                 }
                 Ok(None) => {}
                 Err(_) => break Err("encoder-start-failed"),
+            }
+            let stopping = {
+                let s = rt.lock();
+                s.cancel_requested || s.stop_requested
+            };
+            if stopping && stop_seen.get_or_insert_with(std::time::Instant::now).elapsed() >= STOP_GRACE {
+                let _ = child.kill();
+                std::thread::spawn(move || {
+                    let _ = child.wait();
+                    let _ = reader.join();
+                });
+                break Err("cancelled");
             }
             if last_activity.lock().unwrap().elapsed() >= stall {
                 if let Some(c) = rt.lock().children.get_mut(item_id) {

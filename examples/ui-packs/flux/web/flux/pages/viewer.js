@@ -207,7 +207,8 @@ export default {
 
     // ---------- playlist ----------
     async function detailOf(id) {
-      return api(`/api/vehicles/${encodeURIComponent(v.id)}/recordings/${encodeURIComponent(id)}`);
+      // (a whole day asks for every recording at once: the browser queues them, so each may wait)
+      return api(`/api/vehicles/${encodeURIComponent(v.id)}/recordings/${encodeURIComponent(id)}`, { timeoutMs: 120000 });
     }
     async function buildPlaylist() {
       const recId = params.get('rec');

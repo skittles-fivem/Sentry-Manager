@@ -54,7 +54,7 @@ function hero(v) {
     ? `<p class="note bad" style="margin-top:14px">${icon('warn')} ${esc(s.lastError || 'The footage can’t be reached right now.')}${s.hint ? ` ${esc(s.hint)}` : ''}</p>`
     : s.writable === false ? '<p class="note warn" style="margin-top:14px">Read-only: footage can be watched, not converted or moved.</p>' : '';
   const line = inv.recordings !== undefined
-    ? `${plural(inv.recordings, 'recording')} · ${bytes(inv.bytes)} of footage${typeof inv.days === 'number' ? ` · ${plural(inv.days, 'day')}` : ''}${v.saved?.bytes ? ` · ${bytes(v.saved.bytes)} saved by conversions` : ''}${v.scanning ? ' · scanning now' : inv.scannedAt ? ` · checked ${ago(inv.scannedAt)}` : ''}`
+    ? `${plural(inv.recordings, 'recording')} · ${bytes(inv.bytes)} of footage${typeof inv.days === 'number' ? ` · ${plural(inv.days, 'day')}` : ''}${v.saved?.bytes ? ` · ${bytes(v.saved.bytes)} freed by conversions` : ''}${v.scanning ? ' · scanning now' : inv.scannedAt ? ` · checked ${ago(inv.scannedAt)}` : ''}`
     : v.scanning ? 'Looking through the footage for the first time…' : 'Not scanned yet.';
   return `<section class="sky-hero glass">
     <div>
@@ -194,6 +194,12 @@ export default {
     let pollTimer = 0;
     let dead = false;
     let days = null;
+    let daysFor = null; // the car the days shown are of
+    let daysSeq = 0;
+    // why the latest days or the server's numbers could not be read (shown, with Try again)
+    let daysErr = null;
+    let statsErr = null;
+    const problem = (text, attr) => `<div class="note bad"><p>${esc(text)}</p><button class="btn sm" type="button" ${attr}>Try again</button></div>`;
 
     body.innerHTML = `<div id="hero"></div>
       <div class="widgets">
@@ -212,7 +218,9 @@ export default {
     const drawServer = () => {
       const box = $('#w-server', body);
       const open = $$('details', box).map((d) => d.open);
-      box.innerHTML = serverHtml(stats, hist);
+      box.innerHTML = !stats && statsErr
+        ? problem(`Can’t read the server’s numbers: ${statsErr}`, 'data-stats-retry')
+        : serverHtml(stats, hist) + (statsErr ? `<p class="muted tiny">The last update didn’t come through (${esc(statsErr)}); trying again.</p>` : '');
       $$('details', box).forEach((d, i) => { if (open[i]) d.open = true; });
     };
     const drawEncoder = () => { $('#w-encoder', body).innerHTML = encoderHtml(snap, stats?.encoder); };
@@ -227,7 +235,7 @@ export default {
       const savedN = state.vehicles.reduce((n, x) => n + (x.saved?.clips || 0), 0);
       el.innerHTML = `<div class="stat-grid">
         <div class="stat"><span class="stat-label">Recycle Bin</span><span class="stat-val">${bytes(v.binBytes)}</span><span class="muted tiny">${plural(v.binItems || 0, 'item')}</span></div>
-        <div class="stat"><span class="stat-label">Space saved</span><span class="stat-val">${savedB ? bytes(savedB) : 'None yet'}</span><span class="muted tiny">${savedB ? `${plural(savedN, 'clip')} converted${state.vehicles.length > 1 ? ' · all cars' : ''}` : 'by conversions'}</span></div>
+        <div class="stat"><span class="stat-label">Freed by conversions</span><span class="stat-val">${savedB ? bytes(savedB) : 'None yet'}</span><span class="muted tiny">${savedB ? `${plural(savedN, 'clip')} replaced${state.vehicles.length > 1 ? ' · all cars' : ''}` : 'counted as clips are replaced'}</span></div>
         <div class="stat"><span class="stat-label">Days of footage</span><span class="stat-val">${typeof state.footageDays === 'number' ? state.footageDays.toLocaleString() : '—'}</span><span class="muted tiny">${state.vehicles.length > 1 ? 'any car' : v.inventory?.firstDay ? `since ${esc(dayTitle(v.inventory.firstDay))}` : 'recorded'}</span></div>
         ${(() => { const f = fullIn(v.storage); return `<div class="stat${f?.tone === 'bad' ? ' bad' : f?.tone === 'warn' ? ' warn' : ''}"><span class="stat-label">Full in</span><span class="stat-val">${esc(f ? f.short : '—')}</span><span class="muted tiny">${f ? (v.storage.capped ? 'policies delete old footage' : `at ${bytes(v.storage.perDay)} a day`) : 'not known yet'}</span></div>`; })()}
         <div class="stat"><span class="stat-label">Policy</span><span class="stat-val">${p?.enabled ? 'On' : 'Off'}</span><span class="muted tiny">${p?.enabled ? (keeps.length ? keeps.map(([c, d]) => `${esc(c)} ${d} d`).join(' · ') : 'keeps everything') : 'nothing is moved by itself'}</span></div></div>
@@ -238,21 +246,32 @@ export default {
       const v = current();
       const el = $('#w-days-body', body);
       if (!v) { el.innerHTML = '<p class="muted">No vehicle yet.</p>'; return; }
-      if (!days) return;
+      if (!days) {
+        el.innerHTML = daysErr ? problem(`Couldn’t load the latest days: ${daysErr}`, 'data-days-retry') : '<p class="loading">Loading…</p>';
+        return;
+      }
       el.innerHTML = days.length ? `<div class="mini-days">${days.slice(0, 6).map((d) => {
         const p = dayParts(d.day);
-        return `<a class="mini-day" href="#/footage/${encodeURIComponent(d.day)}" aria-label="${esc(d.day)}, ${plural(d.recordings, 'recording')}">${d.thumbId ? `<img class="thumb-img" loading="lazy" alt="" src="/api/vehicles/${encodeURIComponent(v.id)}/recordings/${encodeURIComponent(d.thumbId)}/thumbnail">` : ''}<span>${esc(p.wd)} ${esc(p.dd)} ${esc(p.mon)}</span></a>`;
+        return `<a class="mini-day" href="#/footage/${encodeURIComponent(d.day)}" aria-label="${esc(d.day)}, ${plural(d.recordings, 'recording')}">${d.thumbId ? `<img class="thumb-img" loading="lazy" alt="" src="/api/vehicles/${encodeURIComponent(daysFor)}/recordings/${encodeURIComponent(d.thumbId)}/thumbnail">` : ''}<span>${esc(p.wd)} ${esc(p.dd)} ${esc(p.mon)}</span></a>`;
       }).join('')}</div>` : '<p class="muted">No footage yet.</p>';
     };
+    // only the newest ask for the car now picked is drawn; a failed one says so
     const loadDays = async () => {
       const v = current();
+      const mine = ++daysSeq;
+      if (v && daysFor !== v.id) { days = null; daysErr = null; }
       if (!v) { drawDays(); return; }
+      let got = null;
+      let err = null;
       try {
-        days = (await api(`/api/vehicles/${encodeURIComponent(v.id)}/days?limit=6`)).days;
-      } catch {
-        days = [];
+        got = (await api(`/api/vehicles/${encodeURIComponent(v.id)}/days?limit=6`)).days || [];
+      } catch (e) {
+        err = e.message;
       }
-      if (!dead) drawDays();
+      if (dead || mine !== daysSeq || current()?.id !== v.id) return;
+      if (got) { days = got; daysFor = v.id; daysErr = null; } else daysErr = err;
+      // the days shown stay when a refresh fails
+      if (got || !days) drawDays();
     };
     const loadLogs = async () => {
       try {
@@ -279,12 +298,15 @@ export default {
       }
     };
 
+    let polling = false; // one poll at a time (Try again while one waits does nothing more)
     const poll = async () => {
+      if (dead || polling) return;
       clearTimeout(pollTimer);
-      if (dead) return;
+      polling = true;
       if (!document.hidden) {
         try {
           stats = await api('/api/stats', { timeoutMs: 10000 });
+          statsErr = null;
           if (hist) {
             for (const [k, val] of [['cpu', stats.cpu?.usage], ['memory', stats.memory?.totalB ? ((stats.memory.totalB - (stats.memory.availableB ?? 0)) / stats.memory.totalB) * 100 : null], ['rxBps', (stats.network?.interfaces || []).reduce((n, i) => n + (i.rxBps || 0), 0)]]) {
               (hist[k] ||= []).push(val ?? null);
@@ -297,8 +319,15 @@ export default {
             liveDraw($('#w-attention', body), drawAttention);
             liveDraw($('#w-encoder', body), drawEncoder);
           }
-        } catch { /* next poll */ }
+        } catch (err) {
+          // tried again on the next poll; until one answers, the widget says why
+          if (!dead && err.message !== statsErr) {
+            statsErr = err.message;
+            liveDraw($('#w-server', body), drawServer);
+          }
+        }
       }
+      polling = false;
       pollTimer = setTimeout(poll, 2000);
     };
 
@@ -314,7 +343,9 @@ export default {
 
     body.addEventListener('click', async (e) => {
       const car = e.target.closest('[data-car]');
-      if (car) { setVehicle(car.dataset.car); drawHero(); drawKeep(); loadDays(); return; }
+      if (car) { setVehicle(car.dataset.car); drawHero(); drawKeep(); loadDays(); drawDays(); return; }
+      if (e.target.closest('[data-days-retry]')) { daysErr = null; drawDays(); loadDays(); return; }
+      if (e.target.closest('[data-stats-retry]')) { statsErr = null; drawServer(); poll(); return; }
       if (e.target.closest('#scan')) {
         const v = current();
         if (!v) return;

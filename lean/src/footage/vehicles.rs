@@ -134,13 +134,22 @@ pub struct Vehicles {
     unread: std::sync::atomic::AtomicBool,
 }
 
-/// Refused when `root` overlaps the footage of one of `list` (other than `ignore`).
+/// real_or, giving up after a moment on a share that does not answer (the path as written then)
+fn real_soon(p: &Path) -> PathBuf {
+    let q = p.to_path_buf();
+    super::share::with_timeout(std::time::Duration::from_secs(3), "Resolving the folder", move || std::fs::canonicalize(&q)).unwrap_or_else(|_| p.to_path_buf())
+}
+
+/// Refused when `root` overlaps the footage of one of `list` (other than `ignore`), as
+/// written or as it really is (a symlink to another vehicle's folder is that folder).
 fn overlap(list: &[Vehicle], root: &Path, ignore: Option<&str>) -> Res<()> {
+    let root_real = real_soon(root);
     for v in list {
         if Some(v.id.as_str()) == ignore {
             continue;
         }
-        if is_inside(root, &v.root) || is_inside(&v.root, root) {
+        let v_real = real_soon(&v.root);
+        if [(root, v.root.as_path()), (root_real.as_path(), v_real.as_path())].iter().any(|(a, b)| is_inside(a, b) || is_inside(b, a)) {
             return Err(bad(format!("That folder overlaps the footage of {} ({}).", v.name, v.root.display())));
         }
     }
@@ -515,6 +524,24 @@ impl Vehicles {
     }
 }
 
+/// vehicleForReal, then vehicleForPath: the vehicle of `list` that `p` is in, found by each
+/// share's real folder first (a converter job's sourceRoot and a confined path are real paths,
+/// while a vehicle's root may go through a symlink), then by the folder it is named by; with
+/// the root it matched.
+pub fn vehicle_in(list: Vec<Vehicle>, p: &Path) -> Option<(Vehicle, PathBuf)> {
+    let abs = super::safe_fs::resolve(p);
+    let real = std::fs::canonicalize(&abs).unwrap_or_else(|_| abs.clone());
+    let reals: Vec<PathBuf> = list.iter().map(|v| std::fs::canonicalize(&v.root).unwrap_or_else(|_| v.root.clone())).collect();
+    if let Some(i) = reals.iter().position(|r| is_inside(&real, r)) {
+        let root = reals[i].clone();
+        return list.into_iter().nth(i).map(|v| (v, root));
+    }
+    list.into_iter().find(|v| is_inside(&abs, &v.root)).map(|v| {
+        let root = v.root.clone();
+        (v, root)
+    })
+}
+
 /// index.js describeSource (audit lines)
 pub fn describe_source(src: &Value) -> String {
     let s = |k: &str| src.get(k).map(js::string).unwrap_or_else(|| "undefined".into());
@@ -551,6 +578,27 @@ mod tests {
         })
     }
 
+    // a converter job keeps its sourceRoot as the real path: a vehicle whose folder goes
+    // through a symlink still owns it (vehicleForReal before vehicleForPath)
+    #[cfg(unix)]
+    #[test]
+    fn a_real_path_finds_the_vehicle_whose_folder_is_a_symlink() {
+        let dir = std::env::temp_dir().join(format!("lean-vehicle-real-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("tank/car/TeslaCam")).unwrap();
+        std::fs::create_dir_all(dir.join("plain")).unwrap();
+        std::os::unix::fs::symlink(dir.join("tank"), dir.join("footage")).unwrap();
+        let v = |id: &str, root: PathBuf| Vehicle { id: id.into(), name: id.into(), timezone: "UTC".into(), root, source: json!({ "type": "path" }), raw: json!({}) };
+        let list = || vec![v("plain", dir.join("plain")), v("car", dir.join("footage/car"))];
+        let real = std::fs::canonicalize(dir.join("tank/car/TeslaCam")).unwrap();
+        let (found, root) = vehicle_in(list(), &real).unwrap();
+        assert_eq!((found.id.as_str(), root), ("car", std::fs::canonicalize(dir.join("tank/car")).unwrap()));
+        assert_eq!(vehicle_in(list(), &dir.join("footage/car/TeslaCam")).unwrap().0.id, "car", "the path it is named by too");
+        assert_eq!(vehicle_in(list(), &dir.join("footage/gone")).map(|(v, _)| v.id), None);
+        assert!(vehicle_in(list(), &dir.join("elsewhere")).is_none());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn folder_vehicles_and_their_checks() {
         let dir = std::env::temp_dir().join(format!("lean-vehicles-{}", std::process::id()));
@@ -569,6 +617,11 @@ mod tests {
         assert_eq!(err(json!({ "name": "x", "source": { "type": "path", "path": path("footage/b/c") } })), format!("That folder overlaps the footage of Daily Driver ({}).", path("footage/b")));
         assert_eq!(err(json!({ "name": "x", "source": { "type": "path", "path": path("outside") } })), format!("Folder vehicles must be inside {} (mount the folder there with a Docker volume).", path("footage")));
         assert!(err(json!({ "name": "x", "source": { "type": "path", "path": path("footage/data") } })).contains("it overlaps"));
+        // a link to another vehicle's folder (or into it) is that folder
+        std::os::unix::fs::symlink(dir.join("footage/a"), dir.join("footage/alias")).unwrap();
+        std::os::unix::fs::symlink(dir.join("footage/b/c"), dir.join("footage/into-b")).unwrap();
+        assert!(err(json!({ "name": "x", "source": { "type": "path", "path": path("footage/alias") } })).starts_with("That folder overlaps the footage of Daily Driver"));
+        assert!(err(json!({ "name": "x", "source": { "type": "path", "path": path("footage/into-b") } })).starts_with("That folder overlaps the footage of Daily Driver"));
         assert_eq!(err(json!({ "name": " ", "source": { "type": "path", "path": path("footage/a") } })), "Give the vehicle a name.");
         assert_eq!(err(json!({ "name": "x", "timezone": "Mars/Base" })), "Unknown time zone \"Mars/Base\".");
         assert_eq!(err(json!({ "name": "x", "source": { "type": "path", "path": "rel" } })), "The folder must be an absolute path inside the container, e.g. /footage/car.");

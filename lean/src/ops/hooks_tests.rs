@@ -42,11 +42,28 @@ fn stats_with_the_nodes_power_and_peaks() {
     o.stop();
 }
 
+// the sampling timer asks is_busy with the engine locked; a job snapshot holds `converting`
+// while it changes the job: is_busy must not wait for it (each would wait for the other)
+#[test]
+fn is_busy_does_not_wait_for_a_job_change() {
+    let (_ctx, o) = ops();
+    let held = o.converting.lock().unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let o2 = o.clone();
+    std::thread::spawn(move || {
+        let _ = tx.send(o2.stats.busy_now());
+    });
+    assert_eq!(rx.recv_timeout(std::time::Duration::from_secs(5)), Ok(true), "busy while a job changes");
+    drop(held);
+    assert!(!o.stats.busy_now());
+    o.stop();
+}
+
 // savings.record from the converter's job snapshots; the job's energy counted while it runs
 #[test]
 fn job_snapshots_record_savings_and_mark_the_job() {
     let (ctx, o) = ops();
-    let snap = |running: bool, bytes: f64, clips: f64| JobSnapshot { id: "j1".into(), running, vehicle_id: Some("car".into()), saved_bytes: bytes, clips };
+    let snap = |running: bool, bytes: f64, clips: f64| JobSnapshot { id: "j1".into(), running, vehicle_id: Some("car".into()), saved_bytes: bytes, clips, ..Default::default() };
     o.job_snapshot(&snap(true, 1000.0, 2.0));
     assert!(o.stats.sampling(), "a running job keeps the monitor sampling");
     o.job_snapshot(&snap(true, 5000.0, 4.0));
@@ -131,12 +148,54 @@ fn rapl_keepalive_and_readings() {
     o.stop();
 }
 
+// a finished job's savings that could not be kept (manager.db, or its vehicle could not be
+// read) are tried again once a minute, in the month they were saved in
+#[test]
+fn savings_not_kept_are_tried_again_in_their_month() {
+    let (ctx, o) = ops();
+    let at = chrono::NaiveDate::from_ymd_opt(2025, 6, 10).unwrap().and_hms_opt(12, 0, 0).unwrap().and_utc().timestamp_millis();
+    ctx.db().execute_batch("CREATE TEMP TRIGGER refused BEFORE INSERT ON settings WHEN NEW.key = 'savings' BEGIN SELECT RAISE(ABORT, 'disk I/O error'); END;").unwrap();
+    o.job_snapshot(&JobSnapshot { id: "j1".into(), vehicle_id: Some("car".into()), saved_bytes: 700.0, clips: 7.0, at_ms: Some(at), ..Default::default() });
+    ctx.vehicles_unread.store(true, std::sync::atomic::Ordering::SeqCst);
+    o.job_snapshot(&JobSnapshot { id: "j2".into(), vehicle_unread: true, source_root: "/footage/car/TeslaCam".into(), saved_bytes: 300.0, clips: 3.0, at_ms: Some(at), ..Default::default() });
+    o.retry_savings();
+    assert_eq!(power::for_vehicle(&ctx.db(), "car").unwrap()["bytes"].as_f64(), Some(0.0), "not while manager.db refuses");
+    ctx.db().execute_batch("DROP TRIGGER refused;").unwrap();
+    o.retry_savings();
+    assert_eq!(power::for_vehicle(&ctx.db(), "car").unwrap()["bytes"].as_f64(), Some(700.0), "the vehicle of j2 is not known yet");
+    ctx.vehicles_unread.store(false, std::sync::atomic::Ordering::SeqCst);
+    o.retry_savings();
+    o.retry_savings();
+    assert_eq!(power::for_vehicle(&ctx.db(), "car").unwrap(), json!({ "bytes": 1000, "clips": 10 }));
+    let month = &store::get(&ctx.db(), "savings").unwrap().unwrap()["months"]["car"];
+    let m = chrono::Local.timestamp_millis_opt(at).unwrap();
+    use chrono::{Datelike, TimeZone};
+    assert_eq!(month[format!("{}-{:02}", m.year(), m.month())], json!({ "bytes": 1000, "clips": 10 }));
+    o.stop();
+}
+
+// a job listed again at the start while the vehicles cannot be read, that adds nothing to what
+// it already added, is not kept to try again (the retries stay for what is still owed)
+#[test]
+fn a_snapshot_that_adds_nothing_is_not_kept_while_the_vehicles_are_unread() {
+    let (ctx, o) = ops();
+    o.job_snapshot(&JobSnapshot { id: "j1".into(), vehicle_id: Some("car".into()), saved_bytes: 500.0, clips: 5.0, ..Default::default() });
+    o.job_snapshot(&JobSnapshot { id: "j1".into(), vehicle_unread: true, source_root: "/footage/car/TeslaCam".into(), saved_bytes: 500.0, clips: 5.0, ..Default::default() });
+    assert!(o.pending.lock().unwrap().is_empty(), "nothing is owed");
+    o.job_snapshot(&JobSnapshot { id: "j1".into(), vehicle_unread: true, source_root: "/footage/car/TeslaCam".into(), saved_bytes: 800.0, clips: 8.0, ..Default::default() });
+    assert_eq!(o.pending.lock().unwrap().len(), 1, "what it adds is owed");
+    o.retry_savings();
+    assert!(o.pending.lock().unwrap().is_empty());
+    assert_eq!(power::for_vehicle(&ctx.db(), "car").unwrap(), json!({ "bytes": 800, "clips": 8 }));
+    o.stop();
+}
+
 // savings that cannot be kept are said once; what a report or the stats cannot read is unknown
 #[test]
 fn savings_not_kept_are_said_once_and_unread_settings_are_unknown_or_an_error() {
     let (ctx, o) = ops();
     ctx.db().execute_batch("CREATE TEMP TRIGGER refused BEFORE INSERT ON settings WHEN NEW.key = 'savings' BEGIN SELECT RAISE(ABORT, 'disk I/O error'); END;").unwrap();
-    let snap = |bytes: f64| JobSnapshot { id: "j1".into(), running: false, vehicle_id: Some("car".into()), saved_bytes: bytes, clips: 1.0 };
+    let snap = |bytes: f64| JobSnapshot { id: "j1".into(), running: false, vehicle_id: Some("car".into()), saved_bytes: bytes, clips: 1.0, ..Default::default() };
     o.job_snapshot(&snap(1000.0));
     o.job_snapshot(&snap(2000.0));
     let said = ctx.logs.lock().unwrap().iter().filter(|(_, _, t)| t.starts_with("Space saved by conversions is not counted")).count();
@@ -160,7 +219,7 @@ fn savings_not_kept_are_said_once_and_unread_settings_are_unknown_or_an_error() 
 #[test]
 fn a_heartbeat_whose_savings_or_can_switch_cannot_be_read_is_an_error_never_nothing_saved_or_can_off() {
     let (ctx, o) = ops();
-    o.job_snapshot(&JobSnapshot { id: "j1".into(), running: false, vehicle_id: Some("car".into()), saved_bytes: 1000.0, clips: 1.0 });
+    o.job_snapshot(&JobSnapshot { id: "j1".into(), running: false, vehicle_id: Some("car".into()), saved_bytes: 1000.0, clips: 1.0, ..Default::default() });
     store::set(&ctx.db(), "can", &json!({ "enabled": true })).unwrap();
     let h = diag::heartbeat(&o).unwrap();
     assert_eq!((h["spaceSavedBytes"].as_f64(), &h["features"]["can"]), (Some(1000.0), &json!(true)));

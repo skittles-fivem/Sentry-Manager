@@ -217,12 +217,25 @@ impl Service {
     /// releaseInterruptedItems(runtime, keepItemId)
     fn release_interrupted_items(&self, rt: &Arc<Runtime>, keep: Option<&str>) -> SResult<bool> {
         let interrupted: Vec<Value> = rt.manifest().items.iter().filter(|e| e.state() == ItemState::Processing && Some(e.id()) != keep).map(|e| e.value().clone()).collect();
+        // a clip whose files could not all be removed (the share timed out, a file changed under it)
+        // keeps them and fails as cleanup-pending, as releaseInterruptedSave does: it does not hold up
+        // the recovery of the clip that was being finished
+        let mut pending = std::collections::HashSet::new();
         for item in &interrupted {
             if obj(item.get("ownedPaths")).is_empty() {
                 continue;
             }
-            if !self.reconcile_item_ownership(rt, item["id"].as_str().unwrap(), Some(ownership_of(item)), true)? {
-                return Ok(false);
+            let iid = item["id"].as_str().unwrap();
+            if !self.reconcile_item_ownership(rt, iid, Some(ownership_of(item)), true)? {
+                // (only the clip being finished may hold a backup of an original: one elsewhere is
+                // left for the user, never set aside here)
+                let holds_backup = rt.lock().item(iid).is_some_and(|i| i.get("ownedPaths").and_then(|o| o.get("replacementBackup")).is_some());
+                if holds_backup {
+                    let rel = item["relativePath"].as_str().unwrap_or("");
+                    super::log_line(format!("[CONVERTER] Recovery stopped: clip {rel:?} ({} {iid}) still holds a backup of its original", rt.manifest().id()));
+                    return Err(service_error("RECOVERY_REQUIRED"));
+                }
+                pending.insert(iid.to_string());
             }
         }
         if interrupted.is_empty() {
@@ -231,7 +244,11 @@ impl Service {
         let ids: std::collections::HashSet<String> = interrupted.iter().map(|i| i["id"].as_str().unwrap().to_string()).collect();
         self.update(rt, |s| {
             let items = s.manifest.items.iter().map(|e| if ids.contains(e.id()) && e.state() == ItemState::Processing {
-                ItemIn::Raw(merge(e.value(), &vec![("state", Some(ItemState::Queued.into())), ("failure", None), ("resultCode", None)]))
+                ItemIn::Raw(if pending.contains(e.id()) {
+                    merge(e.value(), &vec![("state", Some(ItemState::Failed.into())), ("resultCode", Some(json!("cleanup-pending"))), ("failure", Some(json!({ "code": "interrupted", "retryable": false })))])
+                } else {
+                    merge(e.value(), &vec![("state", Some(ItemState::Queued.into())), ("failure", None), ("resultCode", None)])
+                })
             } else {
                 ItemIn::Trusted(e.clone())
             }).collect();

@@ -32,6 +32,8 @@ pub const MAX_SLOTS: i64 = 8;
 const DEFAULT_SLOTS: i64 = 2;
 const DONE_TTL_MS: i64 = 10 * 60_000;
 const STALL_MS: u64 = 10 * 60_000;
+/// How long an ffmpeg that was killed (stalled, or its job stopped) is waited for.
+const KILLED_GRACE: Duration = Duration::from_secs(30);
 const ORPHAN_MS: i64 = 5 * 60_000;
 const USES: [&str; 3] = ["gpu", "gpu-cpu", "cpu"];
 pub const QUEUE: i64 = 15;
@@ -153,6 +155,8 @@ struct JobData {
     settings_used: Option<JobSettings>,
     benchmark: bool,
     child: Option<Arc<Mutex<Child>>>,
+    /// disk space promised to it and not yet written (State::reserved)
+    reserved: u64,
 }
 
 struct Job {
@@ -183,6 +187,9 @@ struct State {
     jobs: IndexMap<String, Arc<Job>>,
     waiting: Vec<Arc<Job>>,
     bad_tokens: HashMap<String, Vec<i64>>,
+    /// disk space promised to the clips held and not yet written (their inputs as they
+    /// arrive, their encodes): uploads at the same time cannot each count the same free space
+    reserved: u64,
 }
 
 /// One of this server's own devices as listed to a main.
@@ -620,6 +627,7 @@ impl NodeWorker {
             let mut st = self.0.state.lock().unwrap();
             st.waiting.retain(|j| !Arc::ptr_eq(j, job));
             st.jobs.shift_remove(&id);
+            Self::reserve_in(&mut st, job, 0);
         }
         let (child, input, output) = {
             let d = job.d.lock().unwrap();
@@ -630,6 +638,22 @@ impl NodeWorker {
         }
         let _ = std::fs::remove_file(input);
         let _ = std::fs::remove_file(output);
+    }
+
+    /// Sets the space a job still has promised (under the state lock).
+    fn reserve_in(st: &mut State, job: &Job, bytes: u64) {
+        let mut d = job.d.lock().unwrap();
+        st.reserved = st.reserved.saturating_sub(d.reserved).saturating_add(bytes);
+        d.reserved = bytes;
+    }
+
+    fn reserve(&self, job: &Job, bytes: u64) {
+        let mut st = self.0.state.lock().unwrap();
+        // (a job stopped meanwhile has given its share back for good)
+        if job.stopped.load(Ordering::SeqCst) {
+            return;
+        }
+        Self::reserve_in(&mut st, job, bytes);
     }
 
     fn stop_by_id(&self, id: &str) {
@@ -987,23 +1011,43 @@ impl NodeWorker {
                 }
             })
         });
+        // (None: killed, stalled or stopped, and still not gone a while later: stuck where
+        // even SIGKILL waits; it is reaped on a thread of its own and this attempt failed)
+        let mut killed: Option<std::time::Instant> = None;
         let status = loop {
             if let Ok(Some(st)) = child.lock().unwrap().try_wait() {
-                break st;
+                break Some(st);
             }
             if last.lock().unwrap().elapsed() > Duration::from_millis(STALL_MS) {
                 let _ = child.lock().unwrap().kill();
+                killed.get_or_insert_with(std::time::Instant::now);
+            }
+            if job.stopped.load(Ordering::SeqCst) {
+                killed.get_or_insert_with(std::time::Instant::now);
+            }
+            if killed.is_some_and(|k| k.elapsed() > KILLED_GRACE) {
+                let _ = child.lock().unwrap().kill();
+                let c = child.clone();
+                std::thread::spawn(move || {
+                    while matches!(c.lock().unwrap().try_wait(), Ok(None)) {
+                        std::thread::sleep(Duration::from_secs(1));
+                    }
+                });
+                break None;
             }
             std::thread::sleep(Duration::from_millis(25));
         };
-        if let Some(t) = out_thread {
-            let _ = t.join();
-        }
-        if let Some(t) = err_thread {
-            let _ = t.join();
+        // (its pipes close when it ends; a stuck one keeps them open: its readers are left)
+        if status.is_some() {
+            if let Some(t) = out_thread {
+                let _ = t.join();
+            }
+            if let Some(t) = err_thread {
+                let _ = t.join();
+            }
         }
         job.d.lock().unwrap().child = None;
-        let ok = status.success();
+        let ok = status.is_some_and(|s| s.success());
         if !ok && !job.stopped.load(Ordering::SeqCst) {
             let text = errors.lock().unwrap().clone();
             let mut cleaned = String::new();
@@ -1022,7 +1066,13 @@ impl NodeWorker {
             }
             let trimmed = super::js_trim(&cleaned);
             let why = tail_units(trimmed, 200);
-            let why = if why.is_empty() { format!("exit {}", status.code().map(|c| c.to_string()).unwrap_or_else(|| "null".into())) } else { why };
+            let why = if !why.is_empty() {
+                why
+            } else if status.is_none() {
+                "it did not end when it was stopped".into()
+            } else {
+                format!("exit {}", status.and_then(|s| s.code()).map(|c| c.to_string()).unwrap_or_else(|| "null".into()))
+            };
             self.ctx().log(Level::Warn, &format!("Node: {}{} could not encode a clip from {main_name}: {why}", attempt.encoder, if attempt.decode.is_empty() { "" } else { " (GPU decode)" }));
         }
         Ok(ok)
@@ -1057,6 +1107,8 @@ impl NodeWorker {
             }
             Err("every encoder failed".into())
         })();
+        // (written or given up: what is on disk now is in the free space itself)
+        self.reserve(job, 0);
         if let Err(message) = result {
             if job.stopped.load(Ordering::SeqCst) {
                 return;
@@ -1107,7 +1159,7 @@ impl NodeWorker {
                 input: self.0.work_dir.join(format!("{id}-in.mp4")), output: self.0.work_dir.join(format!("{id}-out.mp4")),
                 out_time_us: None, fps: None, speed: None, encoder: None, error: None, output_bytes: None,
                 seen_at: self.now(), ended_at: 0, input_bytes: length, device: settings_used.device.clone(),
-                settings_used: None, benchmark, child: None,
+                settings_used: None, benchmark, child: None, reserved: 0,
             }),
         });
         {
@@ -1117,12 +1169,15 @@ impl NodeWorker {
                 return WorkerReply::error(503, "All of this node's slots are busy.");
             }
             // room for the clip and its encode, and some to spare for this server
+            // (less what other clips held here were promised and have not written yet)
+            let need = length.saturating_mul(3);
             if let Ok(free) = disk_free(&self.0.work_dir) {
-                if free < length.saturating_mul(3).saturating_add(DISK_SPARE) {
+                if free.saturating_sub(st.reserved) < need.saturating_add(DISK_SPARE) {
                     return WorkerReply::error(507, "This node is short of disk space.");
                 }
             }
             st.jobs.insert(id.clone(), job.clone());
+            Self::reserve_in(&mut st, &job, need);
         }
         let input = job.d.lock().unwrap().input.clone();
         let file = {
@@ -1171,6 +1226,8 @@ impl NodeWorker {
             self.stop_job(&job);
             return WorkerReply::error(415, "Not an MP4 clip.");
         }
+        // (the clip is on disk now: its encode is what is still to be written)
+        self.reserve(&job, length.saturating_mul(2));
         let mut reply = WorkerReply::json(200, &json!({ "id": id }));
         reply.unsent = Some((Arc::downgrade(&self.0), id.clone()));
         {
@@ -1255,6 +1312,9 @@ impl NodeWorker {
             return Ok(WorkerReply::error(403, "Wrong pairing code."));
         }
         st.pairing = None;
+        // (the right code: tokens this address had refused, such as the one of an earlier
+        // pairing, no longer lock it out)
+        st.bad_tokens.remove(r.address);
         drop(st);
         let token = base64url(&random_bytes(32));
         let s = self.settings()?;

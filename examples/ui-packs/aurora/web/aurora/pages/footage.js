@@ -213,7 +213,8 @@ export default {
         if (dead || day !== chosen) return;
         recs = out.recordings.sort((a, b) => String(a.start).localeCompare(String(b.start)));
       } catch (err) {
-        dayBox.innerHTML = `<p class="note bad">${esc(err.message)}</p>`;
+        if (dead || day !== chosen) return;
+        dayBox.innerHTML = `<div class="note bad"><p>${esc(err.message)}</p><button class="btn sm" type="button" data-day-retry>Try again</button></div>`;
         return;
       }
       drawDay();
@@ -324,6 +325,7 @@ export default {
 
     body.addEventListener('click', async (e) => {
       const t = e.target;
+      if (t.closest('[data-day-retry]')) { dayBox.innerHTML = ''; loadDay(); return; }
       const cat = t.closest('[data-cat]');
       if (cat) {
         keep.category = cat.dataset.cat;

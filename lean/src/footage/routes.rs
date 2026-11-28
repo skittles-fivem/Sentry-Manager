@@ -189,7 +189,7 @@ fn say_car(c: &Value) -> String {
 }
 
 /// smbTest.js: mount once with the typed details, read, look for footage, try a write, unmount.
-fn test_smb(app: &App, source: Option<&Value>, vehicle_id: Option<&str>) -> Res<Value> {
+fn test_smb(app: &App, who: &Caller, source: Option<&Value>, vehicle_id: Option<&str>) -> Res<Value> {
     let existing = match vehicle_id {
         Some(id) => app.vehicles.try_get(id)?.map(|v| v.source),
         None => None,
@@ -200,6 +200,10 @@ fn test_smb(app: &App, source: Option<&Value>, vehicle_id: Option<&str>) -> Res<
         Ok(s) => s,
         Err(e) => return Ok(json!({ "ok": false, "stage": "details", "error": e.message })),
     };
+    // (the saved password goes only to the server it was saved for, unless the admin confirms)
+    if super::smb::reuses_password_elsewhere(source.unwrap_or(&empty), prev, &smb) {
+        who.require_confirmed()?;
+    }
     let test_id = super::vehicles::TEST_ID;
     if app.vehicles.try_get(test_id)?.is_some() {
         return Ok(json!({ "ok": false, "stage": "details", "error": format!("A vehicle uses the id \"{test_id}\", which the test needs. Rename that vehicle first.") }));
@@ -287,7 +291,7 @@ pub fn handle(app: &Arc<App>, who: &Caller, method: &str, seg: &[&str], query: &
             if let Some(id) = vid {
                 tri!(vehicle_or_404(app, id));
             }
-            let result = tri!(test_smb(app, b.get("source"), vid));
+            let result = tri!(test_smb(app, who, b.get("source"), vid));
             let share: String = b.get("source").and_then(|s| s.get("share")).filter(|s| js::truthy(Some(s))).map(js::string).unwrap_or_default()
                 .chars().map(|c| if (c as u32) < 0x20 || (0x7f..=0x9f).contains(&(c as u32)) { ' ' } else { c }).collect();
             let outcome = if result["ok"] == true { "connected".to_string() } else { format!("failed ({})", js::string(&result["stage"])) };
@@ -369,6 +373,12 @@ pub fn handle(app: &Arc<App>, who: &Caller, method: &str, seg: &[&str], query: &
                 .filter_map(|x| x.as_str().and_then(|rid| st.as_ref()?.recordings.iter().find(|r| r.id == rid).cloned()))
                 .collect();
             let rels: Vec<String> = recs.iter().flat_map(|r| r.files().map(|(f, _)| f.to_string())).collect();
+            if on {
+                // (protected by hand now: removing a star no longer unprotects these; noted
+                // first, so a failure after it leaves them protected, never unprotected later)
+                let ids: Vec<String> = recs.iter().map(|r| r.id.clone()).collect();
+                tri!(super::stars::protected_by_hand(app, &v.id, &ids));
+            }
             tri!(bin::set_protected(app, &v.id, &rels, on));
             app.rebuild(&v.id, None);
             app.core.announce("inventory");
@@ -445,11 +455,16 @@ pub fn handle(app: &Arc<App>, who: &Caller, method: &str, seg: &[&str], query: &
         }
         ("PUT", ["vehicles", id, "policy"]) => {
             let v = tri!(vehicle_or_404(app, id));
-            let policy = tri!(super::policies::set(app, &v.id, b));
+            let policy = tri!(super::policies::set(app, who, &v.id, b));
             ok(json!({ "policy": policy, "preview": tri!(super::policies::preview(app, &v.id)) }))
         }
         ("POST", ["vehicles", id, "policy", "run"]) => {
-            tri!(vehicle_or_404(app, id));
+            let v = tri!(vehicle_or_404(app, id));
+            // (a run with binDays deletes for good what sat in the bin longer: the password again,
+            // as emptying the Recycle Bin)
+            if js::truthy(tri!(super::policies::get(app, &v.id)).get("binDays")) {
+                tri!(who.require_confirmed());
+            }
             let expect = b.get("expect").filter(|e| e.is_object() || e.is_array());
             let out = super::policies::run(app, id, expect);
             // (a run that stopped at its scan changed the vehicle's state too: its error)
@@ -472,7 +487,7 @@ pub fn handle(app: &Arc<App>, who: &Caller, method: &str, seg: &[&str], query: &
         ("GET", ["stars"]) => Some(super::stars::list(app, qv("vehicle")).map(Reply::Json)),
         ("POST", ["stars"]) => Some(super::stars::add(app, who, b).map(Reply::Json)),
         ("PATCH", ["stars", id]) => Some(super::stars::edit(app, id, b).map(Reply::Json)),
-        ("DELETE", ["stars", id]) => Some(super::stars::remove(app, id).map(Reply::Json)),
+        ("DELETE", ["stars", id]) => Some(super::stars::remove(app, who, id).map(Reply::Json)),
         _ => None,
     }
 }
