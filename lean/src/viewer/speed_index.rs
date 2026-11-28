@@ -644,6 +644,8 @@ impl SpeedIndex {
         std::thread::Builder::new()
             .name("speed-index".into())
             .spawn(move || {
+                // (its readers too: they start from this thread)
+                crate::jobs::background_priority();
                 loop {
                     me.run.lock().unwrap().again = false;
                     let n = me.pass();
