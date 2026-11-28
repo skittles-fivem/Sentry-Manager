@@ -21,51 +21,78 @@ pub struct RunResult {
 
 pub const MAX_OUTPUT: usize = 4 * 1024 * 1024;
 
-async fn collect<R: tokio::io::AsyncRead + Unpin>(r: Option<R>, max: usize) -> Vec<u8> {
-    let mut out = Vec::new();
-    let Some(mut r) = r else { return out };
+type Collected = std::sync::Arc<std::sync::Mutex<Vec<u8>>>;
+
+async fn collect<R: tokio::io::AsyncRead + Unpin>(r: Option<R>, max: usize, out: Collected) {
+    let Some(mut r) = r else { return };
     let mut buf = [0u8; 16384];
     loop {
         match r.read(&mut buf).await {
             Ok(0) | Err(_) => break,
             // as in Node: a chunk is added while the total is under the limit
             Ok(n) => {
+                let mut out = out.lock().unwrap_or_else(|e| e.into_inner());
                 if out.len() < max {
                     out.extend_from_slice(&buf[..n]);
                 }
             }
         }
     }
-    out
 }
 
-/// `run(cmd, args, { timeoutMs, maxOutput })`.
+/// How long the output is still read once the program has ended (a helper it started may
+/// still hold the pipes: `mount` leaves `mount.cifs` stuck in the kernel).
+const OUTPUT_GRACE: Duration = Duration::from_secs(2);
+
+/// The output `task` collected, waiting at most OUTPUT_GRACE for the rest (then it stops
+/// reading and what came so far is the output).
+async fn output(mut task: tokio::task::JoinHandle<()>, got: Collected) -> String {
+    if tokio::time::timeout(OUTPUT_GRACE, &mut task).await.is_err() {
+        task.abort();
+    }
+    let got = std::mem::take(&mut *got.lock().unwrap_or_else(|e| e.into_inner()));
+    String::from_utf8_lossy(&got).into_owned()
+}
+
+/// `run(cmd, args, { timeoutMs, maxOutput })`. The program runs in a process group of its
+/// own; past the timeout the whole group is killed (a helper it started too), and run()
+/// returns within a few seconds of the timeout whatever is still stuck.
 pub async fn run(cmd: &str, args: &[String], timeout: Duration, max_output: usize) -> RunResult {
     let mut c = tokio::process::Command::new(cmd);
-    c.args(args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true);
+    c.args(args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true).process_group(0);
     let mut child = match c.spawn() {
         Ok(ch) => ch,
         Err(e) => return RunResult { code: -1, error: Some(e.kind()), ..Default::default() },
     };
-    let out = tokio::spawn(collect(child.stdout.take(), max_output));
-    let err = tokio::spawn(collect(child.stderr.take(), max_output));
+    let (out_buf, err_buf) = (Collected::default(), Collected::default());
+    let out = tokio::spawn(collect(child.stdout.take(), max_output, out_buf.clone()));
+    let err = tokio::spawn(collect(child.stderr.take(), max_output, err_buf.clone()));
     let mut timed_out = false;
     let status = match tokio::time::timeout(timeout, child.wait()).await {
         Ok(s) => s,
         Err(_) => {
             timed_out = true;
+            if let Some(pid) = child.id().and_then(|p| i32::try_from(p).ok()) {
+                // SAFETY: a signal to the group the child leads (its pid, as process_group(0) made it)
+                unsafe { libc::kill(-pid, libc::SIGKILL) };
+            }
             let _ = child.start_kill();
-            child.wait().await
+            // (one stuck in the kernel does not die at once: it is reaped when it does)
+            match tokio::time::timeout(OUTPUT_GRACE, child.wait()).await {
+                Ok(s) => s,
+                Err(_) => Err(io::Error::new(io::ErrorKind::TimedOut, "did not end after SIGKILL")),
+            }
         }
     };
-    // 'close': the process has ended and its output is closed
-    let stdout = String::from_utf8_lossy(&out.await.unwrap_or_default()).into_owned();
-    let stderr = String::from_utf8_lossy(&err.await.unwrap_or_default()).into_owned();
+    // 'close': the process has ended and its output is closed (or is given up after OUTPUT_GRACE)
+    let stdout = output(out, out_buf).await;
+    let stderr = output(err, err_buf).await;
     match status {
         Ok(st) => {
             use std::os::unix::process::ExitStatusExt;
             RunResult { code: st.code().unwrap_or(-1), stdout, stderr, timed_out, error: None, signal: st.signal() }
         }
+        Err(e) if timed_out && e.kind() == io::ErrorKind::TimedOut => RunResult { code: -1, stdout, stderr, timed_out, error: None, signal: Some(libc::SIGKILL) },
         Err(e) => RunResult { code: -1, stdout, stderr, timed_out, error: Some(e.kind()), signal: None },
     }
 }
@@ -151,5 +178,30 @@ mod tests {
         assert_eq!(r.code, -1);
         let r = run("/nonexistent/mount", &[], Duration::from_secs(1), MAX_OUTPUT).await;
         assert_eq!((r.code, r.error), (-1, Some(io::ErrorKind::NotFound)));
+    }
+
+    #[tokio::test]
+    async fn a_helper_holding_the_output_does_not_keep_it_past_the_timeout() {
+        // `mount` starting `mount.cifs`, which holds the pipes and hangs
+        let start = std::time::Instant::now();
+        let r = run("sh", &["-c".into(), "sleep 30 & sleep 30".into()], Duration::from_millis(100), MAX_OUTPUT).await;
+        assert!(r.timed_out);
+        assert_eq!(r.code, -1);
+        assert!(start.elapsed() < Duration::from_secs(3), "{:?}", start.elapsed());
+        // and the helper was killed with it
+        let r = run("sh", &["-c".into(), "echo $$; sleep 30 & echo $!; wait".into()], Duration::from_millis(300), MAX_OUTPUT).await;
+        let helper: i32 = r.stdout.lines().nth(1).expect("helper pid").trim().parse().unwrap();
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        // SAFETY: signal 0 only asks whether the process is there
+        let alive = unsafe { libc::kill(helper, 0) } == 0 && !std::fs::read_to_string(format!("/proc/{helper}/stat")).unwrap_or_default().contains(") Z ");
+        assert!(!alive, "the helper was left running");
+    }
+
+    #[tokio::test]
+    async fn output_a_helper_keeps_open_after_a_normal_end_is_not_waited_for() {
+        let start = std::time::Instant::now();
+        let r = run("sh", &["-c".into(), "echo done; sleep 30 &".into()], Duration::from_secs(20), MAX_OUTPUT).await;
+        assert_eq!((r.code, r.timed_out, r.stdout.as_str()), (0, false, "done\n"));
+        assert!(start.elapsed() < Duration::from_secs(5), "{:?}", start.elapsed());
     }
 }
