@@ -388,16 +388,30 @@ fn roots(app: &App) -> Vec<PathBuf> {
     app.vehicles.list().into_iter().map(|v| v.root).collect()
 }
 
+/// What /api/media may send for `p`: the real path and the roots its open is checked against.
+/// Studio's readable guard when the viewer runs (the vehicles' folders, the converted copies and
+/// other output folders, the thumbnails, filmstrips and exports, its deny list kept), else, or
+/// when that guard refuses, the vehicles' folders alone as before. Never the Recycle Bin.
+fn media_target(p: &str, vehicle_roots: &[PathBuf], guard: Option<crate::viewer::studio::Guard>) -> Option<(PathBuf, Vec<PathBuf>)> {
+    let found = guard.and_then(|g| g.resolve(p).map(|real| (real, g.roots)));
+    let found = found.or_else(|| media::resolve_inside(p, vehicle_roots).map(|real| (real, vehicle_roots.to_vec())));
+    found.filter(|(real, _)| !media::hidden_path(&path_str(real)))
+}
+
 fn media(app: &App, method: &Method, headers: &HeaderMap, q: &HashMap<String, String>) -> Res {
     let p = q.get("path").cloned().unwrap_or_default();
-    let roots = roots(app);
-    match media::resolve_inside(&p, &roots) {
+    let vehicle_roots = roots(app);
+    let viewer = crate::viewer::get();
+    let guard = viewer.map(|v| crate::viewer::studio::readable(&*v.ctx));
+    match media_target(&p, &vehicle_roots, guard) {
         // footage playing (bytes of a clip sent, not a HEAD or a refusal): background reading
-        // slows to one clip at a time while they go out, and for a while after
-        Some(real) if !media::hidden_path(&path_str(&real)) => media::send_media_held(method, headers, &real, &roots, || {
-            (method == Method::GET).then(|| crate::viewer::get().map(|viewer| viewer.watching())).flatten()
-        }),
-        _ => error(StatusCode::FORBIDDEN, "Outside the vehicle shares."),
+        // slows to one clip at a time while they go out, and for a while after (not for a
+        // filmstrip, thumbnail or other file outside the vehicles' folders)
+        Some((real, allowed)) => {
+            let footage = vehicle_roots.iter().filter_map(|r| std::fs::canonicalize(r).ok()).any(|r| real.starts_with(&r));
+            media::send_media_held(method, headers, &real, &allowed, || (footage && method == Method::GET).then(|| viewer.map(|v| v.watching())).flatten())
+        }
+        None => error(StatusCode::FORBIDDEN, "Outside the vehicle shares."),
     }
 }
 
@@ -447,7 +461,7 @@ pub fn slice_route(app: &Arc<App>, method: &Method, raw_path: &str, q: &HashMap<
     })
 }
 
-/// /api/media: a clip's bytes with Range support, inside a vehicle's folder only.
+/// /api/media: a file's bytes with Range support, inside what Studio may read (media_target).
 pub fn media_route(app: &App, method: &Method, headers: &HeaderMap, q: &HashMap<String, String>) -> Res {
     media(app, method, headers, q)
 }
@@ -477,6 +491,37 @@ mod tests {
 
     fn kept(path: &Path) -> bool {
         EVENT_JSON.lock().unwrap().kept.contains_key(path)
+    }
+
+    #[test]
+    fn media_answers_the_files_studio_hands_out_but_not_the_bin_or_a_link_out() {
+        use crate::viewer::studio::Guard;
+        let root = std::env::temp_dir().join(format!("lean-media-roots-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let (car, data, outside) = (root.join("car"), root.join("data"), root.join("outside"));
+        for d in [car.join(".sentry-recycle-bin"), data.join("clip-thumbnails"), data.join("converted"), data.join("secret"), outside.clone()] {
+            std::fs::create_dir_all(d).unwrap();
+        }
+        let files = [car.join("a.mp4"), car.join(".sentry-recycle-bin/b.mp4"), data.join("clip-thumbnails/s.jpg"), data.join("converted/c.mp4"), data.join("secret/k"), outside.join("o.jpg")];
+        for f in &files {
+            std::fs::write(f, b"x").unwrap();
+        }
+        std::os::unix::fs::symlink(outside.join("o.jpg"), data.join("clip-thumbnails/link.jpg")).unwrap();
+        let guard = || Some(Guard { roots: vec![car.clone(), data.join("converted"), data.join("clip-thumbnails")], deny: vec![data.clone()] });
+        let vehicles = vec![car.clone()];
+        let ok = |p: &Path| media_target(&path_str(p), &vehicles, guard()).map(|(real, _)| real);
+        assert!(ok(&files[0]).is_some(), "footage");
+        assert!(ok(&files[2]).is_some(), "a filmstrip");
+        assert!(ok(&files[3]).is_some(), "a converted copy");
+        assert!(ok(&files[1]).is_none(), "the bin");
+        assert!(ok(&files[4]).is_none(), "the data folder outside its allowed parts");
+        assert!(ok(&data.join("clip-thumbnails/link.jpg")).is_none(), "a link out of the allowed folders");
+        assert!(ok(Path::new("/etc/passwd")).is_none());
+        let (_, allowed) = media_target(&path_str(&files[2]), &vehicles, guard()).unwrap();
+        assert!(allowed.contains(&data.join("clip-thumbnails")), "the open is checked against the same roots");
+        assert!(media_target(&path_str(&files[0]), &vehicles, None).is_some(), "without the viewer: the vehicles' folders");
+        assert!(media_target(&path_str(&files[2]), &vehicles, None).is_none());
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]
