@@ -18,6 +18,15 @@ fn main() {
     // before any thread: as the top of server/index.js, and the supervisor's channel (fd 3)
     sentry_lean::supervisor::link::drop_malloc_arena_max();
     let fd = sentry_lean::supervisor::ipc::take_from_env();
+    // Large blocks (128 KiB and up: a job file being written, a read buffer) get pages of their
+    // own, given back when freed. glibc would otherwise raise this threshold to the size of each
+    // large block freed (up to 32 MiB) and put the next ones in the heap among small blocks,
+    // where their pages stay the app's long after (a 40,000-clip job: about 70 MB more). Only
+    // this process: ffmpeg is started with glibc's defaults.
+    #[cfg(target_env = "gnu")]
+    unsafe {
+        libc::mallopt(libc::M_MMAP_THRESHOLD, 128 * 1024);
+    }
     // glibc keeps freed memory; hand it back
     #[cfg(target_env = "gnu")]
     std::thread::spawn(|| loop {
