@@ -684,7 +684,7 @@ impl ScrubPrepare {
                 if !days.contains(&f.day.as_str()) || now - f.mtime_ms < SETTLE_MS {
                     continue;
                 }
-                all.push((v.root.join(&f.rel), format!("{}/{}", f.size, js::num(js::js_round(f.mtime_ms))), f.day.clone(), f.rel.clone()));
+                all.push((v.root.join(&f.rel), format!("{}/{}", f.size, js::num(js::js_round(f.mtime_ms))), f.day.to_string(), f.rel.clone()));
             }
         }
         all.sort_by(|a, b| if a.2 == b.2 { js::locale_cmp(&b.3, &a.3) } else { js::locale_cmp(&b.2, &a.2) });

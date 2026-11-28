@@ -37,9 +37,9 @@ pub fn folder_type(dirs: &[&str]) -> &'static str {
 pub struct Class {
     pub kind: Kind,
     pub typ: &'static str,
-    pub day: Option<String>,
-    pub camera: Option<String>,
-    pub event_id: Option<String>,
+    pub day: Option<super::short::Short>,
+    pub camera: Option<super::short::Short>,
+    pub event_id: Option<super::short::Short>,
 }
 
 fn digits(b: &[u8]) -> bool {
@@ -149,11 +149,11 @@ pub fn classify(rel: &str) -> Option<Class> {
     }
     let typ = folder_type(dirs);
     let parent = dirs.last().copied().unwrap_or("");
-    let event_id = (stamp_shape(parent.as_bytes()) && is_valid_day(&parent[0..10])).then(|| parent.to_string());
+    let event_id = (stamp_shape(parent.as_bytes()) && is_valid_day(&parent[0..10])).then(|| parent.into());
 
     if let Some((day, camera)) = tesla_clip(name) {
         if is_valid_day(day) {
-            return Some(Class { kind: Kind::Clip, typ, day: Some(day.into()), camera: Some(camera.to_lowercase()), event_id });
+            return Some(Class { kind: Kind::Clip, typ, day: Some(day.into()), camera: Some(camera.to_lowercase().into()), event_id });
         }
     }
     if let Some(ev) = &event_id {
@@ -165,7 +165,7 @@ pub fn classify(rel: &str) -> Option<Class> {
         return None;
     }
     let date_dir = dirs.iter().rev().find(|d| day_shape(d.as_bytes()) && is_valid_day(d));
-    Some(Class { kind: Kind::Clip, typ, day: date_dir.map(|d| d.to_string()), camera: None, event_id })
+    Some(Class { kind: Kind::Clip, typ, day: date_dir.map(|d| (*d).into()), camera: None, event_id })
 }
 
 /// The local calendar day of a time in ms (footage.js localDay; TZ decides).

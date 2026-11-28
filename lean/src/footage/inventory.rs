@@ -180,12 +180,12 @@ fn finish(out: &mut Vec<Recording>, files: &Arc<FileList>, vehicle: &str, key: S
     let mut file_at: Vec<u32> = at.to_vec();
     file_at.sort_by(|&a, &b| entry(a).rel.cmp(&entry(b).rel));
     let event_json_at = file_at.iter().copied().find(|&n| entry(n).rel.len() >= 11 && entry(n).rel.as_bytes()[entry(n).rel.len() - 11..].eq_ignore_ascii_case(b"/event.json"));
-    let cameras: BTreeSet<String> = clips.iter().filter_map(|f| f.camera.clone()).collect();
+    let cameras: BTreeSet<String> = clips.iter().filter_map(|f| f.camera.as_deref().map(String::from)).collect();
     let thumb = list.iter().find(|f| f.rel.to_lowercase().ends_with("/thumb.png"));
     let first = stamps.first().copied().or(start_key);
-    let event_id = list[0].event_id.clone();
+    let event_id = list[0].event_id.as_deref().map(String::from);
     let typ = list[0].typ;
-    let day = first.map(|s| s[0..10].to_string()).filter(|d| !d.is_empty()).unwrap_or_else(|| list[0].day.clone());
+    let day = first.map(|s| s[0..10].to_string()).filter(|d| !d.is_empty()).unwrap_or_else(|| list[0].day.to_string());
     let last_day = stamps.last().map(|s| s[0..10].to_string()).filter(|d| *d > day).unwrap_or_else(|| day.clone());
     out.push(Recording {
         id: hash_id(&format!("{vehicle}|{key}")),

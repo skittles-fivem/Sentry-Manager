@@ -9,6 +9,7 @@ pub use names::*;
 pub mod catalog;
 pub mod inventory;
 pub mod scanner;
+pub mod short;
 
 pub mod bin;
 pub mod deleted_clips;

@@ -92,7 +92,7 @@ impl Catalog {
 
     fn put_files(&self, vehicle: &str, files: &[&FileEntry]) -> rusqlite::Result<()> {
         self.each(files, UPSERT_FILE, |st, f| {
-            st.execute(params![vehicle, f.rel, f.size as i64, f.mtime_ms, f.ctime_ms, f.birthtime_ms, f.kind.as_str(), f.typ, f.day, f.camera, f.event_id]).map(|_| ())
+            st.execute(params![vehicle, f.rel, f.size as i64, f.mtime_ms, f.ctime_ms, f.birthtime_ms, f.kind.as_str(), f.typ, f.day.as_str(), f.camera.as_deref(), f.event_id.as_deref()]).map(|_| ())
         })
     }
 
@@ -161,9 +161,9 @@ impl Catalog {
                 birthtime_ms: r.get::<_, Option<f64>>(9)?.unwrap_or(0.0),
                 kind: if r.get::<_, String>(4)? == "clip" { Kind::Clip } else { Kind::Asset },
                 typ: type_of(&r.get::<_, Option<String>>(5)?.unwrap_or_default()),
-                day: r.get::<_, Option<String>>(6)?.unwrap_or_default(),
-                camera: r.get(7)?,
-                event_id: r.get(8)?,
+                day: r.get::<_, Option<String>>(6)?.unwrap_or_default().into(),
+                camera: r.get::<_, Option<String>>(7)?.map(Into::into),
+                event_id: r.get::<_, Option<String>>(8)?.map(Into::into),
             })
         })?;
         prev.files = Arc::new(rows.collect::<rusqlite::Result<Vec<_>>>()?.into());
@@ -416,7 +416,7 @@ mod tests {
         second[0].size = 1; // changed
         second[1].camera = None;
         second[2].birthtime_ms = 9.0;
-        second[4].day = String::new();
+        second[4].day = Default::default();
         second.push(entry(&rel(55), 1, 1.0)); // new
         // a rel listed twice: the first copy as the catalog has it, the second not, and the other way
         let mut dup = second[5].clone();

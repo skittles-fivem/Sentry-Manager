@@ -19,6 +19,7 @@
 //! they answer in turn, which is what it gives most of the time.
 
 use crate::footage::{self, Class};
+use crate::footage::short::Short;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
@@ -38,9 +39,9 @@ pub struct FileEntry {
     pub birthtime_ms: f64,
     pub kind: footage::Kind,
     pub typ: &'static str,
-    pub day: String,
-    pub camera: Option<String>,
-    pub event_id: Option<String>,
+    pub day: Short,
+    pub camera: Option<Short>,
+    pub event_id: Option<Short>,
 }
 
 /// A scan's files with an index by rel (open addressing over their positions), so they are
@@ -288,7 +289,7 @@ struct Out {
 
 fn entry(rel: String, md: &std::fs::Metadata, c: Class) -> FileEntry {
     let mtime_ms = ms_of(md.mtime(), md.mtime_nsec());
-    let day = c.day.unwrap_or_else(|| footage::local_day(mtime_ms));
+    let day = c.day.unwrap_or_else(|| footage::local_day(mtime_ms).into());
     FileEntry { rel, size: md.size(), mtime_ms, ctime_ms: ms_of(md.ctime(), md.ctime_nsec()), birthtime_ms: birth_ms(md), kind: c.kind, typ: c.typ, day, camera: c.camera, event_id: c.event_id }
 }
 

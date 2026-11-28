@@ -48,8 +48,8 @@ fn input_of(i: &Value) -> (Files, Input<'static>) {
             birthtime_ms: f(&x["birthtimeMs"]),
             kind: if x["kind"] == json!("clip") { Kind::Clip } else { Kind::Asset },
             typ: leak(x["type"].as_str().unwrap_or("")),
-            day: x["day"].as_str().unwrap_or("").to_string(),
-            camera: x["camera"].as_str().map(String::from),
+            day: x["day"].as_str().unwrap_or("").into(),
+            camera: x["camera"].as_str().map(Into::into),
             event_id: None,
         });
     }

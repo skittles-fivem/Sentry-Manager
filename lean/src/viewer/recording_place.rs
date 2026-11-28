@@ -29,12 +29,12 @@ struct Front {
 
 fn front_of(rel: &str, files: Option<&Files>) -> Option<Front> {
     let f = files.and_then(|fs| fs.get(rel));
-    let cam = f.and_then(|f| f.camera.clone()).or_else(|| rel.to_lowercase().ends_with("-front.mp4").then(|| "front".to_string()));
+    let cam = f.and_then(|f| f.camera.as_deref().map(String::from)).or_else(|| rel.to_lowercase().ends_with("-front.mp4").then(|| "front".to_string()));
     if cam.as_deref() != Some("front") {
         return None;
     }
     let (stamp, _) = super::js::stamp_in(rel.rsplit('/').next().unwrap_or(rel))?;
-    let day = f.map(|f| f.day.clone()).filter(|d| !d.is_empty()).unwrap_or_else(|| stamp[..10].to_string());
+    let day = f.map(|f| f.day.to_string()).filter(|d| !d.is_empty()).unwrap_or_else(|| stamp[..10].to_string());
     Some(Front { rel: rel.to_string(), day, stamp })
 }
 
