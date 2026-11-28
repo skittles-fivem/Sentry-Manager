@@ -69,6 +69,13 @@ function addCss() {
   document.head.appendChild(style);
 }
 
+// AbortSignal.timeout is missing on older phones (before Safari 16, Chromium 103)
+const timeoutSignal = (ms) => {
+  if (typeof AbortSignal.timeout === 'function') return AbortSignal.timeout(ms);
+  const c = new AbortController();
+  setTimeout(() => c.abort(new DOMException('The operation timed out.', 'TimeoutError')), ms);
+  return c.signal;
+};
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const defaultClock = (hms) => {
   const [h, m, s] = hms.split('-').map(Number);
@@ -160,7 +167,7 @@ export function createMoments(container, { clock = defaultClock, speedUnit = () 
     const forCar = vehicle;
     let got;
     try {
-      const r = await fetch(`/api/stars?vehicle=${encodeURIComponent(vehicle)}`, { credentials: 'same-origin', signal: AbortSignal.timeout?.(20000) });
+      const r = await fetch(`/api/stars?vehicle=${encodeURIComponent(vehicle)}`, { credentials: 'same-origin', signal: timeoutSignal(20000) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || 'Could not load starred moments.');
       got = d.stars || [];
@@ -194,8 +201,12 @@ export function createMoments(container, { clock = defaultClock, speedUnit = () 
     if (un) {
       if (un.disabled) return;
       un.disabled = true;
+      const id = un.dataset.unstar;
       try {
-        await send('DELETE', `/api/stars/${encodeURIComponent(un.dataset.unstar)}`);
+        await send('DELETE', `/api/stars/${encodeURIComponent(id)}`);
+        // removed: gone from the list now, even if the reload below fails
+        stars = stars.filter((x) => String(x.id) !== id);
+        drawStars();
       } catch (err) {
         showStatus(`The star could not be removed: ${err.message}`);
       }
