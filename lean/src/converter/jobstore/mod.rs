@@ -1039,20 +1039,31 @@ impl JobStore {
 
     /// summaries(): every job without its clip list, the clip results counted.
     pub fn summaries(&self) -> R<Vec<Arc<Value>>> {
+        Ok(self.summaries_but(&|_| false)?.into_iter().filter_map(|s| s.ok()).collect())
+    }
+
+    /// summaries(), but a job `held(id)` says the caller holds is not read back from its
+    /// files when its summary is out of date (a running job: its file changes with every clip,
+    /// and reading back a 40,000-clip job took a second and 200 MB): it is listed in its
+    /// place as Err(id), for the caller's own copy.
+    pub fn summaries_but(&self, held: &dyn Fn(&str) -> bool) -> R<Vec<Result<Arc<Value>, String>>> {
         let names = self.job_folders()?;
         let mut out = Vec::new();
         for name in &names {
-            let r = (|| -> R<Option<Arc<Value>>> {
+            let r = (|| -> R<Option<Result<Arc<Value>, String>>> {
                 let stamp = self.stamp_of(name)?;
                 if let Some((s, v)) = self.summary_cache.lock().unwrap().get(name) {
                     if *s == stamp {
-                        return Ok(Some(v.clone()));
+                        return Ok(Some(Ok(v.clone())));
                     }
+                }
+                if held(name) {
+                    return Ok(Some(Err(name.clone())));
                 }
                 if let Some(saved) = self.saved_summary(name, &stamp) {
                     let v = Arc::new(saved);
                     self.summary_cache.lock().unwrap().insert(name.clone(), (stamp, v.clone()));
-                    return Ok(Some(v));
+                    return Ok(Some(Ok(v)));
                 }
                 let Some(m) = self.exclusive(name, || self.read_manifest(name))? else {
                     self.summary_cache.lock().unwrap().remove(name);
@@ -1062,7 +1073,7 @@ impl JobStore {
                 self.save_summary(name, &stamp, &summary);
                 let v = Arc::new(summary);
                 self.summary_cache.lock().unwrap().insert(name.clone(), (stamp, v.clone()));
-                Ok(Some(v))
+                Ok(Some(Ok(v)))
             })();
             match r {
                 Ok(Some(v)) => out.push(v),

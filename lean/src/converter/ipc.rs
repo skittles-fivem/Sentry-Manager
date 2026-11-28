@@ -64,6 +64,11 @@ type R<T> = Result<T, IpcError>;
 pub trait ServiceApi: Send + Sync {
     fn start(&self, config: &Value) -> SResult<String>;
     fn get(&self, id: &str) -> SResult<Value>;
+    /// get(id) sanitized for the window (sanitize_snapshot), when the service can do it
+    /// without a copy of every clip; None: it cannot (then get is used)
+    fn get_sanitized(&self, _id: &str) -> Option<SResult<Result<Value, IpcError>>> {
+        None
+    }
     fn list(&self) -> SResult<Vec<Value>>;
     fn list_summaries(&self) -> SResult<Vec<Value>>;
     fn pause(&self, id: &str) -> SResult<Value>;
@@ -110,6 +115,9 @@ impl ServiceApi for Service {
     }
     fn get(&self, id: &str) -> SResult<Value> {
         Service::get(self, id)
+    }
+    fn get_sanitized(&self, id: &str) -> Option<SResult<Result<Value, IpcError>>> {
+        Some(Service::get_snap(self, id).map(|s| sanitize_snap(&s)))
     }
     fn list(&self) -> SResult<Vec<Value>> {
         Service::list(self)
@@ -774,8 +782,10 @@ impl Bridge {
     fn current_job(&self) -> R<Value> {
         let summaries = self.service.list_summaries()?;
         let Some(chosen) = choose_current(&summaries)? else { return Ok(Value::Null) };
-        match self.service.get(chosen["id"].as_str().unwrap_or("")) {
-            Ok(s) => sanitize_snapshot(&s),
+        let id = chosen["id"].as_str().unwrap_or("");
+        let got = self.service.get_sanitized(id).unwrap_or_else(|| self.service.get(id).map(|s| sanitize_snapshot(&s)));
+        match got {
+            Ok(s) => s,
             Err(_) => Ok(choose_current(&self.service.list()?)?.unwrap_or(Value::Null)),
         }
     }

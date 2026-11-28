@@ -1159,11 +1159,16 @@ impl Service {
 
     /// get(id)
     pub fn get(&self, id: &str) -> SResult<Value> {
+        self.get_snap(id).map(|s| s.to_value())
+    }
+
+    /// get(id) as a Snap (its clips not copied)
+    pub fn get_snap(&self, id: &str) -> SResult<Snap> {
         let m = match self.runtime_of(id) {
             Some(rt) => rt.manifest(),
             None => self.0.o.store.load(id).map_err(Fail::from)?.ok_or_else(|| service_error("JOB_NOT_FOUND"))?,
         };
-        Ok(public_snapshot(&m))
+        Ok(Snap::of(&m))
     }
 
     /// list()
@@ -1178,7 +1183,19 @@ impl Service {
             (m.id().to_string(), summary_of(&m))
         }).collect();
         let mut out = Vec::new();
-        for s in self.0.o.store.summaries().map_err(Fail::from)? {
+        // (a job running here is not read back from its files: its copy here takes its place)
+        let held = |name: &str| live.iter().any(|(l, _)| l == name);
+        let listed = self.0.o.store.summaries_but(&held).map_err(Fail::from)?;
+        for s in listed {
+            let s = match s {
+                Ok(s) => s,
+                Err(name) => {
+                    if let Some(i) = live.iter().position(|(l, _)| *l == name) {
+                        out.push(live.remove(i).1);
+                    }
+                    continue;
+                }
+            };
             let id = s["id"].as_str().unwrap_or("").to_string();
             if let Some(i) = live.iter().position(|(l, _)| *l == id) {
                 out.push(live.remove(i).1);
