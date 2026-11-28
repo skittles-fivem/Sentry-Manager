@@ -191,13 +191,8 @@ impl Converter {
                         std::thread::sleep(std::time::Duration::from_millis(100));
                     }
                 });
-                let mut seed = super::jobstore::now_ms() ^ (std::process::id() as u64) << 20;
-                let mut random = move || {
-                    seed ^= seed << 13;
-                    seed ^= seed >> 7;
-                    seed ^= seed << 17;
-                    (seed >> 11) as f64 / (1u64 << 53) as f64
-                };
+                // fresh secure randomness for each window, drawn now that the node's output is back
+                let mut random = crate::nodes::picture::unpredictable_fraction;
                 let r = crate::nodes::picture::compare_pictures(Path::new(source), Path::new(candidate), &signal, &decode, duration, &mut random);
                 done.store(true, Ordering::SeqCst);
                 r

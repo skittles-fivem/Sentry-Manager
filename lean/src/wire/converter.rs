@@ -382,6 +382,22 @@ fn mirror(srv: &Server, conv: &Conv, s: &Value, id: &str, st: &str, src: &str, v
             if let Err(e) = raised {
                 state.logger.scope("converter").warn(format!("The notification of conversion {id}'s failed clips was not kept: {e}"));
             }
+        } else if status == "done" {
+            // (a Retry failed that converted every clip: the warning of the run before is over.
+            // A retry that failed as a whole or was cancelled left its clips unconverted, so the
+            // warning stays.)
+            if let Err(e) = state.notes.resolve(&format!("conversion-failed:{id}")) {
+                state.logger.scope("converter").warn(format!("The notification of conversion {id}'s failed clips was not resolved: {e}"));
+            }
+        }
+    } else if !terminal && job.status != "running" {
+        // (the same job running again, after Retry failed: its row is under way once more, and
+        // its next end is told again)
+        let line = format!("{st}: {detail}");
+        if let Err(e) = state.jobs.update(job.id, JobUpdate { status: Some("running".into()), detail: Some(line.clone()), reopen: true, ..Default::default() }) {
+            failed_row("reopened", e);
+        } else {
+            conv.lines.lock().unwrap().insert(job.id, line);
         }
     } else if !terminal {
         let line = format!("{st}: {detail}");

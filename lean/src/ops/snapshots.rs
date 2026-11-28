@@ -49,7 +49,20 @@ pub struct Snapshots {
 }
 
 #[derive(Debug)]
-pub struct NoSuchSnapshot;
+pub enum RestoreError {
+    /// Not a snapshot name, or not one that is kept.
+    NoSuch,
+    /// The copy next to the database could not be made (a full disk, say).
+    Io(String),
+}
+
+/// A temp file an earlier process left in the snapshots folder: `.manager-DAY.db.PID.tmp`
+/// whose PID is not this process's (this one's are handled by take itself).
+fn stale_tmp(name: &str, pid: u32) -> bool {
+    let Some(rest) = name.strip_prefix(".manager-").and_then(|r| r.strip_suffix(".tmp")) else { return false };
+    let Some((day, their)) = rest.rsplit_once('.') else { return false };
+    snapshot_day(&format!("manager-{day}")).is_some() && their.parse::<u32>().is_ok_and(|p| p != pid)
+}
 
 impl Snapshots {
     pub fn new(data: &Path) -> Snapshots {
@@ -81,11 +94,27 @@ impl Snapshots {
         if file.exists() && !force {
             return Ok(None);
         }
-        let tmp = self.dir.join(format!(".{name}.{}.tmp", std::process::id()));
+        let pid = std::process::id();
+        // Partial copies an earlier process left (a failed VACUUM before a restart).
+        if let Ok(rd) = fs::read_dir(&self.dir) {
+            for e in rd.filter_map(|e| e.ok()) {
+                if stale_tmp(&e.file_name().to_string_lossy(), pid) {
+                    let _ = fs::remove_file(e.path());
+                }
+            }
+        }
+        let tmp = self.dir.join(format!(".{name}.{pid}.tmp"));
         let _ = fs::remove_file(&tmp);
         let quoted = tmp.to_string_lossy().replace('\'', "''");
-        db.execute_batch(&format!("VACUUM INTO '{quoted}'")).map_err(|e| e.to_string())?;
-        fs::rename(&tmp, &file).map_err(|e| e.to_string())?;
+        // A failed VACUUM INTO (a full disk) leaves its partial target behind.
+        if let Err(e) = db.execute_batch(&format!("VACUUM INTO '{quoted}'")) {
+            let _ = fs::remove_file(&tmp);
+            return Err(e.to_string());
+        }
+        if let Err(e) = fs::rename(&tmp, &file) {
+            let _ = fs::remove_file(&tmp);
+            return Err(e.to_string());
+        }
         for old in self.list().iter().skip(self.keep) {
             if let Some(n) = old["name"].as_str() {
                 let _ = fs::remove_file(self.dir.join(n));
@@ -95,13 +124,16 @@ impl Snapshots {
     }
 
     /// Chooses a snapshot to restore at the next start.
-    pub fn prepare_restore(&self, name: &str) -> Result<(), NoSuchSnapshot> {
+    pub fn prepare_restore(&self, name: &str) -> Result<(), RestoreError> {
         if snapshot_day(name).is_none() || !self.list().iter().any(|x| x["name"] == name) {
-            return Err(NoSuchSnapshot);
+            return Err(RestoreError::NoSuch);
         }
         let tmp = format!("{}.restore.tmp", self.db_file.display());
-        fs::copy(self.dir.join(name), &tmp).map_err(|_| NoSuchSnapshot)?;
-        fs::rename(&tmp, format!("{}.restore", self.db_file.display())).map_err(|_| NoSuchSnapshot)?;
+        let done = fs::copy(self.dir.join(name), &tmp).and_then(|_| fs::rename(&tmp, format!("{}.restore", self.db_file.display())));
+        if let Err(e) = done {
+            let _ = fs::remove_file(&tmp);
+            return Err(RestoreError::Io(e.to_string()));
+        }
         Ok(())
     }
 }
@@ -151,6 +183,31 @@ mod tests {
         assert_eq!(store::get(&db, "marker").unwrap(), Some(json!("day 5")));
         assert!(PathBuf::from(format!("{}.before-restore", db_file.display())).exists());
         assert!(!apply_pending_restore(&db_file).unwrap(), "nothing pending");
+        drop(db);
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn partial_copies_of_earlier_processes_are_cleared_and_a_failed_restore_copy_says_why() {
+        let dir = std::env::temp_dir().join(format!("lean-snap-tmp-{}-{}", std::process::id(), store::now_ms()));
+        fs::create_dir_all(dir.join("snapshots")).unwrap();
+        let db_file = dir.join("manager.db");
+        let db = Connection::open(&db_file).unwrap();
+        store::ensure_schema(&db).unwrap();
+        let snaps = Snapshots { db_file: db_file.clone(), dir: dir.join("snapshots"), keep: KEEP };
+        let other = std::process::id().wrapping_add(1);
+        let stale = snaps.dir.join(format!(".manager-2026-11-01.db.{other}.tmp"));
+        let unrelated = snaps.dir.join(".notes.tmp");
+        fs::write(&stale, b"partial").unwrap();
+        fs::write(&unrelated, b"x").unwrap();
+        snaps.take(&db, "2026-11-02", false).unwrap();
+        assert!(!stale.exists(), "an earlier process's partial copy is removed");
+        assert!(unrelated.exists(), "only our own temp names");
+        assert!(!stale_tmp(&format!(".manager-2026-11-01.db.{}.tmp", std::process::id()), std::process::id()));
+        // The copy next to the database cannot be made: not "no such snapshot".
+        let gone = Snapshots { db_file: dir.join("missing").join("manager.db"), dir: snaps.dir.clone(), keep: KEEP };
+        assert!(matches!(gone.prepare_restore("manager-2026-11-02.db"), Err(RestoreError::Io(_))));
+        assert!(matches!(gone.prepare_restore("manager-2026-11-09.db"), Err(RestoreError::NoSuch)));
         drop(db);
         fs::remove_dir_all(&dir).unwrap();
     }

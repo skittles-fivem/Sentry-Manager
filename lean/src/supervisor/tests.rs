@@ -395,6 +395,16 @@ fn data_is_root_pgid_sticky_and_root_folders_stay_roots() {
     lines.lock().unwrap().clear();
     dirs::prepare_dirs(&cfg, &log, &log).unwrap();
     assert!(lines.lock().unwrap().is_empty());
+    // a start with PUID=0: the app makes root's files, so the owner is forgotten
+    let mut as_root = cfg.clone();
+    as_root.puid = 0;
+    dirs::prepare_dirs(&as_root, &log, &log).unwrap();
+    assert!(!cfg.root_state().join("owner").exists());
+    std::fs::write(cfg.data.join("thumbs/a/y.jpg"), "y").unwrap();
+    // back to PUID=1000: the one-time chown runs again
+    dirs::prepare_dirs(&cfg, &log, &log).unwrap();
+    assert!(lines.lock().unwrap().iter().any(|m| m.contains("(one time)")));
+    assert_eq!(st(&cfg.data.join("thumbs/a/y.jpg")).uid(), 1000);
     let _ = std::fs::remove_dir_all(&dir);
 }
 

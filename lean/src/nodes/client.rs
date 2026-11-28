@@ -113,6 +113,41 @@ fn resolve(host: &str, port: u16) -> io::Result<Vec<SocketAddr>> {
     (host, port).to_socket_addrs().map(|a| a.collect()).map_err(|_| io::Error::other("ENOTFOUND"))
 }
 
+/// A socket whose every read and write waits no longer than the idle timeout and
+/// never past `until`: the TLS handshake as a whole stays bounded.
+struct Deadlined<'a> {
+    sock: &'a TcpStream,
+    idle: Duration,
+    until: std::time::Instant,
+}
+
+impl Deadlined<'_> {
+    fn left(&self) -> io::Result<Duration> {
+        let left = self.until.saturating_duration_since(std::time::Instant::now()).min(self.idle);
+        if left.is_zero() {
+            return Err(io::Error::from(io::ErrorKind::TimedOut));
+        }
+        Ok(left)
+    }
+}
+
+impl Read for Deadlined<'_> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.sock.set_read_timeout(Some(self.left()?))?;
+        (&mut &*self.sock).read(buf)
+    }
+}
+
+impl Write for Deadlined<'_> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.sock.set_write_timeout(Some(self.left()?))?;
+        (&mut &*self.sock).write(buf)
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
 /// connectPinned({ host, port, pin, timeoutMs }): pin None (pairing) accepts
 /// whatever is presented and reports it.
 pub fn connect_pinned(host: &str, port: u16, pin: Option<&Pin>, timeout_ms: u64) -> Result<Connection, NodeError> {
@@ -145,14 +180,19 @@ pub fn connect_pinned(host: &str, port: u16, pin: Option<&Pin>, timeout_ms: u64)
     let conn = ClientConnection::new(config(), name).map_err(|e| NodeError::new(format!("Could not reach the node ({e})."), 502, "NODE_UNREACHABLE"))?;
     let other = tcp.try_clone().map_err(|e| unreachable(&e))?;
     let mut stream = StreamOwned::new(conn, tcp);
+    // the whole handshake has a deadline too, so a peer that trickles it can't hold us
+    let until = std::time::Instant::now() + t * 2;
     while stream.conn.is_handshaking() {
-        if let Err(e) = stream.conn.complete_io(&mut stream.sock) {
+        let mut sock = Deadlined { sock: &stream.sock, idle: t, until };
+        if let Err(e) = stream.conn.complete_io(&mut sock) {
             if is_timeout(&e) {
                 return Err(timeout());
             }
             return Err(unreachable(&e));
         }
     }
+    let _ = stream.sock.set_read_timeout(Some(t));
+    let _ = stream.sock.set_write_timeout(Some(t));
     let raw = stream.conn.peer_certificates().and_then(|c| c.first()).map(|c| c.as_ref().to_vec()).unwrap_or_default();
     let Some(fingerprint) = cert_fingerprint(&raw) else {
         let _ = other.shutdown(Shutdown::Both);

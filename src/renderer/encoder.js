@@ -68,6 +68,21 @@ function followRun() {
 
 async function start() {
     let controller = null;
+    // put away by the manager (its 'pause' message) or in a hidden tab: the
+    // controller stops its automatic-conversion poll until it is shown again
+    let shellPaused = false;
+    const shown = () => !shellPaused && document.visibilityState !== 'hidden';
+    document.addEventListener('visibilitychange', () => controller?.setVisible(shown()));
+    window.addEventListener('message', (event) => {
+        if (event.source !== window.parent || event.origin !== location.origin) return;
+        if (event.data?.type === 'pause') {
+            shellPaused = true;
+            controller?.setVisible(false);
+        } else if (event.data?.type === 'shown') {
+            shellPaused = false;
+            controller?.setVisible(shown());
+        }
+    });
     // (a start-up call that never answers does not keep the skeleton forever:
     // after 25 s the page shows, with the notice; a late start still shows the encoder)
     const init = initFootageConverter({ api, root: document, notify, t, onLanguageChange });
@@ -83,10 +98,10 @@ async function start() {
             // and the reload hint shows only if it really fails
             const waiting = notify('The server is slow to answer. The encoder will appear when it does.', { type: 'warn', timeoutMs: 0, dismissible: true });
             const clear = () => document.querySelector(`[data-notif-id="${waiting}"]`)?.remove();
-            init.then((late) => { clear(); controller = late; late.setVisible(true); }, (error) => { clear(); failed(error); });
+            init.then((late) => { clear(); controller = late; late.setVisible(shown()); }, (error) => { clear(); failed(error); });
         } else {
             controller = first;
-            controller.setVisible(true);
+            controller.setVisible(shown());
         }
     } catch (error) {
         failed(error);

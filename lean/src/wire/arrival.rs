@@ -37,7 +37,17 @@ impl ArrivalCtx for CoreArrival {
         self.srv().and_then(|s| s.app().vehicle(vid)).map(|v| v.root).unwrap_or_default()
     }
     fn vehicle_for_path(&self, path: &str) -> Option<String> {
-        self.srv()?.app().vehicles.vehicle_for_path(std::path::Path::new(path)).map(|v| v.id)
+        self.vehicle_root_for_path(path).map(|(id, _)| id)
+    }
+    fn vehicle_root_for_path(&self, path: &str) -> Option<(String, PathBuf)> {
+        let s = self.srv()?;
+        vehicle_at(&s, path).ok().flatten().map(|(v, root)| (v.id, root))
+    }
+    fn real_root_of(&self, vid: &str) -> Option<PathBuf> {
+        let s = self.srv()?;
+        let v = s.app().vehicle(vid)?;
+        let healthy = s.app().vehicles.share(vid).is_none_or(|sh| sh.is_healthy());
+        crate::footage::vehicles::real_root_quick(&v.root, healthy)
     }
     fn inventory(&self, vid: &str) -> Option<InventoryView> {
         let st = self.srv()?.app().state_of(vid).filter(|s| s.scanned)?;
@@ -101,13 +111,32 @@ impl ArrivalCtx for CoreArrival {
 /// file looked at again when the last look is over 5 s old, 1 s while a transfer runs: a
 /// transfer that started since the last look holds its clips at once).
 pub fn holds(s: &Server, abs: &str) -> bool {
-    let (Some(can), Some(v)) = (s.can().cloned(), s.app().vehicles.vehicle_for_path(std::path::Path::new(abs))) else { return false };
+    let Some(can) = s.can().cloned() else { return false };
+    // (a converter's clip is spelled under the real folder: a vehicle whose folder is a symlink
+    // is found by that too; while a share that may hold it has not answered, it is held)
+    let v = match vehicle_at(s, abs) {
+        Ok(Some((v, _))) => v,
+        Ok(None) => return false,
+        Err(_) => return true,
+    };
     // (a share that stopped answering is not looked at here: the arrival would wait on it)
     if s.app().vehicles.share(&v.id).is_none_or(|sh| sh.is_healthy()) {
         can.usb.fresh(&v.id);
     }
     let status = can.usb.get(&v.id).and_then(|st| crate::arrival::holds::TransferStatus::parse(&st.raw_json));
     crate::arrival::holds::holds(status.as_ref(), crate::scanner::now_ms(), abs)
+}
+
+/// The vehicle whose folder holds `path`, spelled under the folder it is named by or under its
+/// real folder (a converter job's sourceRoot is the real path), with the root it matched; no
+/// share that is not answering is asked (vehicle_root_in_quick). Err: a share that may hold it
+/// has not answered yet.
+fn vehicle_at(s: &Server, path: &str) -> Result<Option<(crate::footage::vehicles::Vehicle, PathBuf)>, String> {
+    if path.is_empty() {
+        return Ok(None);
+    }
+    let vehicles = &s.app().vehicles;
+    crate::footage::vehicles::vehicle_root_in_quick(vehicles.list(), std::path::Path::new(path), |v| vehicles.share(&v.id).is_none_or(|sh| sh.is_healthy()))
 }
 
 pub fn make(srv: &Arc<Server>) -> Arc<crate::arrival::Area> {

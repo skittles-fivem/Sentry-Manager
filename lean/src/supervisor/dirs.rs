@@ -121,7 +121,14 @@ pub fn prepare_dirs(cfg: &Config, log: &dyn Fn(String), warn: &dyn Fn(String)) -
     mkdirp(&cfg.footage_root, 0o755)?;
     let root_state = cfg.root_state();
     if !cfg.separate() {
-        return mkdirp(&root_state, 0o700);
+        mkdirp(&root_state, 0o700)?;
+        // The app runs as root (or the container's own user) now, so the files
+        // it makes are not PUID:PGID's any more: forget the owner, and the next
+        // start with a separate app user gives the files to it again.
+        match fs::remove_file(root_state.join("owner")) {
+            Err(e) if e.kind() != io::ErrorKind::NotFound && cfg.is_root => return Err(e),
+            _ => return Ok(()),
+        }
     }
     let (puid, pgid) = (cfg.puid, cfg.pgid);
     if !is_plain_dir(&cfg.data) {

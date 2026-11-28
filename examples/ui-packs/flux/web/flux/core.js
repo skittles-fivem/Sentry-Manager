@@ -186,7 +186,7 @@ export class ApiError extends Error {
   }
 }
 
-function signedOut() {
+export function signedOut() {
   location.href = `/login?next=${encodeURIComponent(location.pathname + location.hash)}`;
 }
 

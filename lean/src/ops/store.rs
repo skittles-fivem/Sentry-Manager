@@ -102,9 +102,14 @@ pub fn notify(db: &Connection, n: &Note) -> DbResult<(i64, bool)> {
     Ok((db.last_insert_rowid(), true))
 }
 
-pub fn resolve(db: &Connection, key: &str) -> DbResult<()> {
-    db.execute("UPDATE notifications SET resolved_at = ? WHERE dedupe_key = ? AND resolved_at IS NULL", params![now_ms(), key])?;
-    Ok(())
+/// How many open ones were resolved (0: none was open).
+pub fn resolve(db: &Connection, key: &str) -> DbResult<usize> {
+    Ok(db.execute("UPDATE notifications SET resolved_at = ? WHERE dedupe_key = ? AND resolved_at IS NULL", params![now_ms(), key])?)
+}
+
+/// The level of the open notification under `key`, if one is open.
+pub fn open_level(db: &Connection, key: &str) -> DbResult<Option<String>> {
+    Ok(one(db.query_row("SELECT level FROM notifications WHERE dedupe_key = ? AND resolved_at IS NULL", [key], |r| r.get(0)))?)
 }
 
 pub fn resolve_prefix(db: &Connection, prefix: &str) -> DbResult<()> {
@@ -120,15 +125,15 @@ pub fn resolve_prefix(db: &Connection, prefix: &str) -> DbResult<()> {
     Ok(())
 }
 
-pub fn resolve_id(db: &Connection, id: f64) -> DbResult<()> {
+/// How many rows it matched (0: no such notification).
+pub fn resolve_id(db: &Connection, id: f64) -> DbResult<usize> {
     let now = now_ms();
     // Number(params.id): NaN matches nothing (SQLite compares NULL)
     let id: Option<f64> = if id.is_finite() { Some(id) } else { None };
-    db.execute(
+    Ok(db.execute(
         "UPDATE notifications SET resolved_at = COALESCE(resolved_at, ?), read_at = COALESCE(read_at, ?) WHERE id = ?",
         params![now, now, id],
-    )?;
-    Ok(())
+    )?)
 }
 
 /// All of them read, or none (rolled back on any failure, COMMIT's too).

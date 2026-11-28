@@ -1,5 +1,5 @@
 // Flux shell: router, sidebar, command palette, keyboard shortcuts, live updates.
-import { $, $$, esc, icon, api, state, store, bus, current, setVehicle, loadVehicles, loadNotes, toast, infoDialog, invoke, clockPref } from './core.js';
+import { $, $$, esc, icon, api, state, store, bus, current, setVehicle, loadVehicles, loadNotes, toast, infoDialog, invoke, clockPref, signedOut } from './core.js';
 import overview from './pages/overview.js';
 import footage from './pages/footage.js';
 import viewer from './pages/viewer.js';
@@ -205,31 +205,53 @@ bus.on('vehicle', () => {
 // ---------- live updates ----------
 let es = null;
 let esRetry = 1000;
+// the server keeps no replay: every reconnect after the first (the browser's
+// own, or the one below) catches up once on what was missed meanwhile
+let esOpened = false;
+const ALL_TOPICS = ['vehicles', 'inventory', 'notifications', 'bin', 'jobs'];
+async function onTopics(topics) {
+  // every topic for the shared Viewer parts too (web/viewerExtras.js: "Car data in the Viewer")
+  window.dispatchEvent(new CustomEvent('sentry:changed', { detail: { topics } }));
+  if (topics.some((t) => ['vehicles', 'inventory', 'bin'].includes(t))) await loadVehicles().catch(() => {});
+  if (topics.includes('notifications')) await loadNotes().catch(() => {});
+  if (topics.includes('jobs')) refreshJobBadges();
+  bus.emit('topics', topics);
+  try { mounted?.onTopics?.(topics); } catch (err) { console.warn(err); }
+}
 function connect() {
   es = new EventSource('/api/events');
   const live = $('#live');
-  es.addEventListener('open', () => { live.className = 'livedot on'; live.title = 'Live updates: connected'; esRetry = 1000; });
+  es.addEventListener('open', () => {
+    live.className = 'livedot on';
+    live.title = 'Live updates: connected';
+    esRetry = 1000;
+    if (esOpened) onTopics(ALL_TOPICS);
+    esOpened = true;
+  });
   es.addEventListener('error', () => {
     live.className = 'livedot off';
     live.title = 'Live updates: reconnecting…';
-    if (es.readyState === EventSource.CLOSED) {
-      setTimeout(connect, esRetry);
-      esRetry = Math.min(esRetry * 2, 30000);
-    }
+    if (es.readyState !== EventSource.CLOSED) return; // the browser is trying again itself
+    // closed for good (signed out, too many connections, a proxy's 502): still signed in?
+    const wait = esRetry;
+    esRetry = Math.min(esRetry * 2, 30000);
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 10000);
+    fetch('/api/auth/me', { credentials: 'same-origin', signal: ctl.signal })
+      .then((r) => (r.ok ? r.json() : r.status === 401 ? {} : { user: true }))
+      .then((me) => {
+        if (me.user) setTimeout(connect, wait);
+        else signedOut();
+      }, () => setTimeout(connect, wait))
+      .finally(() => clearTimeout(timer));
   });
   es.addEventListener('changed', async (e) => {
     let topics = [];
     try { ({ topics } = JSON.parse(e.data)); } catch { return; }
     if (topics.includes('interface')) { location.reload(); return; }
-    // every topic for the shared Viewer parts too (web/viewerExtras.js: "Car data in the Viewer")
-    window.dispatchEvent(new CustomEvent('sentry:changed', { detail: { topics } }));
     live.classList.add('pulse');
     setTimeout(() => live.classList.remove('pulse'), 600);
-    if (topics.some((t) => ['vehicles', 'inventory', 'bin'].includes(t))) await loadVehicles().catch(() => {});
-    if (topics.includes('notifications')) await loadNotes().catch(() => {});
-    if (topics.includes('jobs')) refreshJobBadges();
-    bus.emit('topics', topics);
-    try { mounted?.onTopics?.(topics); } catch (err) { console.warn(err); }
+    await onTopics(topics);
   });
 }
 

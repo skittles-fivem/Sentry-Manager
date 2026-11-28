@@ -566,7 +566,11 @@ fn real_root(root: &Path, healthy: bool) -> Option<Option<PathBuf>> {
     let busy = {
         let mut m = real_roots().lock().unwrap();
         let e = m.entry(root.to_path_buf()).or_insert_with(|| (None, None, Arc::new(std::sync::atomic::AtomicBool::new(false))));
-        if e.1.is_some_and(|t| now.duration_since(t) < REAL_ROOT_KEEP) || !healthy {
+        if !healthy {
+            // (a folder not found earlier may only be out of reach now: not known, not "nowhere")
+            return e.0.clone().filter(Option::is_some);
+        }
+        if e.1.is_some_and(|t| now.duration_since(t) < REAL_ROOT_KEEP) {
             return e.0.clone();
         }
         e.2.clone()
@@ -575,13 +579,36 @@ fn real_root(root: &Path, healthy: bool) -> Option<Option<PathBuf>> {
     let found = super::share::with_timeout_one(&busy, REAL_ROOT_WAIT, "Finding a vehicle folder's real path", move || std::fs::canonicalize(r));
     let mut m = real_roots().lock().unwrap();
     let e = m.get_mut(root)?;
-    e.1 = Some(std::time::Instant::now());
-    match found {
-        Ok(real) => e.0 = Some(Some(real)),
-        Err(err) if err.kind() == std::io::ErrorKind::TimedOut => {}
-        Err(_) => e.0 = Some(None),
-    }
+    keep_real_root(&mut e.0, &mut e.1, found, std::time::Instant::now());
     e.0.clone()
+}
+
+/// The real path of a vehicle folder as `real_root` finds it (kept, and never asked of a share
+/// `healthy` says is not answering); None when it is not known or not there.
+pub fn real_root_quick(root: &Path, healthy: bool) -> Option<PathBuf> {
+    real_root(root, healthy).flatten()
+}
+
+/// How soon a vehicle folder whose share gave an error (not a definite answer) is asked again.
+const REAL_ROOT_RETRY: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// Keeps one look-up's answer: a real path, or that the folder is not there (NotFound or
+/// NotADirectory), for REAL_ROOT_KEEP. Any other error (timed out, EIO, EHOSTDOWN, ESTALE, a
+/// thread that could not start) is no answer: the last answer stands, and the folder is asked
+/// again after REAL_ROOT_RETRY.
+fn keep_real_root(answer: &mut Option<Option<PathBuf>>, asked: &mut Option<std::time::Instant>, found: std::io::Result<PathBuf>, now: std::time::Instant) {
+    use std::io::ErrorKind;
+    match found {
+        Ok(real) => {
+            *answer = Some(Some(real));
+            *asked = Some(now);
+        }
+        Err(err) if matches!(err.kind(), ErrorKind::NotFound | ErrorKind::NotADirectory) => {
+            *answer = Some(None);
+            *asked = Some(now);
+        }
+        Err(_) => *asked = now.checked_sub(REAL_ROOT_KEEP - REAL_ROOT_RETRY),
+    }
 }
 
 /// vehicle_in for a converter job's sourceRoot (a real path) where nothing may wait on a share
@@ -592,14 +619,24 @@ fn real_root(root: &Path, healthy: bool) -> Option<Option<PathBuf>> {
 /// real folder is known, and the share of another has not answered yet, so it is not known
 /// (the caller looks again later rather than count the job as in no vehicle).
 pub fn vehicle_in_quick(list: Vec<Vehicle>, p: &Path, healthy: impl Fn(&Vehicle) -> bool) -> Result<Option<Vehicle>, String> {
+    Ok(vehicle_root_in_quick(list, p, healthy)?.map(|(v, _)| v))
+}
+
+/// vehicle_in_quick, with the root it matched: the folder the vehicle is named by when `p` is
+/// spelled under it, else that folder's real path (so a path below it is relative to the root
+/// returned, whichever spelling `p` has).
+pub fn vehicle_root_in_quick(list: Vec<Vehicle>, p: &Path, healthy: impl Fn(&Vehicle) -> bool) -> Result<Option<(Vehicle, PathBuf)>, String> {
     let abs = super::safe_fs::resolve(p);
     if let Some(i) = list.iter().position(|v| is_inside(&abs, &v.root)) {
-        return Ok(list.into_iter().nth(i));
+        return Ok(list.into_iter().nth(i).map(|v| {
+            let root = v.root.clone();
+            (v, root)
+        }));
     }
     let mut unknown = None;
     for (i, v) in list.iter().enumerate() {
         match real_root(&v.root, healthy(v)) {
-            Some(Some(r)) if is_inside(&abs, &r) => return Ok(list.into_iter().nth(i)),
+            Some(Some(r)) if is_inside(&abs, &r) => return Ok(list.into_iter().nth(i).map(|v| (v, r))),
             None if unknown.is_none() => unknown = Some(v.name.clone()),
             _ => {}
         }
@@ -624,6 +661,43 @@ pub fn describe_source(src: &Value) -> String {
 mod tests {
     use super::*;
     use crate::footage::ctx::LocalCore;
+
+    #[test]
+    fn only_a_definite_answer_about_a_vehicle_folder_s_real_path_is_kept() {
+        use std::io::{Error, ErrorKind};
+        let now = std::time::Instant::now() + REAL_ROOT_KEEP;
+        let (mut answer, mut asked) = (None, None);
+        for kind in [ErrorKind::TimedOut, ErrorKind::HostUnreachable, ErrorKind::Other, ErrorKind::StaleNetworkFileHandle] {
+            keep_real_root(&mut answer, &mut asked, Err(Error::from(kind)), now);
+            assert_eq!(answer, None, "{kind:?} is no answer: the folder stays not known");
+            let t = asked.expect("asked again soon");
+            assert!(now.duration_since(t) < REAL_ROOT_KEEP && now.duration_since(t) + REAL_ROOT_RETRY >= REAL_ROOT_KEEP);
+        }
+        keep_real_root(&mut answer, &mut asked, Ok(PathBuf::from("/real/car")), now);
+        assert_eq!(answer, Some(Some(PathBuf::from("/real/car"))));
+        assert_eq!(asked, Some(now));
+        keep_real_root(&mut answer, &mut asked, Err(Error::from_raw_os_error(libc::EIO)), now);
+        assert_eq!(answer, Some(Some(PathBuf::from("/real/car"))), "an error keeps the last answer");
+        keep_real_root(&mut answer, &mut asked, Err(Error::from(ErrorKind::NotFound)), now);
+        assert_eq!(answer, Some(None), "a folder that is not there is a definite answer");
+        assert_eq!(asked, Some(now));
+    }
+
+    #[test]
+    fn a_vehicle_folder_not_found_on_a_share_that_stopped_answering_is_not_known() {
+        let d = std::env::temp_dir().join(format!("lean-real-root-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        let root = d.join("gone");
+        assert_eq!(real_root(&root, true), Some(None));
+        assert_eq!(real_root(&root, true), Some(None), "kept");
+        assert_eq!(real_root(&root, false), None, "its share is not answering: not known");
+        let job = d.join("elsewhere/job");
+        let car = folder_vehicle("car", "Car", "UTC", root.clone());
+        assert!(vehicle_in_quick(vec![car.clone()], &job, |_| false).is_err());
+        assert!(matches!(vehicle_in_quick(vec![car], &job, |_| true), Ok(None)));
+        let _ = std::fs::remove_dir_all(&d);
+    }
 
     #[test]
     fn a_vehicle_s_source_is_its_folder_and_for_a_share_which_share() {
@@ -692,6 +766,11 @@ mod tests {
         assert!(asked.lock().unwrap().is_empty(), "the folder it is named by needs no share");
         let real = std::fs::canonicalize(dir.join("tank/car/TeslaCam")).unwrap();
         assert_eq!(vehicle_in_quick(list(), &real, &healthy).unwrap().unwrap().id, "car", "a symlinked folder by its real path");
+        // with the root each spelling is below (a path relative to it is the clip's rel)
+        let (car, root) = vehicle_root_in_quick(list(), &real, &healthy).unwrap().unwrap();
+        assert_eq!((car.id.as_str(), root), ("car", std::fs::canonicalize(dir.join("tank/car")).unwrap()));
+        let (car, root) = vehicle_root_in_quick(list(), &dir.join("footage/car/TeslaCam"), &healthy).unwrap().unwrap();
+        assert_eq!((car.id.as_str(), root), ("car", dir.join("footage/car")));
         // a share that is not healthy is not asked for its real path: until it has answered, a
         // job that may be in it is not known to be in no vehicle (its savings are kept to retry)
         let van = std::fs::canonicalize(dir.join("tank/van/TeslaCam")).unwrap();

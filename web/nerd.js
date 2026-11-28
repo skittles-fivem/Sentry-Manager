@@ -744,18 +744,20 @@ export function openNerdPanel() {
   const live = (ms) => schedule.live(ms);
   // (a stream the browser gave up on, a non-stream answer such as a proxy's 502, is opened again with backoff while the panel is open)
   let liveRetry = 1000;
+  let liveOpened = false;
   const openLive = () => {
     if (closed) return;
     es = new EventSource('/api/events');
     const dot = bg.querySelector('[data-live]');
     const mark = (on) => { dot.textContent = on ? 'live' : 'reconnecting'; dot.classList.toggle('on', on); dot.title = on ? 'Live updates: uploads, checks and the index show as they happen' : 'Live updates: reconnecting'; };
     const mine = es;
-    mine.addEventListener('open', () => { liveRetry = 1000; mark(true); });
+    // (the server keeps no replay: every reconnect after the first, the browser's own or the one below, refreshes once)
+    mine.addEventListener('open', () => { liveRetry = 1000; mark(true); if (liveOpened) live(); liveOpened = true; });
     mine.addEventListener('error', () => {
       mark(false);
       if (mine.readyState !== EventSource.CLOSED || closed) return;
       clearTimeout(liveTimer);
-      liveTimer = setTimeout(() => { if (!closed) { openLive(); live(); } }, liveRetry);
+      liveTimer = setTimeout(() => { if (!closed) openLive(); }, liveRetry);
       liveRetry = Math.min(liveRetry * 2, 30000);
     });
     mine.addEventListener('changed', (e) => {

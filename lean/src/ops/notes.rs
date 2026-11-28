@@ -18,6 +18,11 @@ pub const NOTIFY_KINDS: [&str; 7] = ["share", "storage", "server", "health", "co
 /// after this long raises an alert.
 pub const SHARE_GRACE_MS: i64 = 10 * 60 * 1000;
 
+/// A share's space alerts are raised below 10% free (critical below 5%) and, once open, cleared
+/// only above these marks.
+const SPACE_CLEAR_LOW: f64 = 0.11;
+const SPACE_CLEAR_CRITICAL: f64 = 0.06;
+
 struct Down {
     since: i64,
     timer: bool,
@@ -59,6 +64,7 @@ impl Notes {
         Ok(Some(id))
     }
 
+    /// (announced even when nothing was open, as the live-update contract has it)
     pub fn resolve(&self, key: &str) -> DbResult<()> {
         store::resolve(&self.ctx.db(), key)?;
         self.ctx.announce("notifications");
@@ -177,9 +183,14 @@ impl Notes {
         if let (Some(total), Some(free)) = (status.total_bytes.filter(|t| *t != 0.0), status.free_bytes) {
             let ratio = free / total;
             let pct = super::js::to_fixed(ratio * 100.0, 1);
-            if ratio < 0.05 {
+            // (an alert open stays open until there is clearly more room again: free space that
+            // hovers around a mark never opens a new unread alert on every crossing)
+            let open = store::open_level(&self.ctx.read_db(), &space_key)?;
+            let critical = ratio < 0.05 || (open.as_deref() == Some("critical") && ratio < SPACE_CLEAR_CRITICAL);
+            let low = ratio < 0.1 || (open.is_some() && ratio < SPACE_CLEAR_LOW);
+            if critical {
                 self.raise(&Note::new("storage", "critical", format!("{}: share almost full", vehicle.name)).vehicle(&vehicle.id).key(&space_key).message(format!("{pct}% free.")))?;
-            } else if ratio < 0.1 {
+            } else if low {
                 self.raise(&Note::new("storage", "warning", format!("{}: share running low on space", vehicle.name)).vehicle(&vehicle.id).key(&space_key).message(format!("{pct}% free.")))?;
             } else {
                 self.resolve(&space_key)?;
@@ -229,6 +240,33 @@ mod tests {
         let titles: Vec<String> = notes.list(true, None).unwrap().iter().map(|n| n["title"].as_str().unwrap().to_string()).collect();
         assert!(titles.contains(&"Car: footage is mounted read-only".to_string()));
         assert!(titles.contains(&"Car: share running low on space".to_string()));
+    }
+
+    #[test]
+    fn space_hovering_near_a_mark_keeps_one_alert() {
+        let ctx = FakeCtx::new();
+        let notes = Notes::with_grace(ctx.clone(), 0);
+        let v = VehicleInfo { id: "car".into(), name: "Car".into(), ..Default::default() };
+        let at = |free: f64| ShareStatus { healthy: true, writable: Some(true), free_bytes: Some(free), total_bytes: Some(1000.0), ..Default::default() };
+        let open = |notes: &Notes| notes.list(true, None).unwrap().iter().map(|n| (n["level"].as_str().unwrap().to_string(), n["title"].as_str().unwrap().to_string())).collect::<Vec<_>>();
+        notes.sync_share(&v, Some(&at(500.0))).unwrap();
+        notes.sync_share(&v, Some(&at(98.0))).unwrap();
+        assert_eq!(open(&notes), vec![("warning".to_string(), "Car: share running low on space".to_string())]);
+        for free in [102.0, 99.0, 105.0, 101.0] {
+            notes.sync_share(&v, Some(&at(free))).unwrap();
+            assert_eq!(open(&notes).len(), 1, "{free}: still the one alert");
+        }
+        assert_eq!(notes.list(false, None).unwrap().len(), 1, "no new row for each crossing");
+        notes.sync_share(&v, Some(&at(40.0))).unwrap();
+        assert_eq!(open(&notes)[0].0, "critical");
+        notes.sync_share(&v, Some(&at(55.0))).unwrap();
+        assert_eq!(open(&notes)[0].0, "critical", "critical until clearly above 5%");
+        notes.sync_share(&v, Some(&at(70.0))).unwrap();
+        assert_eq!(open(&notes)[0].0, "warning");
+        notes.sync_share(&v, Some(&at(115.0))).unwrap();
+        assert!(open(&notes).is_empty(), "cleared above 11%");
+        notes.sync_share(&v, Some(&at(105.0))).unwrap();
+        assert!(open(&notes).is_empty(), "between the marks nothing opens");
     }
 
     #[test]

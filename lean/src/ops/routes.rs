@@ -214,8 +214,13 @@ impl Ops {
                 return Some(no);
             }
             let name = &params["name"];
-            if self.snapshots.prepare_restore(name).is_err() {
-                return Some(Reply::error(404, "No such snapshot.", None));
+            match self.snapshots.prepare_restore(name) {
+                Ok(()) => {}
+                Err(super::snapshots::RestoreError::NoSuch) => return Some(Reply::error(404, "No such snapshot.", None)),
+                Err(super::snapshots::RestoreError::Io(e)) => {
+                    ctx.log("server", Level::Error, &format!("POST {p}: {e}"));
+                    return Some(Reply::error(500, &format!("Could not prepare the restore: {e}"), None));
+                }
             }
             ctx.audit(Level::Warn, &format!("Database snapshot {name} chosen to restore; restarting: {by}"));
             let c = self.ctx.clone();

@@ -225,10 +225,28 @@ bus.on('car', () => {
 // ---------- live updates ----------
 let es = null;
 let wait = 1000;
+// the server keeps no replay: every reconnect after the first (the browser's
+// own, or the one below) catches up once on what was missed meanwhile
+let opened = false;
+const ALL_TOPICS = ['vehicles', 'inventory', 'notifications', 'bin', 'jobs'];
+async function onTopics(topics) {
+  // every topic for the shared Viewer parts too (web/viewerExtras.js: "Car data in the Viewer")
+  window.dispatchEvent(new CustomEvent('sentry:changed', { detail: { topics } }));
+  if (topics.some((t) => ['vehicles', 'inventory', 'bin'].includes(t))) await loadCars().catch(() => {});
+  if (topics.includes('notifications')) await loadNotes().catch(() => {});
+  if (topics.includes('jobs')) refreshJobs();
+  try { mounted?.onTopics?.(topics); } catch (err) { console.warn(err); }
+}
 function live() {
   es = new EventSource('/api/events');
   const dot = qs('#radio-live');
-  es.addEventListener('open', () => { dot.className = 'radio-live on'; dot.title = 'Live updates: connected'; wait = 1000; });
+  es.addEventListener('open', () => {
+    dot.className = 'radio-live on';
+    dot.title = 'Live updates: connected';
+    wait = 1000;
+    if (opened) onTopics(ALL_TOPICS);
+    opened = true;
+  });
   es.addEventListener('error', () => {
     dot.className = 'radio-live off';
     dot.title = 'Live updates: reconnecting';
@@ -241,12 +259,7 @@ function live() {
     let topics = [];
     try { ({ topics } = JSON.parse(e.data)); } catch { return; }
     if (topics.includes('interface')) { location.reload(); return; }
-    // every topic for the shared Viewer parts too (web/viewerExtras.js: "Car data in the Viewer")
-    window.dispatchEvent(new CustomEvent('sentry:changed', { detail: { topics } }));
-    if (topics.some((t) => ['vehicles', 'inventory', 'bin'].includes(t))) await loadCars().catch(() => {});
-    if (topics.includes('notifications')) await loadNotes().catch(() => {});
-    if (topics.includes('jobs')) refreshJobs();
-    try { mounted?.onTopics?.(topics); } catch (err) { console.warn(err); }
+    await onTopics(topics);
   });
 }
 

@@ -35,6 +35,11 @@ const STALL_MS: u64 = 10 * 60_000;
 /// How long an ffmpeg that was killed (stalled, or its job stopped) is waited for.
 const KILLED_GRACE: Duration = Duration::from_secs(30);
 const ORPHAN_MS: i64 = 5 * 60_000;
+/// The longest a clip may take to arrive: past what the main waits for its upload (30 min),
+/// longer for a big clip on a slow link (64 KiB/s), so a trickled upload can't hold a slot for ever.
+fn receive_limit_ms(length: u64) -> i64 {
+    (35 * 60_000i64).max((length / (64 * 1024)).saturating_mul(1000).min(i64::MAX as u64) as i64)
+}
 const USES: [&str; 3] = ["gpu", "gpu-cpu", "cpu"];
 pub const QUEUE: i64 = 15;
 const MAX_HELD: usize = 64;
@@ -236,6 +241,8 @@ struct Inner {
     state: Mutex<State>,
     devices: Mutex<DeviceCache>,
     listing: Mutex<()>,
+    /// held from reading the settings to saving them, so no save brings back an older copy
+    saving: Mutex<()>,
     known: Mutex<HashMap<String, Option<String>>>,
     hardware: Mutex<Option<(i64, Option<String>, Value)>>,
     closed: AtomicBool,
@@ -450,6 +457,7 @@ impl NodeWorker {
             state: Mutex::new(State::default()),
             devices: Mutex::new(DeviceCache::default()),
             listing: Mutex::new(()),
+            saving: Mutex::new(()),
             known: Mutex::new(HashMap::new()),
             hardware: Mutex::new(None),
             closed: AtomicBool::new(false),
@@ -504,6 +512,11 @@ impl NodeWorker {
         Ok(Settings { enabled: s["enabled"] == json!(true), slots, use_, device_slots, mains })
     }
 
+    /// Taken around every read, change and save of the settings.
+    fn saving(&self) -> std::sync::MutexGuard<'_, ()> {
+        self.0.saving.lock().unwrap_or_else(|p| p.into_inner())
+    }
+
     fn save(&self, s: &Settings) -> Result<(), WorkerError> {
         self.ctx().set_setting(SETTINGS_KEY, &s.to_json()).map_err(|e| self.db_failed(e))
     }
@@ -544,6 +557,7 @@ impl NodeWorker {
 
     /// setEnabled(enabled, slots, use): `slots` / `use` None when not given.
     pub fn set_enabled(&self, enabled: bool, slots: Option<&Value>, use_: Option<&Value>) -> Result<Value, WorkerError> {
+        let saving = self.saving();
         let s = self.settings()?;
         let mut next = s.clone();
         next.enabled = enabled;
@@ -561,6 +575,7 @@ impl NodeWorker {
         }
         // (kept first: a change that was not kept changes nothing)
         self.save(&next)?;
+        drop(saving);
         if !next.enabled {
             let jobs: Vec<Arc<Job>> = {
                 let mut st = self.0.state.lock().unwrap();
@@ -577,11 +592,13 @@ impl NodeWorker {
 
     /// A new one-time code (replaces any earlier one). Worker mode turns on.
     pub fn start_pairing(&self) -> Result<Value, WorkerError> {
+        let saving = self.saving();
         let mut s = self.settings()?;
         if !s.enabled {
             s.enabled = true;
             self.save(&s)?;
         }
+        drop(saving);
         let expires_at = self.now() + PAIR_TTL_MS;
         self.0.state.lock().unwrap().pairing = Some(Pairing { code: new_pairing_code(), expires_at, tries: 0, by_address: HashMap::new() });
         Ok(self.status_of(&s))
@@ -594,11 +611,13 @@ impl NodeWorker {
 
     /// revoke(id): the main removed, its jobs stopped; None when unknown.
     pub fn revoke(&self, id: &str) -> Result<Option<Value>, WorkerError> {
+        let saving = self.saving();
         let s = self.settings()?;
         let Some(main) = s.mains.iter().find(|m| m["id"].as_str() == Some(id)).cloned() else { return Ok(None) };
         let mut n = s.clone();
         n.mains.retain(|m| m["id"].as_str() != Some(id));
         self.save(&n)?;
+        drop(saving);
         let jobs: Vec<Arc<Job>> = self.0.state.lock().unwrap().jobs.values().cloned().collect();
         for j in jobs {
             if j.d.lock().unwrap().main_id == id {
@@ -667,13 +686,16 @@ impl NodeWorker {
         let now = self.now();
         let jobs: Vec<Arc<Job>> = self.0.state.lock().unwrap().jobs.values().cloned().collect();
         for j in jobs {
-            let (state, ended, seen) = {
+            let (state, ended, seen, length) = {
                 let d = j.d.lock().unwrap();
-                (d.state, d.ended_at, d.seen_at)
+                (d.state, d.ended_at, d.seen_at, d.input_bytes)
             };
             if (state == "done" || state == "failed") && now - ended > DONE_TTL_MS {
                 self.stop_job(&j);
             } else if (state == "encoding" || state == "queued") && now - seen > ORPHAN_MS {
+                self.stop_job(&j);
+            } else if state == "receiving" && now - seen > receive_limit_ms(length) {
+                // (its read loop sees the stop and lets go of the slot and the disk it held)
                 self.stop_job(&j);
             }
         }
@@ -1185,6 +1207,8 @@ impl NodeWorker {
             std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&input)
         };
         let mut received: u64 = 0;
+        let started = self.now();
+        let mut too_slow = false;
         let whole = match file {
             Err(_) => false,
             Ok(mut f) => {
@@ -1192,6 +1216,11 @@ impl NodeWorker {
                 let mut ok = true;
                 while received < length {
                     if job.stopped.load(Ordering::SeqCst) {
+                        ok = false;
+                        break;
+                    }
+                    if self.now() - started > receive_limit_ms(length) {
+                        too_slow = true;
                         ok = false;
                         break;
                     }
@@ -1217,6 +1246,10 @@ impl NodeWorker {
         if job.stopped.load(Ordering::SeqCst) {
             // stopped while it arrived (revoked, node mode off): no answer, as Node
             return WorkerReply { status: 0, headers: vec![], body: ReplyBody::Close, unsent: None };
+        }
+        if too_slow {
+            self.stop_job(&job);
+            return WorkerReply::error(408, "The clip took too long to arrive.");
         }
         if !whole {
             self.stop_job(&job);
@@ -1317,6 +1350,7 @@ impl NodeWorker {
         st.bad_tokens.remove(r.address);
         drop(st);
         let token = base64url(&random_bytes(32));
+        let saving = self.saving();
         let s = self.settings()?;
         let main = json!({ "id": hex(&random_bytes(6)), "name": main_name, "address": r.address, "tokenHash": sha256_hex(token.as_bytes()), "pairedAt": now });
         let mut n = s.clone();
@@ -1325,6 +1359,7 @@ impl NodeWorker {
         let cut = n.mains.len().saturating_sub(16);
         n.mains = n.mains.split_off(cut);
         self.save(&n)?;
+        drop(saving);
         self.ctx().audit(Level::Info, &format!("Paired with main server \"{main_name}\" at {}", r.address));
         let ca = self.ctx().authority_pem();
         Ok(WorkerReply::json(200, &json!({ "name": self.0.name, "token": token, "proof": hmac_hex(&code, &pair_text::worker(&fingerprint, &token)), "authority": ca })))
@@ -1363,16 +1398,22 @@ impl NodeWorker {
         let now = self.now();
         if now - safe_int(&main["lastSeenAt"]).unwrap_or(0) > 60_000 {
             // (when and from where a main was last seen: a note, its failure logged in settings or save)
+            // (read again under the lock: a main revoked meanwhile is not brought back)
+            let _saving = self.saving();
             if let Ok(mut s) = self.settings() {
+                let mut listed = false;
                 for m in s.mains.iter_mut() {
                     if m["id"] == main["id"] {
                         if let Some(o) = m.as_object_mut() {
                             o.insert("lastSeenAt".into(), json!(now));
                             o.insert("address".into(), json!(r.address));
+                            listed = true;
                         }
                     }
                 }
-                self.save(&s).ok();
+                if listed {
+                    self.save(&s).ok();
+                }
             }
         }
         let (m, p) = (r.method, r.path);
@@ -1390,11 +1431,13 @@ impl NodeWorker {
                 if bad {
                     return Ok(WorkerReply::error(400, &format!("Clips at once per device of this node: 0 to {MAX_SLOTS}.")));
                 }
+                let saving = self.saving();
                 let mut s = self.settings()?;
                 for (id, n) in obj {
                     s.device_slots.insert(id.clone(), safe_int(n).unwrap());
                 }
                 self.save(&s)?;
+                drop(saving);
                 self.pump();
                 let named: Vec<String> = obj.iter().map(|(id, n)| format!("{} {}", list.iter().find(|d| &d.id == id).map(|d| d.name.as_str()).unwrap_or(""), safe_int(n).unwrap())).collect();
                 self.ctx().audit(Level::Info, &format!("Main server \"{main_name}\" set this node's clips at once: {}", named.join(", ")));
@@ -1407,9 +1450,11 @@ impl NodeWorker {
             let Some(n) = safe_int(&body["slots"]).filter(|n| (1..=MAX_SLOTS).contains(n)) else {
                 return Ok(WorkerReply::error(400, &format!("Clips at once: 1 to {MAX_SLOTS}.")));
             };
+            let saving = self.saving();
             let mut s = self.settings()?;
             s.slots = n;
             self.save(&s)?;
+            drop(saving);
             self.pump();
             self.ctx().audit(Level::Info, &format!("Main server \"{main_name}\" set this node to {n} clips at once"));
             return Ok(WorkerReply::json(200, &json!({ "slots": n })));

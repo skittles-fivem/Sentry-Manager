@@ -56,6 +56,17 @@ pub trait ArrivalCtx: Send + Sync + 'static {
     fn root_of(&self, vid: &str) -> PathBuf;
     /// vehicles.vehicleForPath(p): the id of the vehicle whose folder holds p
     fn vehicle_for_path(&self, path: &str) -> Option<String>;
+    /// The vehicle whose folder holds p and the root p is spelled under: its folder, or that
+    /// folder's real path (a converter's paths are real paths)
+    fn vehicle_root_for_path(&self, path: &str) -> Option<(String, PathBuf)> {
+        let vid = self.vehicle_for_path(path)?;
+        let root = self.root_of(&vid);
+        Some((vid, root))
+    }
+    /// The real path of the vehicle's folder when it is known without waiting on its share
+    fn real_root_of(&self, _vid: &str) -> Option<PathBuf> {
+        None
+    }
     /// inventory.get(vid), None before the first scan
     fn inventory(&self, vid: &str) -> Option<InventoryView>;
     /// inventory.codecs(vid).get(rel): the codec known for that size and time
