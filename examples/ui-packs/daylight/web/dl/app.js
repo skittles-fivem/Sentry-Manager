@@ -288,7 +288,12 @@ document.addEventListener('error', (e) => {
   view.innerHTML = '<div class="page"><div class="loading"><span class="spin"></span><span>Getting things ready…</span></div></div>';
   try {
     const [settings] = await Promise.all([api('/api/settings').catch(() => null), loadVehicles(), loadNotes(), loadJobs()]);
-    if (settings?.appearance?.reduceEffects) document.documentElement.classList.add('calm');
+    // the server's value wins over this browser's copy (theme.js applies that before the first paint)
+    if (settings?.appearance) {
+      const calm = Boolean(settings.appearance.reduceEffects);
+      document.documentElement.classList.toggle('calm', calm);
+      store.set('calm', calm);
+    }
     clockPref.h24 = Boolean(settings?.appearance?.clock24);
     state.power = settings?.power || null;
   } catch (err) {

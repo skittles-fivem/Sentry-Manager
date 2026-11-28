@@ -41,6 +41,20 @@ pub struct Conv {
     listed: std::sync::atomic::AtomicBool,
     /// the jobs whose folder is in no vehicle, said once each
     unmatched: Mutex<std::collections::HashSet<String>>,
+    /// jobId -> the revision of the newest live snapshot taken in, each job under its own lock.
+    /// A job's lock is held while its snapshot is mirrored, so an older snapshot delivered late
+    /// (the delayed one, after the urgent one of the job's end) is dropped instead of reopening
+    /// the finished row; the map itself is locked only to find a job's lock, so one job's
+    /// Activity write never waits on another's.
+    revs: Mutex<HashMap<String, JobRev>>,
+}
+
+/// a job's live-snapshot lock: the revision of its newest snapshot taken in
+type JobRev = Arc<Mutex<Option<i64>>>;
+
+/// The lock of job `id`'s live snapshots (made on its first)
+fn job_rev(revs: &Mutex<HashMap<String, JobRev>>, id: &str) -> JobRev {
+    revs.lock().unwrap_or_else(|p| p.into_inner()).entry(id.to_string()).or_default().clone()
 }
 
 pub struct CoreConverter {
@@ -245,10 +259,18 @@ fn slim_counts(out: &mut Map<String, Value>, (converted, skipped, failed): (u64,
 /// the counts of the clips).
 fn on_snapshot(srv: &Server, conv: &Conv, s: &Value, live: bool) {
     let Some(id) = s["id"].as_str() else { return };
+    let src = s["config"]["sourceRoot"].as_str().unwrap_or("");
+    // (looked up before the job's lock is taken: it may wait on a share for a moment)
+    let found = try_vehicle_of(srv, src);
+    // (a job's live snapshots one at a time, the newest wins: the service can deliver an older
+    // one after a newer one; each job by itself)
+    let rev = live.then(|| job_rev(&conv.revs, id));
+    let mut last = rev.as_ref().map(|r| r.lock().unwrap_or_else(|p| p.into_inner()));
+    if last.as_mut().is_some_and(|last| !take_newer(last, s)) {
+        return;
+    }
     let st = s["state"].as_str().unwrap_or("");
     conv.jobs.lock().unwrap().insert(id.to_string(), st.to_string());
-    let src = s["config"]["sourceRoot"].as_str().unwrap_or("");
-    let found = try_vehicle_of(srv, src);
     if live && !src.is_empty() && matches!(found, Ok(None)) && conv.unmatched.lock().unwrap().insert(id.to_string()) {
         srv.state.logger.scope("converter").warn(format!("Conversion {id}: its folder {src} is in no vehicle, so its space saved is not counted"));
     }
@@ -277,6 +299,16 @@ fn on_snapshot(srv: &Server, conv: &Conv, s: &Value, live: bool) {
     }
 }
 
+/// Whether live snapshot `s` of a job is not older than its newest taken in, `last` (kept as the newest)
+fn take_newer(last: &mut Option<i64>, s: &Value) -> bool {
+    let Some(r) = s["revision"].as_i64() else { return true };
+    if last.is_some_and(|last| last > r) {
+        return false;
+    }
+    *last = Some(r);
+    true
+}
+
 /// index.js settleConversionRows: once the converter has listed its jobs, a conversion's
 /// Activity row still "running" for a job it no longer runs gets the job's real end, or
 /// "interrupted" when the converter no longer has the job; rows of jobs under way stay.
@@ -300,13 +332,23 @@ pub fn settle(srv: &Server, conv: &Conv) -> usize {
             continue;
         }
         let id = &ext["converter:".len()..];
+        let source = |s: &Value| s["config"]["sourceRoot"].as_str().unwrap_or("").to_string();
+        // (the vehicle looked up before the job's lock is taken: it may wait on a share for a moment)
+        let looked = conv.snaps.lock().unwrap().get(id).filter(|s| !ACTIVE.contains(&s["state"].as_str().unwrap_or(""))).map(source);
+        let v = looked.as_deref().and_then(|src| vehicle_of(srv, src));
+        // (not between a live snapshot of this job's checks and its mirror)
+        let rev = job_rev(&conv.revs, id);
+        let _live = rev.lock().unwrap_or_else(|p| p.into_inner());
         let snap = conv.snaps.lock().unwrap().get(id).cloned();
         match snap {
             Some(s) if ACTIVE.contains(&s["state"].as_str().unwrap_or("")) => continue,
             Some(s) => {
                 let st = s["state"].as_str().unwrap_or("").to_string();
-                let src = s["config"]["sourceRoot"].as_str().unwrap_or("").to_string();
-                let v = vehicle_of(srv, &src);
+                let src = source(&s);
+                if looked.as_deref() != Some(src.as_str()) {
+                    // (its snapshot came since the vehicle was looked up: settled on a later call)
+                    continue;
+                }
                 mirror(srv, conv, &s, id, &st, &src, v.as_ref());
             }
             None => {
@@ -517,6 +559,7 @@ pub fn spawn(srv: &Arc<Server>) {
                 snaps: Mutex::new(HashMap::new()),
                 listed: std::sync::atomic::AtomicBool::new(false),
                 unmatched: Mutex::new(Default::default()),
+                revs: Mutex::new(HashMap::new()),
             });
             let (w, c) = (Arc::downgrade(&s), Arc::downgrade(&conv));
             conv.runtime.service.subscribe(Arc::new(move |event: &crate::converter::service::Event| {
@@ -714,6 +757,35 @@ mod cheap_now_tests {
         db.conn().execute_batch("CREATE TABLE gone (x); ALTER TABLE settings RENAME TO settings_kept; CREATE VIEW settings AS SELECT * FROM gone; DROP TABLE gone;").unwrap();
         cheap(90_000);
         assert_eq!(said(), 2, "again after it could be read");
+    }
+}
+
+#[cfg(test)]
+mod snapshot_order_tests {
+    use super::*;
+
+    #[test]
+    fn an_older_snapshot_delivered_late_is_dropped() {
+        let (mut j, mut other) = (None, None);
+        let snap = |r: i64| json!({ "id": "j", "state": if r < 9 { "verifying" } else { "completed" }, "revision": r });
+        assert!(take_newer(&mut j, &snap(8)));
+        assert!(take_newer(&mut j, &snap(9)), "the job's end");
+        assert!(!take_newer(&mut j, &snap(8)), "the delayed 'verifying' after the end: it would reopen the row");
+        assert!(take_newer(&mut j, &snap(9)), "the same revision again");
+        assert!(take_newer(&mut j, &snap(10)), "a retry runs it again");
+        assert!(take_newer(&mut other, &snap(1)), "each job by itself");
+        assert!(take_newer(&mut j, &json!({ "id": "j" })), "no revision: taken as before");
+    }
+
+    #[test]
+    fn each_job_has_its_own_snapshot_lock() {
+        let revs: Mutex<HashMap<String, JobRev>> = Mutex::new(HashMap::new());
+        let get = |id: &str| job_rev(&revs, id);
+        let a = get("a");
+        let _held = a.lock().unwrap();
+        // (job a's snapshot is being mirrored: job b's is not held up, and a is the same lock again)
+        assert!(get("b").try_lock().is_ok(), "another job's lock is free");
+        assert!(get("a").try_lock().is_err(), "the same job's lock");
     }
 }
 

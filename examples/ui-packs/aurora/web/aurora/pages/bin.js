@@ -52,7 +52,8 @@ export default {
       if (e.target.closest('[data-restore]')) {
         try {
           const out = await api(`/api/bin/${encodeURIComponent(item.id)}/restore`, { body: {} });
-          toast(out.conflicts ? `Restored ${out.restored} file(s); ${out.conflicts} could not be (a file with that name exists).` : 'Restored.', out.conflicts ? 'bad' : 'ok');
+          const why = [out.conflicts ? `${out.conflicts} could not be (a file with that name exists)` : '', out.missing ? `${out.missing} not found in the Recycle Bin` : '', out.failed ? `${out.failed} could not be moved back: ${out.error || 'unknown error'}` : ''].filter(Boolean).join('; ');
+          toast(why ? `Restored ${out.restored} file(s); ${why}.` : 'Restored.', why ? 'bad' : 'ok');
         } catch (err) { toast(err.message, 'bad'); }
       } else if (e.target.closest('[data-delete]')) {
         if (!(await confirmDialog({ title: 'Delete forever?', body: `<p><b>${esc(item.label)}</b> (${bytes(item.bytes)}) will be deleted from the share. This can’t be undone.</p>`, ok: 'Delete forever', danger: true }))) return;

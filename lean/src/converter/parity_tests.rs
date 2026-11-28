@@ -238,7 +238,7 @@ fn run_auto(scenario: &Value, steps_node: &[Value]) -> Value {
                 }
             }
             "forgetVehicle" => {
-                a.forget_vehicle(step["root"].as_str().unwrap());
+                a.forget_vehicle(step["root"].as_str().unwrap()).unwrap();
             }
             "ownerResumed" => a.owner_resumed(step["id"].as_str().unwrap()),
             "isKnown" => value = json!(a.is_known(&step["config"], &step["clip"])),

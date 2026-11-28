@@ -232,6 +232,7 @@ pub fn settings(ctx: &dyn Ctx) -> Result<Value, (u16, String)> {
 pub fn set_setting(ctx: &dyn Ctx, body: &Value) -> Result<Value, (u16, String)> {
     let Some(key) = body.get("key").and_then(Value::as_str).filter(|k| k.encode_utf16().count() <= 100) else { return Err((400, "Invalid setting".into())) };
     let value = body.get("value").cloned();
+    let _edit = crate::setting_edit();
     if key == "timeFormat" {
         let mut a = serde_json::Map::new();
         a.insert("reduceEffects".into(), json!(false));

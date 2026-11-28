@@ -843,10 +843,13 @@ impl Service {
         if !self.has_listeners() {
             return;
         }
-        let (id, revision) = {
+        let (id, current) = {
             let s = rt.lock();
             (s.manifest.id().to_string(), s.manifest.revision())
         };
+        // (the revision of the manifest the snapshot was taken of: a delayed snapshot can be
+        // emitted after a newer revision was stored)
+        let revision = snap.head().get("revision").and_then(Value::as_i64).unwrap_or(current);
         let head = Value::Object(snap.head().clone());
         self.emit_event("snapshot", &id, Some(revision), vec![("snapshot", head)], Some(snap));
     }

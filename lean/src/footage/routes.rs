@@ -522,24 +522,45 @@ fn trash_days(app: &Arc<App>, who: &Caller, id: &str, b: &Value) -> Option<Res<R
         summary.insert("started".into(), json!(false));
         return ok(Value::Object(summary));
     }
+    // (what would refuse the move is answered now: once started, Activity shows the rest)
+    tri!(bin::ready(app, &v.id));
     let with_can = b.get("withCan") == Some(&Value::Bool(true));
     let ids: Vec<String> = movable.iter().map(|r| r.id.clone()).collect();
     let files: HashMap<String, Vec<String>> = movable.iter().map(|r| (r.id.clone(), r.files().map(|(f, _)| f.to_string()).collect())).collect();
     let a = app.clone();
     let by = who.by();
     std::thread::spawn(move || {
-        match bin::trash(&a, &v.id, &ids, "manual") {
-            Ok(out) => {
-                // only when footage really moved, and only the minutes of the recordings that did
-                if with_can && !out.moved.is_empty() {
-                    let rels: Vec<String> = out.moved.iter().flat_map(|m| files.get(m).cloned().unwrap_or_default()).collect();
-                    if let Some(r) = a.core.can_delete_with(&v.id, &rels, until, &by) {
-                        a.core.log("server", Level::Info, &format!("CAN data with {}'s footage: {r}", v.name));
+        let mut can_ran = false;
+        // only when footage really moved, and only the minutes of the recordings that did; the
+        // result goes on the run's Activity row
+        let after = |out: &bin::Trashed| {
+            if !with_can || out.moved.is_empty() {
+                return None;
+            }
+            can_ran = true;
+            let rels: Vec<String> = out.moved.iter().flat_map(|m| files.get(m).cloned().unwrap_or_default()).collect();
+            let r = a.core.can_delete_with(&v.id, &rels, until, &by);
+            if let Some(r) = &r {
+                a.core.log("server", Level::Info, &format!("CAN data with {}'s footage: {r}", v.name));
+            }
+            r
+        };
+        match bin::trash_then(&a, &v.id, &ids, "manual", after) {
+            Ok(_) => {}
+            Err(e) => {
+                a.core.log("server", Level::Warn, &format!("Moving {}'s footage to the Recycle Bin failed: {}", v.name, e.message));
+                // (refused before its Activity row was made, e.g. the share stopped being
+                // writable just now: a row says so instead of nothing showing; a run that
+                // stopped after it started answers 500 and has finished its own row)
+                if e.status != 500 {
+                    if let Ok(job) = a.core.job_start("trash", Some(&v.id), &format!("Move {} recording(s) to the Recycle Bin", ids.len())) {
+                        a.core.job_finish(job, "failed", &e.message, None);
                     }
-                    a.core.announce("can");
                 }
             }
-            Err(e) => a.core.log("server", Level::Warn, &format!("Moving {}'s footage to the Recycle Bin failed: {}", v.name, e.message)),
+        }
+        if can_ran {
+            a.core.announce("can");
         }
         a.core.announce("inventory");
         a.core.announce("bin");

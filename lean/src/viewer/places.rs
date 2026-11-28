@@ -386,6 +386,7 @@ pub fn add(ctx: &dyn Ctx, body: &Value) -> Result<Value, (u16, String)> {
         None | Some(Value::Null) => DEFAULT_RADIUS,
         Some(r) => radius_or_400(r)?,
     };
+    let _edit = crate::setting_edit();
     let list = place_list(ctx).map_err(super::ctx::failed)?;
     if list.len() >= 200 {
         return Err((400, "There are 200 saved places already: remove some first.".into()));
@@ -411,6 +412,7 @@ fn pos_of(b: &Value) -> Result<(f64, f64), (u16, String)> {
 }
 
 pub fn patch(ctx: &dyn Ctx, id: &str, body: &Value) -> Result<Value, (u16, String)> {
+    let _edit = crate::setting_edit();
     let mut list = place_list(ctx).map_err(super::ctx::failed)?;
     let Some(i) = list.iter().position(|p| p.get("id").and_then(Value::as_str) == Some(id)) else { return Err((404, "No such place.".into())) };
     let has_name = body.get("name").is_some();
@@ -440,6 +442,7 @@ pub fn patch(ctx: &dyn Ctx, id: &str, body: &Value) -> Result<Value, (u16, Strin
 }
 
 pub fn remove(ctx: &dyn Ctx, id: &str) -> Result<Value, (u16, String)> {
+    let _edit = crate::setting_edit();
     let list = place_list(ctx).map_err(super::ctx::failed)?;
     if !list.iter().any(|p| p.get("id").and_then(Value::as_str) == Some(id)) {
         return Err((404, "No such place.".into()));
@@ -475,6 +478,18 @@ mod tests {
         assert_eq!(status(remove(ctx, &id)), Err(500), "not removed");
         car.ctx.writes_fail.store(false, std::sync::atomic::Ordering::SeqCst);
         assert_eq!(place_list(ctx).unwrap(), vec![kept], "the saved place is as it was");
+    }
+
+    #[test]
+    fn places_saved_at_the_same_time_are_all_kept() {
+        let car = crate::viewer::testkit::Car::new("places-together");
+        let ctx = &*car.ctx;
+        std::thread::scope(|s| {
+            for i in 0..16 {
+                s.spawn(move || add(ctx, &json!({ "name": format!("P{i}"), "lat": 40.0 + i as f64 / 100.0, "lon": -74.0 })).unwrap());
+            }
+        });
+        assert_eq!(place_list(ctx).unwrap().len(), 16, "no save wrote over another");
     }
 
     #[test]

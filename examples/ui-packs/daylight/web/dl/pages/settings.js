@@ -308,7 +308,13 @@ async function look({ el }) {
       const on = e.target.checked;
       document.documentElement.classList.toggle('calm', on);
       store.set('calm', on);
-      try { await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: on } }); toast(on ? 'Calm mode on.' : 'Calm mode off.', { kind: 'good' }); } catch (err) { fail(err); }
+      try { await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: on } }); toast(on ? 'Calm mode on.' : 'Calm mode off.', { kind: 'good' }); } catch (err) {
+        // not saved: back to how it was, in this browser too
+        e.target.checked = !on;
+        document.documentElement.classList.toggle('calm', !on);
+        store.set('calm', !on);
+        fail(err);
+      }
     };
     el.querySelector('#clock24').onchange = async (e) => {
       const on = e.target.checked;

@@ -436,3 +436,31 @@ fn a_job_that_ends_with_more_after_it_starts_the_next_one_without_waiting_for_th
     assert!(auto.is_known(&car("/cars/a", "h265").as_object().map(|m| { let mut m = m.clone(); m.insert("autoConvert".into(), json!(true)); Value::Object(m) }).unwrap(), &json!({ "relativePath": "RecentClips/0.mp4", "sourceBytes": 100, "mtimeMs": 1 })), "the ended job was recorded first");
     auto.stop();
 }
+
+#[test]
+fn settings_that_cannot_be_saved_are_refused_and_never_used() {
+    let t = cars();
+    let dir = t._d.path();
+    // a vehicle's saved settings: the write fails (its temporary file's name is a folder)
+    std::fs::create_dir(dir.join(format!("{SAVED_FILE}.tmp"))).unwrap();
+    assert!(t.auto.save_vehicle(&car("/cars/a", "av1")).is_err(), "not answered as saved");
+    assert!(t.auto.get_state()["saved"].as_array().unwrap().is_empty(), "nothing kept in memory either");
+    std::fs::remove_dir(dir.join(format!("{SAVED_FILE}.tmp"))).unwrap();
+    t.auto.save_vehicle(&car("/cars/a", "av1")).unwrap();
+    std::fs::create_dir(dir.join(format!("{SAVED_FILE}.tmp"))).unwrap();
+    assert!(t.auto.forget_vehicle("/cars/a").is_err());
+    assert_eq!(t.auto.get_state()["saved"].as_array().unwrap().len(), 1, "still saved");
+    std::fs::remove_dir(dir.join(format!("{SAVED_FILE}.tmp"))).unwrap();
+    // the automatic settings: refused, and the converter goes on with the ones it had
+    std::fs::create_dir(dir.join(format!("{SETTINGS_FILE}.tmp"))).unwrap();
+    assert!(t.auto.configure(&shared(json!({ "enabled": true, "config": car("/cars/c", "h265") }))).is_err());
+    let st = t.auto.get_state();
+    assert_eq!(st["settings"]["enabled"], false);
+    assert!(st["settings"]["configs"].as_array().unwrap().is_empty());
+    std::fs::remove_dir(dir.join(format!("{SETTINGS_FILE}.tmp"))).unwrap();
+    t.auto.configure(&shared(json!({ "enabled": true, "config": car("/cars/c", "h265") }))).unwrap();
+    wait_ticks(&t.auto);
+    std::fs::create_dir(dir.join(format!("{SETTINGS_FILE}.tmp"))).unwrap();
+    assert!(t.auto.set_concurrency(&json!(5), Some("/cars/c")).is_err());
+    assert_eq!(t.auto.get_state()["settings"]["configs"][0]["concurrency"], 2, "the change not saved is not used");
+}

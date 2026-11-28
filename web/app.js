@@ -166,13 +166,37 @@
     store.set('collapsed', app.classList.contains('collapsed'));
     setTimeout(() => fitFrames(), 50);
   });
-  $('reduce-effects').addEventListener('change', (e) => {
-    document.documentElement.classList.toggle('reduce-effects', e.target.checked);
-    api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: e.target.checked } }).catch(() => {});
+  $('reduce-effects').addEventListener('change', async (e) => {
+    const on = e.target.checked;
+    document.documentElement.classList.toggle('reduce-effects', on);
+    // one save at a time, so a failed one puts back the value the server has
+    e.target.disabled = true;
+    try {
+      await api('/api/settings/appearance', { method: 'PUT', body: { reduceEffects: on } });
+    } catch (err) {
+      // not saved: back as it was
+      e.target.checked = !on;
+      document.documentElement.classList.toggle('reduce-effects', !on);
+      toast(err.message, true);
+    } finally {
+      e.target.disabled = false;
+    }
   });
-  $('clock-24').addEventListener('change', (e) => {
-    clockPref.h24 = e.target.checked;
-    api('/api/settings/appearance', { method: 'PUT', body: { clock24: clockPref.h24 } }).catch(() => {});
+  $('clock-24').addEventListener('change', async (e) => {
+    const on = e.target.checked;
+    // applied once saved (the Viewer, Encoder and exports read the saved setting); one save
+    // at a time, so a failed one puts back the value the server has
+    e.target.disabled = true;
+    try {
+      await api('/api/settings/appearance', { method: 'PUT', body: { clock24: on } });
+    } catch (err) {
+      e.target.checked = !on;
+      toast(err.message, true);
+      return;
+    } finally {
+      e.target.disabled = false;
+    }
+    clockPref.h24 = on;
     // the Viewer and Encoder read it when they load
     for (const f of Object.values(frames)) f?.remove?.();
     for (const k of Object.keys(frames)) delete frames[k];
@@ -1892,7 +1916,8 @@
       row.querySelector('[data-restore]').onclick = async () => {
         try {
           const out = await api(`/api/bin/${encodeURIComponent(id)}/restore`, { body: {} });
-          toast(out.conflicts ? `Restored ${out.restored} file(s); ${out.conflicts} could not be (a file with that name exists).` : 'Restored.', out.conflicts > 0);
+          const why = [out.conflicts ? `${out.conflicts} could not be (a file with that name exists)` : '', out.missing ? `${out.missing} not found in the Recycle Bin` : '', out.failed ? `${out.failed} could not be moved back: ${out.error || 'unknown error'}` : ''].filter(Boolean).join('; ');
+          toast(why ? `Restored ${out.restored} file(s); ${why}.` : 'Restored.', Boolean(why));
         } catch (err) {
           toast(err.message, true);
         }
@@ -2187,7 +2212,7 @@
         ${n.resolvedAt ? '<span></span>' : `<button class="btn sm" data-dismiss="${n.id}">Dismiss</button>`}</li>`).join('')}</ul>` : '<p>No notifications.</p>'}</div>`;
     page.querySelectorAll('[data-dismiss]').forEach((b) => {
       b.onclick = async () => {
-        await api(`/api/notifications/${b.dataset.dismiss}/dismiss`, { body: {} }).catch(() => {});
+        await api(`/api/notifications/${encodeURIComponent(b.dataset.dismiss)}/dismiss`, { body: {} }).catch((err) => toast(err.message, true));
         await loadNotes();
         render();
       };

@@ -337,19 +337,32 @@ authorization: { credentials: '${esc(token)}' }</pre><p>For HTTPS, install the <
         document.documentElement.style.setProperty('--lg-glass', state.glass / 50);
         document.documentElement.style.setProperty('--lg-glow', state.glass / 50);
       };
+      // a refused save puts the switch back, then the error toast shows
       box.querySelector('[data-clock]').onchange = act(async (e) => {
-        await api('/api/settings/appearance', {
-          method: 'PUT',
-          body: { clock24: e.target.checked },
-        });
-        state.h24 = e.target.checked;
+        const on = e.target.checked;
+        try {
+          await api('/api/settings/appearance', {
+            method: 'PUT',
+            body: { clock24: on },
+          });
+        } catch (err) {
+          e.target.checked = !on;
+          throw err;
+        }
+        state.h24 = on;
       });
       box.querySelector('[data-reduce]').onchange = act(async (e) => {
-        await api('/api/settings/appearance', {
-          method: 'PUT',
-          body: { reduceEffects: e.target.checked },
-        });
-        document.documentElement.classList.toggle('reduce-effects', e.target.checked);
+        const on = e.target.checked;
+        try {
+          await api('/api/settings/appearance', {
+            method: 'PUT',
+            body: { reduceEffects: on },
+          });
+        } catch (err) {
+          e.target.checked = !on;
+          throw err;
+        }
+        document.documentElement.classList.toggle('reduce-effects', on);
       });
       box.querySelector('[data-units]').onchange = (e) =>
         globalThis.SentryUnits.set(e.target.value === 'km');
