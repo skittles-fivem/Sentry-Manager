@@ -1457,9 +1457,11 @@ impl ArchiveGap {
 
     /// forDays(vid): the day cards' `archive` (no check started).
     pub fn for_days(&self, vid: &str) -> HashMap<String, Value> {
-        let r = self.results.lock().unwrap().get(vid).cloned();
+        // (read where it is kept: only the fields the cards show are copied)
+        let results = self.results.lock().unwrap();
+        let r = results.get(vid);
         let mut out = HashMap::new();
-        for (d, f) in r.as_ref().and_then(|r| r["days"].as_object()).into_iter().flatten() {
+        for (d, f) in r.and_then(|r| r["days"].as_object()).into_iter().flatten() {
             let missed = f["missedSnapshots"].as_array().filter(|a| !a.is_empty()).map_or(Value::Null, |a| json!(a));
             let or_null = |v: &Value| if crate::ops::js::truthy(v) { v.clone() } else { Value::Null };
             out.insert(

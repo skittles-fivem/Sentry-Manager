@@ -82,6 +82,26 @@ pub fn wire(app: &Arc<App>) {
     });
 }
 
+/// The bytes of a file list's files by day, oldest day first: found once per list (per vehicle).
+fn day_bytes(vid: &str, list: &Arc<crate::scanner::FileList>) -> Arc<Vec<(String, u64)>> {
+    type Kept = HashMap<String, (std::sync::Weak<crate::scanner::FileList>, Arc<Vec<(String, u64)>>)>;
+    static KEPT: std::sync::LazyLock<std::sync::Mutex<Kept>> = std::sync::LazyLock::new(Default::default);
+    let mut kept = KEPT.lock().unwrap();
+    // (the list is held weakly, so its place is not another list's while this is kept)
+    if let Some((was, days)) = kept.get(vid) {
+        if std::ptr::eq(was.as_ptr(), Arc::as_ptr(list)) {
+            return days.clone();
+        }
+    }
+    let mut by: std::collections::BTreeMap<&str, u64> = std::collections::BTreeMap::new();
+    for f in list.iter() {
+        *by.entry(f.day.as_str()).or_insert(0) += f.size;
+    }
+    let days = Arc::new(by.into_iter().map(|(d, b)| (d.to_string(), b)).collect::<Vec<_>>());
+    kept.insert(vid.to_string(), (Arc::downgrade(list), days.clone()));
+    days
+}
+
 /// index.js storageOf: days until full, from the free space and the footage a day lately.
 fn storage_of(app: &App, v: &Vehicle, policy: &Value) -> Value {
     let Some(share) = app.vehicles.share(&v.id) else { return Value::Null };
@@ -93,13 +113,11 @@ fn storage_of(app: &App, v: &Vehicle, policy: &Value) -> Value {
     let mut bytes = 0u64;
     let mut first: Option<String> = None;
     if let Some(inv) = app.state_of(&v.id) {
-        for f in inv.file_list.iter() {
-            if f.day.is_empty() || f.day < since {
-                continue;
-            }
-            bytes += f.size;
-            if first.as_ref().map_or(true, |x| f.day < *x) {
-                first = Some(f.day.clone());
+        // (each day's bytes, oldest first: the files' days from `since` on, the oldest of them first)
+        for (day, b) in day_bytes(&v.id, &inv.file_list).iter().filter(|(d, _)| !d.is_empty() && *d >= since) {
+            bytes += b;
+            if first.is_none() {
+                first = Some(day.clone());
             }
         }
     }

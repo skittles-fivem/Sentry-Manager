@@ -113,11 +113,15 @@ impl Runner for BoundedRunner {
         let reader_group = group.clone();
         let term = move || reader_group.signal(libc::SIGTERM);
         let mut readers = Vec::new();
+        // (each reader holds a sender: all dropped once both pipes are closed, the child is ending)
+        let (reader_alive, readers_ended) = std::sync::mpsc::channel::<()>();
         for (is_out, stream) in [(true, child.stdout.take().map(|s| Box::new(s) as Box<dyn Read + Send>)), (false, child.stderr.take().map(|s| Box::new(s) as Box<dyn Read + Send>))] {
             let Some(mut stream) = stream else { continue };
             let cap = cap.clone();
             let term = term.clone();
+            let alive = reader_alive.clone();
             readers.push(std::thread::spawn(move || {
+                let _alive = alive;
                 let mut buf = [0u8; 16384];
                 loop {
                     let n = match stream.read(&mut buf) {
@@ -144,6 +148,15 @@ impl Runner for BoundedRunner {
                 }
             }));
         }
+        drop(reader_alive);
+        // looked at every 10 ms, and soon after its output closed (1 ms, then longer)
+        let mut after_close = Duration::from_millis(1);
+        let mut pause = |most: Duration| {
+            if let Err(std::sync::mpsc::RecvTimeoutError::Disconnected) = readers_ended.recv_timeout(most) {
+                std::thread::sleep(after_close.min(most));
+                after_close = (after_close * 2).min(Duration::from_millis(10));
+            }
+        };
         let start = Instant::now();
         let grace = Duration::from_millis(self.grace_ms);
         let (mut timed_out, mut aborted) = (false, false);
@@ -187,16 +200,16 @@ impl Runner for BoundedRunner {
                 (_, Some(k)) if k.elapsed() >= grace => break true,
                 _ => {}
             }
-            std::thread::sleep(Duration::from_millis(10));
+            pause(Duration::from_millis(10));
         };
         // the output ends when everything holding its pipes did (a stuck child holds them as long
         // as it is stuck: not waited for); what the child started and left running is killed a
         // drain later, and a reader still blocked after that is left to end
         if !stuck {
             let drain = grace.max(Duration::from_secs(1));
-            let waited = |until: Instant| {
+            let mut waited = |until: Instant| {
                 while readers.iter().any(|r| !r.is_finished()) && Instant::now() < until {
-                    std::thread::sleep(Duration::from_millis(10));
+                    pause(Duration::from_millis(10));
                 }
             };
             waited(Instant::now() + drain);

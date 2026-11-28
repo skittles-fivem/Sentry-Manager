@@ -341,6 +341,8 @@ pub struct Auto {
     st: Mutex<Inner>,
     ticking: Mutex<()>,
     sweep_abort: Mutex<Option<Arc<AtomicBool>>>,
+    /// set when one of its jobs ended: the timer ticks at once instead of at its next interval
+    wake: Arc<(Mutex<bool>, std::sync::Condvar)>,
 }
 
 fn num_eq(a: &Value, b: &Value) -> bool {
@@ -362,7 +364,7 @@ impl Auto {
             "activeSource": null, "round": [], "sources": {}, "pending": {}, "active": {},
             "heldManual": [], "handledManual": []
         });
-        Arc::new(Auto { o, st: Mutex::new(Inner { settings: default_settings(), saved: vec![], status, indexes: Default::default(), timer: None }), ticking: Mutex::new(()), sweep_abort: Mutex::new(None) })
+        Arc::new(Auto { o, st: Mutex::new(Inner { settings: default_settings(), saved: vec![], status, indexes: Default::default(), timer: None }), ticking: Mutex::new(()), sweep_abort: Mutex::new(None), wake: Arc::new((Mutex::new(false), std::sync::Condvar::new())) })
     }
 
     fn lock(&self) -> MutexGuard<'_, Inner> {
@@ -994,6 +996,29 @@ impl Auto {
         drop(guard);
     }
 
+    /// a tick of its own, after the one running now (if any) has ended
+    fn tick_after_any(&self) {
+        let guard = self.ticking.lock().unwrap_or_else(|p| p.into_inner());
+        if let Err(e) = self.tick_once() {
+            self.lock().status["error"] = json!(e);
+        }
+        drop(guard);
+    }
+
+    /// jobEnded(jobId): one of its jobs reached its end; its timer ticks now (the next job
+    /// starts without waiting for the interval). Without its own timer (tests): nothing.
+    pub fn job_ended(&self, id: &str) {
+        if !self.o.timer {
+            return;
+        }
+        let ours = self.lock().status["active"].as_object().is_some_and(|m| m.values().any(|e| e["jobId"] == id));
+        if !ours {
+            return;
+        }
+        *self.wake.0.lock().unwrap_or_else(|p| p.into_inner()) = true;
+        self.wake.1.notify_all();
+    }
+
     fn tick_soon(self: &Arc<Self>) {
         // (without its own timer, as in tests: at once)
         if !self.o.timer {
@@ -1071,12 +1096,20 @@ impl Auto {
             self.lock().timer = Some(stop.clone());
             let me = Arc::downgrade(self);
             let every = Duration::from_millis(self.o.tick_ms);
+            let wake = self.wake.clone();
             std::thread::spawn(move || loop {
-                std::thread::sleep(every);
+                let woken = {
+                    let mut w = wake.0.lock().unwrap_or_else(|p| p.into_inner());
+                    w = wake.1.wait_timeout_while(w, every, |woken| !*woken).unwrap_or_else(|p| p.into_inner()).0;
+                    std::mem::take(&mut *w)
+                };
                 if stop.load(Ordering::SeqCst) {
                     return;
                 }
                 match me.upgrade() {
+                    // (woken: a tick already running may have looked before the job ended, so
+                    // this one waits for it and then looks again)
+                    Some(a) if woken => a.tick_after_any(),
                     Some(a) => a.tick(),
                     None => return,
                 }
@@ -1279,6 +1312,8 @@ impl Auto {
     pub fn stop(&self) {
         if let Some(t) = self.lock().timer.take() {
             t.store(true, Ordering::SeqCst);
+            *self.wake.0.lock().unwrap_or_else(|p| p.into_inner()) = true;
+            self.wake.1.notify_all();
         }
         if let Some(a) = self.sweep_abort.lock().unwrap().as_ref() {
             a.store(true, Ordering::SeqCst);

@@ -240,17 +240,22 @@ pub const ENCODER_PAGE: &str = "/studio/encoder.html";
 
 /// index.js securityHeaders (no HSTS: see there).
 pub fn security_headers(h: &mut HeaderMap, pathname: &str) {
-    let set = |h: &mut HeaderMap, k: &'static str, v: String| {
-        if let Ok(v) = HeaderValue::from_str(&v) {
-            h.insert(HeaderName::from_static(k), v);
-        }
+    // (the three policies are made once)
+    static CSP: std::sync::OnceLock<[HeaderValue; 3]> = std::sync::OnceLock::new();
+    let csp = CSP.get_or_init(|| {
+        let img_maps = format!("'self' data: blob: {MAP_HOSTS}");
+        let connect_maps = format!("'self' {MAP_HOSTS}");
+        [csp_with("'self' 'unsafe-eval'", &img_maps, &connect_maps), csp_with("'self'", &img_maps, &connect_maps), csp_with("'self'", "'self' data: blob:", "'self'")].map(|v| HeaderValue::from_str(&v).unwrap())
+    });
+    let set = |h: &mut HeaderMap, k: &'static str, v: &'static str| {
+        h.insert(HeaderName::from_static(k), HeaderValue::from_static(v));
     };
-    set(h, "x-content-type-options", "nosniff".into());
-    set(h, "referrer-policy", "no-referrer".into());
-    set(h, "x-frame-options", "SAMEORIGIN".into());
-    set(h, "cross-origin-opener-policy", "same-origin".into());
-    set(h, "cross-origin-resource-policy", "same-origin".into());
-    set(h, "permissions-policy", "camera=(), microphone=(), geolocation=(), usb=(), serial=(), payment=(), fullscreen=(self)".into());
+    set(h, "x-content-type-options", "nosniff");
+    set(h, "referrer-policy", "no-referrer");
+    set(h, "x-frame-options", "SAMEORIGIN");
+    set(h, "cross-origin-opener-policy", "same-origin");
+    set(h, "cross-origin-resource-policy", "same-origin");
+    set(h, "permissions-policy", "camera=(), microphone=(), geolocation=(), usb=(), serial=(), payment=(), fullscreen=(self)");
     // The policy of the file the request is answered with: the path decoded,
     // checked and unversioned as the handler does it (a path it refuses gets
     // the plain policy). A versioned link (/v/<version>/<path>) is <path>'s
@@ -258,16 +263,14 @@ pub fn security_headers(h: &mut HeaderMap, pathname: &str) {
     // worker comes from a versioned Studio script and fetches the tiles.
     let page = super::server::clean_path(pathname.split('?').next().unwrap_or("")).map(|p| super::server::unversion(p).0).unwrap_or_default();
     let page = page.as_str();
-    let img_maps = format!("'self' data: blob: {MAP_HOSTS}");
-    let connect_maps = format!("'self' {MAP_HOSTS}");
-    let csp = if page.starts_with("/studio/") && page != ENCODER_PAGE {
-        csp_with("'self' 'unsafe-eval'", &img_maps, &connect_maps)
+    let which = if page.starts_with("/studio/") && page != ENCODER_PAGE {
+        0
     } else if page == "/" || page == "/index.html" {
-        csp_with("'self'", &img_maps, &connect_maps)
+        1
     } else {
-        csp_with("'self'", "'self' data: blob:", "'self'")
+        2
     };
-    set(h, "content-security-policy", csp);
+    h.insert(HeaderName::from_static("content-security-policy"), csp[which].clone());
 }
 
 /// Who may call a route.

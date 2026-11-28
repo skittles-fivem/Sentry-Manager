@@ -398,17 +398,22 @@ export default {
 
     // ---------- data ----------
     const ORBIT = () => $('.orbit-wrap', body);
+    // (one loop: a call while a read is in flight leaves it to that read, which sets the next)
+    let statsBusy = false;
     const pollStats = async () => {
       clearTimeout(statsTimer);
-      if (dead) return;
+      if (dead || statsBusy) return;
       if (!document.hidden) {
+        statsBusy = true;
         try {
           const s = await api('/api/stats', { timeoutMs: 8000 });
           enc = s.encoder;
           power = s.power || null;
           if (!dead) { liveDraw(ORBIT(), drawOrbit); liveDraw($('#lanes-panel', body), drawLanes); liveDraw(ORBIT(), drawLive); }
         } catch { /* next time */ }
+        statsBusy = false;
       }
+      if (dead) return;
       statsTimer = setTimeout(pollStats, snap && ACTIVE.has(snap.state) ? 2000 : 6000);
     };
 

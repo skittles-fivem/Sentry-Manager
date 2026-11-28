@@ -196,6 +196,12 @@ impl Unread {
 }
 
 impl ScanResult {
+    /// A scan that found these files and folders (for tests).
+    #[cfg(test)]
+    pub fn of(files: Vec<FileEntry>, dirs: HashMap<String, f64>, started_at: f64, scanned_at: f64) -> ScanResult {
+        ScanResult { files, dirs, errors: Vec::new(), unread: Unread::default(), listed: HashSet::new(), gone: HashSet::new(), reused: 0, started_at, scanned_at, duration_ms: 0.0 }
+    }
+
     /// What an earlier scan saw where this one could not look comes back: the files below a
     /// folder it could not list whole, and the files it could not stat. A file whose nearest
     /// folder this walk listed whole, and did not find, is gone and stays out, as is a file its
@@ -481,7 +487,8 @@ fn node_order(mut files: Vec<FileEntry>, tree: &mut HashMap<String, Vec<Child>>)
             Child::Stat(r) | Child::Kept(r) => seen(r, &mut seq),
         }
     }
-    files.sort_by_key(|f| seq.get(&f.rel).copied().unwrap_or(usize::MAX));
+    // (one lookup per file, not per comparison; stable as sort_by_key)
+    files.sort_by_cached_key(|f| seq.get(&f.rel).copied().unwrap_or(usize::MAX));
     files
 }
 

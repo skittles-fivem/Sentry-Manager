@@ -1200,16 +1200,18 @@ impl Service {
             if let Some(i) = live.iter().position(|(l, _)| *l == id) {
                 out.push(live.remove(i).1);
             } else {
-                let mut v = (*s).clone();
-                if let Some(m) = v.as_object_mut() {
-                    for k in PRIVATE_SNAPSHOT_KEYS {
-                        m.shift_remove(k);
+                // (a copy without the private keys, not a whole copy cut down)
+                let v = match s.as_object() {
+                    Some(m) => {
+                        let mut c: Map<String, Value> = m.iter().filter(|(k, _)| k.as_str() != "items" && !PRIVATE_SNAPSHOT_KEYS.contains(&k.as_str())).map(|(k, v)| (k.clone(), v.clone())).collect();
+                        // (publicSnapshot puts items last)
+                        if let Some(items) = m.get("items") {
+                            c.insert("items".into(), items.clone());
+                        }
+                        Value::Object(c)
                     }
-                    // (publicSnapshot puts items last)
-                    if let Some(items) = m.shift_remove("items") {
-                        m.insert("items".into(), items);
-                    }
-                }
+                    None => (*s).clone(),
+                };
                 out.push(v);
             }
         }

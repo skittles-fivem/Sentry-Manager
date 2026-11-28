@@ -167,11 +167,7 @@ impl Catalog {
             })
         })?;
         prev.files = Arc::new(rows.collect::<rusqlite::Result<Vec<_>>>()?.into());
-        let mut q = c.prepare("SELECT rel, mtime_ms FROM catalog_dirs WHERE vehicle_id = ?1")?;
-        for d in q.query_map([vehicle], |r| Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?)))? {
-            let (rel, m) = d?;
-            prev.dirs.insert(rel, m);
-        }
+        prev.dirs = dirs_of(&c, vehicle)?;
         Ok(prev)
     }
 
@@ -198,16 +194,73 @@ impl Catalog {
     pub fn save_scan(&self, vehicle: &str, root: &str, scan: &ScanResult) -> rusqlite::Result<()> {
         // (the scan row goes first and comes back last: a write that stops halfway leaves none)
         self.invalidate(vehicle)?;
-        let known = self.previous(vehicle)?;
-        let present: HashSet<&str> = scan.files.iter().map(|f| f.rel.as_str()).collect();
-        let gone: Vec<String> = known.files.values().map(|f| &f.rel).filter(|r| !present.contains(r.as_str())).cloned().collect();
-        let changed: Vec<&FileEntry> = scan.files.iter().filter(|f| known.files.get(&f.rel).is_none_or(|k| !same_entry(k, f))).collect();
+        let (gone, changed, known_dirs) = self.changes(vehicle, &scan.files)?;
         self.remove_files(vehicle, &gone)?;
         self.put_files(vehicle, &changed)?;
-        self.conn().execute("DELETE FROM catalog_dirs WHERE vehicle_id = ?1", [vehicle])?;
-        let dirs: Vec<(&String, &f64)> = scan.dirs.iter().collect();
-        self.each(&dirs, "INSERT INTO catalog_dirs (vehicle_id, rel, mtime_ms) VALUES (?1, ?2, ?3)", |st, (rel, m)| st.execute(params![vehicle, rel, m]).map(|_| ()))?;
+        // (the folders' rows as the scan has them: only the ones that differ are written; a row
+        // the same to the bit as the scan's time is left as it is)
+        let old_dirs: Vec<&String> = known_dirs.keys().filter(|r| !scan.dirs.contains_key(*r)).collect();
+        let new_dirs: Vec<(&String, &f64)> = scan.dirs.iter().filter(|(rel, m)| known_dirs.get(*rel).is_none_or(|k| k.to_bits() != m.to_bits())).collect();
+        self.each(&old_dirs, "DELETE FROM catalog_dirs WHERE vehicle_id = ?1 AND rel = ?2", |st, rel| st.execute(params![vehicle, rel]).map(|_| ()))?;
+        self.each(&new_dirs, "INSERT INTO catalog_dirs (vehicle_id, rel, mtime_ms) VALUES (?1, ?2, ?3) ON CONFLICT(vehicle_id, rel) DO UPDATE SET mtime_ms = excluded.mtime_ms", |st, (rel, m)| {
+            st.execute(params![vehicle, rel, m]).map(|_| ())
+        })?;
         self.mark_scan(vehicle, root, scan.started_at, scan.scanned_at)
+    }
+
+    /// What save_scan writes of `files`: the rows the catalog has that are not among them (gone),
+    /// each file whose row is missing or not the same (changed, in their order), and the folders'
+    /// rows. The rows are compared as previous() reads them, where they are, and fail as it fails.
+    #[allow(clippy::type_complexity)]
+    fn changes<'f>(&self, vehicle: &str, files: &'f [FileEntry]) -> rusqlite::Result<(Vec<String>, Vec<&'f FileEntry>, HashMap<String, f64>)> {
+        // (each rel's first place among the files, and from each place the next with that rel)
+        const NONE: usize = usize::MAX;
+        let mut at: HashMap<&str, usize> = HashMap::with_capacity(files.len());
+        let mut next = vec![NONE; files.len()];
+        for (i, f) in files.iter().enumerate().rev() {
+            if let Some(later) = at.insert(f.rel.as_str(), i) {
+                next[i] = later;
+            }
+        }
+        let mut same = vec![false; files.len()];
+        let mut gone = Vec::new();
+        let c = self.conn();
+        let mut q = c.prepare("SELECT rel, size, mtime_ms, ctime_ms, kind, type, day, camera, event_id, birthtime_ms FROM catalog_files WHERE vehicle_id = ?1")?;
+        let mut rows = q.query([vehicle])?;
+        while let Some(r) = rows.next()? {
+            // (in the order previous() reads them, so a row it cannot read fails the same way)
+            let rel = text(r, 0)?;
+            let size = r.get::<_, i64>(1)? as u64;
+            let mtime_ms: f64 = r.get(2)?;
+            let ctime_ms = r.get::<_, Option<f64>>(3)?.unwrap_or(0.0);
+            let birthtime_ms = r.get::<_, Option<f64>>(9)?.unwrap_or(0.0);
+            let kind = if text(r, 4)? == "clip" { Kind::Clip } else { Kind::Asset };
+            let typ = type_of(text_or_null(r, 5)?.unwrap_or_default());
+            let day = text_or_null(r, 6)?.unwrap_or_default();
+            let camera = text_or_null(r, 7)?;
+            let event_id = text_or_null(r, 8)?;
+            let Some(&first) = at.get(rel) else {
+                gone.push(rel.to_string());
+                continue;
+            };
+            let mut i = first;
+            while i != NONE {
+                let f = &files[i];
+                same[i] = f.size == size
+                    && f.mtime_ms == mtime_ms
+                    && f.ctime_ms == ctime_ms
+                    && f.birthtime_ms == birthtime_ms
+                    && f.kind == kind
+                    && f.typ == typ
+                    && f.day == day
+                    && f.camera.as_deref() == camera
+                    && f.event_id.as_deref() == event_id;
+                i = next[i];
+            }
+        }
+        drop(rows);
+        let changed = files.iter().zip(&same).filter(|(_, s)| !**s).map(|(f, _)| f).collect();
+        Ok((gone, changed, dirs_of(&c, vehicle)?))
     }
 
     /// The files moved without a scan (Recycle Bin, restore): the rows follow the inventory's
@@ -251,6 +304,21 @@ impl Catalog {
         rows.collect()
     }
 
+    /// codecs() a row at a time, read where it is: `f(rel, codec)` for each, as codecs() reads it
+    /// (an error where codecs() fails, after the rows before it).
+    pub fn each_codec(&self, vehicle: &str, mut f: impl FnMut(&str, u64, f64, Option<&str>)) -> rusqlite::Result<()> {
+        let c = self.conn();
+        let mut q = c.prepare("SELECT rel, size, mtime_ms, codec FROM clip_codecs WHERE vehicle_id = ?1")?;
+        let mut rows = q.query([vehicle])?;
+        while let Some(r) = rows.next()? {
+            let rel = text(r, 0)?;
+            let size = r.get::<_, i64>(1)? as u64;
+            let mtime_ms = r.get::<_, f64>(2)?;
+            f(rel, size, mtime_ms, text_or_null(r, 3)?);
+        }
+        Ok(())
+    }
+
     pub fn codec(&self, vehicle: &str, rel: &str) -> rusqlite::Result<Option<(u64, f64, Option<String>)>> {
         self.conn()
             .query_row("SELECT size, mtime_ms, codec FROM clip_codecs WHERE vehicle_id = ?1 AND rel = ?2", [vehicle, rel], |r| Ok((r.get::<_, i64>(0)? as u64, r.get::<_, f64>(1)?, r.get::<_, Option<String>>(2)?)))
@@ -263,6 +331,30 @@ impl Catalog {
     }
 }
 
+/// The folders' rows: rel -> mtime.
+fn dirs_of(c: &Connection, vehicle: &str) -> rusqlite::Result<HashMap<String, f64>> {
+    let mut q = c.prepare("SELECT rel, mtime_ms FROM catalog_dirs WHERE vehicle_id = ?1")?;
+    let rows = q.query_map([vehicle], |r| Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?)))?;
+    rows.collect()
+}
+
+/// A text column as `r.get::<_, String>` reads it, without the copy (its error when it is not text).
+fn text<'r>(r: &'r rusqlite::Row, i: usize) -> rusqlite::Result<&'r str> {
+    match r.get_ref(i)?.as_str() {
+        Ok(s) => Ok(s),
+        Err(_) => Err(r.get::<_, String>(i).err().unwrap_or(rusqlite::Error::InvalidColumnIndex(i))),
+    }
+}
+
+/// A text column as `r.get::<_, Option<String>>` reads it, without the copy.
+fn text_or_null<'r>(r: &'r rusqlite::Row, i: usize) -> rusqlite::Result<Option<&'r str>> {
+    match r.get_ref(i)?.as_str_or_null() {
+        Ok(s) => Ok(s),
+        Err(_) => Err(r.get::<_, Option<String>>(i).err().unwrap_or(rusqlite::Error::InvalidColumnIndex(i))),
+    }
+}
+
+#[cfg(test)]
 fn same_entry(a: &FileEntry, b: &FileEntry) -> bool {
     a.size == b.size && a.mtime_ms == b.mtime_ms && a.ctime_ms == b.ctime_ms && a.birthtime_ms == b.birthtime_ms && a.kind == b.kind && a.typ == b.typ && a.day == b.day && a.camera == b.camera && a.event_id == b.event_id
 }
@@ -270,6 +362,86 @@ fn same_entry(a: &FileEntry, b: &FileEntry) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::footage::inventory;
+
+    /// save_scan as it was: every row read with previous(), every folder row written again
+    fn save_scan_as_before(cat: &Catalog, vehicle: &str, root: &str, scan: &ScanResult) {
+        cat.invalidate(vehicle).unwrap();
+        let known = cat.previous(vehicle).unwrap();
+        let present: HashSet<&str> = scan.files.iter().map(|f| f.rel.as_str()).collect();
+        let gone: Vec<String> = known.files.values().map(|f| &f.rel).filter(|r| !present.contains(r.as_str())).cloned().collect();
+        let changed: Vec<&FileEntry> = scan.files.iter().filter(|f| known.files.get(&f.rel).is_none_or(|k| !same_entry(k, f))).collect();
+        cat.remove_files(vehicle, &gone).unwrap();
+        cat.put_files(vehicle, &changed).unwrap();
+        cat.conn().execute("DELETE FROM catalog_dirs WHERE vehicle_id = ?1", [vehicle]).unwrap();
+        let dirs: Vec<(&String, &f64)> = scan.dirs.iter().collect();
+        cat.each(&dirs, "INSERT INTO catalog_dirs (vehicle_id, rel, mtime_ms) VALUES (?1, ?2, ?3)", |st, (rel, m)| st.execute(params![vehicle, rel, m]).map(|_| ())).unwrap();
+        cat.mark_scan(vehicle, root, scan.started_at, scan.scanned_at).unwrap();
+    }
+
+    fn tables(cat: &Catalog) -> Vec<String> {
+        let c = cat.conn();
+        let mut out = Vec::new();
+        for sql in [
+            "SELECT vehicle_id, rel, size, mtime_ms, ctime_ms, birthtime_ms, kind, type, day, camera, event_id FROM catalog_files ORDER BY vehicle_id, rel",
+            "SELECT vehicle_id, rel, mtime_ms, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM catalog_dirs ORDER BY vehicle_id, rel",
+            "SELECT vehicle_id, format, root, started_ms, scanned_at, files, bytes, NULL, NULL, NULL, NULL FROM catalog_scans ORDER BY vehicle_id",
+        ] {
+            let mut q = c.prepare(sql).unwrap();
+            let rows = q.query_map([], |r| Ok((0..11).map(|i| format!("{:?}", r.get_ref(i).unwrap())).collect::<Vec<_>>().join("|"))).unwrap();
+            out.extend(rows.map(Result::unwrap));
+            out.push("--".into());
+        }
+        out
+    }
+
+    fn entry(rel: &str, size: u64, mtime: f64) -> FileEntry {
+        let c = crate::footage::classify(rel).unwrap();
+        FileEntry { rel: rel.into(), size, mtime_ms: mtime, ctime_ms: mtime + 1.0, birthtime_ms: 0.0, kind: c.kind, typ: c.typ, day: "2026-10-01".into(), camera: c.camera, event_id: c.event_id }
+    }
+
+    #[test]
+    fn a_scan_writes_the_catalog_as_writing_every_row_again_would() {
+        let dir = std::env::temp_dir().join(format!("catalog-save-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let now = Catalog::open(&dir.join("now.db")).unwrap();
+        let before = Catalog::open(&dir.join("before.db")).unwrap();
+        let rel = |i: usize| format!("TeslaCam/RecentClips/2026-10-01_10-{:02}-00-front.mp4", i % 60);
+        let ev = |i: usize| format!("TeslaCam/SentryClips/2026-10-01_11-00-00/2026-10-01_10-{:02}-00-back.mp4", i);
+        let dirs = |pairs: &[(&str, f64)]| pairs.iter().map(|(r, m)| (r.to_string(), *m)).collect::<HashMap<_, _>>();
+        let first: Vec<FileEntry> = (0..40).map(|i| entry(&rel(i), 100 + i as u64, 1000.0 + i as f64)).chain((0..5).map(|i| entry(&ev(i), 7, 5.0))).collect();
+        let mut second = first.clone();
+        second.remove(3); // gone
+        second[0].size = 1; // changed
+        second[1].camera = None;
+        second[2].birthtime_ms = 9.0;
+        second[4].day = String::new();
+        second.push(entry(&rel(55), 1, 1.0)); // new
+        // a rel listed twice: the first copy as the catalog has it, the second not, and the other way
+        let mut dup = second[5].clone();
+        dup.size += 1;
+        second.push(dup);
+        let dup = second[6].clone();
+        second[6].mtime_ms += 0.5;
+        second.push(dup);
+        second.push(second[7].clone());
+        second.retain(|f| f.rel != ev(4));
+        let scans = [
+            ScanResult::of(first.clone(), dirs(&[("", 1.0), ("TeslaCam", 2.0), ("TeslaCam/RecentClips", 3.0), ("TeslaCam/SentryClips", -0.0)]), 10.0, 11.0),
+            ScanResult::of(first, dirs(&[("", 1.0), ("TeslaCam", 2.0), ("TeslaCam/RecentClips", 3.0), ("TeslaCam/SentryClips", -0.0)]), 12.0, 13.0),
+            ScanResult::of(second, dirs(&[("", 1.0), ("TeslaCam", 2.5), ("TeslaCam/SavedClips", 4.0), ("TeslaCam/SentryClips", 0.0)]), 14.0, 15.0),
+            ScanResult::of(Vec::new(), HashMap::new(), 16.0, 17.0),
+        ];
+        for scan in &scans {
+            for v in ["v1", "v2"] {
+                now.save_scan(v, "/footage", scan).unwrap();
+                save_scan_as_before(&before, v, "/footage", scan);
+                assert_eq!(tables(&now), tables(&before));
+            }
+        }
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 
     #[test]
     fn one_codec_is_the_row_the_whole_table_has() {
@@ -284,6 +456,36 @@ mod tests {
         }
         assert_eq!(cat.codec("v1", "missing.mp4").unwrap(), None);
         assert_eq!(cat.codec("v2", "RecentClips/y-front.mp4").unwrap(), None);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn the_codecs_read_a_row_at_a_time_are_the_ones_read_whole() {
+        let dir = std::env::temp_dir().join(format!("catalog-each-codec-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let cat = Catalog::open(&dir.join("manager.db")).unwrap();
+        let files: Vec<FileEntry> = (0..30).map(|i| entry(&format!("TeslaCam/RecentClips/2026-10-01_10-{i:02}-00-front.mp4"), 1, 1.0)).collect();
+        let list = Arc::new(crate::scanner::FileList::from(files.clone()));
+        let codec = |i: usize| match i % 4 {
+            0 => None,
+            1 => Some("h264".to_string()),
+            2 => Some("hevc".to_string()),
+            _ => Some("h265".to_string()),
+        };
+        let mut rows: Vec<_> = files.iter().enumerate().filter(|(i, _)| i % 5 != 0).map(|(i, f)| (f.rel.clone(), 1, 1.0, codec(i))).collect();
+        rows.push(("TeslaCam/RecentClips/gone-front.mp4".into(), 1, 1.0, Some("av1".into())));
+        cat.update_codecs("v1", &rows, &[]).unwrap();
+        let read = |v: &str| {
+            let mut c = inventory::Codecs::none(list.clone());
+            cat.each_codec(v, |rel, _, _, x| c.set(rel, x)).map(|()| c.iter().map(|(r, x)| (r.to_string(), x.map(String::from))).collect::<Vec<_>>())
+        };
+        let whole = |v: &str| cat.codecs(v).map(|m| inventory::Codecs::new(list.clone(), m.into_iter().map(|(rel, (_, _, c))| (rel, c))).iter().map(|(r, x)| (r.to_string(), x.map(String::from))).collect::<Vec<_>>());
+        assert_eq!(read("v1").unwrap(), whole("v1").unwrap());
+        assert_eq!(read("v1").unwrap().len(), 24);
+        assert_eq!(read("v2").unwrap(), Vec::new());
+        cat.conn().execute("INSERT INTO clip_codecs (vehicle_id, rel, size, mtime_ms, codec) VALUES ('v1', 'TeslaCam/x-front.mp4', 'big', 1.0, 'h264')", []).unwrap();
+        assert_eq!(read("v1").unwrap_err().to_string(), whole("v1").unwrap_err().to_string(), "a row that cannot be read fails both");
         std::fs::remove_dir_all(dir).unwrap();
     }
 

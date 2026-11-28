@@ -179,8 +179,8 @@ impl Ctx for FootageCtx {
     fn has_can(&self, vehicle_id: &str) -> crate::footage::ctx::Res<Option<Box<dyn Fn(&Recording) -> bool>>> {
         let Some(s) = self.srv() else { return Ok(None) };
         let (Some(can), Some(v)) = (s.can().cloned(), s.app().vehicle(vehicle_id)) else { return Ok(None) };
-        let f = can.has_can(&car_of(s.app(), &v)).map_err(crate::footage::ctx::Fail::internal)?;
-        Ok(Some(Box::new(move |r: &Recording| f(&rec_of(r)))))
+        let t = can.can_test(&car_of(s.app(), &v)).map_err(crate::footage::ctx::Fail::internal)?;
+        Ok(Some(Box::new(move |r: &Recording| t.covers(r.clip_rels(), r.start_key.as_deref()))))
     }
     fn sentry_usb(&self, vehicle_id: &str) -> Value {
         match self.srv().and_then(|s| s.can().cloned()) {

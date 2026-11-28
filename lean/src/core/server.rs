@@ -320,7 +320,7 @@ async fn handle(state: Arc<AppState>, req: Request<Body>, conn: ConnInfo) -> Res
                 }
                 state.audit.warn(format!("Signed out (no two-step sign-in, outside the home network): {u} from {client}"));
                 if is_api {
-                    let everyone = super::accounts::truthy(&state.access.get()["twoFactor"]["everyone"]);
+                    let everyone = super::accounts::truthy(&state.access.part("twoFactor")["everyone"]);
                     return error_json(401, if everyone { TWO_FACTOR_EVERYONE_TEXT } else { TWO_FACTOR_OUTSIDE_TEXT }, Some("TWO_FACTOR_REQUIRED"), &accept);
                 }
                 user = None;
@@ -371,7 +371,7 @@ async fn handle(state: Arc<AppState>, req: Request<Body>, conn: ConnInfo) -> Res
             if role.as_deref() == Some("viewer") {
                 return error_json(403, "This account can only watch footage. An admin account can do this.", None, &accept);
             }
-            let rules = state.access.get()["homeOnly"].clone();
+            let rules = state.access.part("homeOnly");
             let pages = super::accounts::truthy(&rules["adminPages"]);
             let changes = super::accounts::truthy(&rules["adminChanges"]);
             if (pages || (changes && method != Method::GET && method != Method::HEAD)) && !state.from_home(&client) {
@@ -469,8 +469,8 @@ async fn handle(state: Arc<AppState>, req: Request<Body>, conn: ConnInfo) -> Res
         return redirect(302, &format!("{to}{next}"), None);
     }
     let Some(web) = router.web.clone() else { return error_json(404, "Not found", None, &accept) };
-    let session_hash = state.auth.session_hash(&view);
-    web(WebReq { state: state.clone(), method, headers, path: p, raw_query, query, version, user, session_hash, secure, client }).await
+    // (the session's hash, worked out once above)
+    web(WebReq { state: state.clone(), method, headers, path: p, raw_query, query, version, user, session_hash: session, secure, client }).await
 }
 
 /// The plain-HTTP side of the HTTPS port: /healthz, Let's Encrypt's check, else a redirect to HTTPS.

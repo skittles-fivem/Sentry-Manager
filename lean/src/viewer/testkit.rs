@@ -353,8 +353,7 @@ impl Ctx for TestCtx {
         }
         Ok(true)
     }
-    #[allow(clippy::type_complexity)]
-    fn has_can(&self, _id: &str) -> Result<Option<Box<dyn Fn(Vec<String>, Option<&str>) -> bool>>, String> {
+    fn has_can(&self, _id: &str) -> Result<Option<super::ctx::CanCovers>, String> {
         if self.can_fails.load(std::sync::atomic::Ordering::SeqCst) {
             return Err("the CAN settings could not be read".into());
         }

@@ -532,6 +532,13 @@ impl Can {
         Ok(self.tags.for_vehicle(v, &keys, self.index.generation(), &move |k| ix.minute_times(k, f64::NEG_INFINITY, f64::INFINITY)))
     }
 
+    /// has_can's test, for recordings read where they are (no copy of their clip rels).
+    pub fn can_test(&self, v: &Car) -> Result<super::tags::CanTest, String> {
+        let keys = self.keys_in(&self.can_map()?, &v.id);
+        let ix = self.index.clone();
+        Ok(self.tags.test_for(v, &keys, self.index.generation(), &move |k| ix.minute_times(k, f64::NEG_INFINITY, f64::INFINITY)))
+    }
+
     // ---- the upload config ('can')
     fn can_cfg(&self) -> Result<(bool, Value, Vec<Value>), String> {
         let c = self.ctx.setting("can")?.filter(|v| json::truthy(Some(v))).unwrap_or(json!({ "enabled": false }));
