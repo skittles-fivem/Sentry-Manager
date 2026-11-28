@@ -2841,38 +2841,62 @@
   });
 
   // ---------- live updates ----------
-  function connect() {
+  // The browser retries a dropped stream by itself, but an answer that is not
+  // the stream (signed out, too many connections, a proxy's 502 while the app
+  // restarts) closes it for good: it is opened again here, with backoff, and
+  // the pages are redrawn once for what was missed meanwhile.
+  let eventsRetry = 1000;
+  function connect(reopened = false) {
     const es = new EventSource('/api/events');
-    es.addEventListener('changed', async (e) => {
-      const { topics } = JSON.parse(e.data);
-      // the interface was switched (Settings > Interface): its pages, now
-      if (topics.includes('interface')) {
-        location.reload();
-        return;
-      }
-      // every topic for the shared Viewer parts too (web/viewerExtras.js: "Car data in the Viewer")
-      window.dispatchEvent(new CustomEvent('sentry:changed', { detail: { topics } }));
-      if (topics.includes('vehicles') || topics.includes('inventory') || topics.includes('bin')) await loadVehicles().catch(() => {});
-      if (topics.includes('notifications')) await loadNotes().catch(() => {});
-      const affects = {
-        overview: ['vehicles', 'inventory', 'notifications', 'bin'], footage: ['inventory'], jobs: ['jobs'],
-        bin: ['bin'], notifications: ['notifications'], policies: policiesTab === 'per-car' ? [] : ['inventory']
-      }[state.route] || [];
-      // (not while the reader fills in a field: the redraw would take it
-      // away; a switch the page keeps itself, data-kept, is redrawn as it is)
-      if (topics.some((t) => affects.includes(t)) && !document.querySelector('dialog[open]') && !document.activeElement?.matches('input:not([data-kept]), select, textarea')) {
-        // a highlight on the page: the update waits until it is gone
-        if (selecting(page)) held.page = true;
-        else render();
-      }
-      if (topics.includes('jobs') && state.route !== 'jobs') {
-        api('/api/jobs?limit=50').then(({ jobs }) => {
-          const running = jobs.filter((j) => j.status === 'running');
-          setBadge('badge-jobs', running.length ? String(running.length) : '', 'busy');
-          setBadge('badge-encoder', running.some((j) => j.type === 'conversion') ? '●' : '', 'busy');
-        }).catch(() => {});
-      }
+    es.addEventListener('open', () => {
+      eventsRetry = 1000;
+      if (reopened) { reopened = false; onChanged(['vehicles', 'inventory', 'notifications', 'bin', 'jobs']); }
     });
+    es.addEventListener('error', () => {
+      if (es.readyState !== EventSource.CLOSED) return; // the browser is trying again itself
+      const wait = eventsRetry;
+      eventsRetry = Math.min(eventsRetry * 2, 30000);
+      fetch('/api/auth/me', { credentials: 'same-origin', signal: AbortSignal.timeout?.(10000) })
+        .then((r) => (r.ok ? r.json() : r.status === 401 ? {} : { user: true }))
+        .then((me) => {
+          if (me.user) setTimeout(() => connect(true), wait);
+          else location.href = `/login?next=${encodeURIComponent(location.pathname + location.hash)}`;
+        }, () => setTimeout(() => connect(true), wait));
+    });
+    es.addEventListener('changed', (e) => {
+      let topics;
+      try { topics = JSON.parse(e.data).topics || []; } catch { return; }
+      onChanged(topics);
+    });
+  }
+  async function onChanged(topics) {
+    // the interface was switched (Settings > Interface): its pages, now
+    if (topics.includes('interface')) {
+      location.reload();
+      return;
+    }
+    // every topic for the shared Viewer parts too (web/viewerExtras.js: "Car data in the Viewer")
+    window.dispatchEvent(new CustomEvent('sentry:changed', { detail: { topics } }));
+    if (topics.includes('vehicles') || topics.includes('inventory') || topics.includes('bin')) await loadVehicles().catch(() => {});
+    if (topics.includes('notifications')) await loadNotes().catch(() => {});
+    const affects = {
+      overview: ['vehicles', 'inventory', 'notifications', 'bin'], footage: ['inventory'], jobs: ['jobs'],
+      bin: ['bin'], notifications: ['notifications'], policies: policiesTab === 'per-car' ? [] : ['inventory']
+    }[state.route] || [];
+    // (not while the reader fills in a field: the redraw would take it
+    // away; a switch the page keeps itself, data-kept, is redrawn as it is)
+    if (topics.some((t) => affects.includes(t)) && !document.querySelector('dialog[open]') && !document.activeElement?.matches('input:not([data-kept]), select, textarea')) {
+      // a highlight on the page: the update waits until it is gone
+      if (selecting(page)) held.page = true;
+      else render();
+    }
+    if (topics.includes('jobs') && state.route !== 'jobs') {
+      api('/api/jobs?limit=50').then(({ jobs }) => {
+        const running = jobs.filter((j) => j.status === 'running');
+        setBadge('badge-jobs', running.length ? String(running.length) : '', 'busy');
+        setBadge('badge-encoder', running.some((j) => j.type === 'conversion') ? '●' : '', 'busy');
+      }).catch(() => {});
+    }
   }
 
   (async () => {

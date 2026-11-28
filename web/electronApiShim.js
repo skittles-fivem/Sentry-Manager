@@ -24,8 +24,11 @@
   const clientId = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)).slice(0, 64);
   const headers = { 'Content-Type': 'application/json', 'X-Requested-With': 'sentry-six-manager', 'X-Client-Id': clientId };
 
-  async function post(url, body) {
-    const res = await fetch(url, { method: 'POST', headers, body: body === undefined ? '' : JSON.stringify(body), credentials: 'same-origin' });
+  // timeoutMs: give up after that long (reading the answer included); only
+  // for quick read-only calls, never for ones that run long on purpose
+  async function post(url, body, { timeoutMs = 0 } = {}) {
+    const signal = timeoutMs && typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(timeoutMs) : undefined;
+    const res = await fetch(url, { method: 'POST', headers, body: body === undefined ? '' : JSON.stringify(body), credentials: 'same-origin', signal });
     if (res.status === 401) {
       top.location.href = '/login';
       throw new Error('Signed out');
@@ -46,7 +49,9 @@
   const settings = () => (settingsPromise ||= fetch('/api/studio/settings', { credentials: 'same-origin' }).then((r) => r.json()).catch(() => ({})));
 
   // ---- converter: invoke + live progress
-  const invoke = (name, payload) => post(`/api/converter/invoke/${name}`, payload).catch((err) => ({ ok: false, error: { code: err.status === 401 ? 'SIGNED_OUT' : 'NETWORK_ERROR' } }));
+  // (the read-only calls the Encoder waits on to start: a stuck one ends as NETWORK_ERROR instead of a skeleton forever)
+  const QUICK = new Set(['getCurrent', 'getCapabilities', 'getAuto']);
+  const invoke = (name, payload) => post(`/api/converter/invoke/${name}`, payload, { timeoutMs: QUICK.has(name) ? 15000 : 0 }).catch((err) => ({ ok: false, error: { code: err.status === 401 ? 'SIGNED_OUT' : 'NETWORK_ERROR' } }));
   const converterListeners = { 'converter:progress': new Set(), 'converter:benchmarkProgress': new Set() };
   let source = null;
   let subscribed = false;

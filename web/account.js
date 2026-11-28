@@ -97,9 +97,13 @@ export function createAccountPage(el, { scope } = {}) {
   }
 
   async function draw2fa(setup = null, recovery = null) {
-    const st = await api('/api/auth/2fa').catch(() => null);
-    if (!alive || !st) return;
+    let st = null;
+    let why = '';
+    try { st = await api('/api/auth/2fa'); } catch (err) { why = err.message; }
     const box = $('[data-2fa]');
+    if (!alive || scope?.signal.aborted || !box) return;
+    // (not "Loading…" for good: the reason, and a way to ask again)
+    if (!st) { box.innerHTML = `<p class="sa-muted">Could not load two-step sign-in: ${esc(why || 'no answer')}</p><div class="sa-row"><button type="button" class="sa-btn" data-reload>Try again</button></div>`; return; }
     if (recovery) {
       box.innerHTML = `<p><span class="sa-on">On.</span> Keep these recovery codes somewhere safe: each signs in once without the phone. They are not shown again.</p>
         <div class="sa-codes">${recovery.map((c) => `<code>${esc(c)}</code>`).join('')}</div>
@@ -147,6 +151,9 @@ export function createAccountPage(el, { scope } = {}) {
       if (await guarded(() => api('/api/auth/2fa/disable', { method: 'POST' }))) draw2fa();
     } else if (t.closest('[data-done]')) {
       draw2fa();
+    } else if (t.closest('[data-reload]')) {
+      $('[data-2fa]').innerHTML = '<p class="sa-muted">Loading…</p>';
+      start();
     } else if (t.closest('[data-end]')) {
       if (await guarded(() => api(`/api/auth/sessions/${encodeURIComponent(t.closest('[data-end]').dataset.end)}/end`, { method: 'POST' }))) drawSessions();
     } else if (t.closest('[data-end-others]')) {
@@ -189,6 +196,12 @@ export function createAccountPage(el, { scope } = {}) {
     }
   });
 
-  api('/api/auth/me').then((m) => { me = m; draw2fa(); drawSessions(); drawAccounts(); }).catch(fail);
+  const start = () => api('/api/auth/me').then((m) => { me = m; draw2fa(); drawSessions(); drawAccounts(); }).catch((err) => {
+    const box = $('[data-2fa]');
+    if (!alive || scope?.signal.aborted || !box) return;
+    fail(err);
+    box.innerHTML = `<p class="sa-muted">Could not load this page: ${esc(err.message)}</p><div class="sa-row"><button type="button" class="sa-btn" data-reload>Try again</button></div>`;
+  });
+  start();
   return { destroy() { alive = false; el.innerHTML = ''; } };
 }
