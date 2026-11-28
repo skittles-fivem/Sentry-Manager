@@ -20,8 +20,16 @@ function createClient({ base, ca = null, insecure = false, cookie = null, timeou
   const url = new URL(base);
   if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error(`Not an http(s) address: ${base}`);
   const secure = url.protocol === 'https:';
+  // The CA file is read again for every new connection: a call that changes the
+  // server's host names makes a new CA, and a refused upload closes its
+  // connection (its body is never read), so the next one must trust the new CA.
+  class CaAgent extends https.Agent {
+    createConnection(options, cb) {
+      return super.createConnection({ ...options, ca: fs.readFileSync(ca) }, cb);
+    }
+  }
   const agent = secure
-    ? new https.Agent({ keepAlive: true, ...(ca ? { ca: fs.readFileSync(ca) } : {}), ...(insecure ? { rejectUnauthorized: false } : {}) })
+    ? new (ca ? CaAgent : https.Agent)({ keepAlive: true, ...(insecure ? { rejectUnauthorized: false } : {}) })
     : new http.Agent({ keepAlive: true });
   let session = cookie;
 
