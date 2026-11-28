@@ -71,7 +71,6 @@ export async function moveToBin(v, recs, { ask = true } = {}) {
     ok: 'Move to Recycle Bin'
   }))) return false;
   const withCan = ask && withCanChecked();
-  const since = Date.now() - 2000;
   try {
     const out = await api(`/api/vehicles/${enc(v.id)}/trash`, { body: { ids: recs.map((r) => r.id), ...(withCan ? { withCan: true } : {}) } });
     const skipped = out.skipped?.length ? ` ${plural(out.skipped.length, 'recording')} stayed (${[...new Set(out.skipped.map((s) => (s.reason === 'protected' ? 'protected' : s.reason === 'converting' ? 'being converted' : s.reason)))].join(', ')}).` : '';
@@ -87,9 +86,23 @@ export async function moveToBin(v, recs, { ask = true } = {}) {
         run: async () => {
           try {
             const { items } = await api(`/api/bin?vehicle=${enc(v.id)}`);
-            const mine = items.filter((i) => i.trashedAt >= since && labels.has(i.label));
-            for (const i of mine) await api(`/api/bin/${enc(i.id)}/restore`, { body: {} });
-            toast(mine.length ? 'Put back where it was.' : 'Couldn’t find it in the Recycle Bin any more.', { kind: mine.length ? 'good' : 'bad' });
+            // the newest bin item of each recording just moved (by label: the browser's clock
+            // and the server's trashedAt need not agree)
+            const newest = new Map();
+            for (const i of items) {
+              if (!labels.has(i.label)) continue;
+              const had = newest.get(i.label);
+              if (!had || (i.trashedAt || 0) > (had.trashedAt || 0)) newest.set(i.label, i);
+            }
+            const mine = [...newest.values()];
+            let conflicts = 0;
+            for (const i of mine) {
+              const r = await api(`/api/bin/${enc(i.id)}/restore`, { body: {} });
+              conflicts += Number(r?.conflicts) || 0;
+            }
+            if (!mine.length) toast('Couldn’t find it in the Recycle Bin any more.', { kind: 'bad' });
+            else if (conflicts) toast(`${plural(conflicts, 'file')} stayed in the Recycle Bin, because a file with that name exists. Put them back from the Recycle Bin.`, { kind: 'bad' });
+            else toast('Put back where it was.', { kind: 'good' });
             loadVehicles().catch(() => {});
           } catch (err) { fail(err); }
         }

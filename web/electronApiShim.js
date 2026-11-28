@@ -339,8 +339,15 @@
       if (key === 'defaultFolder') return true; // chosen by the manager per vehicle
       const all = await settings();
       all[key] = value;
-      await post('/api/studio/settings', { key, value }).catch(() => {});
-      return true;
+      // (kept for this page view either way; false when the server did not save it, such as a
+      // watch-only account's 403: not thrown, as some Studio callers do not catch)
+      try {
+        await post('/api/studio/settings', { key, value });
+        return true;
+      } catch (err) {
+        console.warn(`[settings] ${key} was not saved: ${err?.message || err}`);
+        return false;
+      }
     },
     relaunchApp: async () => location.reload(),
     notifyMapProviderFallback: () => {},

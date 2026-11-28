@@ -50,8 +50,13 @@ export async function render(ctx) {
       });
     });
     view.querySelector('#dismiss-all')?.addEventListener('click', (e) => busy(e.currentTarget, async () => {
-      for (const n of open) await api(`/api/notifications/${encodeURIComponent(n.id)}/dismiss`, { body: {} }).catch(() => {});
-      toast('All dismissed.', { kind: 'good' });
+      let failed = 0, last = null;
+      for (const n of open) {
+        try { await api(`/api/notifications/${encodeURIComponent(n.id)}/dismiss`, { body: {} }); } catch (err) { failed++; last = err; }
+      }
+      if (!failed) toast('All dismissed.', { kind: 'good' });
+      else if (failed === open.length) fail(last);
+      else toast(`${failed} of ${open.length} could not be dismissed: ${last?.message || 'error'}`, { kind: 'bad' });
       await refresh();
       loadNotes().catch(() => {});
     }));
