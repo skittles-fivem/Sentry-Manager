@@ -113,27 +113,46 @@ impl ArrivalCtx for CoreArrival {
 pub fn holds(s: &Server, abs: &str) -> bool {
     let Some(can) = s.can().cloned() else { return false };
     // (a converter's clip is spelled under the real folder: a vehicle whose folder is a symlink
-    // is found by that too; while a share that may hold it has not answered, it is held when
-    // that vehicle's last status says a clip of this name is still being copied. A clip of no
-    // vehicle, under an extra root, is not held by a share that is down.)
+    // is found by that too; while the real folder of a vehicle that may hold it is not known,
+    // it is held when that vehicle's status says a clip of this name is still being copied: the
+    // status looked at again as for a known vehicle when its share answers, its last one when
+    // the share is down. A clip of no vehicle, under an extra root, is not held by a share that
+    // is down.)
+    let healthy = |vid: &str| s.app().vehicles.share(vid).is_none_or(|sh| sh.is_healthy());
     let v = match vehicle_at(s, abs) {
         Ok(Some((v, _))) => v,
         Ok(None) => return false,
-        Err(unknown) => return unknown_holds(unknown.iter().map(|v| can.usb.get(&v.id).and_then(|st| crate::arrival::holds::TransferStatus::parse(&st.raw_json))), crate::scanner::now_ms(), abs),
+        Err(unknown) => return unknown_holds(unknown.iter().map(|v| v.id.as_str()), healthy, |vid| can.usb.fresh(vid), |vid| can.usb.get(vid).and_then(|st| crate::arrival::holds::TransferStatus::parse(&st.raw_json)), crate::scanner::now_ms(), abs),
     };
     // (a share that stopped answering is not looked at here: the arrival would wait on it)
-    if s.app().vehicles.share(&v.id).is_none_or(|sh| sh.is_healthy()) {
+    if healthy(&v.id) {
         can.usb.fresh(&v.id);
     }
     let status = can.usb.get(&v.id).and_then(|st| crate::arrival::holds::TransferStatus::parse(&st.raw_json));
     crate::arrival::holds::holds(status.as_ref(), crate::scanner::now_ms(), abs)
 }
 
-/// holds() for a clip in none of the vehicles whose folder is known: held only when the last
-/// status of a vehicle whose folder is not known yet (`statuses`) holds a clip of its name; a
-/// vehicle with no Sentry USB status holds nothing.
-fn unknown_holds(statuses: impl Iterator<Item = Option<crate::arrival::holds::TransferStatus>>, now_ms: f64, abs: &str) -> bool {
-    statuses.flatten().any(|t| crate::arrival::holds::holds(Some(&t), now_ms, abs))
+/// holds() for a clip in none of the vehicles whose folder is known: held only when the status
+/// (`status`) of a vehicle whose folder is not known yet (`unknown`) holds a clip of its name; a
+/// vehicle with no Sentry USB status holds nothing. The status of a vehicle whose share answers
+/// (`healthy`) is looked at again first (`fresh`), as for a known vehicle: a transfer that
+/// started since the last look holds its clips at once; a share that is down is not asked.
+fn unknown_holds<'a>(
+    unknown: impl Iterator<Item = &'a str>,
+    healthy: impl Fn(&str) -> bool,
+    fresh: impl Fn(&str),
+    status: impl Fn(&str) -> Option<crate::arrival::holds::TransferStatus>,
+    now_ms: f64,
+    abs: &str,
+) -> bool {
+    let mut held = false;
+    for vid in unknown {
+        if healthy(vid) {
+            fresh(vid);
+        }
+        held |= status(vid).is_some_and(|t| crate::arrival::holds::holds(Some(&t), now_ms, abs));
+    }
+    held
 }
 
 /// The vehicle whose folder holds `path`, spelled under the folder it is named by or under its
@@ -168,10 +187,26 @@ mod unknown_holds_tests {
             "expected_finish_unix": start + 600, "give_up_unix": start + 1500 } }));
         let idle = TransferStatus::parse(&json!({ "schema": 1, "state": "idle" }));
         let archive = "/mnt/archive/2025-01-02/2025-01-02_10-00-00-front.mp4";
-        // (the share of a vehicle without Sentry USB, or one not copying, is down: an extra root's clips go on)
-        assert!(!unknown_holds([None].into_iter(), now, archive));
-        assert!(!unknown_holds([idle.clone(), None].into_iter(), now, archive));
-        assert!(!unknown_holds([copying.clone()].into_iter(), now, archive), "not a clip of the transfer");
-        assert!(unknown_holds([idle, copying].into_iter(), now, "/share/real/RecentClips/2026-11-08/2026-11-08_13-10-00-front.mp4"), "a clip the vehicle is still copying");
+        let clip = "/share/real/RecentClips/2026-11-08/2026-11-08_13-10-00-front.mp4";
+        // (the share of each is down: its last status, none looked at again)
+        let last = |list: Vec<Option<TransferStatus>>, abs: &str| {
+            let ids: Vec<String> = (0..list.len()).map(|i| i.to_string()).collect();
+            unknown_holds(ids.iter().map(String::as_str), |_| false, |_| panic!("a share that is down is not asked"), |vid| list[vid.parse::<usize>().unwrap()].clone(), now, abs)
+        };
+        // (a vehicle without Sentry USB, or one not copying: an extra root's clips go on)
+        assert!(!last(vec![None], archive));
+        assert!(!last(vec![idle.clone(), None], archive));
+        assert!(!last(vec![copying.clone()], archive), "not a clip of the transfer");
+        assert!(last(vec![idle.clone(), copying.clone()], clip), "a clip the vehicle is still copying");
+
+        // (the share answers, its folder not resolved yet: the last look said idle, the transfer started since)
+        let looked = std::cell::RefCell::new(idle.clone());
+        let fresh = |vid: &str| {
+            assert_eq!(vid, "car");
+            *looked.borrow_mut() = copying.clone();
+        };
+        assert!(unknown_holds(["car"].into_iter(), |_| true, fresh, |_| looked.borrow().clone(), now, clip), "the status looked at again holds the clip");
+        let now_idle = std::cell::RefCell::new(None);
+        assert!(!unknown_holds(["car"].into_iter(), |_| true, |_| *now_idle.borrow_mut() = idle.clone(), |_| now_idle.borrow().clone(), now, archive), "a clip of no vehicle is not held");
     }
 }
