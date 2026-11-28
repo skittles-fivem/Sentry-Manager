@@ -850,10 +850,13 @@ impl Bridge {
                     if let Some(auto) = self.extras().auto {
                         let root = snap["config"]["sourceRoot"].as_str();
                         let lanes = snap["config"]["lanes"].as_array().filter(|a| !a.is_empty()).map(|_| snap["config"]["lanes"].clone());
-                        let _ = match lanes {
+                        let kept = match lanes {
                             Some(l) => auto.set_lanes(&l, root),
                             None => auto.set_concurrency(&m["concurrency"], root),
                         };
+                        if let Err(e) = kept {
+                            eprintln!("[CONVERTER] The running conversion uses the new number of clips at once, but later automatic conversions will not: it could not be saved ({e})");
+                        }
                     }
                 }
                 sanitize_snapshot(&snap)
@@ -867,7 +870,9 @@ impl Bridge {
                 let snap = self.service.set_lanes(&safe_job_id(m.get("jobId"))?, &lanes)?;
                 if snap["config"]["autoConvert"] == true {
                     if let Some(auto) = self.extras().auto {
-                        let _ = auto.set_lanes(&lanes, snap["config"]["sourceRoot"].as_str());
+                        if let Err(e) = auto.set_lanes(&lanes, snap["config"]["sourceRoot"].as_str()) {
+                            eprintln!("[CONVERTER] The running conversion uses the new lanes at once, but later automatic conversions will not: they could not be saved ({e})");
+                        }
                     }
                 }
                 sanitize_snapshot(&snap)
@@ -952,7 +957,7 @@ impl Bridge {
                 let Some(auto) = self.extras().auto else { return fail("AUTO_UNAVAILABLE") };
                 let Some(m) = p.and_then(Value::as_object).filter(|m| m.len() == 1) else { return fail("INVALID_REQUEST") };
                 let Some(root) = m.get("forgetSource").and_then(Value::as_str).filter(|r| !r.is_empty() && js_len(r) <= 4096) else { return fail("INVALID_REQUEST") };
-                bounded(&auto.forget_vehicle(root), MAX_PAYLOAD_BYTES, false, true)
+                bounded(&auto.forget_vehicle(root).map_err(code_err)?, MAX_PAYLOAD_BYTES, false, true)
             }
             "checkAutoNow" => {
                 no_payload(p)?;

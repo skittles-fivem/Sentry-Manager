@@ -1029,18 +1029,18 @@ impl Auto {
         std::thread::spawn(move || me.tick());
     }
 
-    fn write_saved(&self, list: Vec<Value>) {
-        let next = {
-            let s = self.lock();
-            let automatic: Vec<String> = s.settings["configs"].as_array().cloned().unwrap_or_default().iter().filter_map(|c| c["sourceRoot"].as_str().map(str::to_string)).collect();
-            let next: Vec<Value> = normalize_configs(&json!({ "configs": list })).into_iter().filter(|c| !automatic.iter().any(|a| c["sourceRoot"] == a.as_str())).collect();
-            if Value::Array(next.clone()).to_string() == Value::Array(s.saved.clone()).to_string() {
-                return;
-            }
-            next
-        };
-        self.lock().saved = next.clone();
-        let _ = self.write_json(SAVED_FILE, &Value::Array(next));
+    /// The vehicles' saved (not automatic) settings: kept on disk first, then used, so a write
+    /// that fails changes nothing and is answered as an error.
+    fn write_saved(&self, list: Vec<Value>) -> Result<(), String> {
+        let mut s = self.lock();
+        let automatic: Vec<String> = s.settings["configs"].as_array().cloned().unwrap_or_default().iter().filter_map(|c| c["sourceRoot"].as_str().map(str::to_string)).collect();
+        let next: Vec<Value> = normalize_configs(&json!({ "configs": list })).into_iter().filter(|c| !automatic.iter().any(|a| c["sourceRoot"] == a.as_str())).collect();
+        if Value::Array(next.clone()).to_string() == Value::Array(s.saved.clone()).to_string() {
+            return Ok(());
+        }
+        self.write_json(SAVED_FILE, &Value::Array(next.clone())).map_err(|e| super::owned::code_of(&e).to_string())?;
+        s.saved = next;
+        Ok(())
     }
 
     /// start(): the saved settings, the automatic jobs still running when the app closed, the ticks
@@ -1155,8 +1155,12 @@ impl Auto {
             let before: IndexMap<String, String> = s.settings["configs"].as_array().cloned().unwrap_or_default().iter().map(|c| (c["sourceRoot"].as_str().unwrap_or("").to_string(), c.to_string())).collect();
             normalized["configs"].as_array().unwrap().iter().filter(|c| before.get(c["sourceRoot"].as_str().unwrap_or("")) != Some(&c.to_string())).map(|c| c["sourceRoot"].as_str().unwrap_or("").to_string()).collect()
         };
-        self.lock().settings = normalized.clone();
-        self.write_json(SETTINGS_FILE, &normalized).map_err(|e| super::owned::code_of(&e).to_string())?;
+        {
+            // (kept on disk first: settings that could not be saved are never used)
+            let mut s = self.lock();
+            self.write_json(SETTINGS_FILE, &normalized).map_err(|e| super::owned::code_of(&e).to_string())?;
+            s.settings = normalized.clone();
+        }
         let saved = self.lock().saved.clone();
         let list = match keep {
             Some(k) => {
@@ -1166,7 +1170,8 @@ impl Auto {
             }
             None => saved,
         };
-        self.write_saved(list);
+        // (the automatic settings are kept either way; the vehicle's saved ones not kept is told)
+        let kept = self.write_saved(list);
         {
             let mut s = self.lock();
             for r in added {
@@ -1181,6 +1186,7 @@ impl Auto {
         }
         self.changed();
         self.tick_soon();
+        kept?;
         Ok(self.get_state())
     }
 
@@ -1202,13 +1208,15 @@ impl Auto {
     }
 
     fn replace_config(&self, current: &Value, next: Value) -> Result<(), String> {
-        let settings = {
+        {
+            // (kept on disk first: a change that could not be saved is not used)
             let mut s = self.lock();
-            let configs: Vec<Value> = s.settings["configs"].as_array().cloned().unwrap_or_default().into_iter().map(|c| if &c == current { next.clone() } else { c }).collect();
-            s.settings["configs"] = Value::Array(configs);
-            s.settings.clone()
-        };
-        self.write_json(SETTINGS_FILE, &settings).map_err(|e| super::owned::code_of(&e).to_string())?;
+            let mut settings = s.settings.clone();
+            let configs: Vec<Value> = settings["configs"].as_array().cloned().unwrap_or_default().into_iter().map(|c| if &c == current { next.clone() } else { c }).collect();
+            settings["configs"] = Value::Array(configs);
+            self.write_json(SETTINGS_FILE, &settings).map_err(|e| super::owned::code_of(&e).to_string())?;
+            s.settings = settings;
+        }
         self.changed();
         Ok(())
     }
@@ -1285,17 +1293,17 @@ impl Auto {
         sent.shift_remove("nodesOff");
         let mut list: Vec<Value> = saved.into_iter().filter(|c| c["sourceRoot"] != config["sourceRoot"]).collect();
         list.push(Value::Object(sent));
-        self.write_saved(list);
+        self.write_saved(list)?;
         self.changed();
         Ok(self.get_state())
     }
 
     /// forgetVehicle(sourceRoot)
-    pub fn forget_vehicle(&self, root: &str) -> Value {
+    pub fn forget_vehicle(&self, root: &str) -> Result<Value, String> {
         let list: Vec<Value> = self.lock().saved.iter().filter(|c| c["sourceRoot"] != root).cloned().collect();
-        self.write_saved(list);
+        self.write_saved(list)?;
         self.changed();
-        self.get_state()
+        Ok(self.get_state())
     }
 
     /// checkNow()
