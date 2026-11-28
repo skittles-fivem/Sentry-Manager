@@ -94,23 +94,33 @@ fn failed(ctx: &dyn CanCtx, e: &str) -> HttpError {
 }
 
 // ---- streamed bodies: a channel from a worker thread
-struct ChanStream(tokio::sync::mpsc::Receiver<Bytes>);
+struct ChanStream(tokio::sync::mpsc::Receiver<std::io::Result<Bytes>>);
 impl futures_core::Stream for ChanStream {
     type Item = Result<Bytes, std::io::Error>;
     fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Self::Item>> {
-        self.0.poll_recv(cx).map(|o| o.map(Ok))
+        self.0.poll_recv(cx)
     }
 }
 
 /// A writer into a response body: blocks while the reader is slow, ends the download once it took
 /// nothing for `stall` (stopWhenStalled), fails once the reader has gone.
 pub struct BodyWriter {
-    tx: tokio::sync::mpsc::Sender<Bytes>,
+    tx: tokio::sync::mpsc::Sender<std::io::Result<Bytes>>,
     buf: Vec<u8>,
     stall: Duration,
 }
 impl BodyWriter {
     fn send(&mut self, b: Bytes) -> std::io::Result<()> {
+        self.send_item(Ok(b))
+    }
+    /// Ends the download as failed: the body is cut off without its proper end, so the browser
+    /// says the download failed instead of keeping a file that looks whole (what was not sent
+    /// yet is dropped).
+    fn fail(&mut self, e: std::io::Error) {
+        self.buf.clear();
+        let _ = self.send_item(Err(e));
+    }
+    fn send_item(&mut self, b: std::io::Result<Bytes>) -> std::io::Result<()> {
         let mut item = b;
         let start = std::time::Instant::now();
         loop {
@@ -152,7 +162,7 @@ impl Drop for BodyWriter {
 }
 
 fn streamed(stall: Duration) -> (BodyWriter, Body) {
-    let (tx, rx) = tokio::sync::mpsc::channel::<Bytes>(16);
+    let (tx, rx) = tokio::sync::mpsc::channel::<std::io::Result<Bytes>>(16);
     (BodyWriter { tx, buf: Vec::new(), stall }, Body::from_stream(ChanStream(rx)))
 }
 
@@ -198,6 +208,9 @@ const CAN_DECODED_HOURS: f64 = 24.0;
 const CAN_DECODED_ROWS: usize = 5_000_000;
 const CAN_HEARTBEAT_MS: f64 = 60_000.0;
 const CAN_STALL: Duration = Duration::from_secs(60);
+/// How long a bundle's candump text waits for the columns decoder another download holds
+/// (then that log's text is a note line, and the bundle goes on).
+const BUNDLE_SLOT_WAIT: Duration = Duration::from_secs(60);
 /// GET /api/can/now: an answer is worked out at most this often (a Stream Deck asks once per key every few seconds)
 const NOW_TTL_MS: f64 = 3000.0;
 
@@ -1709,6 +1722,8 @@ impl Can {
                     put(format!("\n# Sentry Six Manager: this log ends early: {}\n", t.replace(['\r', '\n'], " ")).as_bytes())?;
                 }
             }
+            // (the decoder stayed busy with another download: the bundle goes on without this text)
+            Err(e) if e.busy => put(b"\n# Sentry Six Manager: skipped: the columns decoder was busy with another download; download this log alone (\"candump .log\") for its candump text\n")?,
             Err(e) if e.retry => return Err(std::io::Error::other(e.message)),
             Err(e) => put(format!("\n# Sentry Six Manager: could not read this log as candump text: {}\n", e.message.replace(['\r', '\n'], " ")).as_bytes())?,
         }
@@ -1849,6 +1864,8 @@ impl Can {
             return Err(he(404, "No logs of this car key in that time."));
         }
         let with_text = matches!(q(req, "candump"), Some("1") | Some("true"));
+        // the files deleted while the bundle streams (manifest.json, made last, marks them)
+        let missing: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let mut entries: Vec<zip::Entry> = Vec::new();
         let mut manifest = Vec::new();
         let (mut total, mut text_bytes) = (0u64, 0u64);
@@ -1864,7 +1881,20 @@ impl Can {
                         format = Some(v.get("format").cloned().unwrap_or(Value::Null));
                     }
                 }
-                entries.push(zip::Entry { name: format!("{}/{}", key, name), mtime: Some(mtime), source: zip::Source::Sized(size, Box::new(LazyFile(file, None))) });
+                let (entry, gone) = (format!("{}/{}", key, name), missing.clone());
+                entries.push(zip::Entry {
+                    name: entry.clone(),
+                    mtime: Some(mtime),
+                    // opened at its turn: a file deleted meanwhile (a prune, a trash) leaves a note in
+                    // its place and the zip goes on
+                    source: zip::Source::Lazy(Box::new(move || match std::fs::File::open(&file).and_then(|f| f.metadata().map(|m| (f, m.len()))) {
+                        Ok((f, len)) => (None, zip::Source::Sized(len, Box::new(f))),
+                        Err(e) => {
+                            gone.lock().unwrap().push(name.clone());
+                            (Some(format!("{entry}.missing.txt")), zip::Source::Data(format!("Sentry Six Manager: {name} was deleted while this bundle was being made ({e}), so it is not in it.\n").into_bytes()))
+                        }
+                    })),
+                });
             }
             let log = self.can_file_of(nm);
             if let (true, Some((file, size, mtime, _))) = (with_text, &log) {
@@ -1876,7 +1906,7 @@ impl Can {
                 entries.push(zip::Entry {
                     name: format!("{}/{}", key, nm.strip_suffix(".xz").unwrap_or(nm)),
                     mtime: Some(*mtime),
-                    source: zip::Source::Stream(Some(most + 400), Box::new(move |put| Self::candump_text(&f, &reader::Opts { download: true, ..Default::default() }, Some(most), put, None, false))),
+                    source: zip::Source::Stream(Some(most + 400), Box::new(move |put| Self::candump_text(&f, &reader::Opts { download: true, slot_wait: Some(BUNDLE_SLOT_WAIT), ..Default::default() }, Some(most), put, None, false))),
                 });
             }
             let rec = self.trust.record(&key, nm);
@@ -1942,8 +1972,17 @@ impl Can {
             }
         };
         let k3 = key.clone();
+        let gone = missing.clone();
         let manifest_json = move || {
             let list = ids_of();
+            let gone = gone.lock().unwrap().clone();
+            let mut manifest = manifest;
+            for m in manifest.iter_mut() {
+                let name = m.get("name").and_then(|x| x.as_str()).unwrap_or("").to_string();
+                if gone.iter().any(|g| *g == name || *g == format!("{name}.json")) {
+                    m["missing"] = json!(true);
+                }
+            }
             let v = json!({
                 "vehicleKey": k3, "from": iso_of(from), "to": iso_of(to), "madeAt": iso_of(util::now_ms()), "logs": manifest,
                 "ids": { "count": list.len(), "unknown": list.iter().filter(|e| e.name.is_none()).count() },
@@ -1956,8 +1995,11 @@ impl Can {
         let (w, body) = streamed(if with_text { CAN_STALL } else { Duration::from_secs(600) });
         let c = self.ctx.clone();
         std::thread::spawn(move || {
-            if let Err(e) = zip::stream_zip(w, entries) {
+            let mut w = w;
+            if let Err(e) = zip::stream_zip(&mut w, entries) {
                 c.log("warn", &format!("CAN bundle {}: {}", file, e));
+                // (not a clean end: the browser shows the download failed, not a broken zip)
+                w.fail(e);
             }
         });
         let fname = format!("can-{}-{}-to-{}.zip", key, stamp(from), stamp(to));
@@ -2525,16 +2567,6 @@ pub struct UploadGate {
     tok_id: String,
 }
 
-/// A file opened when the zip comes to it.
-struct LazyFile(PathBuf, Option<std::fs::File>);
-impl std::io::Read for LazyFile {
-    fn read(&mut self, b: &mut [u8]) -> std::io::Result<usize> {
-        if self.1.is_none() {
-            self.1 = Some(std::fs::File::open(&self.0)?);
-        }
-        self.1.as_mut().unwrap().read(b)
-    }
-}
 
 
 /// decodedRows: the rows a decoded export writes for one minute.
@@ -2598,6 +2630,22 @@ fn detected_in(index: &CanIndex, keys: &[String]) -> Option<Value> {
 #[cfg(test)]
 mod token_tests {
     use super::*;
+
+    #[test]
+    fn a_body_that_fails_ends_with_an_error_not_a_clean_end() {
+        use std::io::Write;
+        let rt = tokio::runtime::Builder::new_current_thread().build().unwrap();
+        let (mut w, body) = streamed(Duration::from_secs(5));
+        let t = std::thread::spawn(move || {
+            w.write_all(b"the start").unwrap();
+            w.flush().unwrap();
+            w.write_all(b"never sent").unwrap();
+            w.fail(std::io::Error::other("a file went away"));
+        });
+        let got = rt.block_on(http_body_util::BodyExt::collect(body));
+        t.join().unwrap();
+        assert!(got.is_err(), "the download is cut off as failed");
+    }
 
     #[test]
     fn a_token_is_found_as_the_upload_api_finds_it() {

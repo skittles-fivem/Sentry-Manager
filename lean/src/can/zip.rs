@@ -116,6 +116,9 @@ pub enum Source {
     Stream(Option<u64>, Box<dyn FnMut(&mut dyn FnMut(&[u8]) -> io::Result<()>) -> io::Result<()> + Send>),
     /// made when its turn comes
     Make(Box<dyn FnOnce() -> Vec<u8> + Send>),
+    /// chosen when its turn comes: the source, and another name for the entry when it is not
+    /// what was planned (a file deleted meanwhile, a note in its place)
+    Lazy(Box<dyn FnOnce() -> (Option<String>, Source) + Send>),
 }
 
 pub struct Entry {
@@ -141,7 +144,14 @@ pub fn stream_zip<W: Write>(out: W, entries: Vec<Entry>) -> io::Result<()> {
     let mut w = Counter { w: out, n: 0 };
     let mut central = Vec::new();
     let count = entries.len() as u64;
-    for e in entries {
+    for mut e in entries {
+        if let Source::Lazy(f) = e.source {
+            let (rename, s) = f();
+            if let Some(r) = rename {
+                e.name = r;
+            }
+            e.source = if let Source::Lazy(_) = s { Source::Data(Vec::new()) } else { s };
+        }
         let name = e.name.as_bytes().to_vec();
         let (time, date) = dos_time(e.mtime);
         let mut source = e.source;
@@ -152,7 +162,7 @@ pub fn stream_zip<W: Write>(out: W, entries: Vec<Entry>) -> io::Result<()> {
             Source::Data(d) => (true, d.len() as u64),
             Source::Sized(s, _) => (true, *s),
             Source::Stream(_, _) => (false, 0),
-            Source::Make(_) => unreachable!(),
+            Source::Make(_) | Source::Lazy(_) => unreachable!(),
         };
         let zip64 = if known { size >= MAX32 } else { !matches!(&source, Source::Stream(Some(m), _) if *m < MAX32) };
         let at = w.n;
@@ -194,7 +204,7 @@ pub fn stream_zip<W: Write>(out: W, entries: Vec<Entry>) -> io::Result<()> {
                 f(&mut sink)?;
                 size = got;
             }
-            Source::Make(_) => unreachable!(),
+            Source::Make(_) | Source::Lazy(_) => unreachable!(),
         }
         if got != size {
             return Err(io::Error::other(format!("{} changed while it was being sent.", e.name)));
@@ -241,5 +251,24 @@ mod tests {
             assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stdout));
         }
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn an_entry_chosen_at_its_turn_may_take_another_name_and_the_zip_stays_whole() {
+        let mut out = Vec::new();
+        stream_zip(
+            &mut out,
+            vec![
+                Entry { name: "k/a.log.xz".into(), mtime: None, source: Source::Lazy(Box::new(|| (None, Source::Sized(3, Box::new(std::io::Cursor::new(vec![1, 2, 3])))))) },
+                Entry { name: "k/b.log.xz".into(), mtime: None, source: Source::Lazy(Box::new(|| (Some("k/b.log.xz.missing.txt".into()), Source::Data(b"gone".to_vec())))) },
+            ],
+        )
+        .unwrap();
+        let has = |needle: &[u8]| out.windows(needle.len()).filter(|w| *w == needle).count();
+        // each name twice (its local header and the central directory), and the end record
+        assert_eq!(has(b"k/a.log.xz"), 2);
+        assert_eq!(has(b"k/b.log.xz.missing.txt"), 2);
+        assert_eq!(has(b"k/b.log.xz"), 2, "the planned name is not used");
+        assert_eq!(has(&0x06054b50u32.to_le_bytes()), 1);
     }
 }
