@@ -355,16 +355,29 @@ fn check_writable_one(root: &Path, busy: &Arc<AtomicBool>) -> WriteCheck {
     let s2 = state.clone();
     let r2 = root.clone();
     let res = with_timeout_one(busy, FS_TIMEOUT, "Write test", move || {
-        use std::io::Write;
-        let a = r2.join(".sentry-six-manager-check-a");
-        let b = r2.join(".sentry-six-manager-check-b");
+        use std::io::{Read, Write};
+        use std::os::unix::fs::OpenOptionsExt;
+        // (names no one can guess, made new and opened without following a link: the share is
+        // not trusted, a link planted under a probe's name never has its target written)
+        let tag = super::random_hex(6);
+        let a = r2.join(format!(".sentry-six-manager-check-{tag}-a"));
+        let b = r2.join(format!(".sentry-six-manager-check-{tag}-b"));
+        let create = |p: &Path| std::fs::OpenOptions::new().write(true).create_new(true).custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC).open(p);
+        let open = |p: &Path, write: bool| std::fs::OpenOptions::new().read(!write).write(write).custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC).open(p);
+        // (the fixed names older versions used: a file left behind goes, a link is only unlinked)
+        for old in [".sentry-six-manager-check-a", ".sentry-six-manager-check-b"] {
+            let p = r2.join(old);
+            if std::fs::symlink_metadata(&p).is_ok_and(|m| m.is_file() || m.file_type().is_symlink()) {
+                let _ = std::fs::remove_file(&p);
+            }
+        }
         // (a failed test removes its files here, on this thread: when the share stopped
         // answering, that waits here too, never on the share's own thread)
         let steps = || -> std::io::Result<()> {
         let set = |step: &'static str| s2.lock().unwrap().0 = step;
         let fail = |e: std::io::Error, call: &str, p: &Path| std::io::Error::new(e.kind(), node_message(&e, call, p));
-        std::fs::write(&a, "old").map_err(|e| fail(e, "open", &a))?;
-        let mut fh = std::fs::File::create(&b).map_err(|e| fail(e, "open", &b))?;
+        create(&a).and_then(|mut f| f.write_all(b"old")).map_err(|e| fail(e, "open", &a))?;
+        let mut fh = create(&b).map_err(|e| fail(e, "open", &b))?;
         fh.write_all(b"new")?;
         set("sync");
         fh.sync_all()?;
@@ -381,9 +394,11 @@ fn check_writable_one(root: &Path, busy: &Arc<AtomicBool>) -> WriteCheck {
         }
         set("utime");
         let when = std::time::UNIX_EPOCH + Duration::from_secs(1_577_836_800);
-        std::fs::File::options().write(true).open(&a).and_then(|f| f.set_times(std::fs::FileTimes::new().set_accessed(when).set_modified(when))).map_err(|e| fail(e, "utime", &a))?;
+        open(&a, true).and_then(|f| f.set_times(std::fs::FileTimes::new().set_accessed(when).set_modified(when))).map_err(|e| fail(e, "utime", &a))?;
         set("read");
-        if std::fs::read_to_string(&a).map_err(|e| fail(e, "open", &a))? != "new" {
+        let mut back = String::new();
+        open(&a, false).and_then(|mut f| f.read_to_string(&mut back)).map_err(|e| fail(e, "open", &a))?;
+        if back != "new" {
             return Err(std::io::Error::other("what was read back differs from what was written"));
         }
         set("remove");
@@ -923,6 +938,22 @@ mod tests {
         assert_eq!(r.step.as_deref(), Some("writing a file"));
         assert!(r.error.unwrap().starts_with("ENOENT: no such file or directory, open"));
         assert_eq!(r.hint, None);
+    }
+
+    #[test]
+    fn a_link_planted_under_a_probe_name_never_has_its_target_written() {
+        let d = std::env::temp_dir().join(format!("lean-share-link-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("share")).unwrap();
+        std::fs::write(d.join("manager.db"), b"precious").unwrap();
+        for n in ["a", "b"] {
+            std::os::unix::fs::symlink(d.join("manager.db"), d.join(format!("share/.sentry-six-manager-check-{n}"))).unwrap();
+        }
+        let r = check_writable(&d.join("share"));
+        assert!(r.ok, "{r:?}");
+        assert_eq!(std::fs::read(d.join("manager.db")).unwrap(), b"precious");
+        assert_eq!(std::fs::read_dir(d.join("share")).unwrap().count(), 0, "the links are unlinked, the probes removed");
+        let _ = std::fs::remove_dir_all(&d);
     }
 
     #[test]
