@@ -106,7 +106,16 @@ fn server_stats(ctx: &Arc<dyn OpsCtx>, notes: &Arc<notes::Notes>, converting: &A
     let mut o = stats::StatsOptions::server(Some(ctx.data_dir()), version);
     let c = ctx.clone();
     let conv = converting.clone();
-    o.is_busy = Arc::new(move || c.stats_busy() || conv.lock().unwrap().benchmarking.is_some());
+    // (called with the stats engine locked: never waits on `converting`, whose holders take
+    // the engine's lock; held just now, it is busy anyway: a job or benchmark is changing)
+    o.is_busy = Arc::new(move || {
+        c.stats_busy()
+            || match conv.try_lock() {
+                Ok(g) => g.benchmarking.is_some(),
+                Err(std::sync::TryLockError::Poisoned(e)) => e.into_inner().benchmarking.is_some(),
+                Err(std::sync::TryLockError::WouldBlock) => true,
+            }
+    });
     let c = ctx.clone();
     o.read_shares = Arc::new(move || stats::shares_of(&c.data_dir(), &c.vehicles()));
     let c = ctx.clone();
@@ -305,21 +314,26 @@ impl Ops {
     /// and its saved space goes onto its vehicle's total (savings.record).
     /// Also for the jobs listed at the start (savings of jobs from before).
     pub fn job_snapshot(&self, s: &JobSnapshot) {
-        {
+        // (decided under `converting`, marked after it is let go: the stats engine's lock is
+        // never taken while it is held, as the engine asks is_busy under its own)
+        let mark: Option<Option<String>> = {
             let mut c = self.converting.lock().unwrap();
             if s.running {
                 if c.job.as_deref() != Some(s.id.as_str()) {
                     c.job = Some(s.id.clone());
-                    if c.benchmarking.is_none() {
-                        self.stats.mark_job(Some(&s.id));
-                    }
+                    c.benchmarking.is_none().then(|| Some(s.id.clone()))
+                } else {
+                    None
                 }
             } else if c.job.as_deref() == Some(s.id.as_str()) {
                 c.job = None;
-                if c.benchmarking.is_none() {
-                    self.stats.mark_job(None);
-                }
+                c.benchmarking.is_none().then_some(None)
+            } else {
+                None
             }
+        };
+        if let Some(m) = mark {
+            self.stats.mark_job(m.as_deref());
         }
         self.record_savings(s);
     }

@@ -42,6 +42,23 @@ fn stats_with_the_nodes_power_and_peaks() {
     o.stop();
 }
 
+// the sampling timer asks is_busy with the engine locked; a job snapshot holds `converting`
+// while it changes the job: is_busy must not wait for it (each would wait for the other)
+#[test]
+fn is_busy_does_not_wait_for_a_job_change() {
+    let (_ctx, o) = ops();
+    let held = o.converting.lock().unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let o2 = o.clone();
+    std::thread::spawn(move || {
+        let _ = tx.send(o2.stats.busy_now());
+    });
+    assert_eq!(rx.recv_timeout(std::time::Duration::from_secs(5)), Ok(true), "busy while a job changes");
+    drop(held);
+    assert!(!o.stats.busy_now());
+    o.stop();
+}
+
 // savings.record from the converter's job snapshots; the job's energy counted while it runs
 #[test]
 fn job_snapshots_record_savings_and_mark_the_job() {
