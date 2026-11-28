@@ -662,7 +662,12 @@ impl App {
     }
 
     fn codec_map(&self, vid: &str, list: &Arc<FileList>) -> Codecs {
-        Codecs::new(list.clone(), self.catalog.codecs(vid).map(|m| m.into_iter().map(|(rel, (_, _, c))| (rel, c)).collect::<Vec<_>>()).unwrap_or_default())
+        // (the rows as they are read; none when they cannot all be read, as codecs() fails)
+        let mut codecs = Codecs::none(list.clone());
+        match self.catalog.each_codec(vid, |rel, c| codecs.set(rel, c)) {
+            Ok(()) => codecs,
+            Err(_) => Codecs::none(list.clone()),
+        }
     }
 
     /// Read the codec of every clip that is new or changed since it was last read; forget clips that are gone.

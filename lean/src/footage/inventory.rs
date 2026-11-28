@@ -24,22 +24,31 @@ pub struct Codecs {
 impl Codecs {
     /// `known`: (rel, codec) as the catalog has them; rels not in the list are left out
     pub fn new(list: std::sync::Arc<crate::scanner::FileList>, known: impl IntoIterator<Item = (String, Option<String>)>) -> Codecs {
-        let mut code = vec![0u16; list.len()];
-        let mut names: Vec<String> = Vec::new();
+        let mut codecs = Codecs::none(list);
         for (rel, c) in known {
-            let Some(i) = list.position(&rel) else { continue };
-            code[i] = match c {
-                None => 1,
-                Some(c) => match names.iter().position(|n| *n == c) {
-                    Some(n) => n as u16 + 2,
-                    None => {
-                        names.push(c);
-                        names.len() as u16 + 1
-                    }
-                },
-            };
+            codecs.set(&rel, c.as_deref());
         }
-        Codecs { list, code, names }
+        codecs
+    }
+
+    /// No codec read yet of any file of the list.
+    pub fn none(list: std::sync::Arc<crate::scanner::FileList>) -> Codecs {
+        Codecs { code: vec![0u16; list.len()], list, names: Vec::new() }
+    }
+
+    /// The codec read of `rel` (a rel not in the list is left out).
+    pub fn set(&mut self, rel: &str, c: Option<&str>) {
+        let Some(i) = self.list.position(rel) else { return };
+        self.code[i] = match c {
+            None => 1,
+            Some(c) => match self.names.iter().position(|n| *n == c) {
+                Some(n) => n as u16 + 2,
+                None => {
+                    self.names.push(c.to_string());
+                    self.names.len() as u16 + 1
+                }
+            },
+        };
     }
 
     fn name(&self, c: u16) -> Option<&str> {
