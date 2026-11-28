@@ -159,8 +159,10 @@ fn duration_of(ffprobe: &str, file: &Path) -> Result<Option<f64>, String> {
     let args: [&std::ffi::OsStr; 7] = ["-v".as_ref(), "error".as_ref(), "-show_entries".as_ref(), "format=duration".as_ref(), "-of".as_ref(), "csv=p=0".as_ref(), file.as_os_str()];
     // (killed after 30 s; one stuck where SIGKILL waits is reaped on a thread of its own)
     let r = crate::ops::gpu::run_os(ffprobe, &args, Duration::from_secs(30));
-    if r.code.is_none() && !r.timed_out {
-        return Err(format!("{ffprobe} could not be started"));
+    // (only a program that could not be started stops the benchmark; one that was killed
+    // or timed out skips this clip, as before)
+    if let Some(e) = r.spawn_error {
+        return Err(e);
     }
     let s = r.stdout.trim().parse::<f64>().ok().filter(|s| s.is_finite() && *s > 0.0);
     Ok(s)
@@ -338,5 +340,17 @@ impl NodeBenchmark {
         let Some(s) = g.get(id) else { return Value::Null };
         json!({ "state": s.state, "phase": s.phase, "codec": s.codec, "results": s.results, "suggested": s.suggested, "error": s.error,
             "startedAt": s.started_at, "endedAt": s.ended_at, "samples": s.samples.filter(|n| *n > 0), "converted": s.converted })
+    }
+}
+
+#[cfg(test)]
+mod duration_tests {
+    use std::path::Path;
+
+    // only an ffprobe that cannot be started stops the benchmark; a clip it fails on is skipped
+    #[test]
+    fn a_clip_ffprobe_fails_on_is_skipped() {
+        assert!(super::duration_of("/nonexistent/ffprobe", Path::new("x.mp4")).is_err());
+        assert_eq!(super::duration_of("false", Path::new("x.mp4")), Ok(None));
     }
 }

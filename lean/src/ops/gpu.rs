@@ -17,6 +17,8 @@ pub struct RunResult {
     pub stderr: String,
     /// it missed its deadline and was killed, or an earlier run is still stuck
     pub timed_out: bool,
+    /// why it could not be started at all (not found, not executable)
+    pub spawn_error: Option<String>,
 }
 
 pub type Runner = dyn Fn(&str, &[&str], Duration) -> RunResult + Send + Sync;
@@ -55,8 +57,9 @@ pub fn run_os<S: AsRef<std::ffi::OsStr>>(cmd: &str, args: &[S], timeout: Duratio
     if hung().contains(&key) {
         return RunResult { code: None, stderr: STILL_HUNG.into(), timed_out: true, ..Default::default() };
     }
-    let Ok(mut child) = Command::new(cmd).args(args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn() else {
-        return RunResult { code: None, ..Default::default() };
+    let mut child = match Command::new(cmd).args(args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn() {
+        Ok(c) => c,
+        Err(e) => return RunResult { code: None, spawn_error: Some(e.to_string()), ..Default::default() },
     };
     let (mut out, mut err) = (child.stdout.take().unwrap(), child.stderr.take().unwrap());
     let (tx, rx) = std::sync::mpsc::channel();
@@ -567,6 +570,15 @@ mod tests {
         let out = detect_gpus(&o, &runner(fail(), late));
         assert!(out["hints"].as_array().unwrap().iter().any(|h| h.as_str().unwrap().starts_with("nvidia-smi did not answer")), "{}", out["hints"]);
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    // a program that cannot be started says why; one killed by a signal is not that
+    #[test]
+    fn a_program_that_cannot_start_says_why() {
+        let r = run("/nonexistent/tool", &[], Duration::from_secs(5));
+        assert!(r.spawn_error.is_some() && r.code.is_none() && !r.timed_out, "{r:?}");
+        let r = run("sh", &["-c", "kill -9 $$"], Duration::from_secs(5));
+        assert!(r.spawn_error.is_none() && r.code.is_none() && !r.timed_out, "{r:?}");
     }
 
     #[test]

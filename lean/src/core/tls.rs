@@ -101,6 +101,9 @@ fn openssl(args: &[&str]) -> Result<(), String> {
     if out.code == Some(0) {
         return Ok(());
     }
+    if let Some(e) = &out.spawn_error {
+        return Err(format!("openssl {} failed: {e}", args[0]));
+    }
     if out.timed_out {
         return Err(format!("openssl {} failed: it did not finish within a minute", args[0]));
     }
